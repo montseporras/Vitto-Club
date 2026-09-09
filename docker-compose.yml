@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: vitto_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vitto
+      POSTGRES_PASSWORD: vitto_dev
+      POSTGRES_DB: vitto_club
+    ports:
+      - "5433:5432"
+    volumes:
+      - vitto_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vitto -d vitto_club"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Opcional: interfaz web para mirar la base.
+  # Solo arranca si lo pedís con: docker compose --profile tools up -d
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: vitto_pgadmin
+    restart: unless-stopped
+    profiles: ["tools"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@vitto.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  vitto_pgdata:
