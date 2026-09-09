@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RolEmpleado {
+  ADMINISTRADOR
+  CAJERO
+}
+
+enum TipoDocumento {
+  DNI
+  PASAPORTE
+}
+
+/// RF-01 a RF-04. Datos obligatorios: nombre, apellido, teléfono y rol.
+model Empleado {
+  id        Int         @id @default(autoincrement())
+  nombre    String      @db.VarChar(80)
+  apellido  String      @db.VarChar(80)
+  telefono  String      @db.VarChar(30)
+  email           String        @db.VarChar(150)
+  rol       RolEmpleado
+
+  // RF-04: baja lógica, no se borra el registro
+  activo    Boolean     @default(true)
+  fechaBaja DateTime?   @map("fecha_baja")
+
+  creadoEn      DateTime @default(now()) @map("creado_en")
+  actualizadoEn DateTime @updatedAt      @map("actualizado_en")
+
+  @@index([activo])
+  @@map("empleados")
+}
+
+/// RF-015 a RF-018. Obligatorios: nombre, apellido, documento, teléfono, email.
+/// Opcionales: fecha de nacimiento y fotografía.
+model Cliente {
+  id              Int           @id @default(autoincrement())
+  nombre          String        @db.VarChar(80)
+  apellido        String        @db.VarChar(80)
+  tipoDocumento   TipoDocumento @map("tipo_documento")
+  numeroDocumento String        @map("numero_documento") @db.VarChar(20)
+  telefono        String        @db.VarChar(30)
+  email           String        @db.VarChar(150)
+
+  fechaNacimiento DateTime? @map("fecha_nacimiento") @db.Date
+
+  // RF-018: baja lógica, conservando el historial
+  activo    Boolean   @default(true)
+  fechaBaja DateTime? @map("fecha_baja")
+
+  creadoEn      DateTime @default(now()) @map("creado_en")
+  actualizadoEn DateTime @updatedAt      @map("actualizado_en")
+
+  // El documento identifica al cliente en el mostrador (RF-019): no se repite
+  @@unique([tipoDocumento, numeroDocumento], name: "documento_unico")
+  @@index([apellido, nombre])
+  @@index([activo])
+  @@map("clientes")
+}
