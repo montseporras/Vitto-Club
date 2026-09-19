@@ -1,8 +1,9 @@
 import { NavLink, Outlet } from 'react-router'
+import { PATHS } from '@/app/router/paths'
 import { cn } from '@/shared/lib/utils'
 
 // Pantalla completa, botones grandes, sin sidebar (RNF-1, RNF-2, RNF-5).
-const NAV: { to: string; label: string }[] = []
+const NAV = [{ to: PATHS.caja.altaCliente, label: 'Alta manual de cliente' }]
 
 export function CajeroLayout() {
   return (

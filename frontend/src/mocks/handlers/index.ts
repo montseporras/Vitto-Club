@@ -1,2 +1,3 @@
-// Un archivo de handlers por feature (ver doc de estructura, sección 04).
-export const handlers = []
+import { cajaHandlers } from './caja.handlers'
+
+export const handlers = [...cajaHandlers]
