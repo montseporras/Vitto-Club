@@ -3,20 +3,25 @@ import type { ComponentProps } from 'react'
 import { cn } from '@/shared/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-[var(--radius)] font-heading font-extrabold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50',
+  [
+    'inline-flex cursor-pointer items-center justify-center gap-2 rounded-full',
+    'font-heading font-extrabold transition-[background-color,box-shadow,transform] active:translate-y-px',
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+    'disabled:pointer-events-none disabled:opacity-60',
+  ],
   {
     variants: {
       variant: {
         primary:
-          'bg-accent text-bg hover:bg-accent-600 active:bg-accent-700',
+          'bg-accent text-bg shadow-sm hover:bg-accent-600 hover:shadow-md active:bg-accent-700',
         secondary:
-          'border border-divider bg-transparent text-text hover:bg-surface',
-        ghost: 'bg-transparent text-text hover:bg-surface',
+          'border border-divider/60 bg-bg/70 text-text hover:bg-surface',
+        ghost: 'text-text hover:bg-surface',
       },
       size: {
         md: 'h-10 px-4 text-sm',
         // RNF-1/RNF-2: botones grandes en la pantalla de caja
-        lg: 'h-12 px-6 text-base',
+        lg: 'h-12 px-7 text-base',
       },
     },
     defaultVariants: { variant: 'primary', size: 'md' },

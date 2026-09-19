@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { TIPOS_DOCUMENTO, TIPOS_DOCUMENTO_VALUES } from '@/domain/documentos'
 import { FormField } from '@/shared/components/forms/FormField'
+import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio'
 import { Alert } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
@@ -21,6 +22,11 @@ const VALORES_INICIALES: AltaClienteFormInput = {
   telefono: '',
 }
 
+const OPCIONES_DOCUMENTO = TIPOS_DOCUMENTO_VALUES.map((tipo) => ({
+  value: tipo,
+  label: TIPOS_DOCUMENTO[tipo].label,
+}))
+
 /** US-17 · RF-015: el Cajero da de alta a un cliente que no encontró por documento. */
 export function AltaManualClientePage() {
   const {
@@ -31,6 +37,7 @@ export function AltaManualClientePage() {
     setFocus,
     trigger,
     getValues,
+    control,
     formState: { errors },
   } = useForm<AltaClienteFormInput, unknown, AltaClienteFormOutput>({
     resolver: zodResolver(altaClienteSchema),
@@ -66,27 +73,34 @@ export function AltaManualClientePage() {
 
   const creado = registrar.isSuccess ? registrar.data : undefined
   const errorGeneral =
-    registrar.isError && registrar.error.status !== 409 ? registrar.error : undefined
+    registrar.isError && registrar.error.status !== 409
+      ? registrar.error
+      : undefined
+  const esDni = useWatch({ control, name: 'tipoDocumento' }) === 'DNI'
 
   return (
-    <section className="rounded-[var(--radius)] border-2 border-divider bg-bg p-4 shadow-sm sm:p-6">
-      <h2 className="text-2xl">Alta manual de cliente</h2>
-      <p className="mt-1 text-sm text-neutral-700">
+    <section className="mx-auto w-full max-w-3xl">
+      <p className="font-heading text-xs font-extrabold uppercase tracking-[0.12em] text-accent-700">
+        Clientes
+      </p>
+      <h2 className="mt-1 text-2xl sm:text-3xl">Alta manual de cliente</h2>
+      <p className="mt-2 text-sm text-neutral-700">
         Registrá al cliente cuando no lo encontrás por documento.
       </p>
 
       {creado && (
-        <Alert variant="success" className="mt-4">
+        <Alert variant="success" className="mt-5">
           Cliente registrado correctamente:{' '}
           <strong>
             {creado.nombre} {creado.apellido}
           </strong>{' '}
-          ({TIPOS_DOCUMENTO[creado.tipoDocumento].label} {creado.numeroDocumento}).
+          ({TIPOS_DOCUMENTO[creado.tipoDocumento].label}{' '}
+          {creado.numeroDocumento}).
         </Alert>
       )}
 
       {errorGeneral && (
-        <Alert variant="error" className="mt-4">
+        <Alert variant="error" className="mt-5">
           {errorGeneral.status === 400
             ? 'Revisá los datos: el servidor rechazó el alta.'
             : 'No se pudo registrar el cliente.'}
@@ -103,82 +117,98 @@ export function AltaManualClientePage() {
       <form
         noValidate
         onSubmit={handleSubmit(onSubmit)}
-        className="mt-6 grid max-w-3xl gap-4 sm:grid-cols-2"
+        className="mt-6 rounded-2xl border border-divider/50 bg-bg/80 p-5 shadow-lg backdrop-blur-sm sm:p-8"
       >
-        <FormField id="nombre" label="Nombre" error={errors.nombre?.message}>
-          <Input autoFocus autoComplete="off" {...a11y('nombre')} {...register('nombre')} />
-        </FormField>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <FormField id="nombre" label="Nombre" error={errors.nombre?.message}>
+            <Input
+              autoFocus
+              autoComplete="off"
+              {...a11y('nombre')}
+              {...register('nombre')}
+            />
+          </FormField>
 
-        <FormField id="apellido" label="Apellido" error={errors.apellido?.message}>
-          <Input autoComplete="off" {...a11y('apellido')} {...register('apellido')} />
-        </FormField>
+          <FormField
+            id="apellido"
+            label="Apellido"
+            error={errors.apellido?.message}
+          >
+            <Input
+              autoComplete="off"
+              {...a11y('apellido')}
+              {...register('apellido')}
+            />
+          </FormField>
 
-        <fieldset className="flex flex-col gap-1.5">
-          <legend className="mb-1.5 text-sm font-semibold">Tipo de documento</legend>
-          <div className="flex h-10 items-center gap-5">
-            {TIPOS_DOCUMENTO_VALUES.map((tipo) => (
-              <label key={tipo} className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  value={tipo}
-                  className="size-4 accent-accent"
-                  {...register('tipoDocumento', {
-                    // El formato válido depende del tipo: revalida el número ya escrito
-                    onChange: () => {
-                      if (getValues('numeroDocumento')) trigger('numeroDocumento')
-                    },
-                  })}
-                />
-                {TIPOS_DOCUMENTO[tipo].label}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        <FormField
-          id="numeroDocumento"
-          label="Número de documento"
-          error={errors.numeroDocumento?.message}
-        >
-          <Input
-            placeholder="30111222"
-            autoComplete="off"
-            {...a11y('numeroDocumento')}
-            {...register('numeroDocumento')}
+          <SegmentedRadio
+            legend="Tipo de documento"
+            opciones={OPCIONES_DOCUMENTO}
+            field={register('tipoDocumento', {
+              // El formato válido depende del tipo: revalida el número ya escrito
+              onChange: () => {
+                if (getValues('numeroDocumento')) trigger('numeroDocumento')
+              },
+            })}
           />
-        </FormField>
 
-        <FormField id="email" label="Correo electrónico" error={errors.email?.message}>
-          <Input
-            type="email"
-            placeholder="cliente@mail.com"
-            autoComplete="off"
-            {...a11y('email')}
-            {...register('email')}
-          />
-        </FormField>
+          <FormField
+            id="numeroDocumento"
+            label="Número de documento"
+            error={errors.numeroDocumento?.message}
+            hint={esDni ? 'Sin puntos ni espacios' : undefined}
+          >
+            <Input
+              inputMode={esDni ? 'numeric' : 'text'}
+              placeholder="30111222"
+              autoComplete="off"
+              {...a11y('numeroDocumento')}
+              {...register('numeroDocumento')}
+            />
+          </FormField>
 
-        <FormField
-          id="telefono"
-          label="Teléfono (opcional)"
-          error={errors.telefono?.message}
-        >
-          <Input
-            type="tel"
-            placeholder="351 1234567"
-            autoComplete="off"
-            {...a11y('telefono')}
-            {...register('telefono')}
-          />
-        </FormField>
+          <FormField
+            id="email"
+            label="Correo electrónico"
+            error={errors.email?.message}
+          >
+            <Input
+              type="email"
+              inputMode="email"
+              placeholder="cliente@mail.com"
+              autoComplete="off"
+              {...a11y('email')}
+              {...register('email')}
+            />
+          </FormField>
 
-        <p className="text-xs text-neutral-600 sm:col-span-2">
-          Obligatorio: nombre, apellido, tipo y número de documento, y correo
-          electrónico.
-        </p>
+          <FormField
+            id="telefono"
+            label="Teléfono (opcional)"
+            error={errors.telefono?.message}
+          >
+            <Input
+              type="tel"
+              inputMode="tel"
+              placeholder="351 1234567"
+              autoComplete="off"
+              {...a11y('telefono')}
+              {...register('telefono')}
+            />
+          </FormField>
+        </div>
 
-        <div className="sm:col-span-2">
-          <Button type="submit" size="lg" disabled={registrar.isPending}>
+        <div className="mt-7 flex flex-col-reverse gap-3 border-t border-divider/40 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-neutral-600">
+            Obligatorio: nombre, apellido, tipo y número de documento, y correo
+            electrónico.
+          </p>
+          <Button
+            type="submit"
+            size="lg"
+            disabled={registrar.isPending}
+            className="w-full sm:w-auto"
+          >
             {registrar.isPending ? 'Registrando…' : 'Registrar cliente'}
           </Button>
         </div>

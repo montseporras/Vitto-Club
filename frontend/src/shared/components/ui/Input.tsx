@@ -5,9 +5,12 @@ export function Input({ className, ...props }: ComponentProps<'input'>) {
   return (
     <input
       className={cn(
-        'h-10 w-full rounded-[var(--radius)] border border-divider bg-bg px-3 text-sm text-text placeholder:text-neutral-500',
-        'focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-accent-200',
-        'aria-invalid:border-accent-700 aria-invalid:outline-accent-200',
+        // text-base en mobile evita el zoom automático de iOS al enfocar
+        'h-11 w-full rounded-xl border border-divider/60 bg-bg/90 px-3.5 text-base text-text shadow-xs transition',
+        'placeholder:text-neutral-500 sm:text-sm',
+        'hover:border-divider',
+        'focus-visible:border-accent focus-visible:ring-4 focus-visible:ring-accent-200/60 focus-visible:outline-none',
+        'aria-invalid:border-accent-600 aria-invalid:ring-4 aria-invalid:ring-accent-100',
         'disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
