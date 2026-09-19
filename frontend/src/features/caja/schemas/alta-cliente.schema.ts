@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { TIPOS_DOCUMENTO_VALUES } from '@/domain/documentos'
+import { DOCUMENT_TYPE_VALUES } from '@/domain/documents'
 
 // RF-015. Obligatorios: nombre, apellido, tipo y número de documento, correo.
 // Largos máximos iguales a las columnas de la tabla `clientes`.
@@ -15,7 +15,7 @@ export const altaClienteSchema = z
       .trim()
       .min(1, 'Ingresá el apellido')
       .max(80, 'Máximo 80 caracteres'),
-    tipoDocumento: z.enum(TIPOS_DOCUMENTO_VALUES),
+    tipoDocumento: z.enum(DOCUMENT_TYPE_VALUES),
     // Se aceptan puntos, espacios y guiones al tipear ("30.111.222") y se quitan.
     numeroDocumento: z
       .string()
@@ -37,6 +37,24 @@ export const altaClienteSchema = z
       .trim()
       .max(30, 'Máximo 30 caracteres')
       .regex(/^[\d\s()+-]*$/, 'Solo números, espacios, +, - y paréntesis')
+      .optional()
+      .transform((v) => v || undefined),
+    // RF-015: opcional. El input date entrega 'YYYY-MM-DD'.
+    fechaNacimiento: z
+      .string()
+      .optional()
+      .superRefine((value, ctx) => {
+        if (!value) return
+        const date = new Date(value)
+        const problem = Number.isNaN(date.getTime())
+          ? 'Fecha inválida'
+          : date > new Date()
+            ? 'La fecha no puede ser futura'
+            : date.getFullYear() < 1900
+              ? 'Revisá el año de nacimiento'
+              : undefined
+        if (problem) ctx.addIssue({ code: 'custom', message: problem })
+      })
       .transform((v) => v || undefined),
   })
   .superRefine((data, ctx) => {

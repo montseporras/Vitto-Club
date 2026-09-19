@@ -1,10 +1,10 @@
 import { toApiError } from '@/shared/api/ApiError'
 import { http } from '@/shared/api/http'
-import type { Cliente, RegistrarClienteDTO } from '../types/cliente'
+import type { Client, CreateClientBody } from '../types/cliente'
 
-export async function registrarCliente(data: RegistrarClienteDTO) {
+export async function createClient(body: CreateClientBody) {
   try {
-    const res = await http.post<Cliente>('/clientes', data)
+    const res = await http.post<Client>('/clientes', body)
     return res.data
   } catch (error) {
     throw toApiError(error)

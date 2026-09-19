@@ -1,9 +1,9 @@
 import { delay, http, HttpResponse } from 'msw'
-import type { Cliente, RegistrarClienteDTO } from '@/features/caja'
+import type { Client, CreateClientBody } from '@/features/caja'
 import { API_URL } from '@/shared/api/http'
 
 // Mismos clientes que backend/prisma/seed.ts, para probar el documento duplicado.
-const clientes: Cliente[] = [
+const clients: Client[] = [
   {
     id: 1,
     nombre: 'Lucía',
@@ -13,6 +13,7 @@ const clientes: Cliente[] = [
     telefono: '3511111111',
     email: 'lucia@example.com',
     fechaNacimiento: '1998-05-14T00:00:00.000Z',
+    fotoUrl: null,
     activo: true,
     creadoEn: new Date().toISOString(),
   },
@@ -25,6 +26,7 @@ const clientes: Cliente[] = [
     telefono: '3512222222',
     email: 'martin@example.com',
     fechaNacimiento: null,
+    fotoUrl: null,
     activo: true,
     creadoEn: new Date().toISOString(),
   },
@@ -32,19 +34,19 @@ const clientes: Cliente[] = [
 
 export const cajaHandlers = [
   // RF-015: respuestas con el mismo formato que NestJS (201 / 400 / 409).
-  http.post<never, RegistrarClienteDTO>(
+  http.post<never, CreateClientBody>(
     `${API_URL}/clientes`,
     async ({ request }) => {
       await delay(400)
       const body = await request.json()
 
-      const faltantes = (
+      const missing = (
         ['nombre', 'apellido', 'tipoDocumento', 'numeroDocumento', 'email'] as const
-      ).filter((campo) => !body[campo])
-      if (faltantes.length) {
+      ).filter((field) => !body[field])
+      if (missing.length) {
         return HttpResponse.json(
           {
-            message: faltantes.map((c) => `${c} should not be empty`),
+            message: missing.map((field) => `${field} should not be empty`),
             error: 'Bad Request',
             statusCode: 400,
           },
@@ -52,12 +54,12 @@ export const cajaHandlers = [
         )
       }
 
-      const existe = clientes.some(
-        (c) =>
-          c.tipoDocumento === body.tipoDocumento &&
-          c.numeroDocumento === body.numeroDocumento,
+      const exists = clients.some(
+        (client) =>
+          client.tipoDocumento === body.tipoDocumento &&
+          client.numeroDocumento === body.numeroDocumento,
       )
-      if (existe) {
+      if (exists) {
         return HttpResponse.json(
           {
             message: `Ya existe un cliente con ${body.tipoDocumento} ${body.numeroDocumento}`,
@@ -68,16 +70,21 @@ export const cajaHandlers = [
         )
       }
 
-      const nuevo: Cliente = {
-        id: clientes.length + 1,
-        ...body,
-        telefono: body.telefono ?? null,
-        fechaNacimiento: null,
+      const { foto, ...data } = body
+      const created: Client = {
+        id: clients.length + 1,
+        ...data,
+        telefono: data.telefono ?? null,
+        fechaNacimiento: data.fechaNacimiento
+          ? new Date(data.fechaNacimiento).toISOString()
+          : null,
+        // Provisorio: el backend real va a devolver la URL del archivo guardado
+        fotoUrl: foto ?? null,
         activo: true,
         creadoEn: new Date().toISOString(),
       }
-      clientes.push(nuevo)
-      return HttpResponse.json(nuevo, { status: 201 })
+      clients.push(created)
+      return HttpResponse.json(created, { status: 201 })
     },
   ),
 ]

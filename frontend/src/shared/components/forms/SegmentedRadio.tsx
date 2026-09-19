@@ -1,17 +1,17 @@
 import type { UseFormRegisterReturn } from 'react-hook-form'
 
-type Opcion = { value: string; label: string }
+type Option = { value: string; label: string }
 
 type SegmentedRadioProps = {
   legend: string
-  opciones: Opcion[]
+  options: Option[]
   field: UseFormRegisterReturn
 }
 
 /** Grupo de radios con forma de control segmentado: cómodo de tocar en caja. */
 export function SegmentedRadio({
   legend,
-  opciones,
+  options,
   field,
 }: SegmentedRadioProps) {
   return (
@@ -20,11 +20,11 @@ export function SegmentedRadio({
         {legend}
       </legend>
       <div className="grid grid-cols-2 gap-1 rounded-xl border border-divider/60 bg-surface/70 p-1">
-        {opciones.map((opcion) => (
-          <label key={opcion.value} className="cursor-pointer">
+        {options.map((option) => (
+          <label key={option.value} className="cursor-pointer">
             <input
               type="radio"
-              value={opcion.value}
+              value={option.value}
               className="peer sr-only"
               {...field}
             />
@@ -36,7 +36,7 @@ export function SegmentedRadio({
                 'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent',
               ].join(' ')}
             >
-              {opcion.label}
+              {option.label}
             </span>
           </label>
         ))}

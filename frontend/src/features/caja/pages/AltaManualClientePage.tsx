@@ -1,30 +1,37 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { TIPOS_DOCUMENTO, TIPOS_DOCUMENTO_VALUES } from '@/domain/documentos'
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
 import { FormField } from '@/shared/components/forms/FormField'
+import { ImageUploader } from '@/shared/components/forms/ImageUploader'
 import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio'
 import { Alert } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
-import { useRegistrarCliente } from '../api/caja.queries'
+import { validatePhoto } from '@/shared/lib/image'
+import { useCreateClient } from '../api/caja.queries'
+import { fileToDataUrl } from '../lib/fileToDataUrl'
 import {
   altaClienteSchema,
   type AltaClienteFormInput,
   type AltaClienteFormOutput,
 } from '../schemas/alta-cliente.schema'
 
-const VALORES_INICIALES: AltaClienteFormInput = {
+const INITIAL_VALUES: AltaClienteFormInput = {
   nombre: '',
   apellido: '',
   tipoDocumento: 'DNI',
   numeroDocumento: '',
   email: '',
   telefono: '',
+  fechaNacimiento: '',
 }
 
-const OPCIONES_DOCUMENTO = TIPOS_DOCUMENTO_VALUES.map((tipo) => ({
-  value: tipo,
-  label: TIPOS_DOCUMENTO[tipo].label,
+const TODAY = new Date().toISOString().slice(0, 10)
+
+const DOCUMENT_OPTIONS = DOCUMENT_TYPE_VALUES.map((type) => ({
+  value: type,
+  label: DOCUMENT_TYPES[type].label,
 }))
 
 /** US-17 · RF-015: el Cajero da de alta a un cliente que no encontró por documento. */
@@ -41,42 +48,59 @@ export function AltaManualClientePage() {
     formState: { errors },
   } = useForm<AltaClienteFormInput, unknown, AltaClienteFormOutput>({
     resolver: zodResolver(altaClienteSchema),
-    defaultValues: VALORES_INICIALES,
+    defaultValues: INITIAL_VALUES,
     mode: 'onTouched',
   })
-  const registrar = useRegistrarCliente()
+  const createClient = useCreateClient()
+  const [photo, setPhoto] = useState<File | null>(null)
+  const [photoError, setPhotoError] = useState<string>()
 
-  const onSubmit = (data: AltaClienteFormOutput) => {
-    registrar.mutate(data, {
-      onSuccess: () => {
-        reset(VALORES_INICIALES)
-        setFocus('nombre')
+  const handlePhotoChange = (file: File | null) => {
+    const error = file ? validatePhoto(file) : undefined
+    setPhotoError(error)
+    setPhoto(error ? null : file)
+  }
+
+  const onSubmit = async (data: AltaClienteFormOutput) => {
+    if (photoError) return
+    const foto = photo ? await fileToDataUrl(photo) : undefined
+
+    createClient.mutate(
+      { ...data, foto },
+      {
+        onSuccess: () => {
+          reset(INITIAL_VALUES)
+          setPhoto(null)
+          setFocus('nombre')
+        },
+        onError: (error) => {
+          if (error.status === 409) {
+            setError(
+              'numeroDocumento',
+              { message: 'Ya existe un cliente registrado con este documento' },
+              { shouldFocus: true },
+            )
+          }
+        },
       },
-      onError: (error) => {
-        if (error.status === 409) {
-          setError(
-            'numeroDocumento',
-            { message: 'Ya existe un cliente registrado con este documento' },
-            { shouldFocus: true },
-          )
-        }
-      },
-    })
+    )
   }
 
   // Props comunes de accesibilidad para cada input con su mensaje de error
-  const a11y = (campo: Exclude<keyof AltaClienteFormInput, 'tipoDocumento'>) => ({
-    id: campo,
-    'aria-invalid': errors[campo] ? true : undefined,
-    'aria-describedby': errors[campo] ? `${campo}-error` : undefined,
+  const a11y = (
+    field: Exclude<keyof AltaClienteFormInput, 'tipoDocumento'>,
+  ) => ({
+    id: field,
+    'aria-invalid': errors[field] ? true : undefined,
+    'aria-describedby': errors[field] ? `${field}-error` : undefined,
   })
 
-  const creado = registrar.isSuccess ? registrar.data : undefined
-  const errorGeneral =
-    registrar.isError && registrar.error.status !== 409
-      ? registrar.error
+  const created = createClient.isSuccess ? createClient.data : undefined
+  const generalError =
+    createClient.isError && createClient.error.status !== 409
+      ? createClient.error
       : undefined
-  const esDni = useWatch({ control, name: 'tipoDocumento' }) === 'DNI'
+  const isDni = useWatch({ control, name: 'tipoDocumento' }) === 'DNI'
 
   return (
     <section className="mx-auto w-full max-w-3xl">
@@ -88,26 +112,37 @@ export function AltaManualClientePage() {
         Registrá al cliente cuando no lo encontrás por documento.
       </p>
 
-      {creado && (
+      {created && (
         <Alert variant="success" className="mt-5">
-          Cliente registrado correctamente:{' '}
-          <strong>
-            {creado.nombre} {creado.apellido}
-          </strong>{' '}
-          ({TIPOS_DOCUMENTO[creado.tipoDocumento].label}{' '}
-          {creado.numeroDocumento}).
+          <div className="flex items-center gap-3">
+            {created.fotoUrl && (
+              <img
+                src={created.fotoUrl}
+                alt=""
+                className="size-10 shrink-0 rounded-full object-cover"
+              />
+            )}
+            <p>
+              Cliente registrado correctamente:{' '}
+              <strong>
+                {created.nombre} {created.apellido}
+              </strong>{' '}
+              ({DOCUMENT_TYPES[created.tipoDocumento].label}{' '}
+              {created.numeroDocumento}).
+            </p>
+          </div>
         </Alert>
       )}
 
-      {errorGeneral && (
+      {generalError && (
         <Alert variant="error" className="mt-5">
-          {errorGeneral.status === 400
+          {generalError.status === 400
             ? 'Revisá los datos: el servidor rechazó el alta.'
             : 'No se pudo registrar el cliente.'}
-          {errorGeneral.messages.length > 0 && (
+          {generalError.messages.length > 0 && (
             <ul className="mt-1 list-disc pl-5">
-              {errorGeneral.messages.map((m) => (
-                <li key={m}>{m}</li>
+              {generalError.messages.map((message) => (
+                <li key={message}>{message}</li>
               ))}
             </ul>
           )}
@@ -120,6 +155,15 @@ export function AltaManualClientePage() {
         className="mt-6 rounded-2xl border border-divider/50 bg-bg/80 p-5 shadow-lg backdrop-blur-sm sm:p-8"
       >
         <div className="grid gap-5 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <ImageUploader
+              label="Fotografía"
+              value={photo}
+              onChange={handlePhotoChange}
+              error={photoError}
+            />
+          </div>
+
           <FormField id="nombre" label="Nombre" error={errors.nombre?.message}>
             <Input
               autoFocus
@@ -143,7 +187,7 @@ export function AltaManualClientePage() {
 
           <SegmentedRadio
             legend="Tipo de documento"
-            opciones={OPCIONES_DOCUMENTO}
+            options={DOCUMENT_OPTIONS}
             field={register('tipoDocumento', {
               // El formato válido depende del tipo: revalida el número ya escrito
               onChange: () => {
@@ -156,10 +200,9 @@ export function AltaManualClientePage() {
             id="numeroDocumento"
             label="Número de documento"
             error={errors.numeroDocumento?.message}
-            hint={esDni ? 'Sin puntos ni espacios' : undefined}
           >
             <Input
-              inputMode={esDni ? 'numeric' : 'text'}
+              inputMode={isDni ? 'numeric' : 'text'}
               placeholder="30111222"
               autoComplete="off"
               {...a11y('numeroDocumento')}
@@ -184,7 +227,7 @@ export function AltaManualClientePage() {
 
           <FormField
             id="telefono"
-            label="Teléfono (opcional)"
+            label="Teléfono"
             error={errors.telefono?.message}
           >
             <Input
@@ -196,20 +239,29 @@ export function AltaManualClientePage() {
               {...register('telefono')}
             />
           </FormField>
+
+          <FormField
+            id="fechaNacimiento"
+            label="Fecha de nacimiento"
+            error={errors.fechaNacimiento?.message}
+          >
+            <Input
+              type="date"
+              max={TODAY}
+              {...a11y('fechaNacimiento')}
+              {...register('fechaNacimiento')}
+            />
+          </FormField>
         </div>
 
-        <div className="mt-7 flex flex-col-reverse gap-3 border-t border-divider/40 pt-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-neutral-600">
-            Obligatorio: nombre, apellido, tipo y número de documento, y correo
-            electrónico.
-          </p>
+        <div className="mt-7 flex justify-end border-t border-divider/40 pt-5">
           <Button
             type="submit"
             size="lg"
-            disabled={registrar.isPending}
+            disabled={createClient.isPending}
             className="w-full sm:w-auto"
           >
-            {registrar.isPending ? 'Registrando…' : 'Registrar cliente'}
+            {createClient.isPending ? 'Registrando…' : 'Registrar cliente'}
           </Button>
         </div>
       </form>
