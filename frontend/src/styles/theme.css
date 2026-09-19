@@ -1,0 +1,33 @@
+/* Tokens de marca La Vitto, tomados del prototipo interactivo. */
+@theme {
+  --color-accent: #e2660a;
+  --color-accent-100: #fdead9;
+  --color-accent-200: #fbd2ad;
+  --color-accent-300: #f7b17a;
+  --color-accent-400: #ef8c45;
+  --color-accent-500: #e2660a;
+  --color-accent-600: #bf5406;
+  --color-accent-700: #8f3f05;
+  --color-accent-800: #663005;
+  --color-accent-900: #402103;
+
+  --color-bg: #f3f2f2;
+  --color-surface: #eae9e9;
+  --color-text: #201e1d;
+  --color-divider: color-mix(in srgb, #201e1d 40%, transparent);
+
+  --color-neutral-100: #f8f4f4;
+  --color-neutral-200: #eae7e7;
+  --color-neutral-300: #d7d3d3;
+  --color-neutral-400: #bab6b6;
+  --color-neutral-500: #9b9797;
+  --color-neutral-600: #7d7979;
+  --color-neutral-700: #605d5d;
+  --color-neutral-800: #444141;
+  --color-neutral-900: #2d2b2b;
+
+  --font-sans: 'Archivo', system-ui, sans-serif;
+  --font-heading: 'Archivo', system-ui, sans-serif;
+
+  --radius: 10px;
+}
