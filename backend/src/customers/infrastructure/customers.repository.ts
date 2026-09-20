@@ -1,50 +1,85 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { Customer, DocumentType } from "../domain/customer";
-import { CustomerRepository, CustomerListParams, CustomerListResult } from "../domain/port/customer.repository";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import type { Customer as PrismaCustomerRecord } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
+import { Customer, DocumentType } from '../domain/customer';
+import {
+  CustomerRepository,
+  CustomerListParams,
+  CustomerListResult,
+} from '../domain/port/customer.repository';
+
+function toDomain(record: PrismaCustomerRecord): Customer {
+  return Customer.reconstruct({
+    id: record.id,
+    firstName: record.firstName,
+    lastName: record.lastName,
+    documentType: record.documentType as DocumentType,
+    documentNumber: record.documentNumber,
+    email: record.email,
+    phone: record.phone,
+    dateOfBirth: record.dateOfBirth,
+    active: record.isActive,
+    deactivatedAt: record.deactivatedAt,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+  });
+}
 
 @Injectable()
-export class CustomerInMemoryRepository implements CustomerRepository {
-  private readonly customers: Map<number, Customer> = new Map();
-
-  private autoIncrementId = 1;
+export class CustomerPrismaRepository implements CustomerRepository {
+  constructor(private readonly prisma: PrismaService) {}
 
   async save(customer: Customer): Promise<Customer> {
-    const generatedId = this.autoIncrementId++;
-    const savedCustomer = Customer.reconstruct({
-      id: generatedId,
-      firstName: customer.getFirstName(),
-      lastName: customer.getLastName(),
-      documentType: customer.getDocumentType(),
-      documentNumber: customer.getDocumentNumber(),
-      email: customer.getEmail(),
-      phone: customer.getPhone(),
-      dateOfBirth: customer.getDateOfBirth(),
-      active: customer.isActive(),
-      deactivatedAt: customer.getDeactivatedAt(),
-      createdAt: customer.getCreatedAt(),
-      updatedAt: customer.getUpdatedAt(),
+    const created = await this.prisma.customer.create({
+      data: {
+        firstName: customer.getFirstName(),
+        lastName: customer.getLastName(),
+        documentType: customer.getDocumentType(),
+        documentNumber: customer.getDocumentNumber(),
+        email: customer.getEmail(),
+        phone: customer.getPhone(),
+        dateOfBirth: customer.getDateOfBirth(),
+        isActive: customer.isActive(),
+        deactivatedAt: customer.getDeactivatedAt(),
+      },
     });
 
-    this.customers.set(generatedId, savedCustomer);
-    return savedCustomer;
+    return toDomain(created);
   }
 
   async findById(id: number): Promise<Customer | null> {
-    return this.customers.get(id) || null;
+    const record = await this.prisma.customer.findUnique({ where: { id } });
+    return record ? toDomain(record) : null;
   }
 
   async findAll(): Promise<Customer[]> {
-    return Array.from(this.customers.values());
+    const records = await this.prisma.customer.findMany({
+      orderBy: { id: 'asc' },
+    });
+    return records.map(toDomain);
   }
 
   async update(customer: Customer): Promise<void> {
     const id = customer.getId();
 
-    if (!id || !this.customers.has(id)) {
-      throw new NotFoundException(`Customer with ID ${id} not found`);
+    if (!id) {
+      throw new NotFoundException('Customer id is required to update');
     }
 
-    this.customers.set(id, customer);
+    await this.prisma.customer.update({
+      where: { id },
+      data: {
+        firstName: customer.getFirstName(),
+        lastName: customer.getLastName(),
+        documentType: customer.getDocumentType(),
+        documentNumber: customer.getDocumentNumber(),
+        email: customer.getEmail(),
+        phone: customer.getPhone(),
+        dateOfBirth: customer.getDateOfBirth(),
+        isActive: customer.isActive(),
+        deactivatedAt: customer.getDeactivatedAt(),
+      },
+    });
   }
 
   async existsByDocument(
@@ -52,36 +87,43 @@ export class CustomerInMemoryRepository implements CustomerRepository {
     documentNumber: string,
     excludeId?: number,
   ): Promise<boolean> {
-    return Array.from(this.customers.values()).some(
-      (customer) =>
-        customer.getDocumentType() === documentType &&
-        customer.getDocumentNumber() === documentNumber &&
-        customer.getId() !== excludeId,
-    );
+    const match = await this.prisma.customer.findFirst({
+      where: {
+        documentType,
+        documentNumber,
+        ...(excludeId !== undefined ? { id: { not: excludeId } } : {}),
+      },
+      select: { id: true },
+    });
+
+    return match !== null;
   }
 
   async list(params: CustomerListParams): Promise<CustomerListResult> {
     const { page, limit, nameContains, active } = params;
 
-    let items = Array.from(this.customers.values());
+    const where = {
+      ...(active !== undefined ? { isActive: active } : {}),
+      ...(nameContains
+        ? {
+            OR: [
+              { firstName: { contains: nameContains, mode: 'insensitive' as const } },
+              { lastName: { contains: nameContains, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    };
 
-    if (active !== undefined) {
-      items = items.filter((customer) => customer.isActive() === active);
-    }
+    const [records, total] = await Promise.all([
+      this.prisma.customer.findMany({
+        where,
+        orderBy: { id: 'asc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.customer.count({ where }),
+    ]);
 
-    if (nameContains) {
-      const needle = nameContains.toLowerCase();
-      items = items.filter(
-        (customer) =>
-          customer.getFirstName().toLowerCase().includes(needle) ||
-          customer.getLastName().toLowerCase().includes(needle),
-      );
-    }
-
-    const total = items.length;
-    const start = (page - 1) * limit;
-    const paged = items.slice(start, start + limit);
-
-    return { items: paged, total };
+    return { items: records.map(toDomain), total };
   }
 }

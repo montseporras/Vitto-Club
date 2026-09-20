@@ -1,8 +1,8 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { CustomersController } from './http/customers.controller';
 import { CustomersService } from './application/customers.service';
 import { CustomerRepository } from './domain/port/customer.repository';
-import { CustomerInMemoryRepository } from './infrastructure/customers.repository';
+import { CustomerPrismaRepository } from './infrastructure/customers.repository';
 
 
 @Module({
@@ -13,7 +13,7 @@ import { CustomerInMemoryRepository } from './infrastructure/customers.repositor
     // Vincular la abstracción (puerto) con la implementación en memoria (adaptador)
     {
       provide: CustomerRepository,
-      useClass: CustomerInMemoryRepository,
+      useClass: CustomerPrismaRepository,
     },
   ],
   exports: [CustomersService],
