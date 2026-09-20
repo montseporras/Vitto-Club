@@ -6,59 +6,58 @@ datasource db {
   provider = "postgresql"
 }
 
-enum RolEmpleado {
-  ADMINISTRADOR
-  CAJERO
+enum EmployeeRole {
+  ADMIN
+  CASHIER
 }
 
-enum TipoDocumento {
+enum DocumentType {
   DNI
-  PASAPORTE
+  PASSPORT
 }
 
-/// RF-01 a RF-04. Datos obligatorios: nombre, apellido, teléfono y rol.
-model Empleado {
-  id        Int         @id @default(autoincrement())
-  nombre    String      @db.VarChar(80)
-  apellido  String      @db.VarChar(80)
-  telefono  String      @db.VarChar(30)
-  email           String        @db.VarChar(150)
-  rol       RolEmpleado
+/// Employees: required data: first name, last name, phone and role.
+model Employee {
+  id        Int          @id @default(autoincrement())
+  firstName String       @map("first_name") @db.VarChar(80)
+  lastName  String       @map("last_name") @db.VarChar(80)
+  phone     String       @db.VarChar(30)
+  email     String       @db.VarChar(150)
+  role      EmployeeRole
 
-  // RF-04: baja lógica, no se borra el registro
-  activo    Boolean     @default(true)
-  fechaBaja DateTime?   @map("fecha_baja")
+  // Soft delete: record is kept, not removed
+  isActive      Boolean   @default(true) @map("is_active")
+  deactivatedAt DateTime? @map("deactivated_at")
 
-  creadoEn      DateTime @default(now()) @map("creado_en")
-  actualizadoEn DateTime @updatedAt      @map("actualizado_en")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
 
-  @@index([activo])
-  @@map("empleados")
+  @@index([isActive])
+  @@map("employees")
 }
 
-/// RF-015 a RF-018. Obligatorios: nombre, apellido, documento, teléfono, email.
-/// Opcionales: fecha de nacimiento y fotografía.
-model Cliente {
-  id              Int           @id @default(autoincrement())
-  nombre          String        @db.VarChar(80)
-  apellido        String        @db.VarChar(80)
-  tipoDocumento   TipoDocumento @map("tipo_documento")
-  numeroDocumento String        @map("numero_documento") @db.VarChar(20)
-  telefono        String        @db.VarChar(30)
-  email           String        @db.VarChar(150)
+/// Customers: document, email (required), phone (optional), first name, last name.
+model Customer {
+  id             Int          @id @default(autoincrement())
+  firstName      String       @map("first_name") @db.VarChar(80)
+  lastName       String       @map("last_name") @db.VarChar(80)
+  documentType   DocumentType @map("document_type")
+  documentNumber String       @map("document_number") @db.VarChar(20)
+  email          String       @db.VarChar(150)
+  phone          String?      @db.VarChar(30)
 
-  fechaNacimiento DateTime? @map("fecha_nacimiento") @db.Date
+  dateOfBirth DateTime? @map("date_of_birth") @db.Date
 
-  // RF-018: baja lógica, conservando el historial
-  activo    Boolean   @default(true)
-  fechaBaja DateTime? @map("fecha_baja")
+  // Soft delete: record is kept, not removed, to preserve history
+  isActive      Boolean   @default(true) @map("is_active")
+  deactivatedAt DateTime? @map("deactivated_at")
 
-  creadoEn      DateTime @default(now()) @map("creado_en")
-  actualizadoEn DateTime @updatedAt      @map("actualizado_en")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
 
-  // El documento identifica al cliente en el mostrador (RF-019): no se repite
-  @@unique([tipoDocumento, numeroDocumento], name: "documento_unico")
-  @@index([apellido, nombre])
-  @@index([activo])
-  @@map("clientes")
+  // The document identifies the customer at checkout: must not repeat
+  @@unique([documentType, documentNumber], name: "unique_document")
+  @@index([lastName, firstName])
+  @@index([isActive])
+  @@map("customers")
 }

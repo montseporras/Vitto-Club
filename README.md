@@ -6,9 +6,10 @@ backend (NestJS + Prisma + PostgreSQL). El frontend todavía no se agregó.
 ## Estado del proyecto
 
 Infraestructura base (NestJS + Prisma + PostgreSQL vía Docker) revisada y
-validada de punta a punta el 2026-09-08. Los modelos de dominio (`Empleado`,
-`Cliente`) y las historias de usuario del Sprint 1 (ABMC) **todavía no están
-implementados** — el alcance actual es solo la base técnica.
+validada de punta a punta el 2026-09-08. Los modelos de dominio (`Employee`,
+`Customer`) están definidos en el schema (nombres en inglés desde el
+2026-09-20), pero las historias de usuario del Sprint 1 (ABMC) **todavía no
+están implementadas** — el alcance actual es solo la base técnica.
 
 ## Estructura del repositorio
 
@@ -26,9 +27,9 @@ Vitto-Club/
    │  └─ health/
    │     └─ health.controller.ts # GET /api/health -> hace SELECT 1 contra la DB
    ├─ prisma/
-   │  ├─ schema.prisma        # Modelos Empleado y Cliente
+   │  ├─ schema.prisma        # Modelos Employee y Customer
    │  ├─ migrations/          # Migraciones SQL versionadas
-   │  └─ seed.ts               # Datos de prueba (3 empleados, 2 clientes)
+   │  └─ seed.ts               # Datos de prueba (3 employees, 2 customers)
    ├─ prisma.config.ts        # URL de conexión para migrate/seed/studio (Prisma 7)
    ├─ .env.example             # Plantilla de variables de entorno
    └─ PRISMA.md                 # Historial detallado de cómo quedó configurado Prisma
@@ -87,11 +88,29 @@ funciona. Durante la revisión se corrigieron estos problemas:
    `nest new` (sin mencionar Docker, Prisma ni el estado real del proyecto).
    Se actualizó para reflejar el setup real.
 
-No se tocó nada de `schema.prisma`, `PrismaService`, `PrismaModule`,
-`main.ts` ni `docker-compose.yml`: esas piezas ya estaban bien resueltas
-(incluyendo la decisión, documentada en `PRISMA.md`, de fijar Prisma en
-`7.10.0` en vez de la RC de Prisma 8, y de usar `@prisma/adapter-pg` porque
-Prisma 7 ya no admite `url` dentro del bloque `datasource`).
+No se tocó nada de `PrismaService`, `PrismaModule`, `main.ts` ni
+`docker-compose.yml`: esas piezas ya estaban bien resueltas (incluyendo la
+decisión, documentada en `PRISMA.md`, de fijar Prisma en `7.10.0` en vez de
+la RC de Prisma 8, y de usar `@prisma/adapter-pg` porque Prisma 7 ya no
+admite `url` dentro del bloque `datasource`).
+
+### Actualización 2026-09-20: modelos traducidos al inglés
+
+Se renombraron los modelos de dominio y sus campos, de español a inglés:
+
+- `Cliente` → `Customer` (tabla `clientes` → `customers`), con campos
+  `nombre/apellido/telefono/tipoDocumento/numeroDocumento/fechaNacimiento` →
+  `firstName/lastName/phone/documentType/documentNumber/dateOfBirth`.
+- `Empleado` → `Employee` (tabla `empleados` → `employees`), con
+  `nombre/apellido/telefono/rol` → `firstName/lastName/phone/role`.
+- Enums: `TipoDocumento` → `DocumentType` (`PASAPORTE` → `PASSPORT`, `DNI` se
+  mantiene) y `RolEmpleado` → `EmployeeRole` (`ADMINISTRADOR` → `ADMIN`,
+  `CAJERO` → `CASHIER`).
+- `prisma/seed.ts` se actualizó para usar los nombres nuevos.
+- Se generó la migración `20260920211053_translate_models_to_english`, que
+  dropea las tablas viejas y crea las nuevas (no fue un rename in-place por
+  lo extenso del cambio de nombres — los datos que había eran solo del seed
+  de prueba, sin impacto).
 
 ## Pendiente (fuera del alcance de esta revisión)
 
@@ -101,14 +120,14 @@ Prisma 7 ya no admite `url` dentro del bloque `datasource`).
   compila los tests a CommonJS por defecto, y `@nestjs/testing` es un paquete
   ESM-only. Los dos tests existentes (`app.controller.spec.ts`,
   `app.e2e-spec.ts`) son el "Hello World" por defecto de Nest, sin relación
-  con `Empleado`/`Cliente`, así que no bloquean el Sprint 1, pero conviene
+  con `Employee`/`Customer`, así que no bloquean el Sprint 1, pero conviene
   resolverlo (config de Jest en modo ESM: `NODE_OPTIONS=--experimental-vm-modules`,
   `extensionsToTreatAsEsm`, `ts-jest` con `useESM: true`, etc.) antes de
   escribir tests reales.
 - No hay CI configurado (no hay `.github/workflows` ni equivalente).
 - No hay frontend todavía en el repo.
-- Los modelos `Empleado`/`Cliente` y las HU de ABMC del Sprint 1 quedan para
-  la próxima etapa.
+- Las HU de ABMC del Sprint 1 (controllers, services, DTOs para
+  `Employee`/`Customer`) quedan para la próxima etapa.
 
 ## Cómo levantar el proyecto (para un nuevo integrante del equipo)
 
