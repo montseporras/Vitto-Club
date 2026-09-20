@@ -7,8 +7,9 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-import { DOCUMENT_TYPES } from '../../domain/customer';
-import type { DocumentType } from '../../domain/customer';
+import { DOCUMENT_TYPES } from '../../domain/customer.js';
+import type { DocumentType } from '../../domain/customer.js';
+
 
 export class CreateCustomerDto {
   @IsString()

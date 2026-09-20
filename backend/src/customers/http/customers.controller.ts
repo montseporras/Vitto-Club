@@ -14,11 +14,12 @@ import {
   Query,
   DefaultValuePipe,
 } from "@nestjs/common";
-import { CreateCustomerDto } from "./dto/create-customer.dto";
-import { UpdateCustomerDto } from "./dto/update-customer.dto";
-import { CustomersService } from "../application/customers.service";
-import { CustomerResponseDto } from "./dto/customer-response.dto";
-import { CustomerExceptionFilter } from "./filters/customers-exception.filter";
+import { CreateCustomerDto } from "./dto/create-customer.dto.js";
+import { UpdateCustomerDto } from "./dto/update-customer.dto.js";
+import { CustomersService } from "../application/customers.service.js";
+import { CustomerResponseDto } from "./dto/customer-response.dto.js";
+import { CustomerExceptionFilter } from "./filters/customers-exception.filter.js";
+
 
 
 

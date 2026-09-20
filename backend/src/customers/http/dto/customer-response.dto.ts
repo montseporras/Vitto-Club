@@ -1,4 +1,4 @@
-import { Customer, DocumentType } from '../../domain/customer';
+import { Customer, DocumentType } from '../../domain/customer.js';
 
 export class CustomerResponseDto {
   id: number;

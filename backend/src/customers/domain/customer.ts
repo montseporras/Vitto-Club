@@ -1,5 +1,6 @@
-import { CustomerId } from './customer-id';
-import { Mail } from './mail';
+import { CustomerId } from './customer-id.js';
+import { Mail } from './mail.js';
+
 
 export const DOCUMENT_TYPES = ['DNI', 'PASSPORT'] as const;
 export type DocumentType = (typeof DOCUMENT_TYPES)[number];

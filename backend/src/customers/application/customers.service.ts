@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
-import { Customer, DocumentType, normalizeDocumentNumber } from '../domain/customer';
-import { CustomerRepository, CustomerListParams, CustomerListResult } from '../domain/port/customer.repository';
-import { CreateCustomerDto } from '../http/dto/create-customer.dto';
-import { UpdateCustomerDto } from '../http/dto/update-customer.dto';
-import { CustomerAlreadyExists } from '../domain/errors/customer-already-exists.error';
+import { Customer, DocumentType, normalizeDocumentNumber } from '../domain/customer.js';
+import { CustomerRepository, CustomerListParams, CustomerListResult } from '../domain/port/customer.repository.js';
+import { CreateCustomerDto } from '../http/dto/create-customer.dto.js';
+import { UpdateCustomerDto } from '../http/dto/update-customer.dto.js';
+import { CustomerAlreadyExists } from '../domain/errors/customer-already-exists.error.js';
+
 
 @Injectable()
 export class CustomersService {

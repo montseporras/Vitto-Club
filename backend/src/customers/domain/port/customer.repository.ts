@@ -1,4 +1,4 @@
-import { Customer, DocumentType } from '../customer';
+import { Customer, DocumentType } from '../customer.js';
 
 export type CustomerListParams = {
   page: number;

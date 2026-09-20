@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Customer as PrismaCustomerRecord } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import { Customer, DocumentType } from '../domain/customer';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { Customer, DocumentType } from '../domain/customer.js';
 import {
   CustomerRepository,
   CustomerListParams,
   CustomerListResult,
-} from '../domain/port/customer.repository';
+} from '../domain/port/customer.repository.js';
+
 
 function toDomain(record: PrismaCustomerRecord): Customer {
   return Customer.reconstruct({
