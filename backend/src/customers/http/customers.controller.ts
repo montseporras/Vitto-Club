@@ -13,6 +13,7 @@ import {
   UseFilters,
   Query,
   DefaultValuePipe,
+  BadRequestException,
 } from "@nestjs/common";
 import { CreateCustomerDto } from "./dto/create-customer.dto.js";
 import { UpdateCustomerDto } from "./dto/update-customer.dto.js";
@@ -39,12 +40,20 @@ export class CustomersController{
         ){}
 
 
-    @Get()
+        @Get()
         async findAll(
             @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
             @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+            @Query('active') active?: string,
         ){
-            const { items, total } = await this.customersService.list({ page, limit });
+            if (active !== undefined && active !== 'true' && active !== 'false') {
+                throw new BadRequestException("active must be 'true' or 'false'");
+            }
+            const { items, total } = await this.customersService.list({
+                page,
+                limit,
+                active: active === undefined ? undefined : active === 'true',
+            });
             return {
                 items: items.map((customer) => CustomerResponseDto.fromDomain(customer)),
                 total,
@@ -52,6 +61,7 @@ export class CustomersController{
                 limit,
             };
         }
+
 
 
 

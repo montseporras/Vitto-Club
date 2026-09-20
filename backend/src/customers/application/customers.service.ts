@@ -62,6 +62,11 @@ export class CustomersService {
     // 1. Buscar si el cliente existe
     const customer = await this.findById(id);
 
+    // Un cliente dado de baja no se modifica: primero hay que reactivarlo
+    if (!customer.isActive()) {
+      throw new ConflictException(`Customer with ID ${id} is inactive: reactivate it before modifying`);
+    }
+
     // 2. Si cambia el documento, verificar que no esté en uso (antes de mutar la entidad)
     if (dto.documentType !== undefined || dto.documentNumber !== undefined) {
       const documentType = dto.documentType ?? customer.getDocumentType();
@@ -75,6 +80,7 @@ export class CustomersService {
 
     // 3. Aplicar los cambios sobre la entidad recuperada
     customer.update({
+      
       firstName: dto.firstName,
       lastName: dto.lastName,
       documentType: dto.documentType,
@@ -98,6 +104,9 @@ export class CustomersService {
   // --- DESACTIVAR (BAJA LÓGICA) ---
   async deactivate(id: number): Promise<void> {
     const customer = await this.findById(id);
+    if (!customer.isActive()) {
+      throw new ConflictException(`Customer with ID ${id} is already inactive`);
+    }
     customer.deactivate();
     await this.customersRepository.update(customer);
   }
@@ -105,9 +114,13 @@ export class CustomersService {
   // --- ACTIVAR ---
   async activate(id: number): Promise<void> {
     const customer = await this.findById(id);
+    if (customer.isActive()) {
+      throw new ConflictException(`Customer with ID ${id} is already active`);
+    }
     customer.activate();
     await this.customersRepository.update(customer);
   }
+
 
   private async assertDocumentAvailable(
     documentType: DocumentType,
