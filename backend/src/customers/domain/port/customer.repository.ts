@@ -1,5 +1,4 @@
-import { Customer } from '../customer';
-
+import { Customer, DocumentType } from '../customer';
 
 export type CustomerListParams = {
   page: number;
@@ -19,8 +18,11 @@ export abstract class CustomerRepository {
   abstract save(customer: Customer): Promise<Customer>;
   abstract update(customer: Customer): Promise<void>;
 
-
-  abstract existsByMail(mail: string, excludeId?: number): Promise<boolean>;
+  abstract existsByDocument(
+    documentType: DocumentType,
+    documentNumber: string,
+    excludeId?: number,
+  ): Promise<boolean>;
 
   abstract list(params: CustomerListParams): Promise<CustomerListResult>;
 }

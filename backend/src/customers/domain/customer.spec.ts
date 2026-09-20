@@ -1,171 +1,165 @@
 import { Customer } from './customer';
 
 describe('Customer Entity', () => {
-  const validName = 'Juan';
-  const validLastName = 'Pérez';
-  const validPhone = '+54 11 5555-5555';
-  const validMail = 'Juan.Perez@Example.com';
+  const validData = {
+    firstName: 'Juan',
+    lastName: 'Pérez',
+    documentType: 'DNI' as const,
+    documentNumber: '12.345.678',
+    email: 'Juan.Perez@Example.com',
+    phone: '+54 11 5555-5555',
+  };
 
   describe('create()', () => {
     it('debería crear una instancia de Customer válida', () => {
-      const customer = Customer.create(
-        validName,
-        validLastName,
-        validPhone,
-        validMail,
-      );
+      const customer = Customer.create(validData);
 
-      expect(customer).toBeDefined();
       expect(customer.getId()).toBeNull(); // Nace sin ID antes de persistir
-      expect(customer.getName()).toBe(validName);
-      expect(customer.getLastName()).toBe(validLastName);
-      expect(customer.getPhone()).toBe(validPhone);
+      expect(customer.getFirstName()).toBe('Juan');
+      expect(customer.getLastName()).toBe('Pérez');
+      expect(customer.getDocumentType()).toBe('DNI');
+      expect(customer.getPhone()).toBe('+54 11 5555-5555');
+      expect(customer.getDateOfBirth()).toBeNull();
       expect(customer.isActive()).toBe(true);
+      expect(customer.getDeactivatedAt()).toBeNull();
     });
 
     it('debería normalizar el mail a minúsculas y sin espacios', () => {
-      const customer = Customer.create(
-        validName,
-        validLastName,
-        validPhone,
-        '  Juan.Perez@Example.com  ',
-      );
-      expect(customer.getMail()).toBe('juan.perez@example.com');
+      const customer = Customer.create({ ...validData, email: '  Juan.Perez@Example.com  ' });
+      expect(customer.getEmail()).toBe('juan.perez@example.com');
+    });
+
+    it('debería normalizar el número de documento', () => {
+      const customer = Customer.create({ ...validData, documentNumber: ' 12.345-678 ' });
+      expect(customer.getDocumentNumber()).toBe('12345678');
     });
 
     it('debería recortar los espacios en blanco de los campos de texto', () => {
-      const customer = Customer.create(
-        '  Juan  ',
-        '  Pérez  ',
-        '  123  ',
-        validMail,
-      );
-      expect(customer.getName()).toBe('Juan');
+      const customer = Customer.create({
+        ...validData,
+        firstName: '  Juan  ',
+        lastName: '  Pérez  ',
+        phone: '  123  ',
+      });
+      expect(customer.getFirstName()).toBe('Juan');
       expect(customer.getLastName()).toBe('Pérez');
       expect(customer.getPhone()).toBe('123');
     });
 
+    it('debería permitir crear un cliente sin teléfono', () => {
+      expect(Customer.create({ ...validData, phone: undefined }).getPhone()).toBeNull();
+      expect(Customer.create({ ...validData, phone: '   ' }).getPhone()).toBeNull();
+    });
+
     it('debería lanzar un error si el nombre está vacío', () => {
-      expect(() =>
-        Customer.create('   ', validLastName, validPhone, validMail),
-      ).toThrow('Customer name cannot be empty');
+      expect(() => Customer.create({ ...validData, firstName: '   ' }))
+        .toThrow('Customer firstName cannot be empty');
     });
 
     it('debería lanzar un error si el apellido está vacío', () => {
-      expect(() =>
-        Customer.create(validName, '', validPhone, validMail),
-      ).toThrow('Customer lastName cannot be empty');
+      expect(() => Customer.create({ ...validData, lastName: '' }))
+        .toThrow('Customer lastName cannot be empty');
     });
 
-    it('debería lanzar un error si el teléfono está vacío', () => {
-      expect(() =>
-        Customer.create(validName, validLastName, '   ', validMail),
-      ).toThrow('Customer phone cannot be empty');
+    it('debería lanzar un error si el número de documento está vacío', () => {
+      expect(() => Customer.create({ ...validData, documentNumber: ' . ' }))
+        .toThrow('Customer documentNumber cannot be empty');
+    });
+
+    it('debería lanzar un error si el tipo de documento es inválido', () => {
+      expect(() => Customer.create({ ...validData, documentType: 'CUIT' as never }))
+        .toThrow('Customer documentType must be one of');
     });
 
     it('debería lanzar un error si el mail tiene un formato inválido', () => {
-      expect(() =>
-        Customer.create(validName, validLastName, validPhone, 'no-es-un-mail' ),
-      ).toThrow('Invalid email format');
+      expect(() => Customer.create({ ...validData, email: 'no-es-un-mail' }))
+        .toThrow('Invalid email format');
+    });
+
+    it('debería lanzar un error si la fecha de nacimiento es futura', () => {
+      const future = new Date();
+      future.setFullYear(future.getFullYear() + 1);
+      expect(() => Customer.create({ ...validData, dateOfBirth: future }))
+        .toThrow('Customer dateOfBirth is invalid');
     });
   });
 
   describe('reconstruct()', () => {
     it('debería reconstruir una entidad Customer persistida previamente', () => {
-      const customer = Customer.reconstruct(
-        10,
-        validName,
-        validLastName,
-        validPhone,
-        validMail,
-        false,
-      );
+      const customer = Customer.reconstruct({ ...validData, id: 10, active: false });
 
       expect(customer.getId()).toBe(10);
-      expect(customer.getName()).toBe(validName);
+      expect(customer.getFirstName()).toBe('Juan');
       expect(customer.isActive()).toBe(false);
     });
   });
 
   describe('update()', () => {
     it('debería actualizar todas las propiedades correctamente', () => {
-      const customer = Customer.create(
-        validName,
-        validLastName,
-        validPhone,
-        validMail,
-      );
+      const customer = Customer.create(validData);
 
-      customer.update('Ana', 'Gómez', '999', 'ana.gomez@example.com');
+      customer.update({
+        firstName: 'Ana',
+        lastName: 'Gómez',
+        documentType: 'PASSPORT',
+        documentNumber: 'ab123456',
+        email: 'ana.gomez@example.com',
+        phone: '999',
+        dateOfBirth: new Date('1990-05-20'),
+      });
 
-      expect(customer.getName()).toBe('Ana');
+      expect(customer.getFirstName()).toBe('Ana');
       expect(customer.getLastName()).toBe('Gómez');
+      expect(customer.getDocumentType()).toBe('PASSPORT');
+      expect(customer.getDocumentNumber()).toBe('AB123456');
+      expect(customer.getEmail()).toBe('ana.gomez@example.com');
       expect(customer.getPhone()).toBe('999');
-      expect(customer.getMail()).toBe('ana.gomez@example.com');
+      expect(customer.getDateOfBirth()).toEqual(new Date('1990-05-20'));
     });
 
-    it('debería recortar los espacios en blanco en las modificaciones', () => {
-      const customer = Customer.create(
-        validName,
-        validLastName,
-        validPhone,
-        validMail,
-      );
+    it('debería dejar sin cambios los campos no enviados', () => {
+      const customer = Customer.create(validData);
+      customer.update({ firstName: 'Ana' });
 
-      customer.setName('   Nombre Nuevo  ');
-      customer.setLastName('   Apellido Nuevo  ');
-      customer.setPhone('   555   ');
+      expect(customer.getFirstName()).toBe('Ana');
+      expect(customer.getLastName()).toBe('Pérez');
+      expect(customer.getPhone()).toBe('+54 11 5555-5555');
+    });
 
-      expect(customer.getName()).toBe('Nombre Nuevo');
-      expect(customer.getLastName()).toBe('Apellido Nuevo');
-      expect(customer.getPhone()).toBe('555');
+    it('debería permitir borrar el teléfono', () => {
+      const customer = Customer.create(validData);
+      customer.update({ phone: null });
+      expect(customer.getPhone()).toBeNull();
     });
   });
 
   describe('deactivate() y activate()', () => {
-    it('debería desactivar un cliente activo', () => {
-      const customer = Customer.create(
-        validName,
-        validLastName,
-        validPhone,
-        validMail,
-      );
+    it('debería desactivar un cliente activo y registrar la fecha', () => {
+      const customer = Customer.create(validData);
       customer.deactivate();
       expect(customer.isActive()).toBe(false);
+      expect(customer.getDeactivatedAt()).toBeInstanceOf(Date);
     });
 
     it('debería lanzar un error si se intenta desactivar un cliente ya inactivo', () => {
-      const customer = Customer.reconstruct(
-        1,
-        validName,
-        validLastName,
-        validPhone,
-        validMail,
-        false,
-      );
+      const customer = Customer.reconstruct({ ...validData, id: 1, active: false });
       expect(() => customer.deactivate()).toThrow('Customer is already inactive');
     });
 
-    it('debería activar un cliente inactivo', () => {
-      const customer = Customer.reconstruct(
-        1,
-        validName,
-        validLastName,
-        validPhone,
-        validMail,
-        false,
-      );
+    it('debería activar un cliente inactivo y limpiar la fecha de baja', () => {
+      const customer = Customer.reconstruct({
+        ...validData,
+        id: 1,
+        active: false,
+        deactivatedAt: new Date(),
+      });
       customer.activate();
       expect(customer.isActive()).toBe(true);
+      expect(customer.getDeactivatedAt()).toBeNull();
     });
 
     it('debería lanzar un error si se intenta activar un cliente ya activo', () => {
-      const customer = Customer.create(
-        validName,
-        validLastName,
-        validPhone,
-        validMail,
-      );
+      const customer = Customer.create(validData);
       expect(() => customer.activate()).toThrow('Customer is already active');
     });
   });

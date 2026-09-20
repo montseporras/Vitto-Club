@@ -34,15 +34,22 @@ export class CustomerExceptionFilter implements ExceptionFilter {
       // Errores de validación del dominio (Customer.create()/setters, Mail.create()) llegan como Error simple.
       statusCode = HttpStatus.BAD_REQUEST;
       message = exception.message;
-      const field = message.includes('lastName')
-        ? 'lastName'
-        : message.toLowerCase().includes('mail')
-          ? 'mail'
-          : message.includes('phone')
-            ? 'phone'
-            : message.includes('name')
-              ? 'name'
-              : 'name';
+            const field = message.includes('firstName')
+        ? 'firstName'
+        : message.includes('lastName')
+          ? 'lastName'
+          : message.includes('documentType')
+            ? 'documentType'
+            : message.includes('documentNumber')
+              ? 'documentNumber'
+              : message.includes('dateOfBirth')
+                ? 'dateOfBirth'
+                : message.includes('phone')
+                  ? 'phone'
+                  : message.toLowerCase().includes('mail')
+                    ? 'email'
+                    : 'firstName';
+
       details = [{ field, message: exception.message }];
     }
 

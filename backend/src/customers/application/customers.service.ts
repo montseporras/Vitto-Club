@@ -1,10 +1,9 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
-import { Customer } from '../domain/customer';
+import { Customer, DocumentType, normalizeDocumentNumber } from '../domain/customer';
 import { CustomerRepository, CustomerListParams, CustomerListResult } from '../domain/port/customer.repository';
 import { CreateCustomerDto } from '../http/dto/create-customer.dto';
 import { UpdateCustomerDto } from '../http/dto/update-customer.dto';
 import { CustomerAlreadyExists } from '../domain/errors/customer-already-exists.error';
-import { Mail } from '../domain/mail';
 
 @Injectable()
 export class CustomersService {
@@ -14,21 +13,22 @@ export class CustomersService {
 
   // --- CREAR ---
   async create(dto: CreateCustomerDto): Promise<Customer> {
+    // 1. Instanciar el Customer (valida y normaliza)
+    const customer = Customer.create({
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      documentType: dto.documentType,
+      documentNumber: dto.documentNumber,
+      email: dto.email,
+      phone: dto.phone,
+      dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
+    });
 
-
-    // 1. Instanciar el Customer
-    const customer = Customer.create(
-      dto.name,
-      dto.lastName,
-      dto.phone,
-      dto.mail,
+    // 2. Verificar que el documento no esté ya registrado
+    await this.assertDocumentAvailable(
+      customer.getDocumentType(),
+      customer.getDocumentNumber(),
     );
-
-    // 2. Verificar que el mail no esté ya en uso
-    const mailTaken = await this.customersRepository.existsByMail(customer.getMail());
-    if (mailTaken) {
-      throw new ConflictException(new CustomerAlreadyExists(customer.getMail()).message);
-    }
 
     // 3. Persistir
     return await this.customersRepository.save(customer);
@@ -61,25 +61,32 @@ export class CustomersService {
     // 1. Buscar si el cliente existe
     const customer = await this.findById(id);
 
-    // 2. Verificar que el nuevo mail (si cambia) no esté ya en uso
-    if (dto.mail !== undefined) {
-      const normalizedMail = Mail.create(dto.mail).getValue();
-      const mailTaken = await this.customersRepository.existsByMail(
-        normalizedMail,
-        customer.getId() ?? undefined,
-      );
-      if (mailTaken) {
-        throw new ConflictException(new CustomerAlreadyExists(normalizedMail).message);
-      }
+    // 2. Si cambia el documento, verificar que no esté en uso (antes de mutar la entidad)
+    if (dto.documentType !== undefined || dto.documentNumber !== undefined) {
+      const documentType = dto.documentType ?? customer.getDocumentType();
+      const documentNumber =
+        dto.documentNumber !== undefined
+          ? normalizeDocumentNumber(dto.documentNumber)
+          : customer.getDocumentNumber();
+
+      await this.assertDocumentAvailable(documentType, documentNumber, customer.getId() ?? undefined);
     }
 
     // 3. Aplicar los cambios sobre la entidad recuperada
-    customer.update(
-      dto.name ?? customer.getName(),
-      dto.lastName ?? customer.getLastName(),
-      dto.phone ?? customer.getPhone(),
-      dto.mail ?? customer.getMail(),
-    );
+    customer.update({
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      documentType: dto.documentType,
+      documentNumber: dto.documentNumber,
+      email: dto.email,
+      phone: dto.phone,
+      dateOfBirth:
+        dto.dateOfBirth === undefined
+          ? undefined
+          : dto.dateOfBirth === null
+            ? null
+            : new Date(dto.dateOfBirth),
+    });
 
     // 4. Re-persistir los cambios en el repositorio
     await this.customersRepository.update(customer);
@@ -99,5 +106,16 @@ export class CustomersService {
     const customer = await this.findById(id);
     customer.activate();
     await this.customersRepository.update(customer);
+  }
+
+  private async assertDocumentAvailable(
+    documentType: DocumentType,
+    documentNumber: string,
+    excludeId?: number,
+  ): Promise<void> {
+    const taken = await this.customersRepository.existsByDocument(documentType, documentNumber, excludeId);
+    if (taken) {
+      throw new ConflictException(new CustomerAlreadyExists(documentType, documentNumber).message);
+    }
   }
 }

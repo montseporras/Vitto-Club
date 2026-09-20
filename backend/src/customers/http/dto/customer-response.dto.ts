@@ -1,37 +1,29 @@
-import { Customer } from '../../domain/customer';
+import { Customer, DocumentType } from '../../domain/customer';
 
 export class CustomerResponseDto {
-    id: number;
-    name: string;
-    lastName: string;
-    phone: string;
-    mail: string;
-    active: boolean;
+  id: number;
+  firstName: string;
+  lastName: string;
+  documentType: DocumentType;
+  documentNumber: string;
+  email: string;
+  phone: string | null;
+  dateOfBirth: string | null;
+  active: boolean;
 
-    private constructor(
-        id: number,
-        name: string,
-        lastName: string,
-        phone: string,
-        mail: string,
-        active: boolean,
-    ) {
-        this.id = id;
-        this.name = name;
-        this.lastName = lastName;
-        this.phone = phone;
-        this.mail = mail;
-        this.active = active;
-    }
+  private constructor(customer: Customer) {
+    this.id = customer.getId() as number;
+    this.firstName = customer.getFirstName();
+    this.lastName = customer.getLastName();
+    this.documentType = customer.getDocumentType();
+    this.documentNumber = customer.getDocumentNumber();
+    this.email = customer.getEmail();
+    this.phone = customer.getPhone();
+    this.dateOfBirth = customer.getDateOfBirth()?.toISOString().slice(0, 10) ?? null;
+    this.active = customer.isActive();
+  }
 
-    static fromDomain(customer: Customer): CustomerResponseDto {
-        return new CustomerResponseDto(
-            customer.getId() as number,
-            customer.getName(),
-            customer.getLastName(),
-            customer.getPhone(),
-            customer.getMail(),
-            customer.isActive(),
-        );
-    }
+  static fromDomain(customer: Customer): CustomerResponseDto {
+    return new CustomerResponseDto(customer);
+  }
 }
