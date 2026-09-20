@@ -74,8 +74,9 @@ datasource db {
 }
 ```
 
-Modelos actuales: `Empleado` y `Cliente` (dominio del negocio, con baja lógica
-vía `activo`/`fechaBaja`, `@updatedAt`, índices y `@@map` a `snake_case`).
+Modelos actuales: `Employee` y `Customer` (dominio del negocio, con baja
+lógica vía `isActive`/`deactivatedAt`, `@updatedAt`, índices y `@@map` a
+`snake_case`; nombres traducidos al inglés el 2026-09-20, ver más abajo).
 
 ### Cliente de Prisma en tiempo de ejecución
 
@@ -138,6 +139,34 @@ compuesto de `Cliente` (`documento_unico`).
 `prisma/seed.ts` insertaba empleados sin `email`, pero el modelo `Empleado`
 lo exige (`email String @db.VarChar(150)`, sin `?`). Se agregó un email a cada
 empleado de prueba para que el seed compile y corra.
+
+### Actualización 2026-09-20: modelos traducidos al inglés
+
+Se renombraron los modelos y sus campos, de español a inglés, para alinear el
+schema con el resto del código (que ya está en inglés):
+
+- `Cliente` → `Customer` (`clientes` → `customers`):
+  `nombre/apellido/telefono/tipoDocumento/numeroDocumento/fechaNacimiento/activo/fechaBaja/creadoEn/actualizadoEn`
+  → `firstName/lastName/phone/documentType/documentNumber/dateOfBirth/isActive/deactivatedAt/createdAt/updatedAt`.
+  La constraint `documento_unico` pasó a llamarse `unique_document`.
+- `Empleado` → `Employee` (`empleados` → `employees`):
+  `nombre/apellido/telefono/rol` → `firstName/lastName/phone/role` (mismos
+  campos de baja lógica y timestamps que `Customer`).
+- `TipoDocumento` → `DocumentType` (`DNI` se mantiene, `PASAPORTE` → `PASSPORT`).
+- `RolEmpleado` → `EmployeeRole` (`ADMINISTRADOR` → `ADMIN`, `CAJERO` → `CASHIER`).
+- `prisma/seed.ts` se actualizó a `prisma.employee`/`prisma.customer` con los
+  campos nuevos.
+
+Migración generada: `prisma/migrations/20260920211053_translate_models_to_english/migration.sql`.
+Por lo extenso del cambio de nombres, Prisma no lo detectó como un rename
+in-place: la migración dropea `empleados`/`clientes` y crea
+`employees`/`customers`. Los datos que había en ese momento eran solo del
+seed de prueba, así que no hubo pérdida de información real.
+
+Después de aplicar esta migración hace falta correr `npx prisma generate` a
+mano si el cliente no se regenera solo (pasó una vez durante este cambio:
+`ts-node` tiraba `SyntaxError: Named export 'DocumentType' not found` hasta
+correr `npx prisma generate` de nuevo).
 
 ## Comandos de uso diario
 
