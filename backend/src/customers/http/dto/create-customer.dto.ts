@@ -1,5 +1,4 @@
-import { IsNotEmpty, IsString, IsEmail, IsInt, IsPositive } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsNotEmpty, IsString, IsEmail } from 'class-validator';
 
 export class CreateCustomerDto {
   @IsString()
@@ -17,10 +16,4 @@ export class CreateCustomerDto {
   @IsNotEmpty()
   @IsEmail()
   mail!: string;
-
-  @Type(() => Number)
-  @IsInt()
-  @IsPositive()
-  factoryId!: number;
-
 }

@@ -68,12 +68,6 @@ describe('Customer Entity', () => {
         Customer.create(validName, validLastName, validPhone, 'no-es-un-mail' ),
       ).toThrow('Invalid email format');
     });
-
-    it('debería lanzar un error si el factoryId no es un entero positivo', () => {
-      expect(() =>
-        Customer.create(validName, validLastName, validPhone, validMail),
-      ).toThrow('Factory id must be a positive integer');
-    });
   });
 
   describe('reconstruct()', () => {
