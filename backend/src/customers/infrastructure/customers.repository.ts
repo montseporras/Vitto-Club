@@ -2,12 +2,12 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Customer as PrismaCustomerRecord } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { Customer, DocumentType } from '../domain/customer.js';
+import { CustomerStatusAction, CustomerStatusChange } from '../domain/customer-status-change.js';
 import {
   CustomerRepository,
   CustomerListParams,
   CustomerListResult,
 } from '../domain/port/customer.repository.js';
-
 
 function toDomain(record: PrismaCustomerRecord): Customer {
   return Customer.reconstruct({
@@ -53,6 +53,16 @@ export class CustomerPrismaRepository implements CustomerRepository {
     return record ? toDomain(record) : null;
   }
 
+  async findByDocument(
+    documentType: DocumentType,
+    documentNumber: string,
+  ): Promise<Customer | null> {
+    const record = await this.prisma.customer.findUnique({
+      where: { unique_document: { documentType, documentNumber } },
+    });
+    return record ? toDomain(record) : null;
+  }
+
   async findAll(): Promise<Customer[]> {
     const records = await this.prisma.customer.findMany({
       orderBy: { id: 'asc' },
@@ -83,6 +93,40 @@ export class CustomerPrismaRepository implements CustomerRepository {
     });
   }
 
+  // El cambio de estado y su registro en el historial se guardan en una sola transacción
+  async updateStatus(customer: Customer, action: CustomerStatusAction): Promise<void> {
+    const id = customer.getId();
+
+    if (!id) {
+      throw new NotFoundException('Customer id is required to update');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.customer.update({
+        where: { id },
+        data: {
+          isActive: customer.isActive(),
+          deactivatedAt: customer.getDeactivatedAt(),
+        },
+      }),
+      this.prisma.customerStatusChange.create({
+        data: { customerId: id, action },
+      }),
+    ]);
+  }
+
+  async findStatusHistory(customerId: number): Promise<CustomerStatusChange[]> {
+    const records = await this.prisma.customerStatusChange.findMany({
+      where: { customerId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+    return records.map((record) => ({
+      id: record.id,
+      action: record.action,
+      createdAt: record.createdAt,
+    }));
+  }
+
   async existsByDocument(
     documentType: DocumentType,
     documentNumber: string,
@@ -103,14 +147,19 @@ export class CustomerPrismaRepository implements CustomerRepository {
   async list(params: CustomerListParams): Promise<CustomerListResult> {
     const { page, limit, nameContains, active } = params;
 
+    // Cada palabra buscada debe aparecer en el nombre o en el apellido ("juan perez" encuentra a Juan Pérez)
+    const terms = nameContains?.split(/\s+/).filter(Boolean) ?? [];
+
     const where = {
       ...(active !== undefined ? { isActive: active } : {}),
-      ...(nameContains
+      ...(terms.length > 0
         ? {
-            OR: [
-              { firstName: { contains: nameContains, mode: 'insensitive' as const } },
-              { lastName: { contains: nameContains, mode: 'insensitive' as const } },
-            ],
+            AND: terms.map((term) => ({
+              OR: [
+                { firstName: { contains: term, mode: 'insensitive' as const } },
+                { lastName: { contains: term, mode: 'insensitive' as const } },
+              ],
+            })),
           }
         : {}),
     };

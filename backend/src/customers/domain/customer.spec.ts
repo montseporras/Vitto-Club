@@ -39,11 +39,11 @@ describe('Customer Entity', () => {
         ...validData,
         firstName: '  Juan  ',
         lastName: '  Pérez  ',
-        phone: '  123  ',
+        phone: '  1155555555  ',
       });
       expect(customer.getFirstName()).toBe('Juan');
       expect(customer.getLastName()).toBe('Pérez');
-      expect(customer.getPhone()).toBe('123');
+      expect(customer.getPhone()).toBe('1155555555');
     });
 
     it('debería permitir crear un cliente sin teléfono', () => {
@@ -104,7 +104,7 @@ describe('Customer Entity', () => {
         documentType: 'PASSPORT',
         documentNumber: 'ab123456',
         email: 'ana.gomez@example.com',
-        phone: '999',
+        phone: '1144444444',
         dateOfBirth: new Date('1990-05-20'),
       });
 
@@ -113,7 +113,7 @@ describe('Customer Entity', () => {
       expect(customer.getDocumentType()).toBe('PASSPORT');
       expect(customer.getDocumentNumber()).toBe('AB123456');
       expect(customer.getEmail()).toBe('ana.gomez@example.com');
-      expect(customer.getPhone()).toBe('999');
+      expect(customer.getPhone()).toBe('1144444444');
       expect(customer.getDateOfBirth()).toEqual(new Date('1990-05-20'));
     });
 

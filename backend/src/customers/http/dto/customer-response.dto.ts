@@ -10,6 +10,8 @@ export class CustomerResponseDto {
   phone: string | null;
   dateOfBirth: string | null;
   active: boolean;
+  deactivatedAt: string | null;
+  createdAt: string;
 
   private constructor(customer: Customer) {
     this.id = customer.getId() as number;
@@ -21,6 +23,8 @@ export class CustomerResponseDto {
     this.phone = customer.getPhone();
     this.dateOfBirth = customer.getDateOfBirth()?.toISOString().slice(0, 10) ?? null;
     this.active = customer.isActive();
+    this.deactivatedAt = customer.getDeactivatedAt()?.toISOString() ?? null;
+    this.createdAt = customer.getCreatedAt().toISOString();
   }
 
   static fromDomain(customer: Customer): CustomerResponseDto {

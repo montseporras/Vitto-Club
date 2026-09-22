@@ -1,6 +1,6 @@
 import { CustomerId } from './customer-id.js';
 import { Mail } from './mail.js';
-
+import { DomainError } from './errors/domain.error.js';
 
 export const DOCUMENT_TYPES = ['DNI', 'PASSPORT'] as const;
 export type DocumentType = (typeof DOCUMENT_TYPES)[number];
@@ -28,41 +28,63 @@ const MAX_NAME = 80;
 const MAX_DOCUMENT = 20;
 const MAX_PHONE = 30;
 
+// Teléfono: opcional, puede empezar con "+", solo dígitos, espacios, guiones, puntos y paréntesis,
+// y entre 8 y 15 dígitos en total (largo máximo de un número internacional).
+const PHONE_PATTERN = /^\+?[\d\s().-]+$/;
+const PHONE_MIN_DIGITS = 8;
+const PHONE_MAX_DIGITS = 15;
+
 function requiredText(value: string, field: string, max: number): string {
   const normalized = value.trim();
   if (!normalized) {
-    throw new Error(`Customer ${field} cannot be empty`);
+    throw new DomainError(`Customer ${field} cannot be empty`, field);
   }
   if (normalized.length > max) {
-    throw new Error(`Customer ${field} cannot exceed ${max} characters`);
+    throw new DomainError(`Customer ${field} cannot exceed ${max} characters`, field);
   }
   return normalized;
 }
 
-function optionalText(value: string | null | undefined, field: string, max: number): string | null {
+function optionalPhone(value: string | null | undefined): string | null {
   const normalized = value?.trim();
   if (!normalized) return null;
-  if (normalized.length > max) {
-    throw new Error(`Customer ${field} cannot exceed ${max} characters`);
+
+  const digits = normalized.replace(/\D/g, '').length;
+  if (
+    normalized.length > MAX_PHONE ||
+    !PHONE_PATTERN.test(normalized) ||
+    digits < PHONE_MIN_DIGITS ||
+    digits > PHONE_MAX_DIGITS
+  ) {
+    throw new DomainError(
+      `Customer phone is invalid: use digits, spaces, "+", "-", "(" and ")", with ${PHONE_MIN_DIGITS} to ${PHONE_MAX_DIGITS} digits`,
+      'phone',
+    );
   }
   return normalized;
 }
 
 function validDocumentType(type: DocumentType): DocumentType {
   if (!DOCUMENT_TYPES.includes(type)) {
-    throw new Error(`Customer documentType must be one of: ${DOCUMENT_TYPES.join(', ')}`);
+    throw new DomainError(
+      `Customer documentType must be one of: ${DOCUMENT_TYPES.join(', ')}`,
+      'documentType',
+    );
   }
   return type;
 }
 
 // Sin puntos, espacios ni guiones, en mayúsculas: protege el unique (documentType, documentNumber)
 export function normalizeDocumentNumber(value: string): string {
-  const normalized = value.replace(/[\s.\-]/g, '').toUpperCase();
+  const normalized = value.replace(/[\s.-]/g, '').toUpperCase();
   if (!normalized) {
-    throw new Error('Customer documentNumber cannot be empty');
+    throw new DomainError('Customer documentNumber cannot be empty', 'documentNumber');
   }
   if (normalized.length > MAX_DOCUMENT) {
-    throw new Error(`Customer documentNumber cannot exceed ${MAX_DOCUMENT} characters`);
+    throw new DomainError(
+      `Customer documentNumber cannot exceed ${MAX_DOCUMENT} characters`,
+      'documentNumber',
+    );
   }
   return normalized;
 }
@@ -70,7 +92,7 @@ export function normalizeDocumentNumber(value: string): string {
 function validBirthDate(date: Date | null | undefined): Date | null {
   if (!date) return null;
   if (Number.isNaN(date.getTime()) || date > new Date()) {
-    throw new Error('Customer dateOfBirth is invalid');
+    throw new DomainError('Customer dateOfBirth is invalid', 'dateOfBirth');
   }
   return date;
 }
@@ -102,7 +124,7 @@ export class Customer {
       validDocumentType(data.documentType),
       normalizeDocumentNumber(data.documentNumber),
       Mail.create(data.email),
-      optionalText(data.phone, 'phone', MAX_PHONE),
+      optionalPhone(data.phone),
       validBirthDate(data.dateOfBirth),
       true,
       null,
@@ -143,7 +165,7 @@ export class Customer {
   // Baja lógica
   deactivate(): void {
     if (!this._active) {
-      throw new Error('Customer is already inactive');
+      throw new DomainError('Customer is already inactive');
     }
     this._active = false;
     this._deactivatedAt = new Date();
@@ -153,7 +175,7 @@ export class Customer {
   // Alta lógica
   activate(): void {
     if (this._active) {
-      throw new Error('Customer is already active');
+      throw new DomainError('Customer is already active');
     }
     this._active = true;
     this._deactivatedAt = null;
@@ -182,7 +204,7 @@ export class Customer {
   }
 
   setPhone(phone: string | null): void {
-    this._phone = optionalText(phone, 'phone', MAX_PHONE);
+    this._phone = optionalPhone(phone);
   }
 
   setDateOfBirth(dateOfBirth: Date | null): void {

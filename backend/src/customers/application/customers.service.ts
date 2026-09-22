@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { Customer, DocumentType, normalizeDocumentNumber } from '../domain/customer.js';
+import { CustomerStatusChange } from '../domain/customer-status-change.js';
 import { CustomerRepository, CustomerListParams, CustomerListResult } from '../domain/port/customer.repository.js';
 import { CreateCustomerDto } from '../http/dto/create-customer.dto.js';
 import { UpdateCustomerDto } from '../http/dto/update-customer.dto.js';
 import { CustomerAlreadyExists } from '../domain/errors/customer-already-exists.error.js';
-
 
 @Injectable()
 export class CustomersService {
@@ -57,8 +57,23 @@ export class CustomersService {
     return customer;
   }
 
+  // --- BUSCAR POR DOCUMENTO (identificación en la caja) ---
+  async findByDocument(documentType: DocumentType, documentNumber: string): Promise<Customer> {
+    const normalizedNumber = normalizeDocumentNumber(documentNumber);
+    const customer = await this.customersRepository.findByDocument(documentType, normalizedNumber);
+    if (!customer) {
+      throw new NotFoundException(`Customer with ${documentType} "${normalizedNumber}" not found`);
+    }
+    return customer;
+  }
+
   // --- ACTUALIZAR ---
   async update(id: number, dto: UpdateCustomerDto): Promise<Customer> {
+    // 0. Tiene que venir al menos un campo para modificar
+    if (Object.values(dto).every((value) => value === undefined)) {
+      throw new BadRequestException('At least one field must be provided');
+    }
+
     // 1. Buscar si el cliente existe
     const customer = await this.findById(id);
 
@@ -80,7 +95,6 @@ export class CustomersService {
 
     // 3. Aplicar los cambios sobre la entidad recuperada
     customer.update({
-      
       firstName: dto.firstName,
       lastName: dto.lastName,
       documentType: dto.documentType,
@@ -108,7 +122,7 @@ export class CustomersService {
       throw new ConflictException(`Customer with ID ${id} is already inactive`);
     }
     customer.deactivate();
-    await this.customersRepository.update(customer);
+    await this.customersRepository.updateStatus(customer, 'DEACTIVATED');
   }
 
   // --- ACTIVAR ---
@@ -118,9 +132,14 @@ export class CustomersService {
       throw new ConflictException(`Customer with ID ${id} is already active`);
     }
     customer.activate();
-    await this.customersRepository.update(customer);
+    await this.customersRepository.updateStatus(customer, 'ACTIVATED');
   }
 
+  // --- HISTORIAL DE BAJAS Y REACTIVACIONES ---
+  async getStatusHistory(id: number): Promise<CustomerStatusChange[]> {
+    await this.findById(id);
+    return await this.customersRepository.findStatusHistory(id);
+  }
 
   private async assertDocumentAvailable(
     documentType: DocumentType,
