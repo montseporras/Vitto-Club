@@ -1,6 +1,6 @@
-// Tabla de empleados registrados (listado de RF-01). Cada fila es clickeable
-// y abre la edición del empleado (RF-02); la baja lógica (RF-04) vive dentro
-// de ese modal.
+// Tabla de empleados registrados: nombre, apellido, teléfono, rol y estado
+// lógico (datos mostrados de RF-03). Cada fila es clickeable y abre la edición
+// del empleado (RF-02); la baja lógica (RF-04) vive dentro de ese modal.
 import { ROLES_EMPLEADO } from '@/domain/roles';
 import type { Empleado } from '../types/empleado';
 
@@ -23,8 +23,8 @@ export function TablaEmpleados({
         <tr className="border-b border-[var(--border)]">
           <th className={headerClass}>Nombre</th>
           <th className={headerClass}>Apellido</th>
+          <th className={headerClass}>Teléfono</th>
           <th className={headerClass}>Rol</th>
-          <th className={headerClass}>Mail</th>
           <th className={headerClass}>Estado</th>
         </tr>
       </thead>
@@ -37,8 +37,12 @@ export function TablaEmpleados({
           >
             <td className={cellClass}>{empleado.firstName}</td>
             <td className={cellClass}>{empleado.lastName}</td>
+            <td className={cellClass}>
+              {empleado.phone ?? (
+                <span className="text-[var(--text-muted)]">—</span>
+              )}
+            </td>
             <td className={cellClass}>{ROLES_EMPLEADO[empleado.role]}</td>
-            <td className={cellClass}>{empleado.email}</td>
             <td className={cellClass}>
               <span
                 className={

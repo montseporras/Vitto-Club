@@ -1,8 +1,9 @@
-// Sección "Empleados y usuarios": listado (RF-01), alta (RF-01), edición
-// (RF-02) y baja lógica (RF-04) de empleados.
+// Sección "Empleados y usuarios": listado y búsqueda (RF-01/RF-03), alta
+// (RF-01), edición (RF-02) y baja lógica (RF-04) de empleados.
 // Es la pantalla del prototipo dentro del modal de Configuración del Administrador.
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useEmpleados } from '../api/empleados.queries';
+import { BuscadorEmpleados } from '../components/BuscadorEmpleados';
 import { ConfirmarBajaEmpleado } from '../components/ConfirmarBajaEmpleado';
 import { FormEditarEmpleado } from '../components/FormEditarEmpleado';
 import { FormRegistrarEmpleado } from '../components/FormRegistrarEmpleado';
@@ -14,7 +15,18 @@ export function EmpleadosPage() {
   const [empleadoSeleccionado, setEmpleadoSeleccionado] =
     useState<Empleado | null>(null);
   const [dandoDeBaja, setDandoDeBaja] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
   const { data: empleados, isLoading, isError, refetch } = useEmpleados();
+
+  const empleadosFiltrados = useMemo(() => {
+    const termino = busqueda.trim().toLowerCase();
+    if (!termino) return empleados;
+    return empleados?.filter((empleado) =>
+      `${empleado.firstName} ${empleado.lastName}`
+        .toLowerCase()
+        .includes(termino),
+    );
+  }, [empleados, busqueda]);
 
   const cerrarEdicion = () => {
     setEmpleadoSeleccionado(null);
@@ -27,6 +39,12 @@ export function EmpleadosPage() {
       <p className="mt-1 text-sm text-[var(--text-muted)]">
         Cada empleado ingresa al sistema con su mail, según su rol.
       </p>
+
+      {empleados && empleados.length > 0 && (
+        <div className="mt-4">
+          <BuscadorEmpleados valor={busqueda} onCambiar={setBusqueda} />
+        </div>
+      )}
 
       <div className="mt-6">
         {isLoading && (
@@ -47,14 +65,18 @@ export function EmpleadosPage() {
         )}
 
         {empleados &&
-          (empleados.length > 0 ? (
+          (empleados.length === 0 ? (
+            <p className="text-[var(--text-muted)]">
+              Todavía no hay empleados registrados.
+            </p>
+          ) : empleadosFiltrados && empleadosFiltrados.length > 0 ? (
             <TablaEmpleados
-              empleados={empleados}
+              empleados={empleadosFiltrados}
               onSeleccionarEmpleado={setEmpleadoSeleccionado}
             />
           ) : (
             <p className="text-[var(--text-muted)]">
-              Todavía no hay empleados registrados.
+              No se encontraron empleados que coincidan con la búsqueda.
             </p>
           ))}
       </div>
