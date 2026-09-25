@@ -1,1 +1,23 @@
 /* Estilos globales de la aplicación (reset, base). */
+@import './theme.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    margin: 0;
+    background: var(--surface-muted);
+    color: var(--text);
+    font-family: theme('fontFamily.sans');
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: theme('fontFamily.heading');
+    color: var(--text-heading);
+  }
+}

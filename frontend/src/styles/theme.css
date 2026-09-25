@@ -1,1 +1,17 @@
-/* Variables de tema (colores, tipografía, tokens de diseño). */
+/* Variables de tema (colores, tipografía, tokens de diseño) de La Vitto. */
+:root {
+  --accent-100: #fdead9;
+  --accent-500: #e2660a;
+  --accent-700: #8f3f05;
+  --accent-900: #402103;
+
+  --text: #4b4551;
+  --text-heading: #1a1720;
+  --text-muted: #8a8391;
+
+  --surface: #ffffff;
+  --surface-muted: #f2f1f4;
+  --border: #e5e4e7;
+
+  --radius: 10px;
+}

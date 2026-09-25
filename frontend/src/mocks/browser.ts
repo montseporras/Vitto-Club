@@ -1,2 +1,5 @@
 // Worker de MSW para mocks de API en el navegador.
-export {};
+import { setupWorker } from 'msw/browser';
+import { handlers } from './handlers';
+
+export const worker = setupWorker(...handlers);
