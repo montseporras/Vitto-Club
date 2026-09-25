@@ -20,3 +20,11 @@ export interface CrearEmpleadoDto {
   email: string;
   role: RolEmpleado;
 }
+
+// Cuerpo del PATCH /empleados/:id. El mail no se edita (RF-02).
+export interface ActualizarEmpleadoDto {
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  role: RolEmpleado;
+}

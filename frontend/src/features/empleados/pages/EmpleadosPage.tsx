@@ -1,13 +1,24 @@
-// Sección "Empleados y usuarios" (RF-01): listado + alta de empleados.
+// Sección "Empleados y usuarios" (RF-01): listado, alta y edición de empleados.
 // Es la pantalla del prototipo dentro del modal de Configuración del Administrador.
 import { useState } from 'react';
 import { useEmpleados } from '../api/empleados.queries';
+import { ConfirmarBajaEmpleado } from '../components/ConfirmarBajaEmpleado';
+import { FormEditarEmpleado } from '../components/FormEditarEmpleado';
 import { FormRegistrarEmpleado } from '../components/FormRegistrarEmpleado';
 import { TablaEmpleados } from '../components/TablaEmpleados';
+import type { Empleado } from '../types/empleado';
 
 export function EmpleadosPage() {
   const [creando, setCreando] = useState(false);
+  const [empleadoSeleccionado, setEmpleadoSeleccionado] =
+    useState<Empleado | null>(null);
+  const [dandoDeBaja, setDandoDeBaja] = useState(false);
   const { data: empleados, isLoading, isError, refetch } = useEmpleados();
+
+  const cerrarEdicion = () => {
+    setEmpleadoSeleccionado(null);
+    setDandoDeBaja(false);
+  };
 
   return (
     <div>
@@ -36,7 +47,10 @@ export function EmpleadosPage() {
 
         {empleados &&
           (empleados.length > 0 ? (
-            <TablaEmpleados empleados={empleados} />
+            <TablaEmpleados
+              empleados={empleados}
+              onSeleccionarEmpleado={setEmpleadoSeleccionado}
+            />
           ) : (
             <p className="text-[var(--text-muted)]">
               Todavía no hay empleados registrados.
@@ -65,6 +79,35 @@ export function EmpleadosPage() {
               onSuccess={() => setCreando(false)}
               onCancel={() => setCreando(false)}
             />
+          </div>
+        </div>
+      )}
+
+      {empleadoSeleccionado && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={dandoDeBaja ? 'Dar de baja empleado' : 'Editar empleado'}
+        >
+          <div className="w-full max-w-md rounded bg-[var(--surface)] p-6 shadow-xl">
+            <h3 className="mb-4 text-xl font-extrabold">
+              {dandoDeBaja ? 'Dar de baja empleado' : 'Editar empleado'}
+            </h3>
+            {dandoDeBaja ? (
+              <ConfirmarBajaEmpleado
+                empleado={empleadoSeleccionado}
+                onSuccess={cerrarEdicion}
+                onCancel={() => setDandoDeBaja(false)}
+              />
+            ) : (
+              <FormEditarEmpleado
+                empleado={empleadoSeleccionado}
+                onSuccess={cerrarEdicion}
+                onCancel={cerrarEdicion}
+                onSolicitarBaja={() => setDandoDeBaja(true)}
+              />
+            )}
           </div>
         </div>
       )}

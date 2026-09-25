@@ -32,3 +32,11 @@ export const registrarEmpleadoSchema = z.object({
 });
 
 export type RegistrarEmpleadoForm = z.infer<typeof registrarEmpleadoSchema>;
+
+// Edición de empleado (RF-02): mismos campos que el alta, salvo el mail,
+// que no se edita.
+export const editarEmpleadoSchema = registrarEmpleadoSchema.omit({
+  email: true,
+});
+
+export type EditarEmpleadoForm = z.infer<typeof editarEmpleadoSchema>;
