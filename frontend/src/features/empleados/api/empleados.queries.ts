@@ -45,7 +45,7 @@ export const useActualizarEmpleado = (id: number) => {
   });
 };
 
-// Baja de empleado: baja lógica, no elimina el registro.
+// Baja de empleado (RF-04): baja lógica, no elimina el registro.
 export const useDarDeBajaEmpleado = () => {
   const qc = useQueryClient();
   return useMutation({

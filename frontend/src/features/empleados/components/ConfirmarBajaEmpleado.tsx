@@ -1,4 +1,4 @@
-// Confirmación de baja de empleado, embebida en el modal de edición (RF-02).
+// Confirmación de baja de empleado (RF-04), embebida en el modal de edición.
 // Baja lógica: el empleado deja de estar activo pero el registro se conserva.
 import { useDarDeBajaEmpleado } from '../api/empleados.queries';
 import type { Empleado } from '../types/empleado';

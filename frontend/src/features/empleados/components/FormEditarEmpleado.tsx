@@ -1,6 +1,6 @@
 // Formulario de edición de empleado (RF-02). El mail no se edita.
-// La baja lógica se ofrece acá mismo (onSolicitarBaja) en vez de un botón
-// aparte en la tabla.
+// La baja lógica (RF-04) se ofrece acá mismo (onSolicitarBaja) en vez de un
+// botón aparte en la tabla.
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { ROLES_EMPLEADO } from '@/domain/roles';

@@ -1,4 +1,5 @@
-// Sección "Empleados y usuarios" (RF-01): listado, alta y edición de empleados.
+// Sección "Empleados y usuarios": listado (RF-01), alta (RF-01), edición
+// (RF-02) y baja lógica (RF-04) de empleados.
 // Es la pantalla del prototipo dentro del modal de Configuración del Administrador.
 import { useState } from 'react';
 import { useEmpleados } from '../api/empleados.queries';

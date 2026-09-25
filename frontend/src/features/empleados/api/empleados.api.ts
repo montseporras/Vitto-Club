@@ -36,7 +36,7 @@ export async function registrarEmpleado(
   return data;
 }
 
-// Baja lógica de un empleado: el backend marca isActive=false,
+// Baja lógica de un empleado (RF-04): el backend marca isActive=false,
 // no borra el registro.
 export async function darDeBajaEmpleado(id: number): Promise<Empleado> {
   const { data } = await http.delete<Empleado>(`/empleados/${id}`);

@@ -1,5 +1,6 @@
 // Tabla de empleados registrados (listado de RF-01). Cada fila es clickeable
-// y abre la edición del empleado (RF-02); la baja lógica vive dentro de ese modal.
+// y abre la edición del empleado (RF-02); la baja lógica (RF-04) vive dentro
+// de ese modal.
 import { ROLES_EMPLEADO } from '@/domain/roles';
 import type { Empleado } from '../types/empleado';
 
