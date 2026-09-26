@@ -1,7 +1,7 @@
-/** Tipos de documento que acepta el sistema (enum TipoDocumento del backend). */
+/** Tipos de documento que acepta el sistema (enum DocumentType del backend). */
 export const DOCUMENT_TYPES = {
   DNI: { label: 'DNI' },
-  PASAPORTE: { label: 'Pasaporte' },
+  PASSPORT: { label: 'Pasaporte' },
 } as const
 
 export type DocumentType = keyof typeof DOCUMENT_TYPES

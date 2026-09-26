@@ -2,22 +2,22 @@ import { z } from 'zod'
 import { DOCUMENT_TYPE_VALUES } from '@/domain/documents'
 
 // RF-015. Obligatorios: nombre, apellido, tipo y número de documento, correo.
-// Largos máximos iguales a las columnas de la tabla `clientes`.
+// Largos máximos y reglas iguales a las del dominio Customer del backend.
 export const altaClienteSchema = z
   .object({
-    nombre: z
+    firstName: z
       .string()
       .trim()
       .min(1, 'Ingresá el nombre')
       .max(80, 'Máximo 80 caracteres'),
-    apellido: z
+    lastName: z
       .string()
       .trim()
       .min(1, 'Ingresá el apellido')
       .max(80, 'Máximo 80 caracteres'),
-    tipoDocumento: z.enum(DOCUMENT_TYPE_VALUES),
+    documentType: z.enum(DOCUMENT_TYPE_VALUES),
     // Se aceptan puntos, espacios y guiones al tipear ("30.111.222") y se quitan.
-    numeroDocumento: z
+    documentNumber: z
       .string()
       .transform((v) => v.replace(/[.\s-]/g, '').toUpperCase())
       .pipe(
@@ -32,15 +32,21 @@ export const altaClienteSchema = z
       .min(1, 'Ingresá el correo electrónico')
       .max(150, 'Máximo 150 caracteres')
       .pipe(z.email('Ingresá un correo electrónico válido')),
-    telefono: z
+    // Opcional. Si viene: puede empezar con +, y lleva entre 8 y 15 dígitos.
+    phone: z
       .string()
       .trim()
       .max(30, 'Máximo 30 caracteres')
-      .regex(/^[\d\s()+-]*$/, 'Solo números, espacios, +, - y paréntesis')
+      .regex(/^(\+?[\d\s().-]+)?$/, 'Solo números, espacios, +, -, puntos y paréntesis')
+      .refine((v) => {
+        if (!v) return true
+        const digits = v.replace(/\D/g, '').length
+        return digits >= 8 && digits <= 15
+      }, 'El teléfono tiene que tener entre 8 y 15 números')
       .optional()
       .transform((v) => v || undefined),
     // RF-015: opcional. El input date entrega 'YYYY-MM-DD'.
-    fechaNacimiento: z
+    dateOfBirth: z
       .string()
       .optional()
       .superRefine((value, ctx) => {
@@ -58,21 +64,21 @@ export const altaClienteSchema = z
       .transform((v) => v || undefined),
   })
   .superRefine((data, ctx) => {
-    if (!data.numeroDocumento) return
-    if (data.tipoDocumento === 'DNI' && !/^\d{7,8}$/.test(data.numeroDocumento)) {
+    if (!data.documentNumber) return
+    if (data.documentType === 'DNI' && !/^\d{7,8}$/.test(data.documentNumber)) {
       ctx.addIssue({
         code: 'custom',
-        path: ['numeroDocumento'],
+        path: ['documentNumber'],
         message: 'El DNI tiene que tener 7 u 8 números',
       })
     }
     if (
-      data.tipoDocumento === 'PASAPORTE' &&
-      !/^[A-Z0-9]+$/.test(data.numeroDocumento)
+      data.documentType === 'PASSPORT' &&
+      !/^[A-Z0-9]+$/.test(data.documentNumber)
     ) {
       ctx.addIssue({
         code: 'custom',
-        path: ['numeroDocumento'],
+        path: ['documentNumber'],
         message: 'El pasaporte solo puede tener letras y números',
       })
     }

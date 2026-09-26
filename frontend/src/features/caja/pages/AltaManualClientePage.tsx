@@ -1,16 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
 import { FormField } from '@/shared/components/forms/FormField'
-import { ImageUploader } from '@/shared/components/forms/ImageUploader'
 import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio'
 import { Alert } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
-import { validatePhoto } from '@/shared/lib/image'
 import { useCreateClient } from '../api/caja.queries'
-import { fileToDataUrl } from '../lib/fileToDataUrl'
 import {
   altaClienteSchema,
   type AltaClienteFormInput,
@@ -18,13 +14,13 @@ import {
 } from '../schemas/alta-cliente.schema'
 
 const INITIAL_VALUES: AltaClienteFormInput = {
-  nombre: '',
-  apellido: '',
-  tipoDocumento: 'DNI',
-  numeroDocumento: '',
+  firstName: '',
+  lastName: '',
+  documentType: 'DNI',
+  documentNumber: '',
   email: '',
-  telefono: '',
-  fechaNacimiento: '',
+  phone: '',
+  dateOfBirth: '',
 }
 
 const TODAY = new Date().toISOString().slice(0, 10)
@@ -52,43 +48,28 @@ export function AltaManualClientePage() {
     mode: 'onTouched',
   })
   const createClient = useCreateClient()
-  const [photo, setPhoto] = useState<File | null>(null)
-  const [photoError, setPhotoError] = useState<string>()
 
-  const handlePhotoChange = (file: File | null) => {
-    const error = file ? validatePhoto(file) : undefined
-    setPhotoError(error)
-    setPhoto(error ? null : file)
-  }
-
-  const onSubmit = async (data: AltaClienteFormOutput) => {
-    if (photoError) return
-    const foto = photo ? await fileToDataUrl(photo) : undefined
-
-    createClient.mutate(
-      { ...data, foto },
-      {
+  const onSubmit = (data: AltaClienteFormOutput) => {
+    createClient.mutate(data, {
         onSuccess: () => {
           reset(INITIAL_VALUES)
-          setPhoto(null)
-          setFocus('nombre')
+          setFocus('firstName')
         },
         onError: (error) => {
           if (error.status === 409) {
             setError(
-              'numeroDocumento',
+              'documentNumber',
               { message: 'Ya existe un cliente registrado con este documento' },
               { shouldFocus: true },
             )
           }
         },
-      },
-    )
+    })
   }
 
   // Props comunes de accesibilidad para cada input con su mensaje de error
   const a11y = (
-    field: Exclude<keyof AltaClienteFormInput, 'tipoDocumento'>,
+    field: Exclude<keyof AltaClienteFormInput, 'documentType'>,
   ) => ({
     id: field,
     'aria-invalid': errors[field] ? true : undefined,
@@ -100,7 +81,7 @@ export function AltaManualClientePage() {
     createClient.isError && createClient.error.status !== 409
       ? createClient.error
       : undefined
-  const isDni = useWatch({ control, name: 'tipoDocumento' }) === 'DNI'
+  const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
 
   return (
     <section className="mx-auto w-full max-w-3xl">
@@ -114,23 +95,14 @@ export function AltaManualClientePage() {
 
       {created && (
         <Alert variant="success" className="mt-5">
-          <div className="flex items-center gap-3">
-            {created.fotoUrl && (
-              <img
-                src={created.fotoUrl}
-                alt=""
-                className="size-10 shrink-0 rounded-full object-cover"
-              />
-            )}
-            <p>
-              Cliente registrado correctamente:{' '}
-              <strong>
-                {created.nombre} {created.apellido}
-              </strong>{' '}
-              ({DOCUMENT_TYPES[created.tipoDocumento].label}{' '}
-              {created.numeroDocumento}).
-            </p>
-          </div>
+          <p>
+            Cliente registrado correctamente:{' '}
+            <strong>
+              {created.firstName} {created.lastName}
+            </strong>{' '}
+            ({DOCUMENT_TYPES[created.documentType].label}{' '}
+            {created.documentNumber}).
+          </p>
         </Alert>
       )}
 
@@ -155,58 +127,49 @@ export function AltaManualClientePage() {
         className="mt-6 rounded-2xl border border-divider/50 bg-bg/80 p-5 shadow-lg backdrop-blur-sm sm:p-8"
       >
         <div className="grid gap-5 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <ImageUploader
-              label="Fotografía"
-              value={photo}
-              onChange={handlePhotoChange}
-              error={photoError}
-            />
-          </div>
-
-          <FormField id="nombre" label="Nombre" error={errors.nombre?.message}>
+          <FormField id="firstName" label="Nombre" error={errors.firstName?.message}>
             <Input
               autoFocus
               autoComplete="off"
-              {...a11y('nombre')}
-              {...register('nombre')}
+              {...a11y('firstName')}
+              {...register('firstName')}
             />
           </FormField>
 
           <FormField
-            id="apellido"
+            id="lastName"
             label="Apellido"
-            error={errors.apellido?.message}
+            error={errors.lastName?.message}
           >
             <Input
               autoComplete="off"
-              {...a11y('apellido')}
-              {...register('apellido')}
+              {...a11y('lastName')}
+              {...register('lastName')}
             />
           </FormField>
 
           <SegmentedRadio
             legend="Tipo de documento"
             options={DOCUMENT_OPTIONS}
-            field={register('tipoDocumento', {
+            field={register('documentType', {
               // El formato válido depende del tipo: revalida el número ya escrito
               onChange: () => {
-                if (getValues('numeroDocumento')) trigger('numeroDocumento')
+                if (getValues('documentNumber')) trigger('documentNumber')
               },
             })}
           />
 
           <FormField
-            id="numeroDocumento"
+            id="documentNumber"
             label="Número de documento"
-            error={errors.numeroDocumento?.message}
+            error={errors.documentNumber?.message}
           >
             <Input
               inputMode={isDni ? 'numeric' : 'text'}
               placeholder="30111222"
               autoComplete="off"
-              {...a11y('numeroDocumento')}
-              {...register('numeroDocumento')}
+              {...a11y('documentNumber')}
+              {...register('documentNumber')}
             />
           </FormField>
 
@@ -226,30 +189,30 @@ export function AltaManualClientePage() {
           </FormField>
 
           <FormField
-            id="telefono"
+            id="phone"
             label="Teléfono"
-            error={errors.telefono?.message}
+            error={errors.phone?.message}
           >
             <Input
               type="tel"
               inputMode="tel"
               placeholder="351 1234567"
               autoComplete="off"
-              {...a11y('telefono')}
-              {...register('telefono')}
+              {...a11y('phone')}
+              {...register('phone')}
             />
           </FormField>
 
           <FormField
-            id="fechaNacimiento"
+            id="dateOfBirth"
             label="Fecha de nacimiento"
-            error={errors.fechaNacimiento?.message}
+            error={errors.dateOfBirth?.message}
           >
             <Input
               type="date"
               max={TODAY}
-              {...a11y('fechaNacimiento')}
-              {...register('fechaNacimiento')}
+              {...a11y('dateOfBirth')}
+              {...register('dateOfBirth')}
             />
           </FormField>
         </div>
