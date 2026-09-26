@@ -1,33 +1,46 @@
-/* Tokens de marca La Vitto, tomados del prototipo interactivo. */
+/* Tokens de marca La Vitto, tomados del Manual de marca (2024). */
 @theme {
-  --color-accent: #e2660a;
-  --color-accent-100: #fdead9;
-  --color-accent-200: #fbd2ad;
-  --color-accent-300: #f7b17a;
-  --color-accent-400: #ef8c45;
-  --color-accent-500: #e2660a;
-  --color-accent-600: #bf5406;
-  --color-accent-700: #8f3f05;
-  --color-accent-800: #663005;
-  --color-accent-900: #402103;
+  /* Naranja #DA864D es el color principal. El 600 es el Rojo Terracota del manual. */
+  --color-accent: #da864d;
+  --color-accent-50: #fdf3ea;
+  --color-accent-100: #fbe6d4;
+  --color-accent-200: #f6d0b1;
+  --color-accent-300: #efb488;
+  --color-accent-400: #e59d69;
+  --color-accent-500: #da864d;
+  --color-accent-600: #ca643c;
+  --color-accent-700: #a8532a;
+  --color-accent-800: #7e3e20;
+  --color-accent-900: #4f2714;
 
-  --color-bg: #f3f2f2;
-  --color-surface: #eae9e9;
-  --color-text: #201e1d;
-  --color-divider: color-mix(in srgb, #201e1d 40%, transparent);
+  /* Resto de la paleta del manual */
+  --color-beige: #f1d5a7;
+  --color-olive: #70845f;
+  --color-olive-50: #eef1e8;
+  --color-olive-800: #4e5e41;
+  --color-sage: #a1a67d;
 
-  --color-neutral-100: #f8f4f4;
-  --color-neutral-200: #eae7e7;
-  --color-neutral-300: #d7d3d3;
-  --color-neutral-400: #bab6b6;
-  --color-neutral-500: #9b9797;
-  --color-neutral-600: #7d7979;
-  --color-neutral-700: #605d5d;
-  --color-neutral-800: #444141;
-  --color-neutral-900: #2d2b2b;
+  /* Superficies con texto: accent-700 + blanco (5,3:1). Blanco sobre #DA864D da 2,8:1 y no se lee bien. */
+  --color-ink: #2b1a10;
 
-  --font-sans: 'Archivo', system-ui, sans-serif;
-  --font-heading: 'Archivo', system-ui, sans-serif;
+  --color-bg: #fdf7ee;
+  --color-surface: #ffffff;
+  --color-text: #2b1a10;
+  --color-divider: color-mix(in srgb, #7e3e20 35%, transparent);
+
+  --color-neutral-100: #f8f3ee;
+  --color-neutral-200: #ede5dc;
+  --color-neutral-300: #dcd1c5;
+  --color-neutral-400: #bfb2a4;
+  --color-neutral-500: #9c8f82;
+  --color-neutral-600: #7a6e63;
+  --color-neutral-700: #5c5249;
+  --color-neutral-800: #423a33;
+  --color-neutral-900: #2b2520;
+
+  /* Playfair Display para títulos y Lora para texto, según el manual */
+  --font-sans: 'Lora', Georgia, serif;
+  --font-heading: 'Playfair Display', Georgia, serif;
 
   --radius: 10px;
 }

@@ -4,21 +4,13 @@
 @layer base {
   body {
     @apply bg-bg font-sans text-text antialiased;
-    /* Velo cálido de marca detrás del contenido */
-    background-image: radial-gradient(
-      50rem 24rem at 50% -8rem,
-      var(--color-accent-100),
-      transparent 70%
-    );
-    background-repeat: no-repeat;
-    background-attachment: fixed;
   }
 
   h1,
   h2,
   h3,
   h4 {
-    @apply font-heading font-extrabold;
+    @apply font-heading font-bold;
     text-wrap: balance;
   }
 }

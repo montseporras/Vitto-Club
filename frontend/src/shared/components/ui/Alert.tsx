@@ -7,8 +7,9 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        success: 'border-emerald-600/30 bg-emerald-50 text-emerald-900',
-        error: 'border-accent-600/30 bg-accent-100 text-accent-900',
+        // Verde Oliva y Rojo Terracota del manual de marca
+        success: 'border-olive/40 border-l-4 border-l-olive bg-olive-50 text-olive-800',
+        error: 'border-accent-600/40 border-l-4 border-l-accent-600 bg-accent-50 text-accent-800',
       },
     },
     defaultVariants: { variant: 'error' },
