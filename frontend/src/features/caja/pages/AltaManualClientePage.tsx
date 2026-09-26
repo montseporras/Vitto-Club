@@ -7,6 +7,7 @@ import { FormField } from '@/shared/components/forms/FormField'
 import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio'
 import { Alert } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
+import { DateInput } from '@/shared/components/ui/DateInput'
 import { Input } from '@/shared/components/ui/Input'
 import { useCreateClient } from '../api/caja.queries'
 import {
@@ -24,8 +25,6 @@ const INITIAL_VALUES: AltaClienteFormInput = {
   phone: '',
   dateOfBirth: '',
 }
-
-const TODAY = new Date().toISOString().slice(0, 10)
 
 const DOCUMENT_OPTIONS = DOCUMENT_TYPE_VALUES.map((type) => ({
   value: type,
@@ -171,9 +170,7 @@ export function AltaManualClientePage() {
               optional
               error={errors.dateOfBirth?.message}
             >
-              <Input
-                type="date"
-                max={TODAY}
+              <DateInput
                 {...a11y('dateOfBirth')}
                 {...register('dateOfBirth')}
               />

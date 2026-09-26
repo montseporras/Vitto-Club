@@ -27,3 +27,14 @@ export type CreateClientBody = {
   /** 'YYYY-MM-DD' */
   dateOfBirth?: string
 }
+
+/**
+ * Body de PATCH /api/customers/:id. Viaja solo lo que cambió.
+ * `phone` y `dateOfBirth` se borran enviando null.
+ */
+export type UpdateClientBody = Partial<
+  Omit<CreateClientBody, 'phone' | 'dateOfBirth'>
+> & {
+  phone?: string | null
+  dateOfBirth?: string | null
+}

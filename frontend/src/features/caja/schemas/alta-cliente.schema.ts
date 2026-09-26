@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { DOCUMENT_TYPE_VALUES } from '@/domain/documents'
+import { displayDateToIso, todayIso } from '@/shared/lib/dates'
 
 // RF-015. Obligatorios: nombre, apellido, tipo y número de documento, correo.
 // Largos máximos y reglas iguales a las del dominio Customer del backend.
@@ -45,23 +46,35 @@ export const altaClienteSchema = z
       }, 'El teléfono tiene que tener entre 8 y 15 números')
       .optional()
       .transform((v) => v || undefined),
-    // RF-015: opcional. El input date entrega 'YYYY-MM-DD'.
+    // RF-015: opcional. Se tipea 'DD/MM/AAAA' y viaja a la API como 'YYYY-MM-DD'.
+    // Vacío o todo en cero (00/00/0000) cuenta como "sin fecha".
     dateOfBirth: z
       .string()
       .optional()
-      .superRefine((value, ctx) => {
-        if (!value) return
-        const date = new Date(value)
-        const problem = Number.isNaN(date.getTime())
-          ? 'Fecha inválida'
-          : date > new Date()
+      .transform((value, ctx) => {
+        const text = value?.trim() ?? ''
+        if (/^[0/]*$/.test(text)) return undefined
+        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(text)) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Completá la fecha (DD/MM/AAAA) o dejala vacía',
+          })
+          return z.NEVER
+        }
+        const iso = displayDateToIso(text)
+        const problem = !iso
+          ? 'Esa fecha no existe'
+          : iso > todayIso()
             ? 'La fecha no puede ser futura'
-            : date.getFullYear() < 1900
+            : iso < '1900-01-01'
               ? 'Revisá el año de nacimiento'
               : undefined
-        if (problem) ctx.addIssue({ code: 'custom', message: problem })
-      })
-      .transform((v) => v || undefined),
+        if (problem) {
+          ctx.addIssue({ code: 'custom', message: problem })
+          return z.NEVER
+        }
+        return iso!
+      }),
   })
   .superRefine((data, ctx) => {
     if (!data.documentNumber) return
