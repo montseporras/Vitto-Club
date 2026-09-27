@@ -1,14 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { ReactNode } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import logoIso from '@/assets/logo-vitto-iso-white.png'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
+import { FormActions } from '@/shared/components/forms/FormActions'
 import { FormField } from '@/shared/components/forms/FormField'
+import { FormSection } from '@/shared/components/forms/FormSection'
 import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio'
-import { Alert } from '@/shared/components/ui/Alert'
+import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { DateInput } from '@/shared/components/ui/DateInput'
 import { Input } from '@/shared/components/ui/Input'
+import { Page, PageCard } from '@/shared/components/ui/Page'
 import { useCreateClient } from '../api/caja.queries'
 import {
   altaClienteSchema,
@@ -85,7 +86,7 @@ export function AltaManualClientePage() {
   const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
 
   return (
-    <section className="mx-auto w-full max-w-4xl">
+    <Page>
       {created && (
         <Alert variant="success" className="mb-5">
           <p>
@@ -104,37 +105,12 @@ export function AltaManualClientePage() {
           {generalError.status === 400
             ? 'Revisá los datos: el servidor rechazó el alta.'
             : 'No se pudo registrar el cliente.'}
-          {generalError.messages.length > 0 && (
-            <ul className="mt-1 list-disc pl-5">
-              {generalError.messages.map((message) => (
-                <li key={message}>{message}</li>
-              ))}
-            </ul>
-          )}
+          <AlertMessages messages={generalError.messages} />
         </Alert>
       )}
 
-      <div className="overflow-hidden rounded-3xl border border-accent-200 bg-surface shadow-xl shadow-accent-800/10 xl:grid xl:grid-cols-[17rem_1fr]">
-        <header className="relative overflow-hidden bg-accent-700 px-6 py-7 text-white sm:px-8 xl:py-10">
-          <img
-            src={logoIso}
-            alt=""
-            aria-hidden="true"
-            className="pointer-events-none absolute right-6 bottom-8 hidden h-48 w-auto opacity-20 xl:block"
-          />
-          <p className="text-xs font-bold uppercase tracking-[0.18em]">
-            Clientes
-          </p>
-          <h2 className="mt-2 text-3xl leading-tight sm:text-4xl">
-            Alta manual de cliente
-          </h2>
-        </header>
-
-        <form
-          noValidate
-          onSubmit={handleSubmit(onSubmit)}
-          className="px-5 py-6 sm:px-8 sm:py-8"
-        >
+      <PageCard eyebrow="Clientes" title="Alta manual de cliente">
+        <form noValidate onSubmit={handleSubmit(onSubmit)}>
           <FormSection step={1} title="Datos personales">
             <FormField
               id="firstName"
@@ -234,7 +210,7 @@ export function AltaManualClientePage() {
             </FormField>
           </FormSection>
 
-          <div className="mt-8 flex justify-end border-t border-accent-100 pt-6">
+          <FormActions>
             <Button
               type="submit"
               size="lg"
@@ -243,35 +219,9 @@ export function AltaManualClientePage() {
             >
               {createClient.isPending ? 'Registrando…' : 'Registrar cliente'}
             </Button>
-          </div>
+          </FormActions>
         </form>
-      </div>
-    </section>
-  )
-}
-
-type FormSectionProps = {
-  step: number
-  title: string
-  children: ReactNode
-}
-
-/** Bloque del formulario con número y título, para ubicarse rápido en caja. */
-function FormSection({ step, title, children }: FormSectionProps) {
-  return (
-    <fieldset className="mt-7 first:mt-0">
-      <legend className="mb-4 flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="grid size-8 place-items-center rounded-full bg-accent font-heading text-base font-bold text-ink"
-        >
-          {step}
-        </span>
-        <span className="font-heading text-xl font-bold text-accent-800">
-          {title}
-        </span>
-      </legend>
-      <div className="grid gap-5 sm:grid-cols-2">{children}</div>
-    </fieldset>
+      </PageCard>
+    </Page>
   )
 }

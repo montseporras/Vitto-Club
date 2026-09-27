@@ -1,5 +1,8 @@
 // Confirmación de baja de empleado (RF-04), embebida en el modal de edición.
 // Baja lógica: el empleado deja de estar activo pero el registro se conserva.
+import { FormActions } from '@/shared/components/forms/FormActions';
+import { Alert } from '@/shared/components/ui/Alert';
+import { Button } from '@/shared/components/ui/Button';
 import { useDarDeBajaEmpleado } from '../api/empleados.queries';
 import type { Empleado } from '../types/empleado';
 
@@ -22,37 +25,33 @@ export function ConfirmarBajaEmpleado({
 
   return (
     <div>
-      <p className="text-[var(--text-heading)]">
+      {darDeBaja.isError && (
+        <Alert variant="error" className="mb-6">
+          No se pudo dar de baja al empleado. Intentá nuevamente.
+        </Alert>
+      )}
+
+      <p className="text-base text-text">
         ¿Dar de baja a{' '}
-        <span className="font-semibold">
+        <strong>
           {empleado.firstName} {empleado.lastName}
-        </span>
+        </strong>
         ? Va a dejar de poder ingresar al sistema.
       </p>
 
-      {darDeBaja.isError && (
-        <p className="mt-3 text-sm text-red-600">
-          No se pudo dar de baja al empleado. Intentá nuevamente.
-        </p>
-      )}
-
-      <div className="mt-6 flex justify-end gap-3">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded border border-[var(--border)] bg-white px-4 py-2 font-medium text-[var(--text-heading)] hover:bg-[var(--surface-muted)]"
-        >
+      <FormActions>
+        <Button type="button" variant="secondary" size="lg" onClick={onCancel}>
           Cancelar
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          size="lg"
           onClick={confirmar}
           disabled={darDeBaja.isPending}
-          className="rounded bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700 disabled:opacity-60"
         >
           {darDeBaja.isPending ? 'Dando de baja…' : 'Dar de baja'}
-        </button>
-      </div>
+        </Button>
+      </FormActions>
     </div>
   );
 }

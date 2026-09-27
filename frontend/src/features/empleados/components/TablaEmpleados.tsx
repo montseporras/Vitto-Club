@@ -2,6 +2,14 @@
 // lógico (datos mostrados de RF-03). Cada fila es clickeable y abre la edición
 // del empleado (RF-02); la baja lógica (RF-04) vive dentro de ese modal.
 import { ROLES_EMPLEADO } from '@/domain/roles';
+import { Badge } from '@/shared/components/ui/Badge';
+import {
+  Table,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+} from '@/shared/components/ui/Table';
 import type { Empleado } from '../types/empleado';
 
 interface TablaEmpleadosProps {
@@ -9,54 +17,42 @@ interface TablaEmpleadosProps {
   onSeleccionarEmpleado: (empleado: Empleado) => void;
 }
 
-const headerClass =
-  'px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]';
-const cellClass = 'px-3 py-3 text-[var(--text-heading)]';
-
 export function TablaEmpleados({
   empleados,
   onSeleccionarEmpleado,
 }: TablaEmpleadosProps) {
   return (
-    <table className="w-full border-collapse">
-      <thead>
-        <tr className="border-b border-[var(--border)]">
-          <th className={headerClass}>Nombre</th>
-          <th className={headerClass}>Apellido</th>
-          <th className={headerClass}>Teléfono</th>
-          <th className={headerClass}>Rol</th>
-          <th className={headerClass}>Estado</th>
+    <Table>
+      <TableHead>
+        <tr>
+          <TableHeaderCell>Nombre</TableHeaderCell>
+          <TableHeaderCell>Apellido</TableHeaderCell>
+          <TableHeaderCell>Teléfono</TableHeaderCell>
+          <TableHeaderCell>Rol</TableHeaderCell>
+          <TableHeaderCell>Estado</TableHeaderCell>
         </tr>
-      </thead>
+      </TableHead>
       <tbody>
         {empleados.map((empleado) => (
-          <tr
+          <TableRow
             key={empleado.id}
+            interactive
             onClick={() => onSeleccionarEmpleado(empleado)}
-            className="cursor-pointer border-b border-[var(--border)] hover:bg-[var(--surface-muted)]"
           >
-            <td className={cellClass}>{empleado.firstName}</td>
-            <td className={cellClass}>{empleado.lastName}</td>
-            <td className={cellClass}>
-              {empleado.phone ?? (
-                <span className="text-[var(--text-muted)]">—</span>
-              )}
-            </td>
-            <td className={cellClass}>{ROLES_EMPLEADO[empleado.role]}</td>
-            <td className={cellClass}>
-              <span
-                className={
-                  empleado.isActive
-                    ? 'rounded-full bg-accent-100 px-2 py-0.5 text-sm text-accent-700'
-                    : 'rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-sm text-[var(--text-muted)]'
-                }
-              >
+            <TableCell>{empleado.firstName}</TableCell>
+            <TableCell>{empleado.lastName}</TableCell>
+            <TableCell>
+              {empleado.phone ?? <span className="text-neutral-500">—</span>}
+            </TableCell>
+            <TableCell>{ROLES_EMPLEADO[empleado.role]}</TableCell>
+            <TableCell>
+              <Badge variant={empleado.isActive ? 'success' : 'danger'}>
                 {empleado.isActive ? 'Activo' : 'Inactivo'}
-              </span>
-            </td>
-          </tr>
+              </Badge>
+            </TableCell>
+          </TableRow>
         ))}
       </tbody>
-    </table>
+    </Table>
   );
 }

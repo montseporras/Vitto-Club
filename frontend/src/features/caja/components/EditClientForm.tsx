@@ -2,9 +2,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
+import { FormActions } from '@/shared/components/forms/FormActions'
 import { FormField } from '@/shared/components/forms/FormField'
+import { FormSection } from '@/shared/components/forms/FormSection'
 import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio'
-import { Alert } from '@/shared/components/ui/Alert'
+import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { DateInput } from '@/shared/components/ui/DateInput'
 import { Input } from '@/shared/components/ui/Input'
@@ -16,7 +18,6 @@ import {
   type AltaClienteFormOutput,
 } from '../schemas/alta-cliente.schema'
 import type { Client, UpdateClientBody } from '../types/cliente'
-import { FormSection } from './FormSection'
 
 const DOCUMENT_OPTIONS = DOCUMENT_TYPE_VALUES.map((type) => ({
   value: type,
@@ -126,13 +127,7 @@ export function EditClientForm({ client, onSaved, onCancel }: EditClientFormProp
             : generalError.status === 400
               ? 'Revisá los datos: el servidor rechazó los cambios.'
               : 'No se pudieron guardar los cambios.'}
-          {generalError.messages.length > 0 && (
-            <ul className="mt-1 list-disc pl-5">
-              {generalError.messages.map((message) => (
-                <li key={message}>{message}</li>
-              ))}
-            </ul>
-          )}
+          <AlertMessages messages={generalError.messages} />
         </Alert>
       )}
 
@@ -231,12 +226,7 @@ export function EditClientForm({ client, onSaved, onCancel }: EditClientFormProp
         </FormField>
       </FormSection>
 
-      <div className="mt-8 flex flex-col-reverse items-stretch gap-3 border-t border-accent-100 pt-6 sm:flex-row sm:items-center sm:justify-end">
-        {noChanges && (
-          <p role="status" className="text-sm text-neutral-700 sm:mr-auto">
-            No modificaste ningún dato.
-          </p>
-        )}
+      <FormActions message={noChanges && 'No modificaste ningún dato.'}>
         <Button
           type="button"
           variant="secondary"
@@ -249,7 +239,7 @@ export function EditClientForm({ client, onSaved, onCancel }: EditClientFormProp
         <Button type="submit" size="lg" disabled={updateClient.isPending}>
           {updateClient.isPending ? 'Guardando…' : 'Guardar cambios'}
         </Button>
-      </div>
+      </FormActions>
     </form>
   )
 }

@@ -3,6 +3,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { ROLES_EMPLEADO } from '@/domain/roles';
 import { toApiError } from '@/shared/api/ApiError';
+import { FormActions } from '@/shared/components/forms/FormActions';
+import { FormField } from '@/shared/components/forms/FormField';
+import { FormSection } from '@/shared/components/forms/FormSection';
+import { Alert } from '@/shared/components/ui/Alert';
+import { Button } from '@/shared/components/ui/Button';
+import { Input } from '@/shared/components/ui/Input';
+import { Select } from '@/shared/components/ui/Select';
 import { useRegistrarEmpleado } from '../api/empleados.queries';
 import {
   registrarEmpleadoSchema,
@@ -14,10 +21,10 @@ interface FormRegistrarEmpleadoProps {
   onCancel: () => void;
 }
 
-const inputClass =
-  'w-full rounded border border-[var(--border)] bg-white px-3 py-2 text-[var(--text-heading)] outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500';
-const labelClass = 'mb-1 block text-sm font-medium text-[var(--text-heading)]';
-const errorClass = 'mt-1 text-sm text-red-600';
+const ROL_OPTIONS = Object.entries(ROLES_EMPLEADO).map(([value, label]) => ({
+  value,
+  label,
+}));
 
 export function FormRegistrarEmpleado({
   onSuccess,
@@ -55,111 +62,91 @@ export function FormRegistrarEmpleado({
     });
   });
 
-  // El 409 se muestra en el campo Mail; el resto de los errores, debajo del formulario.
+  // El 409 se muestra en el campo Mail; el resto de los errores, arriba del formulario.
   const errorApi = registrar.error ? toApiError(registrar.error) : null;
 
+  // Props de accesibilidad para cada input con su mensaje de error
+  const a11y = (field: Exclude<keyof RegistrarEmpleadoForm, 'rol'>) => ({
+    id: field,
+    'aria-invalid': errors[field] ? true : undefined,
+    'aria-describedby': errors[field] ? `${field}-error` : undefined,
+  });
+
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-      <div>
-        <label className={labelClass} htmlFor="nombre">
-          Nombre
-        </label>
-        <input
-          id="nombre"
-          className={inputClass}
-          aria-invalid={!!errors.nombre}
-          {...register('nombre')}
-        />
-        {errors.nombre && <p className={errorClass}>{errors.nombre.message}</p>}
-      </div>
-
-      <div>
-        <label className={labelClass} htmlFor="apellido">
-          Apellido
-        </label>
-        <input
-          id="apellido"
-          className={inputClass}
-          aria-invalid={!!errors.apellido}
-          {...register('apellido')}
-        />
-        {errors.apellido && (
-          <p className={errorClass}>{errors.apellido.message}</p>
-        )}
-      </div>
-
-      <div>
-        <label className={labelClass} htmlFor="telefono">
-          Teléfono <span className="text-[var(--text-muted)]">(opcional)</span>
-        </label>
-        <input
-          id="telefono"
-          className={inputClass}
-          aria-invalid={!!errors.telefono}
-          {...register('telefono')}
-        />
-        {errors.telefono && (
-          <p className={errorClass}>{errors.telefono.message}</p>
-        )}
-      </div>
-
-      <div>
-        <label className={labelClass} htmlFor="email">
-          Mail
-        </label>
-        <input
-          id="email"
-          type="email"
-          className={inputClass}
-          aria-invalid={!!errors.email}
-          {...register('email')}
-        />
-        {errors.email && <p className={errorClass}>{errors.email.message}</p>}
-      </div>
-
-      <div>
-        <label className={labelClass} htmlFor="rol">
-          Rol
-        </label>
-        <select
-          id="rol"
-          className={inputClass}
-          aria-invalid={!!errors.rol}
-          {...register('rol')}
-        >
-          {Object.entries(ROLES_EMPLEADO).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        {errors.rol && <p className={errorClass}>{errors.rol.message}</p>}
-      </div>
-
+    <form onSubmit={onSubmit} noValidate>
       {errorApi && errorApi.status !== 409 && (
-        <p className={errorClass}>
+        <Alert variant="error" className="mb-6">
           {errorApi.status === undefined
             ? errorApi.message
             : 'No se pudo registrar el empleado. Intentá nuevamente.'}
-        </p>
+        </Alert>
       )}
 
-      <div className="mt-2 flex justify-end gap-3">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded border border-[var(--border)] bg-white px-4 py-2 font-medium text-[var(--text-heading)] hover:bg-[var(--surface-muted)]"
+      <FormSection step={1} title="Datos personales">
+        <FormField id="nombre" label="Nombre" error={errors.nombre?.message}>
+          <Input autoComplete="off" {...a11y('nombre')} {...register('nombre')} />
+        </FormField>
+
+        <FormField
+          id="apellido"
+          label="Apellido"
+          error={errors.apellido?.message}
         >
+          <Input
+            autoComplete="off"
+            {...a11y('apellido')}
+            {...register('apellido')}
+          />
+        </FormField>
+      </FormSection>
+
+      <FormSection step={2} title="Contacto">
+        <FormField id="email" label="Mail" error={errors.email?.message}>
+          <Input
+            type="email"
+            inputMode="email"
+            autoComplete="off"
+            {...a11y('email')}
+            {...register('email')}
+          />
+        </FormField>
+
+        <FormField
+          id="telefono"
+          label="Teléfono"
+          optional
+          error={errors.telefono?.message}
+        >
+          <Input
+            type="tel"
+            inputMode="tel"
+            autoComplete="off"
+            {...a11y('telefono')}
+            {...register('telefono')}
+          />
+        </FormField>
+      </FormSection>
+
+      <FormSection step={3} title="Acceso">
+        <FormField id="rol" label="Rol" error={errors.rol?.message}>
+          <Select
+            id="rol"
+            options={ROL_OPTIONS}
+            aria-invalid={errors.rol ? true : undefined}
+            aria-describedby={errors.rol ? 'rol-error' : undefined}
+            {...register('rol')}
+          />
+        </FormField>
+      </FormSection>
+
+      <FormActions>
+        <Button type="button" variant="secondary" size="lg" onClick={onCancel}>
           Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={registrar.isPending}
-          className="rounded bg-accent-500 px-4 py-2 font-medium text-white hover:bg-accent-700 disabled:opacity-60"
-        >
+        </Button>
+        <Button type="submit" size="lg" disabled={registrar.isPending}>
           {registrar.isPending ? 'Guardando…' : 'Guardar'}
-        </button>
-      </div>
+        </Button>
+      </FormActions>
     </form>
   );
 }

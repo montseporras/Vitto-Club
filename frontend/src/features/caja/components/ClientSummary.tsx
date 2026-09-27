@@ -1,10 +1,12 @@
 import { DOCUMENT_TYPES } from '@/domain/documents'
+import { Badge } from '@/shared/components/ui/Badge'
 import { Button } from '@/shared/components/ui/Button'
+import { Card, CardTitle } from '@/shared/components/ui/Card'
+import { DataList } from '@/shared/components/ui/DataList'
+import { Icon } from '@/shared/components/ui/Icon'
+import { ICONS } from '@/shared/components/ui/icons'
 import { isoToDisplayDate } from '@/shared/lib/dates'
-import { cn } from '@/shared/lib/utils'
 import type { Client } from '../types/cliente'
-
-const PENCIL = 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z'
 
 type ClientSummaryProps = {
   client: Client
@@ -27,22 +29,15 @@ export function ClientSummary({ client, onEdit }: ClientSummaryProps) {
   ]
 
   return (
-    <article className="rounded-2xl border border-accent-200 bg-accent-50/60 p-5 sm:p-6">
+    <Card>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-2">
-          <h3 className="text-2xl leading-tight">
+          <CardTitle>
             {client.firstName} {client.lastName}
-          </h3>
-          <span
-            className={cn(
-              'w-fit rounded-full border px-3 py-0.5 text-xs font-bold uppercase tracking-wide',
-              client.active
-                ? 'border-olive/40 bg-olive-50 text-olive-800'
-                : 'border-accent-600/40 bg-accent-100 text-accent-800',
-            )}
-          >
+          </CardTitle>
+          <Badge variant={client.active ? 'success' : 'danger'}>
             {client.active ? 'Activo' : 'Dado de baja'}
-          </span>
+          </Badge>
         </div>
 
         <Button
@@ -52,18 +47,7 @@ export function ClientSummary({ client, onEdit }: ClientSummaryProps) {
           disabled={!client.active}
           className="w-full sm:w-auto"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            className="size-5"
-          >
-            <path d={PENCIL} />
-          </svg>
+          <Icon d={ICONS.pencil} />
           Editar datos
         </Button>
       </div>
@@ -75,16 +59,7 @@ export function ClientSummary({ client, onEdit }: ClientSummaryProps) {
         </p>
       )}
 
-      <dl className="mt-5 grid gap-x-6 gap-y-4 border-t border-accent-200 pt-5 sm:grid-cols-2">
-        {rows.map((row) => (
-          <div key={row.label} className="flex flex-col gap-0.5">
-            <dt className="text-xs font-bold uppercase tracking-wide text-accent-800">
-              {row.label}
-            </dt>
-            <dd className="text-base break-words text-text">{row.value}</dd>
-          </div>
-        ))}
-      </dl>
-    </article>
+      <DataList items={rows} className="mt-5" />
+    </Card>
   )
 }

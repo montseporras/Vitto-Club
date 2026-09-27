@@ -4,6 +4,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { ROLES_EMPLEADO } from '@/domain/roles';
+import { FormActions } from '@/shared/components/forms/FormActions';
+import { FormField } from '@/shared/components/forms/FormField';
+import { FormSection } from '@/shared/components/forms/FormSection';
+import { Alert } from '@/shared/components/ui/Alert';
+import { Button } from '@/shared/components/ui/Button';
+import { Input } from '@/shared/components/ui/Input';
+import { Select } from '@/shared/components/ui/Select';
 import { useActualizarEmpleado } from '../api/empleados.queries';
 import {
   editarEmpleadoSchema,
@@ -18,10 +25,10 @@ interface FormEditarEmpleadoProps {
   onSolicitarBaja: () => void;
 }
 
-const inputClass =
-  'w-full rounded border border-[var(--border)] bg-white px-3 py-2 text-[var(--text-heading)] outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500';
-const labelClass = 'mb-1 block text-sm font-medium text-[var(--text-heading)]';
-const errorClass = 'mt-1 text-sm text-red-600';
+const ROL_OPTIONS = Object.entries(ROLES_EMPLEADO).map(([value, label]) => ({
+  value,
+  label,
+}));
 
 export function FormEditarEmpleado({
   empleado,
@@ -49,118 +56,91 @@ export function FormEditarEmpleado({
     actualizar.mutate(form, { onSuccess });
   });
 
+  // Props de accesibilidad para cada input con su mensaje de error
+  const a11y = (field: Exclude<keyof EditarEmpleadoForm, 'rol'>) => ({
+    id: field,
+    'aria-invalid': errors[field] ? true : undefined,
+    'aria-describedby': errors[field] ? `${field}-error` : undefined,
+  });
+
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-      <div>
-        <label className={labelClass} htmlFor="nombre">
-          Nombre
-        </label>
-        <input
-          id="nombre"
-          className={inputClass}
-          aria-invalid={!!errors.nombre}
-          {...register('nombre')}
-        />
-        {errors.nombre && <p className={errorClass}>{errors.nombre.message}</p>}
-      </div>
-
-      <div>
-        <label className={labelClass} htmlFor="apellido">
-          Apellido
-        </label>
-        <input
-          id="apellido"
-          className={inputClass}
-          aria-invalid={!!errors.apellido}
-          {...register('apellido')}
-        />
-        {errors.apellido && (
-          <p className={errorClass}>{errors.apellido.message}</p>
-        )}
-      </div>
-
-      <div>
-        <label className={labelClass} htmlFor="telefono">
-          Teléfono <span className="text-[var(--text-muted)]">(opcional)</span>
-        </label>
-        <input
-          id="telefono"
-          className={inputClass}
-          aria-invalid={!!errors.telefono}
-          {...register('telefono')}
-        />
-        {errors.telefono && (
-          <p className={errorClass}>{errors.telefono.message}</p>
-        )}
-      </div>
-
-      <div>
-        <label className={labelClass} htmlFor="mail">
-          Mail
-        </label>
-        <input
-          id="mail"
-          className={`${inputClass} cursor-not-allowed bg-[var(--surface-muted)] text-[var(--text-muted)]`}
-          value={empleado.email}
-          disabled
-        />
-      </div>
-
-      <div>
-        <label className={labelClass} htmlFor="rol">
-          Rol
-        </label>
-        <select
-          id="rol"
-          className={inputClass}
-          aria-invalid={!!errors.rol}
-          {...register('rol')}
-        >
-          {Object.entries(ROLES_EMPLEADO).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        {errors.rol && <p className={errorClass}>{errors.rol.message}</p>}
-      </div>
-
+    <form onSubmit={onSubmit} noValidate>
       {actualizar.isError && (
-        <p className={errorClass}>
+        <Alert variant="error" className="mb-6">
           No se pudieron guardar los cambios. Intentá nuevamente.
-        </p>
+        </Alert>
       )}
 
-      <div className="mt-2 flex items-center justify-between gap-3">
-        {empleado.isActive ? (
-          <button
+      <FormSection step={1} title="Datos personales">
+        <FormField id="nombre" label="Nombre" error={errors.nombre?.message}>
+          <Input autoComplete="off" {...a11y('nombre')} {...register('nombre')} />
+        </FormField>
+
+        <FormField
+          id="apellido"
+          label="Apellido"
+          error={errors.apellido?.message}
+        >
+          <Input
+            autoComplete="off"
+            {...a11y('apellido')}
+            {...register('apellido')}
+          />
+        </FormField>
+      </FormSection>
+
+      <FormSection step={2} title="Contacto">
+        <FormField id="mail" label="Mail">
+          <Input id="mail" value={empleado.email} readOnly disabled />
+        </FormField>
+
+        <FormField
+          id="telefono"
+          label="Teléfono"
+          optional
+          error={errors.telefono?.message}
+        >
+          <Input
+            type="tel"
+            inputMode="tel"
+            autoComplete="off"
+            {...a11y('telefono')}
+            {...register('telefono')}
+          />
+        </FormField>
+      </FormSection>
+
+      <FormSection step={3} title="Acceso">
+        <FormField id="rol" label="Rol" error={errors.rol?.message}>
+          <Select
+            id="rol"
+            options={ROL_OPTIONS}
+            aria-invalid={errors.rol ? true : undefined}
+            aria-describedby={errors.rol ? 'rol-error' : undefined}
+            {...register('rol')}
+          />
+        </FormField>
+      </FormSection>
+
+      <FormActions>
+        {empleado.isActive && (
+          <Button
             type="button"
+            variant="ghost"
+            size="lg"
             onClick={onSolicitarBaja}
-            className="text-sm font-medium text-red-600 hover:underline"
+            className="sm:mr-auto"
           >
             Dar de baja
-          </button>
-        ) : (
-          <span />
+          </Button>
         )}
-
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded border border-[var(--border)] bg-white px-4 py-2 font-medium text-[var(--text-heading)] hover:bg-[var(--surface-muted)]"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={actualizar.isPending}
-            className="rounded bg-accent-500 px-4 py-2 font-medium text-white hover:bg-accent-700 disabled:opacity-60"
-          >
-            {actualizar.isPending ? 'Guardando…' : 'Guardar'}
-          </button>
-        </div>
-      </div>
+        <Button type="button" variant="secondary" size="lg" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit" size="lg" disabled={actualizar.isPending}>
+          {actualizar.isPending ? 'Guardando…' : 'Guardar'}
+        </Button>
+      </FormActions>
     </form>
   );
 }

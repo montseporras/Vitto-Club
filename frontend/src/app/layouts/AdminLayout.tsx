@@ -3,93 +3,92 @@
 // a otros RF. Acá sólo se cablea la entrada a Configuración → Empleados y usuarios (RF-01).
 import { useState } from 'react';
 import { EmpleadosPage } from '@/features/empleados';
+import { StatusText } from '@/shared/components/feedback/StatusText';
+import { AppFooter, AppHeader } from '@/shared/components/navigation/AppHeader';
+import { SideNav } from '@/shared/components/navigation/SideNav';
+import { Icon } from '@/shared/components/ui/Icon';
+import { ICONS } from '@/shared/components/ui/icons';
+import { Modal } from '@/shared/components/ui/Modal';
+import { appHeaderStyles } from '@/styles/ui';
 
 const SECCIONES = [
-  'Empleados y usuarios',
-  'Equivalencia de puntos',
-  'Niveles de fidelización',
-  'Notificaciones',
+  {
+    id: 'empleados',
+    label: 'Empleados y usuarios',
+    icon: ICONS.users,
+    description: 'Cada empleado ingresa al sistema con su mail, según su rol.',
+  },
+  { id: 'puntos', label: 'Equivalencia de puntos', icon: ICONS.coins },
+  { id: 'niveles', label: 'Niveles de fidelización', icon: ICONS.award },
+  { id: 'notificaciones', label: 'Notificaciones', icon: ICONS.bell },
 ] as const;
 
 type Seccion = (typeof SECCIONES)[number];
 
 export function AdminLayout() {
   const [configAbierta, setConfigAbierta] = useState(false);
-  const [seccion, setSeccion] = useState<Seccion>('Empleados y usuarios');
+  const [seccion, setSeccion] = useState<Seccion>(SECCIONES[0]);
 
   return (
-    <div className="min-h-screen">
-      <header className="flex items-center justify-between border-b border-[var(--border)] bg-white px-6 py-4">
-        <h1 className="text-xl font-extrabold">Vitto Club — Administración</h1>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-[var(--text-muted)]">
-            Denise Nagel · Administrador
-          </span>
-          <button
-            type="button"
-            onClick={() => setConfigAbierta(true)}
-            aria-label="Abrir configuración"
-            className="text-2xl leading-none text-[var(--text-muted)] hover:text-[var(--text-heading)]"
-          >
-            ⚙
-          </button>
-        </div>
-      </header>
+    <div className="flex min-h-svh flex-col">
+      <AppHeader area="Administración">
+        <span className={appHeaderStyles.meta}>
+          Denise Nagel · Administrador
+        </span>
+        <button
+          type="button"
+          onClick={() => setConfigAbierta(true)}
+          aria-label="Abrir configuración"
+          title="Configuración"
+          className={appHeaderStyles.iconButton}
+        >
+          <Icon
+            d={ICONS.settings}
+            className="size-5 transition-transform duration-500 group-hover:rotate-90"
+          />
+        </button>
+      </AppHeader>
 
       {/* Fondo del admin: fuera del alcance de RF-01. */}
-      <main className="p-6 text-[var(--text-muted)]">
-        <p>Área de administración (pantallas de otros RF).</p>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:py-8">
+        <StatusText>Área de administración (pantallas de otros RF).</StatusText>
       </main>
 
+      <AppFooter />
+
       {configAbierta && (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Configuración"
+        <Modal
+          label="Configuración"
+          eyebrow="Configuración"
+          title={seccion.label}
+          description={'description' in seccion ? seccion.description : undefined}
+          onClose={() => setConfigAbierta(false)}
+          className="min-h-[70vh] max-w-5xl"
+          bodyClassName="flex flex-1 gap-6 px-5 py-6 sm:px-6"
         >
-          <div className="flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded bg-[var(--surface)] shadow-xl">
-            <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface-muted)] px-6 py-4">
-              <h2 className="text-xl font-extrabold">Configuración</h2>
-              <button
-                type="button"
-                onClick={() => setConfigAbierta(false)}
-                className="font-medium text-accent-700 hover:underline"
-              >
-                Cerrar ✕
-              </button>
-            </div>
+          <SideNav
+            label="Secciones de configuración"
+            title="Secciones"
+            size="md"
+            storageKey="vitto:menu-configuracion"
+            className="self-start"
+            items={SECCIONES.map((item) => ({
+              id: item.id,
+              label: item.label,
+              icon: item.icon,
+              active: item.id === seccion.id,
+              onSelect: () => setSeccion(item),
+            }))}
+          />
 
-            <div className="flex flex-1 gap-6 overflow-y-auto p-6">
-              <nav className="flex w-56 shrink-0 flex-col gap-2">
-                {SECCIONES.map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => setSeccion(item)}
-                    className={
-                      item === seccion
-                        ? 'rounded bg-accent-500 px-4 py-2 text-left font-medium text-white'
-                        : 'rounded border border-[var(--border)] px-4 py-2 text-left font-medium text-[var(--text-heading)] hover:bg-[var(--surface-muted)]'
-                    }
-                  >
-                    {item}
-                  </button>
-                ))}
-              </nav>
-
-              <section className="flex-1">
-                {seccion === 'Empleados y usuarios' ? (
-                  <EmpleadosPage />
-                ) : (
-                  <p className="text-[var(--text-muted)]">
-                    {seccion}: pendiente (otro RF).
-                  </p>
-                )}
-              </section>
-            </div>
-          </div>
-        </div>
+          <section className="min-w-0 flex-1">
+            {seccion.id === 'empleados' ? (
+              <EmpleadosPage />
+            ) : (
+              <StatusText>{seccion.label}: pendiente (otro RF).</StatusText>
+            )}
+          </section>
+        </Modal>
       )}
     </div>
   );

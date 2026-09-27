@@ -1,7 +1,14 @@
 // Sección "Empleados y usuarios": listado y búsqueda (RF-01/RF-03), alta
 // (RF-01), edición (RF-02) y baja lógica (RF-04) de empleados.
-// Es la pantalla del prototipo dentro del modal de Configuración del Administrador.
+// Es la pantalla del prototipo dentro del modal de Configuración del Administrador;
+// el título y la descripción los muestra el encabezado de ese modal.
 import { useMemo, useState } from 'react';
+import { StatusText } from '@/shared/components/feedback/StatusText';
+import { Alert } from '@/shared/components/ui/Alert';
+import { Button } from '@/shared/components/ui/Button';
+import { Icon } from '@/shared/components/ui/Icon';
+import { ICONS } from '@/shared/components/ui/icons';
+import { Modal } from '@/shared/components/ui/Modal';
 import { useEmpleados } from '../api/empleados.queries';
 import { BuscadorEmpleados } from '../components/BuscadorEmpleados';
 import { ConfirmarBajaEmpleado } from '../components/ConfirmarBajaEmpleado';
@@ -35,104 +42,79 @@ export function EmpleadosPage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-extrabold">Empleados y usuarios</h2>
-      <p className="mt-1 text-sm text-[var(--text-muted)]">
-        Cada empleado ingresa al sistema con su mail, según su rol.
-      </p>
-
       {empleados && empleados.length > 0 && (
-        <div className="mt-4">
+        <div className="mb-6">
           <BuscadorEmpleados valor={busqueda} onCambiar={setBusqueda} />
         </div>
       )}
 
-      <div className="mt-6">
-        {isLoading && (
-          <p className="text-[var(--text-muted)]">Cargando empleados…</p>
-        )}
+      {isLoading && <StatusText>Cargando empleados…</StatusText>}
 
-        {isError && (
-          <div className="text-red-600">
-            <p>No se pudieron cargar los empleados.</p>
+      {isError && (
+        <Alert variant="error">
+          <p>
+            No se pudieron cargar los empleados.{' '}
             <button
               type="button"
               onClick={() => void refetch()}
-              className="mt-2 underline"
+              className="cursor-pointer font-semibold underline underline-offset-2"
             >
               Reintentar
             </button>
-          </div>
-        )}
+          </p>
+        </Alert>
+      )}
 
-        {empleados &&
-          (empleados.length === 0 ? (
-            <p className="text-[var(--text-muted)]">
-              Todavía no hay empleados registrados.
-            </p>
-          ) : empleadosFiltrados && empleadosFiltrados.length > 0 ? (
-            <TablaEmpleados
-              empleados={empleadosFiltrados}
-              onSeleccionarEmpleado={setEmpleadoSeleccionado}
-            />
-          ) : (
-            <p className="text-[var(--text-muted)]">
-              No se encontraron empleados que coincidan con la búsqueda.
-            </p>
-          ))}
-      </div>
+      {empleados &&
+        (empleados.length === 0 ? (
+          <StatusText>Todavía no hay empleados registrados.</StatusText>
+        ) : empleadosFiltrados && empleadosFiltrados.length > 0 ? (
+          <TablaEmpleados
+            empleados={empleadosFiltrados}
+            onSeleccionarEmpleado={setEmpleadoSeleccionado}
+          />
+        ) : (
+          <StatusText>
+            No se encontraron empleados que coincidan con la búsqueda.
+          </StatusText>
+        ))}
 
-      <button
+      <Button
         type="button"
+        size="lg"
         onClick={() => setCreando(true)}
-        className="mt-6 rounded bg-accent-500 px-4 py-2 font-medium text-white hover:bg-accent-700"
+        className="mt-6 w-full sm:w-auto"
       >
-        + Registrar empleado
-      </button>
+        <Icon d={ICONS.plus} />
+        Registrar empleado
+      </Button>
 
       {creando && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Crear empleado"
-        >
-          <div className="w-full max-w-md rounded bg-[var(--surface)] p-6 shadow-xl">
-            <h3 className="mb-4 text-xl font-extrabold">Crear empleado</h3>
-            <FormRegistrarEmpleado
-              onSuccess={() => setCreando(false)}
-              onCancel={() => setCreando(false)}
-            />
-          </div>
-        </div>
+        <Modal title="Crear empleado">
+          <FormRegistrarEmpleado
+            onSuccess={() => setCreando(false)}
+            onCancel={() => setCreando(false)}
+          />
+        </Modal>
       )}
 
       {empleadoSeleccionado && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label={dandoDeBaja ? 'Dar de baja empleado' : 'Editar empleado'}
-        >
-          <div className="w-full max-w-md rounded bg-[var(--surface)] p-6 shadow-xl">
-            <h3 className="mb-4 text-xl font-extrabold">
-              {dandoDeBaja ? 'Dar de baja empleado' : 'Editar empleado'}
-            </h3>
-            {dandoDeBaja ? (
-              <ConfirmarBajaEmpleado
-                empleado={empleadoSeleccionado}
-                onSuccess={cerrarEdicion}
-                onCancel={() => setDandoDeBaja(false)}
-              />
-            ) : (
-              <FormEditarEmpleado
-                empleado={empleadoSeleccionado}
-                onSuccess={cerrarEdicion}
-                onCancel={cerrarEdicion}
-                onSolicitarBaja={() => setDandoDeBaja(true)}
-              />
-            )}
-          </div>
-        </div>
+        <Modal title={dandoDeBaja ? 'Dar de baja empleado' : 'Editar empleado'}>
+          {dandoDeBaja ? (
+            <ConfirmarBajaEmpleado
+              empleado={empleadoSeleccionado}
+              onSuccess={cerrarEdicion}
+              onCancel={() => setDandoDeBaja(false)}
+            />
+          ) : (
+            <FormEditarEmpleado
+              empleado={empleadoSeleccionado}
+              onSuccess={cerrarEdicion}
+              onCancel={cerrarEdicion}
+              onSolicitarBaja={() => setDandoDeBaja(true)}
+            />
+          )}
+        </Modal>
       )}
     </div>
   );
