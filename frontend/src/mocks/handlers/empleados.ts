@@ -21,6 +21,13 @@ export const empleadosHandlers = [
 
   http.post(`${API_URL}/empleados`, async ({ request }) => {
     const body = (await request.json()) as CrearEmpleadoDto;
+    // Igual que el backend: el mail no se puede repetir (409).
+    if (empleados.some((e) => e.email.toLowerCase() === body.email.toLowerCase())) {
+      return HttpResponse.json(
+        { message: `Employee with email "${body.email}" already exists` },
+        { status: 409 },
+      );
+    }
     const nuevo: Empleado = {
       id: nextId++,
       firstName: body.firstName,
