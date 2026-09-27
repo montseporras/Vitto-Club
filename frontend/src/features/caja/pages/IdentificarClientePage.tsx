@@ -47,11 +47,13 @@ export function IdentificarClientePage() {
   const [search, setSearch] = useState<DocumentSearch | null>(null)
   const [editing, setEditing] = useState(false)
   const [saved, setSaved] = useState<Client | null>(null)
+  const [reactivated, setReactivated] = useState<Client | null>(null)
   const result = useClientByDocument(search)
 
   const onSearch = (data: BuscarClienteFormOutput) => {
     setEditing(false)
     setSaved(null)
+    setReactivated(null)
     const sameSearch =
       search?.documentType === data.documentType &&
       search.documentNumber === data.documentNumber
@@ -62,6 +64,7 @@ export function IdentificarClientePage() {
 
   const onSaved = (client: Client) => {
     setSaved(client)
+    setReactivated(null)
     setEditing(false)
     // Si cambió el documento, la búsqueda sigue al cliente con el documento nuevo
     setSearch({
@@ -89,7 +92,19 @@ export function IdentificarClientePage() {
         </Alert>
       )}
 
-      <PageCard eyebrow="Clientes" title="Cliente">
+      {reactivated && (
+        <Alert variant="success" className="mb-5">
+          <p>
+            Cuenta reactivada:{' '}
+            <strong>
+              {reactivated.firstName} {reactivated.lastName}
+            </strong>{' '}
+            ya puede operar normalmente.
+          </p>
+        </Alert>
+      )}
+
+      <PageCard eyebrow="Clientes" title="Buscar">
         <form
           noValidate
           role="search"
@@ -174,7 +189,12 @@ export function IdentificarClientePage() {
               client={result.data}
               onEdit={() => {
                 setSaved(null)
+                setReactivated(null)
                 setEditing(true)
+              }}
+              onActivated={(client) => {
+                setSaved(null)
+                setReactivated(client)
               }}
             />
           )}

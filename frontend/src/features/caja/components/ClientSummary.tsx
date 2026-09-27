@@ -1,20 +1,25 @@
 import { DOCUMENT_TYPES } from '@/domain/documents'
 import { Badge } from '@/shared/components/ui/Badge'
+import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { Card, CardTitle } from '@/shared/components/ui/Card'
 import { DataList } from '@/shared/components/ui/DataList'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
 import { isoToDisplayDate } from '@/shared/lib/dates'
+import { useActivateClient } from '../api/caja.queries'
 import type { Client } from '../types/cliente'
 
 type ClientSummaryProps = {
   client: Client
   onEdit: () => void
+  onActivated: (client: Client) => void
 }
 
-/** Datos del cliente encontrado, con el botón para pasar a editarlos. */
-export function ClientSummary({ client, onEdit }: ClientSummaryProps) {
+/** Datos del cliente encontrado, con el botón para editarlos o, si está dado de baja, reactivarlo. */
+export function ClientSummary({ client, onEdit, onActivated }: ClientSummaryProps) {
+  const activateClient = useActivateClient()
+
   const rows = [
     {
       label: 'Documento',
@@ -40,22 +45,41 @@ export function ClientSummary({ client, onEdit }: ClientSummaryProps) {
           </Badge>
         </div>
 
-        <Button
-          type="button"
-          size="lg"
-          onClick={onEdit}
-          disabled={!client.active}
-          className="w-full sm:w-auto"
-        >
-          <Icon d={ICONS.pencil} />
-          Editar datos
-        </Button>
+        {client.active ? (
+          <Button
+            type="button"
+            size="lg"
+            onClick={onEdit}
+            className="w-full sm:w-auto"
+          >
+            <Icon d={ICONS.pencil} />
+            Editar datos
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="lg"
+            onClick={() => activateClient.mutate(client, { onSuccess: onActivated })}
+            disabled={activateClient.isPending}
+            className="w-full sm:w-auto"
+          >
+            <Icon d={ICONS.reload} />
+            {activateClient.isPending ? 'Reactivando…' : 'Reactivar cuenta'}
+          </Button>
+        )}
       </div>
 
-      {!client.active && (
+      {!client.active && activateClient.isError && (
+        <Alert variant="error" className="mt-3">
+          No se pudo reactivar la cuenta.
+          <AlertMessages messages={activateClient.error.messages} />
+        </Alert>
+      )}
+
+      {!client.active && !activateClient.isError && (
         <p className="mt-3 text-sm text-accent-800">
           Este cliente está dado de baja. Para editar sus datos, primero hay
-          que reactivarlo.
+          que reactivar su cuenta.
         </p>
       )}
 

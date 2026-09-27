@@ -109,7 +109,7 @@ export function AltaManualClientePage() {
         </Alert>
       )}
 
-      <PageCard eyebrow="Clientes" title="Alta manual de cliente">
+      <PageCard eyebrow="Clientes" title="Registrar">
         <form noValidate onSubmit={handleSubmit(onSubmit)}>
           <FormSection step={1} title="Datos personales">
             <FormField

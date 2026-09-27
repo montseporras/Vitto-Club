@@ -6,18 +6,23 @@ import { ICONS } from '@/shared/components/ui/icons'
 
 // Botones grandes, uno abajo del otro: cómodos de tocar en el mostrador (RNF-1, RNF-2).
 const NAV: SideNavItem[] = [
-  { id: 'cliente', to: PATHS.caja.cliente, label: 'Cliente', icon: ICONS.user },
+  {
+    id: 'cliente',
+    to: PATHS.caja.cliente,
+    label: 'Buscar clientes',
+    icon: ICONS.user,
+  },
+  {
+    id: 'alta',
+    to: PATHS.caja.altaCliente,
+    label: 'Nuevo cliente',
+    icon: ICONS.userPlus,
+  },
   {
     id: 'canje',
     to: PATHS.caja.canje,
     label: 'Gestionar canje por código',
     icon: ICONS.ticket,
-  },
-  {
-    id: 'alta',
-    to: PATHS.caja.altaCliente,
-    label: 'Alta manual de cliente',
-    icon: ICONS.userPlus,
   },
 ]
 
