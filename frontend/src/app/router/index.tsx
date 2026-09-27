@@ -36,5 +36,13 @@ export const router = createBrowserRouter([
       },
     ],
   },
+  {
+    // TODO: proteger con RoleRoute (ADMIN) cuando exista login.
+    path: PATHS.admin.root,
+    lazy: async () => {
+      const { AdminLayout } = await import('@/app/layouts/AdminLayout')
+      return { Component: AdminLayout }
+    },
+  },
   { path: '*', element: <Navigate to="/" replace /> },
 ])

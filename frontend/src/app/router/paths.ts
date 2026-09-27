@@ -5,4 +5,7 @@ export const PATHS = {
     canje: '/caja/canje',
     altaCliente: '/caja/alta-cliente',
   },
+  admin: {
+    root: '/admin',
+  },
 } as const
