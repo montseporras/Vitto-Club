@@ -6,7 +6,12 @@ import type {
   CreateClientBody,
   UpdateClientBody,
 } from '../types/cliente'
-import { createClient, findClientByDocument, updateClient } from './caja.api'
+import {
+  activateClient,
+  createClient,
+  findClientByDocument,
+  updateClient,
+} from './caja.api'
 
 export const useCreateClient = () =>
   useMutation<Client, ApiError, CreateClientBody>({
@@ -39,6 +44,20 @@ export const useUpdateClient = () => {
     onSuccess: (client) => {
       // Si cambió el documento, la búsqueda vieja ya no aplica
       queryClient.removeQueries({ queryKey: ['customers', 'by-document'] })
+      queryClient.setQueryData(clientByDocumentKey(client), client)
+    },
+  })
+}
+
+/** La reactivación no devuelve body: se arma el cliente actualizado a mano. */
+export const useActivateClient = () => {
+  const queryClient = useQueryClient()
+  return useMutation<Client, ApiError, Client>({
+    mutationFn: async (client) => {
+      await activateClient(client.id)
+      return { ...client, active: true, deactivatedAt: null }
+    },
+    onSuccess: (client) => {
       queryClient.setQueryData(clientByDocumentKey(client), client)
     },
   })

@@ -7,18 +7,18 @@ import { cn } from '@/shared/lib/utils'
 const NAV = [
   {
     to: PATHS.caja.cliente,
-    label: 'Cliente',
+    label: 'Buscar clientes',
     icon: 'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
+  },
+  {
+    to: PATHS.caja.altaCliente,
+    label: 'Nuevo cliente',
+    icon: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6m3-3h-6',
   },
   {
     to: PATHS.caja.canje,
     label: 'Gestionar canje por código',
     icon: 'M3 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2ZM13 5v2m0 4v2m0 4v2',
-  },
-  {
-    to: PATHS.caja.altaCliente,
-    label: 'Alta manual de cliente',
-    icon: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6m3-3h-6',
   },
 ]
 

@@ -34,7 +34,7 @@ const clients: Client[] = [
     deactivatedAt: null,
     createdAt: new Date().toISOString(),
   },
-  // Dado de baja: sirve para probar que no se puede editar (409)
+  // Dado de baja: sirve para probar que no se puede editar (409) y la reactivación
   {
     id: 3,
     firstName: 'Carlos',
@@ -148,6 +148,26 @@ export const cajaHandlers = [
     }
     return HttpResponse.json(client)
   }),
+
+  // PATCH /api/customers/:id/activate: 204 / 404 / 409 (ya activo).
+  http.patch<{ id: string }>(
+    `${API_URL}/customers/:id/activate`,
+    async ({ params, request }) => {
+      await delay(400)
+      const path = new URL(request.url).pathname
+      const client = clients.find((c) => c.id === Number(params.id))
+
+      if (!client) {
+        return errorResponse(404, `Customer with ID ${params.id} not found`, path)
+      }
+      if (client.active) {
+        return errorResponse(409, `Customer with ID ${client.id} is already active`, path)
+      }
+
+      Object.assign(client, { active: true, deactivatedAt: null })
+      return new HttpResponse(null, { status: 204 })
+    },
+  ),
 
   // PATCH /api/customers/:id: 200 / 400 (sin cambios) / 404 / 409 (inactivo o documento en uso).
   http.patch<{ id: string }, UpdateClientBody>(
