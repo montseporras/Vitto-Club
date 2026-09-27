@@ -1,2 +1,11 @@
-// Rutas centralizadas de la app (constantes de paths).
-export const paths = {} as const;
+export const PATHS = {
+  caja: {
+    root: '/caja',
+    cliente: '/caja/cliente',
+    canje: '/caja/canje',
+    altaCliente: '/caja/alta-cliente',
+  },
+  admin: {
+    root: '/admin',
+  },
+} as const

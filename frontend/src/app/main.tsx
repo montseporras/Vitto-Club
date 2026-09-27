@@ -1,15 +1,14 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import '../styles/globals.css'
-import App from './App.tsx'
+import '@/styles/globals.css'
+import { App } from './App'
 
-// Mientras el backend (NestJS) no esté disponible, arrancamos MSW para
-// interceptar las llamadas y devolver respuestas simuladas. Si el registro
-// falla, la app igual se renderiza (las llamadas irán al backend real).
+// En desarrollo, MSW simula la API salvo que se apague con VITE_API_MOCKS=false.
+// Si el registro falla, la app igual se renderiza y las llamadas van al backend real.
 async function enableMocking() {
-  if (!import.meta.env.DEV) return
+  if (!import.meta.env.DEV || import.meta.env.VITE_API_MOCKS === 'false') return
   try {
-    const { worker } = await import('../mocks/browser')
+    const { worker } = await import('@/mocks/browser')
     await worker.start({ onUnhandledRequest: 'bypass' })
   } catch (error) {
     console.error('[MSW] No se pudo iniciar el mock:', error)

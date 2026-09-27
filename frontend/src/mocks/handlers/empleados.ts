@@ -1,6 +1,7 @@
 // Handlers de MSW para empleados: mismas rutas que expondrá la API de NestJS.
 // Estado en memoria, sembrado igual que el seed de Prisma del backend.
 import { http, HttpResponse } from 'msw';
+import { API_URL } from '@/shared/api/http';
 import type {
   ActualizarEmpleadoDto,
   CrearEmpleadoDto,
@@ -16,9 +17,9 @@ const empleados: Empleado[] = [
 let nextId = empleados.length + 1;
 
 export const empleadosHandlers = [
-  http.get('/api/empleados', () => HttpResponse.json(empleados)),
+  http.get(`${API_URL}/empleados`, () => HttpResponse.json(empleados)),
 
-  http.post('/api/empleados', async ({ request }) => {
+  http.post(`${API_URL}/empleados`, async ({ request }) => {
     const body = (await request.json()) as CrearEmpleadoDto;
     const nuevo: Empleado = {
       id: nextId++,
@@ -33,7 +34,7 @@ export const empleadosHandlers = [
     return HttpResponse.json(nuevo, { status: 201 });
   }),
 
-  http.patch('/api/empleados/:id', async ({ params, request }) => {
+  http.patch(`${API_URL}/empleados/:id`, async ({ params, request }) => {
     const id = Number(params.id);
     const empleado = empleados.find((e) => e.id === id);
     if (!empleado) {
@@ -50,7 +51,7 @@ export const empleadosHandlers = [
     return HttpResponse.json(empleado, { status: 200 });
   }),
 
-  http.delete('/api/empleados/:id', ({ params }) => {
+  http.delete(`${API_URL}/empleados/:id`, ({ params }) => {
     const id = Number(params.id);
     const empleado = empleados.find((e) => e.id === id);
     if (!empleado) {

@@ -1,13 +1,11 @@
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '@/shared/api/queryClient';
-import { AdminLayout } from './layouts/AdminLayout';
+import { RouterProvider } from 'react-router'
+import { AppProviders } from './providers/AppProviders'
+import { router } from './router'
 
-function App() {
+export function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AdminLayout />
-    </QueryClientProvider>
-  );
+    <AppProviders>
+      <RouterProvider router={router} />
+    </AppProviders>
+  )
 }
-
-export default App;

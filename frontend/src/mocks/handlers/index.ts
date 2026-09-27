@@ -1,4 +1,4 @@
-// Agrupa los handlers de MSW (uno por feature).
-import { empleadosHandlers } from './empleados';
+import { cajaHandlers } from './caja.handlers'
+import { empleadosHandlers } from './empleados'
 
-export const handlers = [...empleadosHandlers];
+export const handlers = [...cajaHandlers, ...empleadosHandlers]
