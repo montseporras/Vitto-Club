@@ -1,18 +1,24 @@
 import { DOCUMENT_TYPES } from '@/domain/documents'
+import { Alert } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { isoToDisplayDate } from '@/shared/lib/dates'
 import { cn } from '@/shared/lib/utils'
+import { useActivateClient } from '../api/caja.queries'
 import type { Client } from '../types/cliente'
 
 const PENCIL = 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z'
+const RELOAD = 'M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5'
 
 type ClientSummaryProps = {
   client: Client
   onEdit: () => void
+  onActivated: (client: Client) => void
 }
 
-/** Datos del cliente encontrado, con el botón para pasar a editarlos. */
-export function ClientSummary({ client, onEdit }: ClientSummaryProps) {
+/** Datos del cliente encontrado, con el botón para editarlos o, si está dado de baja, reactivarlo. */
+export function ClientSummary({ client, onEdit, onActivated }: ClientSummaryProps) {
+  const activateClient = useActivateClient()
+
   const rows = [
     {
       label: 'Documento',
@@ -45,33 +51,69 @@ export function ClientSummary({ client, onEdit }: ClientSummaryProps) {
           </span>
         </div>
 
-        <Button
-          type="button"
-          size="lg"
-          onClick={onEdit}
-          disabled={!client.active}
-          className="w-full sm:w-auto"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            className="size-5"
+        {client.active ? (
+          <Button
+            type="button"
+            size="lg"
+            onClick={onEdit}
+            className="w-full sm:w-auto"
           >
-            <path d={PENCIL} />
-          </svg>
-          Editar datos
-        </Button>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="size-5"
+            >
+              <path d={PENCIL} />
+            </svg>
+            Editar datos
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="lg"
+            onClick={() => activateClient.mutate(client, { onSuccess: onActivated })}
+            disabled={activateClient.isPending}
+            className="w-full sm:w-auto"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="size-5"
+            >
+              <path d={RELOAD} />
+            </svg>
+            {activateClient.isPending ? 'Reactivando…' : 'Reactivar cuenta'}
+          </Button>
+        )}
       </div>
 
-      {!client.active && (
+      {!client.active && activateClient.isError && (
+        <Alert variant="error" className="mt-3">
+          No se pudo reactivar la cuenta.
+          {activateClient.error.messages.length > 0 && (
+            <ul className="mt-1 list-disc pl-5">
+              {activateClient.error.messages.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          )}
+        </Alert>
+      )}
+
+      {!client.active && !activateClient.isError && (
         <p className="mt-3 text-sm text-accent-800">
           Este cliente está dado de baja. Para editar sus datos, primero hay
-          que reactivarlo.
+          que reactivar su cuenta.
         </p>
       )}
 

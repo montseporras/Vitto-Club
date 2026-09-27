@@ -45,11 +45,13 @@ export function IdentificarClientePage() {
   const [search, setSearch] = useState<DocumentSearch | null>(null)
   const [editing, setEditing] = useState(false)
   const [saved, setSaved] = useState<Client | null>(null)
+  const [reactivated, setReactivated] = useState<Client | null>(null)
   const result = useClientByDocument(search)
 
   const onSearch = (data: BuscarClienteFormOutput) => {
     setEditing(false)
     setSaved(null)
+    setReactivated(null)
     const sameSearch =
       search?.documentType === data.documentType &&
       search.documentNumber === data.documentNumber
@@ -60,6 +62,7 @@ export function IdentificarClientePage() {
 
   const onSaved = (client: Client) => {
     setSaved(client)
+    setReactivated(null)
     setEditing(false)
     // Si cambió el documento, la búsqueda sigue al cliente con el documento nuevo
     setSearch({
@@ -87,6 +90,18 @@ export function IdentificarClientePage() {
         </Alert>
       )}
 
+      {reactivated && (
+        <Alert variant="success" className="mb-5">
+          <p>
+            Cuenta reactivada:{' '}
+            <strong>
+              {reactivated.firstName} {reactivated.lastName}
+            </strong>{' '}
+            ya puede operar normalmente.
+          </p>
+        </Alert>
+      )}
+
       <div className="overflow-hidden rounded-3xl border border-accent-200 bg-surface shadow-xl shadow-accent-800/10 xl:grid xl:grid-cols-[17rem_1fr]">
         <header className="relative overflow-hidden bg-accent-700 px-6 py-7 text-white sm:px-8 xl:py-10">
           <img
@@ -99,7 +114,7 @@ export function IdentificarClientePage() {
             Clientes
           </p>
           <h2 className="mt-2 text-3xl leading-tight sm:text-4xl">
-            Cliente
+            Buscar
           </h2>
         </header>
 
@@ -205,7 +220,12 @@ export function IdentificarClientePage() {
                 client={result.data}
                 onEdit={() => {
                   setSaved(null)
+                  setReactivated(null)
                   setEditing(true)
+                }}
+                onActivated={(client) => {
+                  setSaved(null)
+                  setReactivated(client)
                 }}
               />
             )}
