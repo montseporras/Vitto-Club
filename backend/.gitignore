@@ -62,3 +62,4 @@ dist/
 .claude/
 .cursor/
 .devin/
+tsconfig.build.tsbuildinfo

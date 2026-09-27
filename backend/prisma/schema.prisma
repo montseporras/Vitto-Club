@@ -55,9 +55,29 @@ model Customer {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt      @map("updated_at")
 
+  statusChanges CustomerStatusChange[]
+
   // The document identifies the customer at checkout: must not repeat
   @@unique([documentType, documentNumber], name: "unique_document")
   @@index([lastName, firstName])
   @@index([isActive])
   @@map("customers")
+}
+
+enum CustomerStatusAction {
+  DEACTIVATED
+  ACTIVATED
+}
+
+/// History of deactivations and reactivations of a customer (never deleted).
+model CustomerStatusChange {
+  id         Int                  @id @default(autoincrement())
+  customerId Int                  @map("customer_id")
+  action     CustomerStatusAction
+  createdAt  DateTime             @default(now()) @map("created_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  @@index([customerId, createdAt])
+  @@map("customer_status_changes")
 }
