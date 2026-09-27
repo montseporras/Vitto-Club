@@ -160,3 +160,47 @@ Verificación: `GET http://localhost:3000/api/health` debe responder
 
 Comandos día a día de Prisma (generar cliente, nuevas migraciones, Studio):
 ver [`backend/PRISMA.md`](./backend/PRISMA.md).
+
+### Frontend: mocks o backend real
+
+El frontend (`frontend/`, React + Vite) puede funcionar de dos formas, según
+la variable `VITE_API_MOCKS`:
+
+- **Con mocks (por defecto)**: MSW simula la API con datos de prueba
+  (`frontend/src/mocks`). No hace falta levantar el backend ni la base.
+- **Conectado al backend real**: las llamadas van a
+  `http://localhost:3000/api` (por ejemplo, empleados en `/api/empleados`).
+
+Los mocks se mantienen en el repo aunque exista el backend, para poder
+volver a usarlos cuando haga falta.
+
+Para conectar el front al backend:
+
+```bash
+# 1. Tener el backend levantado (pasos 1 a 5 de arriba)
+
+# 2. Instalar dependencias del frontend
+cd frontend
+npm install
+
+# 3. Crear a mano el archivo frontend/.env.local (desde el editor) con esta línea:
+#      VITE_API_MOCKS=false
+#    Evitar `echo ... > .env.local` en PowerShell 5.1: guarda el archivo en
+#    UTF-16 y Vite puede no leer la variable.
+
+# 4. Levantar el frontend (si ya estaba corriendo, cortarlo y volver a levantarlo)
+npm run dev
+```
+
+Después, en el navegador, recargar con **Ctrl+Shift+R** para que no quede
+activo el service worker de los mocks.
+
+`.env.local` está en el `.gitignore`: **cada integrante tiene que crear el
+suyo**. Para volver a los mocks, cambiar la variable a `true` (o borrar el
+archivo) y reiniciar `npm run dev`. Ver también
+[`frontend/.env.example`](./frontend/.env.example).
+
+Verificación: en `http://localhost:5173/admin`, abrir Configuración (⚙) →
+**Empleados y usuarios**. La tabla debe mostrar los empleados de la base y,
+en la pestaña Network del navegador, tiene que aparecer
+`GET http://localhost:3000/api/empleados` con respuesta 200.
