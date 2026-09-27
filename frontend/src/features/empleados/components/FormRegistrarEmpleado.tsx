@@ -2,6 +2,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { ROLES_EMPLEADO } from '@/domain/roles';
+import { toApiError } from '@/shared/api/ApiError';
 import { useRegistrarEmpleado } from '../api/empleados.queries';
 import {
   registrarEmpleadoSchema,
@@ -25,6 +26,7 @@ export function FormRegistrarEmpleado({
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<RegistrarEmpleadoForm>({
     resolver: zodResolver(registrarEmpleadoSchema),
@@ -40,8 +42,21 @@ export function FormRegistrarEmpleado({
   const registrar = useRegistrarEmpleado();
 
   const onSubmit = handleSubmit((form) => {
-    registrar.mutate(form, { onSuccess });
+    registrar.mutate(form, {
+      onSuccess,
+      onError: (error) => {
+        // 409: el backend rechaza el mail porque ya hay un empleado con ese mail.
+        if (toApiError(error).status === 409) {
+          setError('email', {
+            message: 'Ya existe un empleado registrado con ese mail.',
+          });
+        }
+      },
+    });
   });
+
+  // El 409 se muestra en el campo Mail; el resto de los errores, debajo del formulario.
+  const errorApi = registrar.error ? toApiError(registrar.error) : null;
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
@@ -121,9 +136,11 @@ export function FormRegistrarEmpleado({
         {errors.rol && <p className={errorClass}>{errors.rol.message}</p>}
       </div>
 
-      {registrar.isError && (
+      {errorApi && errorApi.status !== 409 && (
         <p className={errorClass}>
-          No se pudo registrar el empleado. Intentá nuevamente.
+          {errorApi.status === undefined
+            ? errorApi.message
+            : 'No se pudo registrar el empleado. Intentá nuevamente.'}
         </p>
       )}
 
