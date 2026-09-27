@@ -44,3 +44,13 @@
 
   --radius: 10px;
 }
+
+/* Variables que usan las pantallas de empleados (Admin), mapeadas a la paleta del manual. */
+:root {
+  --text: var(--color-text);
+  --text-heading: var(--color-ink);
+  --text-muted: var(--color-neutral-600);
+  --surface: var(--color-surface);
+  --surface-muted: var(--color-bg);
+  --border: var(--color-neutral-200);
+}
