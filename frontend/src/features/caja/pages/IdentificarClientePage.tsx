@@ -3,13 +3,17 @@ import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { Link } from 'react-router'
 import { PATHS } from '@/app/router/paths'
-import logoIso from '@/assets/logo-vitto-iso-white.png'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
+import { StatusText } from '@/shared/components/feedback/StatusText'
 import { FormField } from '@/shared/components/forms/FormField'
 import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio'
-import { Alert } from '@/shared/components/ui/Alert'
+import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
+import { Icon } from '@/shared/components/ui/Icon'
+import { ICONS } from '@/shared/components/ui/icons'
 import { Input } from '@/shared/components/ui/Input'
+import { Page, PageCard } from '@/shared/components/ui/Page'
+import { dividedSectionStyles } from '@/styles/ui'
 import {
   useClientByDocument,
   type DocumentSearch,
@@ -27,8 +31,6 @@ const DOCUMENT_OPTIONS = DOCUMENT_TYPE_VALUES.map((type) => ({
   value: type,
   label: DOCUMENT_TYPES[type].label,
 }))
-
-const SEARCH_ICON = 'm21 21-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Z'
 
 /** Cliente: el Cajero busca al cliente por documento y, si hace falta, edita sus datos (RF-016). */
 export function IdentificarClientePage() {
@@ -77,7 +79,7 @@ export function IdentificarClientePage() {
   const notFound = result.isError && result.error.status === 404
 
   return (
-    <section className="mx-auto w-full max-w-4xl">
+    <Page>
       {saved && (
         <Alert variant="success" className="mb-5">
           <p>
@@ -102,145 +104,111 @@ export function IdentificarClientePage() {
         </Alert>
       )}
 
-      <div className="overflow-hidden rounded-3xl border border-accent-200 bg-surface shadow-xl shadow-accent-800/10 xl:grid xl:grid-cols-[17rem_1fr]">
-        <header className="relative overflow-hidden bg-accent-700 px-6 py-7 text-white sm:px-8 xl:py-10">
-          <img
-            src={logoIso}
-            alt=""
-            aria-hidden="true"
-            className="pointer-events-none absolute right-6 bottom-8 hidden h-48 w-auto opacity-20 xl:block"
+      <PageCard eyebrow="Clientes" title="Buscar">
+        <form
+          noValidate
+          role="search"
+          onSubmit={handleSubmit(onSearch)}
+          className="grid gap-5 sm:grid-cols-2"
+        >
+          <SegmentedRadio
+            legend="Tipo de documento"
+            options={DOCUMENT_OPTIONS}
+            field={register('documentType')}
           />
-          <p className="text-xs font-bold uppercase tracking-[0.18em]">
-            Clientes
-          </p>
-          <h2 className="mt-2 text-3xl leading-tight sm:text-4xl">
-            Buscar
-          </h2>
-        </header>
 
-        <div className="px-5 py-6 sm:px-8 sm:py-8">
-          <form
-            noValidate
-            role="search"
-            onSubmit={handleSubmit(onSearch)}
-            className="grid gap-5 sm:grid-cols-2"
+          <FormField
+            id="search-documentNumber"
+            label="Número de documento"
+            error={errors.documentNumber?.message}
           >
-            <SegmentedRadio
-              legend="Tipo de documento"
-              options={DOCUMENT_OPTIONS}
-              field={register('documentType')}
-            />
+            <div className="flex gap-2">
+              <Input
+                id="search-documentNumber"
+                autoFocus
+                inputMode={isDni ? 'numeric' : 'text'}
+                placeholder="30111222"
+                autoComplete="off"
+                aria-invalid={errors.documentNumber ? true : undefined}
+                aria-describedby={
+                  errors.documentNumber
+                    ? 'search-documentNumber-error'
+                    : undefined
+                }
+                {...register('documentNumber')}
+              />
+              <Button
+                type="submit"
+                size="lg"
+                disabled={result.isFetching}
+                className="shrink-0 px-5"
+              >
+                <Icon d={ICONS.search} />
+                Buscar
+              </Button>
+            </div>
+          </FormField>
+        </form>
 
-            <FormField
-              id="search-documentNumber"
-              label="Número de documento"
-              error={errors.documentNumber?.message}
-            >
-              <div className="flex gap-2">
-                <Input
-                  id="search-documentNumber"
-                  autoFocus
-                  inputMode={isDni ? 'numeric' : 'text'}
-                  placeholder="30111222"
-                  autoComplete="off"
-                  aria-invalid={errors.documentNumber ? true : undefined}
-                  aria-describedby={
-                    errors.documentNumber
-                      ? 'search-documentNumber-error'
-                      : undefined
-                  }
-                  {...register('documentNumber')}
-                />
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={result.isFetching}
-                  className="shrink-0 px-5"
+        <div className={dividedSectionStyles} aria-live="polite">
+          {!search && (
+            <StatusText>
+              Ingresá el tipo y número de documento para buscar al cliente.
+            </StatusText>
+          )}
+
+          {search && result.isFetching && !editing && (
+            <StatusText>Buscando cliente…</StatusText>
+          )}
+
+          {search && !result.isFetching && notFound && (
+            <Alert variant="error">
+              <p>
+                No hay ningún cliente con{' '}
+                {DOCUMENT_TYPES[search.documentType].label}{' '}
+                <strong>{search.documentNumber}</strong>.{' '}
+                <Link
+                  to={PATHS.caja.altaCliente}
+                  className="font-semibold underline underline-offset-2"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                    className="size-5"
-                  >
-                    <path d={SEARCH_ICON} />
-                  </svg>
-                  Buscar
-                </Button>
-              </div>
-            </FormField>
-          </form>
-
-          <div className="mt-7 border-t border-accent-100 pt-7" aria-live="polite">
-            {!search && (
-              <p className="text-base text-neutral-700">
-                Ingresá el tipo y número de documento para buscar al cliente.
+                  Darlo de alta
+                </Link>
               </p>
-            )}
+            </Alert>
+          )}
 
-            {search && result.isFetching && !editing && (
-              <p className="text-base text-neutral-700">Buscando cliente…</p>
-            )}
+          {search && !result.isFetching && result.isError && !notFound && (
+            <Alert variant="error">
+              No se pudo buscar el cliente.
+              <AlertMessages messages={result.error.messages} />
+            </Alert>
+          )}
 
-            {search && !result.isFetching && notFound && (
-              <Alert variant="error">
-                <p>
-                  No hay ningún cliente con{' '}
-                  {DOCUMENT_TYPES[search.documentType].label}{' '}
-                  <strong>{search.documentNumber}</strong>.{' '}
-                  <Link
-                    to={PATHS.caja.altaCliente}
-                    className="font-semibold underline underline-offset-2"
-                  >
-                    Darlo de alta
-                  </Link>
-                </p>
-              </Alert>
-            )}
+          {result.data && !result.isFetching && !result.isError && !editing && (
+            <ClientSummary
+              client={result.data}
+              onEdit={() => {
+                setSaved(null)
+                setReactivated(null)
+                setEditing(true)
+              }}
+              onActivated={(client) => {
+                setSaved(null)
+                setReactivated(client)
+              }}
+            />
+          )}
 
-            {search && !result.isFetching && result.isError && !notFound && (
-              <Alert variant="error">
-                No se pudo buscar el cliente.
-                {result.error.messages.length > 0 && (
-                  <ul className="mt-1 list-disc pl-5">
-                    {result.error.messages.map((message) => (
-                      <li key={message}>{message}</li>
-                    ))}
-                  </ul>
-                )}
-              </Alert>
-            )}
-
-            {result.data && !result.isFetching && !result.isError && !editing && (
-              <ClientSummary
-                client={result.data}
-                onEdit={() => {
-                  setSaved(null)
-                  setReactivated(null)
-                  setEditing(true)
-                }}
-                onActivated={(client) => {
-                  setSaved(null)
-                  setReactivated(client)
-                }}
-              />
-            )}
-
-            {result.data && editing && (
-              <EditClientForm
-                key={result.data.id}
-                client={result.data}
-                onSaved={onSaved}
-                onCancel={() => setEditing(false)}
-              />
-            )}
-          </div>
+          {result.data && editing && (
+            <EditClientForm
+              key={result.data.id}
+              client={result.data}
+              onSaved={onSaved}
+              onCancel={() => setEditing(false)}
+            />
+          )}
         </div>
-      </div>
-    </section>
+      </PageCard>
+    </Page>
   )
 }

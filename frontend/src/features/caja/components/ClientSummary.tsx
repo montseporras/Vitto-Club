@@ -1,13 +1,14 @@
 import { DOCUMENT_TYPES } from '@/domain/documents'
-import { Alert } from '@/shared/components/ui/Alert'
+import { Badge } from '@/shared/components/ui/Badge'
+import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
+import { Card, CardTitle } from '@/shared/components/ui/Card'
+import { DataList } from '@/shared/components/ui/DataList'
+import { Icon } from '@/shared/components/ui/Icon'
+import { ICONS } from '@/shared/components/ui/icons'
 import { isoToDisplayDate } from '@/shared/lib/dates'
-import { cn } from '@/shared/lib/utils'
 import { useActivateClient } from '../api/caja.queries'
 import type { Client } from '../types/cliente'
-
-const PENCIL = 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z'
-const RELOAD = 'M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5'
 
 type ClientSummaryProps = {
   client: Client
@@ -33,22 +34,15 @@ export function ClientSummary({ client, onEdit, onActivated }: ClientSummaryProp
   ]
 
   return (
-    <article className="rounded-2xl border border-accent-200 bg-accent-50/60 p-5 sm:p-6">
+    <Card>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-2">
-          <h3 className="text-2xl leading-tight">
+          <CardTitle>
             {client.firstName} {client.lastName}
-          </h3>
-          <span
-            className={cn(
-              'w-fit rounded-full border px-3 py-0.5 text-xs font-bold uppercase tracking-wide',
-              client.active
-                ? 'border-olive/40 bg-olive-50 text-olive-800'
-                : 'border-accent-600/40 bg-accent-100 text-accent-800',
-            )}
-          >
+          </CardTitle>
+          <Badge variant={client.active ? 'success' : 'danger'}>
             {client.active ? 'Activo' : 'Dado de baja'}
-          </span>
+          </Badge>
         </div>
 
         {client.active ? (
@@ -58,18 +52,7 @@ export function ClientSummary({ client, onEdit, onActivated }: ClientSummaryProp
             onClick={onEdit}
             className="w-full sm:w-auto"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="size-5"
-            >
-              <path d={PENCIL} />
-            </svg>
+            <Icon d={ICONS.pencil} />
             Editar datos
           </Button>
         ) : (
@@ -80,18 +63,7 @@ export function ClientSummary({ client, onEdit, onActivated }: ClientSummaryProp
             disabled={activateClient.isPending}
             className="w-full sm:w-auto"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="size-5"
-            >
-              <path d={RELOAD} />
-            </svg>
+            <Icon d={ICONS.reload} />
             {activateClient.isPending ? 'Reactivando…' : 'Reactivar cuenta'}
           </Button>
         )}
@@ -100,13 +72,7 @@ export function ClientSummary({ client, onEdit, onActivated }: ClientSummaryProp
       {!client.active && activateClient.isError && (
         <Alert variant="error" className="mt-3">
           No se pudo reactivar la cuenta.
-          {activateClient.error.messages.length > 0 && (
-            <ul className="mt-1 list-disc pl-5">
-              {activateClient.error.messages.map((message) => (
-                <li key={message}>{message}</li>
-              ))}
-            </ul>
-          )}
+          <AlertMessages messages={activateClient.error.messages} />
         </Alert>
       )}
 
@@ -117,16 +83,7 @@ export function ClientSummary({ client, onEdit, onActivated }: ClientSummaryProp
         </p>
       )}
 
-      <dl className="mt-5 grid gap-x-6 gap-y-4 border-t border-accent-200 pt-5 sm:grid-cols-2">
-        {rows.map((row) => (
-          <div key={row.label} className="flex flex-col gap-0.5">
-            <dt className="text-xs font-bold uppercase tracking-wide text-accent-800">
-              {row.label}
-            </dt>
-            <dd className="text-base break-words text-text">{row.value}</dd>
-          </div>
-        ))}
-      </dl>
-    </article>
+      <DataList items={rows} className="mt-5" />
+    </Card>
   )
 }

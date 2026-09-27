@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Label } from '@/shared/components/ui/Label'
+import { formFieldStyles } from '@/styles/ui'
 
 type FormFieldProps = {
   id: string
@@ -20,22 +21,20 @@ export function FormField({
   children,
 }: FormFieldProps) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className={formFieldStyles.root}>
       <Label htmlFor={id}>
         {label}
         {optional && (
-          <span className="ml-1.5 text-xs font-normal text-neutral-600">
-            (opcional)
-          </span>
+          <span className={formFieldStyles.optional}>(opcional)</span>
         )}
       </Label>
       {children}
       {error ? (
-        <p id={`${id}-error`} className="text-sm font-medium text-accent-700">
+        <p id={`${id}-error`} className={formFieldStyles.error}>
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-xs text-neutral-600">
+        <p id={`${id}-hint`} className={formFieldStyles.hint}>
           {hint}
         </p>
       ) : null}
