@@ -128,9 +128,6 @@ export function AltaManualClientePage() {
           <h2 className="mt-2 text-3xl leading-tight sm:text-4xl">
             Alta manual de cliente
           </h2>
-          <p className="mt-3 max-w-xs text-base">
-            Registrá al cliente cuando no lo encontrás por documento.
-          </p>
         </header>
 
         <form

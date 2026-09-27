@@ -101,9 +101,6 @@ export function IdentificarClientePage() {
           <h2 className="mt-2 text-3xl leading-tight sm:text-4xl">
             Cliente
           </h2>
-          <p className="mt-3 max-w-xs text-base">
-            Buscá al cliente por su documento para ver y editar sus datos.
-          </p>
         </header>
 
         <div className="px-5 py-6 sm:px-8 sm:py-8">
