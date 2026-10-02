@@ -34,6 +34,10 @@ const PHONE_PATTERN = /^\+?[\d\s().-]+$/;
 const PHONE_MIN_DIGITS = 8;
 const PHONE_MAX_DIGITS = 15;
 
+// DNI: solo dígitos, 7 u 8 en total. Pasaporte: letras y números, sin símbolos.
+const DNI_PATTERN = /^\d{7,8}$/;
+const PASSPORT_PATTERN = /^[A-Z0-9]+$/;
+
 function requiredText(value: string, field: string, max: number): string {
   const normalized = value.trim();
   if (!normalized) {
@@ -89,6 +93,16 @@ export function normalizeDocumentNumber(value: string): string {
   return normalized;
 }
 
+// El formato depende del tipo: se valida después de normalizar, no en el DTO (igual que el teléfono).
+function validDocumentNumberFormat(documentType: DocumentType, documentNumber: string): void {
+  if (documentType === 'DNI' && !DNI_PATTERN.test(documentNumber)) {
+    throw new DomainError('Customer DNI must have 7 or 8 digits', 'documentNumber');
+  }
+  if (documentType === 'PASSPORT' && !PASSPORT_PATTERN.test(documentNumber)) {
+    throw new DomainError('Customer passport must contain only letters and numbers', 'documentNumber');
+  }
+}
+
 function validBirthDate(date: Date | null | undefined): Date | null {
   if (!date) return null;
   if (Number.isNaN(date.getTime()) || date > new Date()) {
@@ -116,13 +130,16 @@ export class Customer {
   // CREATE
   static create(data: CustomerData): Customer {
     const now = new Date();
+    const documentType = validDocumentType(data.documentType);
+    const documentNumber = normalizeDocumentNumber(data.documentNumber);
+    validDocumentNumberFormat(documentType, documentNumber);
 
     return new Customer(
       null,
       requiredText(data.firstName, 'firstName', MAX_NAME),
       requiredText(data.lastName, 'lastName', MAX_NAME),
-      validDocumentType(data.documentType),
-      normalizeDocumentNumber(data.documentNumber),
+      documentType,
+      documentNumber,
       Mail.create(data.email),
       optionalPhone(data.phone),
       validBirthDate(data.dateOfBirth),
@@ -159,6 +176,11 @@ export class Customer {
     if (data.email !== undefined) this.setEmail(data.email);
     if (data.phone !== undefined) this.setPhone(data.phone);
     if (data.dateOfBirth !== undefined) this.setDateOfBirth(data.dateOfBirth);
+    // Se valida recién acá (no en cada setter) para no romper combinaciones válidas
+    // cuando se cambian documentType y documentNumber juntos en el mismo PATCH.
+    if (data.documentType !== undefined || data.documentNumber !== undefined) {
+      validDocumentNumberFormat(this._documentType, this._documentNumber);
+    }
     this._updatedAt = new Date();
   }
 
