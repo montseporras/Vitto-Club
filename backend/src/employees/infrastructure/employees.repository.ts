@@ -72,7 +72,8 @@ export class EmployeePrismaRepository implements EmployeeRepository {
   async findAll(filters: EmployeeListFilters = {}): Promise<Employee[]> {
     const records = await this.prisma.employee.findMany({
       where: buildEmployeeWhere(filters),
-      orderBy: { id: 'asc' },
+      // Por apellido; nombre e id desempatan para que el orden sea siempre el mismo.
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { id: 'asc' }],
     });
     return records.map(toDomain);
   }

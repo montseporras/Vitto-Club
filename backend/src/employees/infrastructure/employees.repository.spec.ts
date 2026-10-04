@@ -104,3 +104,21 @@ describe('EmployeePrismaRepository.updateStatus', () => {
     expect(employee.getDeactivatedAt()).toBeInstanceOf(Date);
   });
 });
+
+// Listado (US-03): el orden lo resuelve la base, se verifica qué se le pide a Prisma
+describe('EmployeePrismaRepository.findAll', () => {
+  it('ordena por apellido ascendente, desempatando por nombre e id', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const repository = new EmployeePrismaRepository({
+      employee: { findMany },
+    } as unknown as PrismaService);
+
+    await repository.findAll();
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { id: 'asc' }],
+      }),
+    );
+  });
+});

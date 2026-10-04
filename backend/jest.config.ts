@@ -14,10 +14,15 @@ const config: Config = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: '.',
   testRegex: '.*\\.spec\\.ts$',
+  // El proyecto es ESM ("type": "module") y Nest/@nestjs/testing son ESM-only:
+  // ts-jest tiene que emitir ESM y Jest correrlo con --experimental-vm-modules
+  // (ver el script "test" en package.json).
+  extensionsToTreatAsEsm: ['.ts'],
+  setupFiles: ['<rootDir>/test/jest-esm-globals.ts'],
   transform: {
-    '^.+\\.(t|j)s$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', { useESM: true }],
   },
-    moduleNameMapper: {
+  moduleNameMapper: {
     ...pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
     // Los imports ESM llevan .js pero en disco son .ts
     '^(\\.{1,2}/.*)\\.js$': '$1',

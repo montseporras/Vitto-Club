@@ -1,15 +1,40 @@
 # Vitto Club
 
-Sistema de fidelización de clientes. Este repositorio contiene, por ahora, el
-backend (NestJS + Prisma + PostgreSQL). El frontend todavía no se agregó.
+Sistema de fidelización de clientes de La Vitto. Monorepo con dos aplicaciones
+que se despliegan por separado:
+
+- **`backend/`**: API REST en NestJS + Prisma + PostgreSQL. Monolito modular
+  con arquitectura hexagonal por módulo.
+- **`frontend/`**: SPA en React + Vite + TypeScript + Tailwind, organizada por
+  feature. Puede funcionar contra mocks (MSW) o contra el backend real.
 
 ## Estado del proyecto
 
-Infraestructura base (NestJS + Prisma + PostgreSQL vía Docker) revisada y
-validada de punta a punta el 2026-09-08. Los modelos de dominio (`Employee`,
-`Customer`) están definidos en el schema (nombres en inglés desde el
-2026-09-20), pero las historias de usuario del Sprint 1 (ABMC) **todavía no
-están implementadas** — el alcance actual es solo la base técnica.
+- **Infraestructura base** (NestJS + Prisma + PostgreSQL vía Docker): validada
+  de punta a punta el 2026-09-08.
+- **Sprint 1, ABMC de empleados** (`/api/empleados`): alta, edición, búsqueda
+  por nombre y baja lógica, en el backend y en el frontend (Configuración →
+  *Empleados y usuarios*).
+- **Sprint 1, ABMC de clientes** (`/api/customers`): alta, búsqueda por
+  documento, edición, baja y reactivación, historial de estados y validación
+  del formato del documento según el tipo (DNI / pasaporte). En el frontend
+  está en la pantalla de caja (`features/caja`). El listado paginado y el
+  historial de estados todavía no tienen pantalla (ver
+  [`docs/frontend-customers-pendientes.md`](./docs/frontend-customers-pendientes.md)).
+- El resto de los módulos del frontend (`auth`, `recompensas`, `misiones`,
+  etc.) existen solo como carpetas vacías.
+
+## Documentación
+
+| Documento | Contenido |
+|---|---|
+| [`docs/CONTRIBUTING.MD`](./docs/CONTRIBUTING.MD) | Forma de trabajo: ramas, commits, Pull Requests y revisión |
+| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | Arquitectura del backend (hexagonal por módulo) y del frontend |
+| [`docs/FRONTEND-STRUCTURE.md`](./docs/FRONTEND-STRUCTURE.md) | Estructura del frontend: capas, carpetas, pantallas y estilos |
+| [`docs/customers-api.md`](./docs/customers-api.md) | Contrato de la API de clientes |
+| [`docs/employees-api.md`](./docs/employees-api.md) | Contrato de la API de empleados |
+| [`docs/frontend-customers-pendientes.md`](./docs/frontend-customers-pendientes.md) | Pendientes de frontend del módulo de clientes |
+| [`backend/PRISMA.md`](./backend/PRISMA.md) | Cómo quedó configurado Prisma y comandos de uso diario |
 
 ## Estructura del repositorio
 
@@ -17,23 +42,37 @@ están implementadas** — el alcance actual es solo la base técnica.
 Vitto-Club/
 ├─ docker-compose.yml   # PostgreSQL (+ pgAdmin opcional) para desarrollo local
 ├─ .gitignore           # Ignora node_modules, dist, .env, etc. a nivel repo
-└─ backend/             # API NestJS
+├─ docs/                # Documentación del proyecto (ver tabla de arriba)
+├─ backend/             # API NestJS
+│  ├─ src/
+│  │  ├─ app.module.ts       # Módulo raíz: Config, Prisma, Health, Customers, Employees
+│  │  ├─ main.ts             # Bootstrap: prefijo /api, ValidationPipe, CORS
+│  │  ├─ customers/          # Módulo de clientes (domain / application / infrastructure / http)
+│  │  ├─ employees/          # Módulo de empleados (misma estructura)
+│  │  ├─ prisma/             # PrismaService + PrismaModule (@Global)
+│  │  └─ health/             # GET /api/health -> hace SELECT 1 contra la DB
+│  ├─ prisma/
+│  │  ├─ schema.prisma        # Modelos Employee, Customer y su historial de estados
+│  │  ├─ migrations/          # Migraciones SQL versionadas
+│  │  └─ seed.ts              # Datos de prueba (3 employees, 2 customers)
+│  ├─ test/                  # Tests e2e
+│  ├─ prisma.config.ts       # URL de conexión para migrate/seed/studio (Prisma 7)
+│  ├─ .env.example           # Plantilla de variables de entorno
+│  └─ PRISMA.md              # Historial detallado de cómo quedó configurado Prisma
+└─ frontend/            # SPA React + Vite
    ├─ src/
-   │  ├─ app.module.ts       # Módulo raíz: ConfigModule, PrismaModule, HealthModule
-   │  ├─ main.ts             # Bootstrap: prefijo /api, ValidationPipe, CORS
-   │  ├─ prisma/
-   │  │  ├─ prisma.service.ts  # Cliente Prisma inyectable (driver adapter pg)
-   │  │  └─ prisma.module.ts   # Módulo @Global() que exporta PrismaService
-   │  └─ health/
-   │     └─ health.controller.ts # GET /api/health -> hace SELECT 1 contra la DB
-   ├─ prisma/
-   │  ├─ schema.prisma        # Modelos Employee y Customer
-   │  ├─ migrations/          # Migraciones SQL versionadas
-   │  └─ seed.ts               # Datos de prueba (3 employees, 2 customers)
-   ├─ prisma.config.ts        # URL de conexión para migrate/seed/studio (Prisma 7)
-   ├─ .env.example             # Plantilla de variables de entorno
-   └─ PRISMA.md                 # Historial detallado de cómo quedó configurado Prisma
+   │  ├─ app/                # Arranque, router, layouts por rol
+   │  ├─ features/           # Un módulo por Epic (caja, empleados, ...)
+   │  ├─ shared/             # Cliente HTTP, componentes de UI, utilidades
+   │  ├─ domain/             # Vocabulario de negocio compartido
+   │  ├─ mocks/              # Handlers de MSW (mismas rutas que el backend)
+   │  └─ styles/             # Tokens de marca y recetas de estilo
+   └─ .env.example           # Plantilla de .env.local (mocks o backend real)
 ```
+
+El detalle de cada carpeta y las reglas para sumar módulos nuevos están en
+[`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) y
+[`docs/FRONTEND-STRUCTURE.md`](./docs/FRONTEND-STRUCTURE.md).
 
 ## Qué hace cada componente clave
 
@@ -51,13 +90,15 @@ Vitto-Club/
 - **`ValidationPipe` global** (`main.ts`): valida y transforma automáticamente
   los DTOs de entrada; rechaza con 400 cualquier campo no declarado.
 - **CORS**: habilitado solo para `http://localhost:5173` (el puerto por
-  defecto de Vite), pensado para el futuro frontend.
+  defecto de Vite, donde corre el frontend).
 - **Prefijo global `/api`**: todas las rutas quedan bajo `/api/...` (por
   ejemplo, el health check es `/api/health`, no `/health`).
 - **`GET /api/health`**: hace un `SELECT 1` real contra la base para confirmar
   que la cadena NestJS → Prisma → PostgreSQL está viva.
 
-## Qué se revisó y qué se corrigió
+## Historial
+
+### Revisión de la infraestructura base (2026-09-08)
 
 Se levantó el contenedor de Docker, se aplicaron las migraciones, se corrió el
 seed y se probó `GET /api/health` end-to-end. Resultado: la infraestructura
@@ -112,22 +153,9 @@ Se renombraron los modelos de dominio y sus campos, de español a inglés:
   lo extenso del cambio de nombres — los datos que había eran solo del seed
   de prueba, sin impacto).
 
-## Pendiente (fuera del alcance de esta revisión)
+## Pendiente
 
-- **Jest + ESM**: correr `npm test` o `npm run test:e2e` todavía falla
-  (`Must use import to load ES Module: .../@nestjs/testing/index.js`). El
-  proyecto usa `"type": "module"` (ESM) pero la configuración de Jest/ts-jest
-  compila los tests a CommonJS por defecto, y `@nestjs/testing` es un paquete
-  ESM-only. Los dos tests existentes (`app.controller.spec.ts`,
-  `app.e2e-spec.ts`) son el "Hello World" por defecto de Nest, sin relación
-  con `Employee`/`Customer`, así que no bloquean el Sprint 1, pero conviene
-  resolverlo (config de Jest en modo ESM: `NODE_OPTIONS=--experimental-vm-modules`,
-  `extensionsToTreatAsEsm`, `ts-jest` con `useESM: true`, etc.) antes de
-  escribir tests reales.
 - No hay CI configurado (no hay `.github/workflows` ni equivalente).
-- No hay frontend todavía en el repo.
-- Las HU de ABMC del Sprint 1 (controllers, services, DTOs para
-  `Employee`/`Customer`) quedan para la próxima etapa.
 
 ## Cómo levantar el proyecto (para un nuevo integrante del equipo)
 

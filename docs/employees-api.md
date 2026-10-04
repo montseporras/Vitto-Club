@@ -171,7 +171,7 @@ Si algún dato es inválido, **no se guarda ningún cambio** (tampoco los campos
 
 `GET /api/empleados`
 
-Devuelve **siempre un array** de `Employee` (sin paginación), ordenado por `id`. Si no hay resultados,
+Devuelve **siempre un array** de `Employee` (sin paginación), ordenado por apellido ascendente (a igual apellido, por nombre y después por `id`). Si no hay resultados,
 devuelve `[]` con `200`.
 
 | Parámetro | Valores | Efecto |

@@ -1,4 +1,4 @@
-// Tabla de empleados registrados: nombre, apellido, teléfono, rol y estado
+// Tabla de empleados registrados: apellido, nombre, teléfono, rol y estado
 // lógico (datos mostrados de RF-03). Cada fila es clickeable y abre la edición
 // del empleado (RF-02); la baja lógica (RF-04) vive dentro de ese modal.
 import { ROLES_EMPLEADO } from '@/domain/roles';
@@ -25,8 +25,8 @@ export function TablaEmpleados({
     <Table>
       <TableHead>
         <tr>
-          <TableHeaderCell>Nombre</TableHeaderCell>
           <TableHeaderCell>Apellido</TableHeaderCell>
+          <TableHeaderCell>Nombre</TableHeaderCell>
           <TableHeaderCell>Teléfono</TableHeaderCell>
           <TableHeaderCell>Rol</TableHeaderCell>
           <TableHeaderCell>Estado</TableHeaderCell>
@@ -39,8 +39,8 @@ export function TablaEmpleados({
             interactive
             onClick={() => onSeleccionarEmpleado(empleado)}
           >
-            <TableCell>{empleado.firstName}</TableCell>
             <TableCell>{empleado.lastName}</TableCell>
+            <TableCell>{empleado.firstName}</TableCell>
             <TableCell>
               {empleado.phone ?? <span className="text-neutral-500">—</span>}
             </TableCell>

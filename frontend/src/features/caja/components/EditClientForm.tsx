@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
 import { FormActions } from '@/shared/components/forms/FormActions'
 import { FormField } from '@/shared/components/forms/FormField'
@@ -24,13 +24,8 @@ const DOCUMENT_OPTIONS = DOCUMENT_TYPE_VALUES.map((type) => ({
   label: DOCUMENT_TYPES[type].label,
 }))
 
-const REQUIRED_FIELDS = [
-  'firstName',
-  'lastName',
-  'documentType',
-  'documentNumber',
-  'email',
-] as const
+// El documento (tipo y número) se muestra bloqueado: no se edita ni viaja en el PATCH.
+const REQUIRED_FIELDS = ['firstName', 'lastName', 'email'] as const
 
 const toFormValues = (client: Client): AltaClienteFormInput => ({
   firstName: client.firstName,
@@ -68,10 +63,6 @@ export function EditClientForm({ client, onSaved, onCancel }: EditClientFormProp
   const {
     register,
     handleSubmit,
-    setError,
-    trigger,
-    getValues,
-    control,
     formState: { errors },
   } = useForm<AltaClienteFormInput, unknown, AltaClienteFormOutput>({
     resolver: zodResolver(altaClienteSchema),
@@ -90,19 +81,7 @@ export function EditClientForm({ client, onSaved, onCancel }: EditClientFormProp
     setNoChanges(false)
     updateClient.mutate(
       { id: client.id, body: changes },
-      {
-        onSuccess: onSaved,
-        onError: (error) => {
-          // 409 por documento repetido (el otro 409 es por cliente dado de baja)
-          if (error.status === 409 && error.message.includes('already exists')) {
-            setError(
-              'documentNumber',
-              { message: 'Ya existe otro cliente registrado con este documento' },
-              { shouldFocus: true },
-            )
-          }
-        },
-      },
+      { onSuccess: onSaved },
     )
   }
 
@@ -114,9 +93,7 @@ export function EditClientForm({ client, onSaved, onCancel }: EditClientFormProp
     'aria-describedby': errors[field] ? `edit-${field}-error` : undefined,
   })
 
-  const generalError =
-    updateClient.isError && !errors.documentNumber ? updateClient.error : undefined
-  const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
+  const generalError = updateClient.isError ? updateClient.error : undefined
 
   return (
     <form noValidate onSubmit={handleSubmit(onSubmit)}>
@@ -174,22 +151,18 @@ export function EditClientForm({ client, onSaved, onCancel }: EditClientFormProp
         <SegmentedRadio
           legend="Tipo de documento"
           options={DOCUMENT_OPTIONS}
-          field={register('documentType', {
-            onChange: () => {
-              if (getValues('documentNumber')) trigger('documentNumber')
-            },
-          })}
+          field={register('documentType')}
+          disabled
         />
 
         <FormField
           id="edit-documentNumber"
           label="Número de documento"
-          error={errors.documentNumber?.message}
+          hint="El documento no se puede modificar."
         >
           <Input
-            inputMode={isDni ? 'numeric' : 'text'}
-            autoComplete="off"
-            {...a11y('documentNumber')}
+            readOnly
+            aria-describedby="edit-documentNumber-hint"
             {...register('documentNumber')}
           />
         </FormField>
