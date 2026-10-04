@@ -17,7 +17,17 @@ const empleados: Empleado[] = [
 let nextId = empleados.length + 1;
 
 export const empleadosHandlers = [
-  http.get(`${API_URL}/empleados`, () => HttpResponse.json(empleados)),
+  // Mismo orden que el backend: apellido, nombre e id.
+  http.get(`${API_URL}/empleados`, () =>
+    HttpResponse.json(
+      [...empleados].sort(
+        (a, b) =>
+          a.lastName.localeCompare(b.lastName, 'es') ||
+          a.firstName.localeCompare(b.firstName, 'es') ||
+          a.id - b.id,
+      ),
+    ),
+  ),
 
   http.post(`${API_URL}/empleados`, async ({ request }) => {
     const body = (await request.json()) as CrearEmpleadoDto;

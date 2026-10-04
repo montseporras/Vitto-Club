@@ -25,14 +25,16 @@ export const formActionsStyles = {
 
 /** Control segmentado (radios con forma de botones). */
 export const segmentedStyles = {
-  root: 'flex flex-col gap-1.5',
+  root: 'flex flex-col gap-1.5 disabled:cursor-not-allowed',
   legend: 'mb-1.5 text-sm font-semibold text-ink',
   group: 'grid grid-cols-2 gap-1 rounded-xl border border-accent-200 bg-accent-50 p-1',
-  label: 'cursor-pointer',
+  // Bloqueado: sin hover ni clic; el cursor lo pone el fieldset deshabilitado.
+  label: 'cursor-pointer has-disabled:pointer-events-none',
   option: [
     'block rounded-lg px-3 py-2.5 text-center text-base font-semibold text-accent-800 transition-colors',
     'hover:bg-accent-100',
     'peer-checked:bg-accent-700 peer-checked:text-white peer-checked:shadow-sm',
     'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-700',
+    'peer-disabled:opacity-60',
   ].join(' '),
 }

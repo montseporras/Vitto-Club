@@ -9,6 +9,13 @@ export const inputStyles = [
   'disabled:cursor-not-allowed disabled:opacity-50',
 ].join(' ')
 
+/**
+ * Solo lectura: se muestra el dato pero no se puede cambiar (ej.: documento al editar un cliente).
+ * Va aparte de inputStyles porque un <select> siempre cumple :read-only y se vería bloqueado.
+ */
+export const inputReadOnlyStyles =
+  'read-only:cursor-not-allowed read-only:bg-neutral-100 read-only:text-neutral-600 read-only:hover:border-neutral-300'
+
 /** Lista desplegable: mismo aspecto que un Input, con flecha propia. */
 export const selectStyles = {
   root: 'relative',
