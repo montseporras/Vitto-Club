@@ -6,7 +6,7 @@ import type {
   ActualizarEmpleadoDto,
   CrearEmpleadoDto,
   Empleado,
-} from '@/features/empleados/types/empleado';
+} from '@/features/empleados';
 
 const empleados: Empleado[] = [
   { id: 1, firstName: 'Ana', lastName: 'Gómez', phone: '3510000001', email: 'ana.gomez@vitto.club', role: 'ADMIN', isActive: true },

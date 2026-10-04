@@ -58,11 +58,12 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
-> **Nota:** actualmente `npm run test` y `npm run test:e2e` fallan por un
-> conflicto entre ESM (`"type": "module"`) y la config por defecto de
-> Jest/ts-jest, que compila a CommonJS. Ver el README de la raíz, sección
-> "Pendiente", para el detalle. No afecta a `start:dev`, a las migraciones ni
-> al seed, que sí funcionan.
+> **Nota:** los tests corren en modo ESM (`"type": "module"`): `ts-jest` emite
+> ESM y Jest se lanza con `--experimental-vm-modules` (ya incluido en los
+> scripts). En ESM el objeto `jest` no es global, así que se expone desde
+> `test/jest-esm-globals.ts`; en los specs se sigue usando `jest.fn()` sin
+> importarlo. `npm run test:e2e` necesita la base levantada
+> (`docker compose up -d db`).
 
 ## Resources
 

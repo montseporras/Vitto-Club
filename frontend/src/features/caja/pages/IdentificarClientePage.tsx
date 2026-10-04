@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { Link } from 'react-router'
-import { PATHS } from '@/app/router/paths'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { FormField } from '@/shared/components/forms/FormField'
@@ -167,8 +166,9 @@ export function IdentificarClientePage() {
                 No hay ningún cliente con{' '}
                 {DOCUMENT_TYPES[search.documentType].label}{' '}
                 <strong>{search.documentNumber}</strong>.{' '}
+                {/* Relativo a /caja: un feature no importa de app/ (ver docs/FRONTEND-STRUCTURE.md, sección 02). */}
                 <Link
-                  to={PATHS.caja.altaCliente}
+                  to="../alta-cliente"
                   className="font-semibold underline underline-offset-2"
                 >
                   Darlo de alta
