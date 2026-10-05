@@ -94,7 +94,7 @@ frontend/src/features/<feature>/
 ```
 
 Los componentes consumen la API directamente a través de los hooks de
-`api/` (ver `frontend/src/features/caja/`). No hay una capa de dominio propia
+`api/` (ver `frontend/src/features/cashier/`). No hay una capa de dominio propia
 del frontend ni abstracciones de puerto: la validación de negocio "real" vive
 en el backend, y el frontend solo la duplica de forma liviana en los
 `schemas/` de Zod para dar feedback inmediato en el formulario.
@@ -107,7 +107,7 @@ en el backend, y el frontend solo la duplica de forma liviana en los
    `application/`, `infrastructure/` ahí). Si una feature empieza a necesitar
    eso, es una señal de que esa lógica debería vivir en el backend.
 3. Los `types/` del frontend son un espejo de los DTOs de respuesta del
-   backend correspondiente (ver cómo `frontend/src/features/caja/types/cliente.ts`
+   backend correspondiente (ver cómo `frontend/src/features/cashier/types/customer.ts`
    calca a `CustomerResponseDto`) — al cambiar un DTO del backend, hay que
    actualizar el tipo espejado en el frontend.
 

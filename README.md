@@ -18,7 +18,7 @@ que se despliegan por separado:
 - **Sprint 1, ABMC de clientes** (`/api/customers`): alta, búsqueda por
   documento, edición, baja y reactivación, historial de estados y validación
   del formato del documento según el tipo (DNI / pasaporte). En el frontend
-  está en la pantalla de caja (`features/caja`). El listado paginado y el
+  está en la pantalla de caja (`features/cashier`). El listado paginado y el
   historial de estados todavía no tienen pantalla (ver
   [`docs/frontend-customers-pendientes.md`](./docs/frontend-customers-pendientes.md)).
 - El resto de los módulos del frontend (`auth`, `recompensas`, `misiones`,
@@ -145,7 +145,7 @@ Se renombraron los modelos de dominio y sus campos, de español a inglés:
 - `Empleado` → `Employee` (tabla `empleados` → `employees`), con
   `nombre/apellido/telefono/rol` → `firstName/lastName/phone/role`.
 - Enums: `TipoDocumento` → `DocumentType` (`PASAPORTE` → `PASSPORT`, `DNI` se
-  mantiene) y `RolEmpleado` → `EmployeeRole` (`ADMINISTRADOR` → `ADMIN`,
+  mantiene) y `EmployeeRole` → `EmployeeRole` (`ADMINISTRADOR` → `ADMIN`,
   `CAJERO` → `CASHIER`).
 - `prisma/seed.ts` se actualizó para usar los nombres nuevos.
 - Se generó la migración `20260920211053_translate_models_to_english`, que

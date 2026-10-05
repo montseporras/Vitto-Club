@@ -2,7 +2,7 @@
 // El fondo (catálogo, misiones, clientes, etc.) queda como placeholder: pertenece
 // a otros RF. Acá sólo se cablea la entrada a Configuración → Empleados y usuarios (RF-01).
 import { useState } from 'react';
-import { EmpleadosPage } from '@/features/empleados';
+import { EmployeesPage } from '@/features/employees';
 import { StatusText } from '@/shared/components/feedback/StatusText';
 import { AppFooter, AppHeader } from '@/shared/components/navigation/AppHeader';
 import { SideNav } from '@/shared/components/navigation/SideNav';
@@ -11,23 +11,23 @@ import { ICONS } from '@/shared/components/ui/icons';
 import { Modal } from '@/shared/components/ui/Modal';
 import { appHeaderStyles } from '@/styles/ui';
 
-const SECCIONES = [
+const SECTIONS = [
   {
-    id: 'empleados',
+    id: 'employees',
     label: 'Empleados y usuarios',
     icon: ICONS.users,
     description: 'Cada empleado ingresa al sistema con su mail, según su rol.',
   },
-  { id: 'puntos', label: 'Equivalencia de puntos', icon: ICONS.coins },
-  { id: 'niveles', label: 'Niveles de fidelización', icon: ICONS.award },
-  { id: 'notificaciones', label: 'Notificaciones', icon: ICONS.bell },
+  { id: 'points', label: 'Equivalencia de puntos', icon: ICONS.coins },
+  { id: 'levels', label: 'Niveles de fidelización', icon: ICONS.award },
+  { id: 'notifications', label: 'Notificaciones', icon: ICONS.bell },
 ] as const;
 
-type Seccion = (typeof SECCIONES)[number];
+type Section = (typeof SECTIONS)[number];
 
 export function AdminLayout() {
-  const [configAbierta, setConfigAbierta] = useState(false);
-  const [seccion, setSeccion] = useState<Seccion>(SECCIONES[0]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<Section>(SECTIONS[0]);
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -37,7 +37,7 @@ export function AdminLayout() {
         </span>
         <button
           type="button"
-          onClick={() => setConfigAbierta(true)}
+          onClick={() => setSettingsOpen(true)}
           aria-label="Abrir configuración"
           title="Configuración"
           className={appHeaderStyles.iconButton}
@@ -56,13 +56,13 @@ export function AdminLayout() {
 
       <AppFooter />
 
-      {configAbierta && (
+      {settingsOpen && (
         <Modal
           label="Configuración"
           eyebrow="Configuración"
-          title={seccion.label}
-          description={'description' in seccion ? seccion.description : undefined}
-          onClose={() => setConfigAbierta(false)}
+          title={activeSection.label}
+          description={'description' in activeSection ? activeSection.description : undefined}
+          onClose={() => setSettingsOpen(false)}
           className="min-h-[70vh] max-w-5xl"
           bodyClassName="flex flex-1 gap-6 px-5 py-6 sm:px-6"
         >
@@ -72,20 +72,20 @@ export function AdminLayout() {
             size="md"
             storageKey="vitto:menu-configuracion"
             className="self-start"
-            items={SECCIONES.map((item) => ({
+            items={SECTIONS.map((item) => ({
               id: item.id,
               label: item.label,
               icon: item.icon,
-              active: item.id === seccion.id,
-              onSelect: () => setSeccion(item),
+              active: item.id === activeSection.id,
+              onSelect: () => setActiveSection(item),
             }))}
           />
 
           <section className="min-w-0 flex-1">
-            {seccion.id === 'empleados' ? (
-              <EmpleadosPage />
+            {activeSection.id === 'employees' ? (
+              <EmployeesPage />
             ) : (
-              <StatusText>{seccion.label}: pendiente (otro RF).</StatusText>
+              <StatusText>{activeSection.label}: pendiente (otro RF).</StatusText>
             )}
           </section>
         </Modal>

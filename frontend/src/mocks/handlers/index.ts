@@ -1,4 +1,4 @@
-import { cajaHandlers } from './caja.handlers'
-import { empleadosHandlers } from './empleados'
+import { cashierHandlers } from './cashier.handlers'
+import { employeesHandlers } from './employees.handlers'
 
-export const handlers = [...cajaHandlers, ...empleadosHandlers]
+export const handlers = [...cashierHandlers, ...employeesHandlers]
