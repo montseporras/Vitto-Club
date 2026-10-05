@@ -79,6 +79,43 @@ depende de Prisma ni de HTTP.
    `backend/src/prisma/` y `backend/src/health/` como ejemplo. Eso no rompe la
    regla anterior porque no es dominio de ningún contexto de negocio.
 
+### Operaciones que cruzan módulos
+
+Dos mecanismos transversales, sin lógica de negocio (regla 4), para que una
+operación que toca dos módulos sea atómica sin que esos módulos se conozcan
+en los dos sentidos.
+
+**Transacción ambiente** (`backend/src/prisma/prisma-transaction-runner.ts`).
+Lo que se ejecuta dentro de `run(fn)` comparte una sola transacción de base de
+datos, aunque pase por repositorios de módulos distintos:
+
+- En `application/`, el caso de uso la abre a través de un puerto propio de su
+  módulo (una `abstract class` con `run`), ligado a `PrismaTransactionRunner`
+  en el `*.module.ts`. Nunca importa la librería ni Prisma.
+- En `infrastructure/`, los repositorios que participan usan `client` de
+  `PrismaTransactionRunner` en lugar de `PrismaService`.
+- Lo lento (por ejemplo, hashear una contraseña) se hace antes de abrir la
+  transacción.
+
+**Eventos de dominio** (`backend/src/shared/events/domain-events.ts`). Es la
+forma de que un módulo reaccione a lo que pasa en otro sin una dependencia
+circular. `forwardRef` no se usa.
+
+- Los nombres y los datos de los eventos se definen **solo** en ese archivo.
+  Es un contrato compartido: quien publica y quien escucha importan de ahí,
+  nunca del `domain/` del otro módulo. Los datos son primitivos.
+- Se publica con `await eventEmitter.emitAsync(NOMBRE, datos)`, dentro de la
+  transacción y después de escribir lo propio.
+- Se escucha con `@OnEvent(NOMBRE, { suppressErrors: false })`. Sin esa opción
+  la librería atrapa el error del listener y la operación sigue como si nada.
+- No se activan las opciones `async` ni `nextTick` del emisor.
+
+Con esas reglas el listener corre dentro de la transacción de quien publica:
+si tira un error, se deshace todo. Ejemplo: degradar al último administrador
+desde `PATCH /empleados/:id` falla entero, porque `accounts` escucha
+`employee.role-changed`, detecta que no quedaría ningún administrador
+disponible y tira.
+
 ## Frontend: monolito tradicional
 
 Una sola SPA (React + Vite), organizada por feature, sin capas
@@ -94,7 +131,7 @@ frontend/src/features/<feature>/
 ```
 
 Los componentes consumen la API directamente a través de los hooks de
-`api/` (ver `frontend/src/features/caja/`). No hay una capa de dominio propia
+`api/` (ver `frontend/src/features/cashier/`). No hay una capa de dominio propia
 del frontend ni abstracciones de puerto: la validación de negocio "real" vive
 en el backend, y el frontend solo la duplica de forma liviana en los
 `schemas/` de Zod para dar feedback inmediato en el formulario.
@@ -107,7 +144,7 @@ en el backend, y el frontend solo la duplica de forma liviana en los
    `application/`, `infrastructure/` ahí). Si una feature empieza a necesitar
    eso, es una señal de que esa lógica debería vivir en el backend.
 3. Los `types/` del frontend son un espejo de los DTOs de respuesta del
-   backend correspondiente (ver cómo `frontend/src/features/caja/types/cliente.ts`
+   backend correspondiente (ver cómo `frontend/src/features/cashier/types/customer.ts`
    calca a `CustomerResponseDto`) — al cambiar un DTO del backend, hay que
    actualizar el tipo espejado en el frontend.
 

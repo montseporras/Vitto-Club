@@ -9,7 +9,7 @@ import {
 import { Icon } from './Icon'
 import { ICONS } from './icons'
 
-const ICONOS = {
+const VARIANT_ICONS = {
   success: ICONS.check,
   error: ICONS.warning,
 } as const
@@ -28,7 +28,7 @@ export function Alert({
       className={cn(alertVariants({ variant }), className)}
       {...props}
     >
-      <Icon d={ICONOS[variant ?? 'error']} className={alertIconStyles} />
+      <Icon d={VARIANT_ICONS[variant ?? 'error']} className={alertIconStyles} />
       <div className="min-w-0">{children}</div>
     </div>
   )
