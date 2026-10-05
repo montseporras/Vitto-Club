@@ -11,7 +11,6 @@ const prisma = new PrismaClient({
 // es la única excepción a "nadie fuera de auth hashea contraseñas". Usa la misma
 // librería (bcryptjs), por lo que el login verifica estos hashes sin cambios.
 // Las reglas de abajo duplican a propósito las de auth/domain (la fuente de verdad).
-const USERNAME_PATTERN = /^[a-z][a-z0-9._-]{3,29}$/;
 const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 64;
 const DEFAULT_BCRYPT_COST = 10;
@@ -53,7 +52,7 @@ type AccountOwner = { employeeId: number } | { customerId: number };
 async function ensureAccount(
   tx: Prisma.TransactionClient,
   owner: AccountOwner,
-  data: { username: string; passwordHash: string; role: AccountRole },
+  data: { identifier: string; passwordHash: string; role: AccountRole },
 ): Promise<void> {
   const existing = await tx.account.findUnique({ where: owner });
   if (existing) return;
@@ -62,22 +61,17 @@ async function ensureAccount(
 
 // Administrador inicial: se crea siempre, también en producción.
 async function seedAdmin(cost: number): Promise<void> {
-  const username = requiredEnv('SEED_ADMIN_USERNAME').toLowerCase();
-  if (!USERNAME_PATTERN.test(username)) {
-    throw new Error(
-      'SEED_ADMIN_USERNAME must start with a letter, use only a-z, 0-9, ".", "_" or "-", and have 4 to 30 characters',
-    );
-  }
+  // El empleado inicia sesión con su email: es el identificador de la cuenta.
+  const email = requiredEnv('SEED_ADMIN_EMAIL').toLowerCase();
 
   const password = passwordEnv('SEED_ADMIN_PASSWORD');
-  if (password.toLowerCase() === username) {
-    throw new Error('SEED_ADMIN_PASSWORD cannot be the same as SEED_ADMIN_USERNAME');
+  if (password.toLowerCase() === email) {
+    throw new Error('SEED_ADMIN_PASSWORD cannot be the same as SEED_ADMIN_EMAIL');
   }
 
   const firstName = requiredEnv('SEED_ADMIN_FIRST_NAME');
   const lastName = requiredEnv('SEED_ADMIN_LAST_NAME');
   const phone = requiredEnv('SEED_ADMIN_PHONE');
-  const email = requiredEnv('SEED_ADMIN_EMAIL').toLowerCase();
 
   const passwordHash = await bcrypt.hash(password, cost);
 
@@ -90,7 +84,7 @@ async function seedAdmin(cost: number): Promise<void> {
     });
 
     // El rol sale del empleado (fuente de verdad), no se escribe fijo.
-    await ensureAccount(tx, { employeeId: employee.id }, { username, passwordHash, role: employee.role });
+    await ensureAccount(tx, { employeeId: employee.id }, { identifier: employee.email, passwordHash, role: employee.role });
   });
 }
 
@@ -136,12 +130,12 @@ async function seedDemoData(cost: number): Promise<void> {
     // Cuentas de prueba para el login por rol: un cajero y un cliente.
     // Carla y Martín quedan sin cuenta a propósito (caso "sin cuenta").
     const bruno = await tx.employee.findUniqueOrThrow({ where: { email: 'bruno.perez@vitto.club' } });
-    await ensureAccount(tx, { employeeId: bruno.id }, { username: 'bruno.perez', passwordHash, role: bruno.role });
+    await ensureAccount(tx, { employeeId: bruno.id }, { identifier: bruno.email, passwordHash, role: bruno.role });
 
     const lucia = await tx.customer.findUniqueOrThrow({
       where: { unique_document: { documentType: DocumentType.DNI, documentNumber: '40123456' } },
     });
-    await ensureAccount(tx, { customerId: lucia.id }, { username: '40123456', passwordHash, role: AccountRole.CUSTOMER });
+    await ensureAccount(tx, { customerId: lucia.id }, { identifier: lucia.documentNumber, passwordHash, role: AccountRole.CUSTOMER });
   });
 }
 
