@@ -1,9 +1,9 @@
 export const PATHS = {
-  caja: {
+  cashier: {
     root: '/caja',
-    cliente: '/caja/cliente',
-    canje: '/caja/canje',
-    altaCliente: '/caja/alta-cliente',
+    customer: '/caja/cliente',
+    redemption: '/caja/canje',
+    newCustomer: '/caja/alta-cliente',
   },
   admin: {
     root: '/admin',
