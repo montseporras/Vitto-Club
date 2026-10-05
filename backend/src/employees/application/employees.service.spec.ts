@@ -3,6 +3,87 @@ import { EmployeesService } from './employees.service.js';
 import { Employee, EmployeeData, EmployeeUpdateData } from '../domain/employee.js';
 import { EmployeeListFilters, EmployeeRepository } from '../domain/port/employee.repository.js';
 import { DomainError } from '../domain/errors/domain.error.js';
+import { AccountsService } from '../../accounts/application/accounts.service.js';
+import { Account } from '../../accounts/domain/account.js';
+import { AccountRepository } from '../../accounts/domain/port/account.repository.js';
+import { PasswordHasher } from '../../accounts/domain/port/password-hasher.js';
+import { SessionRevoker } from '../../accounts/domain/port/session-revoker.js';
+import type { CustomersService } from '../../customers/application/customers.service.js';
+
+// Doble liviano: EmployeesService solo depende de la forma estructural
+// { existsByEmail(email) } (ver EmailUniquenessChecker en employees.service.ts), así que
+// no hace falta instanciar ni castear la clase CustomersService real para este test.
+class FakeCustomersService {
+  readonly emails = new Set<string>();
+  async existsByEmail(email: string): Promise<boolean> {
+    return this.emails.has(email.toLowerCase());
+  }
+}
+
+// Doble inerte: para todos los tests que no son de la integración US-07, nunca bloquea ni
+// hace nada — igual que si el Employee no tuviera Account. La integración real (con
+// AccountsService de verdad, protección del último ADMIN incluida) se prueba aparte, más
+// abajo, en el describe de integración.
+class InertAccountsService {
+  async deactivateByEmployeeId(_employeeId: number): Promise<void> {}
+}
+
+// Repositorio en memoria de accounts, para el describe de integración (mismo criterio que
+// accounts.service.spec.ts; se duplica acá porque esta suite prueba la orquestación desde
+// el lado de EmployeesService, no AccountsService en sí).
+class FakeAccountRepository implements AccountRepository {
+  readonly items = new Map<number, Account>();
+  private nextId = 1;
+
+  async save(account: Account): Promise<Account> {
+    const id = this.nextId++;
+    const saved = Account.reconstruct({
+      id,
+      employeeId: account.getEmployeeId(),
+      passwordHash: account.getPasswordHash(),
+      active: account.isActive(),
+      deactivatedAt: account.getDeactivatedAt(),
+      createdAt: account.getCreatedAt(),
+      updatedAt: account.getUpdatedAt(),
+    });
+    this.items.set(id, saved);
+    return saved;
+  }
+  async findById(id: number): Promise<Account | null> {
+    return this.items.get(id) ?? null;
+  }
+  async findByEmployeeId(employeeId: number): Promise<Account | null> {
+    return [...this.items.values()].find((a) => a.getEmployeeId() === employeeId) ?? null;
+  }
+  async existsByEmployeeId(employeeId: number): Promise<boolean> {
+    return [...this.items.values()].some((a) => a.getEmployeeId() === employeeId);
+  }
+  async updatePasswordHash(account: Account): Promise<void> {
+    this.items.set(account.getId() as number, account);
+  }
+  async updateStatus(account: Account): Promise<void> {
+    this.items.set(account.getId() as number, account);
+  }
+  async syncRoleFromEmployee(): Promise<void> {}
+  async countActiveByEmployeeIds(employeeIds: number[]): Promise<number> {
+    return [...this.items.values()].filter(
+      (a) => a.isActive() && employeeIds.includes(a.getEmployeeId()),
+    ).length;
+  }
+}
+
+class FakePasswordHasher implements PasswordHasher {
+  async hash(plainPassword: string): Promise<string> {
+    return `hashed:${plainPassword}`;
+  }
+}
+
+class FakeSessionRevoker implements SessionRevoker {
+  readonly revokedAccountIds: number[] = [];
+  async revokeAllForAccount(accountId: number): Promise<void> {
+    this.revokedAccountIds.push(accountId);
+  }
+}
 
 // Repositorio en memoria solo para los tests (no toca la base de datos)
 class FakeEmployeeRepository implements EmployeeRepository {
@@ -59,6 +140,7 @@ class FakeEmployeeRepository implements EmployeeRepository {
 
 describe('EmployeesService', () => {
   let repo: FakeEmployeeRepository;
+  let customersService: FakeCustomersService;
   let service: EmployeesService;
 
   const validData: EmployeeData = {
@@ -71,7 +153,8 @@ describe('EmployeesService', () => {
 
   beforeEach(() => {
     repo = new FakeEmployeeRepository();
-    service = new EmployeesService(repo);
+    customersService = new FakeCustomersService();
+    service = new EmployeesService(repo, customersService, new InertAccountsService());
   });
 
   describe('create()', () => {
@@ -113,6 +196,23 @@ describe('EmployeesService', () => {
       );
 
       await expect(service.create(validData)).rejects.toThrow(ConflictException);
+    });
+
+    // Escenario A (unicidad global de email): existe un Customer con ese email -> se
+    // rechaza crear un Employee con el mismo email.
+    it('lanza 409 si el email ya está registrado como customer', async () => {
+      customersService.emails.add(validData.email.toLowerCase());
+
+      await expect(service.create(validData)).rejects.toThrow(ConflictException);
+      expect(repo.items.size).toBe(0);
+    });
+
+    it('permite crear el empleado si el email no está en uso ni por otro empleado ni por un customer', async () => {
+      customersService.emails.add('otro.distinto@vitto.club');
+
+      const employee = await service.create(validData);
+
+      expect(employee.getId()).toBe(1);
     });
 
     it('no persiste nada si los datos son inválidos', async () => {
@@ -302,6 +402,121 @@ describe('EmployeesService', () => {
       await service.deactivate(id);
 
       await expect(service.create(validData)).rejects.toThrow(ConflictException);
+    });
+
+    // US-07: EmployeesService no implementa ninguna regla de ADMIN por su cuenta — con un
+    // AccountsService inerte (el de este describe, que nunca bloquea nada), dar de baja a
+    // quien sería "el único ADMIN" si hubiera un AccountsService real debe funcionar sin
+    // que EmployeesService se queje. Si acá hubiera lógica de último ADMIN duplicada,
+    // este test fallaría.
+    it('no duplica la protección del último ADMIN: con un AccountsService inerte, la baja no se bloquea sola', async () => {
+      const employee = await service.deactivate(id);
+      expect(employee.isActive()).toBe(false);
+    });
+  });
+
+  // US-07 (integración real): baja de Employee -> baja de su Account, con AccountsService
+  // de verdad (no el doble inerte de arriba) wireado en ambas direcciones. AccountsService
+  // y EmployeesService se referencian mutuamente -- igual que en el DI real de Nest
+  // (resuelto con forwardRef), en el test se resuelve con una indirección mutable: se
+  // construye EmployeesService primero apuntando a un delegado cuyo "accountsService real"
+  // todavía no existe, y se lo asigna apenas AccountsService se construye.
+  describe('integración con Account (US-07): baja de Employee -> baja de Account', () => {
+    function buildIntegratedServices() {
+      const employeeRepo = new FakeEmployeeRepository();
+      const accountRepo = new FakeAccountRepository();
+      const customers = new FakeCustomersService();
+      const passwordHasher = new FakePasswordHasher();
+      const sessionRevoker = new FakeSessionRevoker();
+
+      const accountsServiceRef: { current?: AccountsService } = {};
+      const employees = new EmployeesService(employeeRepo, customers, {
+        deactivateByEmployeeId: (employeeId: number) =>
+          accountsServiceRef.current!.deactivateByEmployeeId(employeeId),
+      });
+      const accounts = new AccountsService(
+        accountRepo,
+        employees,
+        customers as unknown as CustomersService,
+        passwordHasher,
+        sessionRevoker,
+      );
+      accountsServiceRef.current = accounts;
+
+      return { employeeRepo, accountRepo, employees, accounts, sessionRevoker };
+    }
+
+    it('Employee sin Account: la baja sigue normalmente', async () => {
+      const { employeeRepo, employees } = buildIntegratedServices();
+      const employee = await employees.create({
+        firstName: 'Bruno', lastName: 'Pérez', email: 'bruno@vitto.club', role: 'CASHIER', phone: null,
+      });
+
+      const deactivated = await employees.deactivate(employee.getId() as number);
+
+      expect(deactivated.isActive()).toBe(false);
+      expect(employeeRepo.items.get(employee.getId() as number)?.isActive()).toBe(false);
+    });
+
+    it('Employee con Account CASHIER activa: Account se desactiva y Employee se desactiva', async () => {
+      const { employeeRepo, accountRepo, employees, accounts, sessionRevoker } = buildIntegratedServices();
+      const employee = await employees.create({
+        firstName: 'Bruno', lastName: 'Pérez', email: 'bruno@vitto.club', role: 'CASHIER', phone: null,
+      });
+      const account = await accounts.register({
+        employeeId: employee.getId() as number,
+        email: 'bruno@vitto.club',
+        password: 'secreta123',
+      });
+
+      await employees.deactivate(employee.getId() as number);
+
+      expect(employeeRepo.items.get(employee.getId() as number)?.isActive()).toBe(false);
+      expect(accountRepo.items.get(account.getId() as number)?.isActive()).toBe(false);
+      expect(sessionRevoker.revokedAccountIds).toContain(account.getId());
+    });
+
+    it('Employee ADMIN con otro ADMIN disponible: Account se desactiva y Employee se desactiva', async () => {
+      const { employeeRepo, accountRepo, employees, accounts } = buildIntegratedServices();
+      const admin1 = await employees.create({
+        firstName: 'Ana', lastName: 'Gómez', email: 'ana@vitto.club', role: 'ADMIN', phone: null,
+      });
+      const admin2 = await employees.create({
+        firstName: 'Carla', lastName: 'Martínez', email: 'carla@vitto.club', role: 'ADMIN', phone: null,
+      });
+      const account1 = await accounts.register({
+        employeeId: admin1.getId() as number, email: 'ana@vitto.club', password: 'secreta123',
+      });
+      await accounts.register({
+        employeeId: admin2.getId() as number, email: 'carla@vitto.club', password: 'secreta123',
+      });
+
+      await employees.deactivate(admin1.getId() as number);
+
+      expect(employeeRepo.items.get(admin1.getId() as number)?.isActive()).toBe(false);
+      expect(accountRepo.items.get(account1.getId() as number)?.isActive()).toBe(false);
+    });
+
+    it('Employee es el último ADMIN disponible: se bloquea TODA la operación', async () => {
+      const { employeeRepo, accountRepo, employees, accounts, sessionRevoker } = buildIntegratedServices();
+      const admin = await employees.create({
+        firstName: 'Ana', lastName: 'Gómez', email: 'ana@vitto.club', role: 'ADMIN', phone: null,
+      });
+      const account = await accounts.register({
+        employeeId: admin.getId() as number, email: 'ana@vitto.club', password: 'secreta123',
+      });
+
+      // 5. La excepción de AccountsService se propaga sin capturarse ni transformarse.
+      await expect(employees.deactivate(admin.getId() as number)).rejects.toThrow(ConflictException);
+      await expect(employees.deactivate(admin.getId() as number)).rejects.toThrow(
+        'without an available administrator',
+      );
+
+      // 4. Ni el Employee ni la Account quedan modificados: nunca Employee inactivo +
+      // Account activa, ni Account tocada a medias.
+      expect(employeeRepo.items.get(admin.getId() as number)?.isActive()).toBe(true);
+      expect(accountRepo.items.get(account.getId() as number)?.isActive()).toBe(true);
+      expect(sessionRevoker.revokedAccountIds).toHaveLength(0);
     });
   });
 });

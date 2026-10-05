@@ -1,11 +1,48 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Employee, EmployeeData, EmployeeUpdateData } from '../domain/employee.js';
 import { EmployeeListFilters, EmployeeRepository } from '../domain/port/employee.repository.js';
 import { EmployeeAlreadyExists } from '../domain/errors/employee-already-exists.error.js';
+import { CustomersService } from '../../customers/application/customers.service.js';
+import { AccountsService } from '../../accounts/application/accounts.service.js';
+
+// El token de inyección real sigue siendo CustomersService (ver @Inject(forwardRef(...))
+// más abajo); esta interfaz solo evita que el parámetro use CustomersService como TIPO
+// estático. Con "emitDecoratorMetadata" (tsconfig) y módulos ESM nativos ("type": "module"
+// en package.json), tipar el parámetro con la clase concreta hace que TypeScript emita una
+// referencia de VALOR a CustomersService en el metadata del decorador, evaluada en el
+// momento en que se define esta clase — como customers.service.ts importa a su vez a
+// EmployeesService (misma razón, en sentido inverso), eso es un ciclo real entre dos
+// módulos ES que se referencian mutuamente, y revienta con
+// "ReferenceError: Cannot access 'CustomersService' before initialization".
+// forwardRef() resuelve el ciclo para la inyección de Nest en tiempo de ejecución, pero no
+// evita esta referencia eager de TypeScript — por eso además hace falta este tipo acotado.
+interface EmailUniquenessChecker {
+  existsByEmail(email: string): Promise<boolean>;
+}
+
+// Mismo motivo que EmailUniquenessChecker arriba: el token real sigue siendo
+// AccountsService (@Inject(forwardRef(...)) más abajo), pero el parámetro no puede estar
+// tipado con la clase concreta porque AccountsService importa EmployeesService en sentido
+// inverso (para leer Employee.role/email/isActive) — mismo ciclo ESM.
+interface EmployeeAccountDeactivator {
+  deactivateByEmployeeId(employeeId: number): Promise<void>;
+}
 
 @Injectable()
 export class EmployeesService {
-  constructor(private readonly employeesRepository: EmployeeRepository) {}
+  constructor(
+    private readonly employeesRepository: EmployeeRepository,
+    // Dependencia cruzada con customers (vía su Service exportado, no su repository) para
+    // la unicidad global de email. Requiere forwardRef porque CustomersService depende de
+    // EmployeesService en sentido inverso por la misma razón.
+    @Inject(forwardRef(() => CustomersService))
+    private readonly customersService: EmailUniquenessChecker,
+    // Dependencia cruzada con accounts: al dar de baja un Employee, hay que intentar dar
+    // de baja su Account (si tiene). Toda la lógica (protección del último ADMIN,
+    // revocación de sesiones, etc.) vive en AccountsService — acá solo se la invoca.
+    @Inject(forwardRef(() => AccountsService))
+    private readonly accountsService: EmployeeAccountDeactivator,
+  ) {}
 
   // --- REGISTRAR (US-01) ---
   async create(data: EmployeeData): Promise<Employee> {
@@ -18,8 +55,21 @@ export class EmployeesService {
       throw new ConflictException(new EmployeeAlreadyExists(employee.getEmail()).message);
     }
 
-    // 3. Persistir
+    // 3. El email debe ser único en todo el sistema, no solo entre empleados.
+    if (await this.customersService.existsByEmail(employee.getEmail())) {
+      throw new ConflictException(
+        `Email "${employee.getEmail()}" is already registered as a customer`,
+      );
+    }
+
+    // 4. Persistir
     return await this.employeesRepository.save(employee);
+  }
+
+  // Expuesto para que otros módulos (customers, accounts) validen unicidad de email
+  // cruzada sin acceder al repositorio directamente.
+  async existsByEmail(email: string): Promise<boolean> {
+    return await this.employeesRepository.existsByEmail(email);
   }
 
   // --- CONSULTAR (US-03): sin filtros devuelve activos e inactivos ---
@@ -61,6 +111,16 @@ export class EmployeesService {
     if (!employee.isActive()) {
       throw new ConflictException(`Employee with ID ${id} is already inactive`);
     }
+
+    // Orden deliberado: la Account (si existe y está activa) se da de baja PRIMERO, antes
+    // de tocar el Employee. Si AccountsService rechaza la operación (ConflictException por
+    // ser el último ADMIN disponible), ese error se propaga sin capturarlo acá y el
+    // Employee queda sin modificar — nunca termina inactivo con su Account todavía activa.
+    // Hacerlo en el orden inverso dejaría exactamente ese estado inconsistente si el paso
+    // de Account fallara después de haber persistido ya la baja del Employee.
+    // Si el Employee no tiene Account, deactivateByEmployeeId no hace nada (no-op).
+    await this.accountsService.deactivateByEmployeeId(id);
+
     employee.deactivate();
     await this.employeesRepository.updateStatus(employee);
     return employee;

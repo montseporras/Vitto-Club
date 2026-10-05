@@ -144,6 +144,15 @@ export class CustomerPrismaRepository implements CustomerRepository {
     return match !== null;
   }
 
+  async existsByEmail(email: string): Promise<boolean> {
+    const match = await this.prisma.customer.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      select: { id: true },
+    });
+
+    return match !== null;
+  }
+
   async list(params: CustomerListParams): Promise<CustomerListResult> {
     const { page, limit, nameContains, active } = params;
 

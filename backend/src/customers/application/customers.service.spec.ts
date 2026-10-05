@@ -7,6 +7,15 @@ import {
   CustomerListParams,
   CustomerListResult,
 } from '../domain/port/customer.repository.js';
+// Doble liviano: CustomersService solo depende de la forma estructural
+// { existsByEmail(email) } (ver EmailUniquenessChecker en customers.service.ts), así que
+// no hace falta instanciar ni castear la clase EmployeesService real para este test.
+class FakeEmployeesService {
+  readonly emails = new Set<string>();
+  async existsByEmail(email: string): Promise<boolean> {
+    return this.emails.has(email.toLowerCase());
+  }
+}
 
 // Repositorio en memoria solo para los tests (no toca la base de datos)
 class FakeCustomerRepository implements CustomerRepository {
@@ -73,6 +82,11 @@ class FakeCustomerRepository implements CustomerRepository {
       (c) => c.getDocumentType() === type && c.getDocumentNumber() === number && c.getId() !== excludeId,
     );
   }
+  async existsByEmail(email: string): Promise<boolean> {
+    return [...this.items.values()].some(
+      (c) => c.getEmail().toLowerCase() === email.toLowerCase(),
+    );
+  }
   async list(params: CustomerListParams): Promise<CustomerListResult> {
     this.list_(params);
     return { items: [...this.items.values()], total: this.items.size };
@@ -81,12 +95,14 @@ class FakeCustomerRepository implements CustomerRepository {
 
 describe('CustomersService', () => {
   let repo: FakeCustomerRepository;
+  let employeesService: FakeEmployeesService;
   let service: CustomersService;
   let id: number;
 
   beforeEach(async () => {
     repo = new FakeCustomerRepository();
-    service = new CustomersService(repo);
+    employeesService = new FakeEmployeesService();
+    service = new CustomersService(repo, employeesService);
     const created = await service.create({
       firstName: 'Juan',
       lastName: 'Pérez',
@@ -240,6 +256,36 @@ describe('CustomersService', () => {
           email: 'otro@example.com',
         }),
       ).rejects.toThrow(/reactivate it/);
+    });
+
+    // Escenario B (unicidad global de email): existe un Employee con ese email -> se
+    // rechaza crear un Customer con el mismo email.
+    it('lanza 409 si el email ya está registrado como employee', async () => {
+      employeesService.emails.add('empleado@vitto.club');
+
+      await expect(
+        service.create({
+          firstName: 'Otro',
+          lastName: 'Cliente',
+          documentType: 'DNI',
+          documentNumber: '87654321',
+          email: 'empleado@vitto.club',
+        }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('permite crear el cliente si el email no está en uso por ningún employee', async () => {
+      employeesService.emails.add('otro.distinto@vitto.club');
+
+      const customer = await service.create({
+        firstName: 'Otro',
+        lastName: 'Cliente',
+        documentType: 'DNI',
+        documentNumber: '87654321',
+        email: 'nuevo@example.com',
+      });
+
+      expect(customer.getId()).not.toBeNull();
     });
   });
 
