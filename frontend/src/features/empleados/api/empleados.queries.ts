@@ -4,8 +4,10 @@ import type {
   EditarEmpleadoForm,
   RegistrarEmpleadoForm,
 } from '../schemas/empleado.schema';
+import type { CreateAccountDto } from '../types/empleado';
 import {
   actualizarEmpleado,
+  createEmployeeAccount,
   darDeBajaEmpleado,
   formAActualizarEmpleadoDto,
   formACrearEmpleadoDto,
@@ -50,6 +52,18 @@ export const useDarDeBajaEmpleado = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => darDeBajaEmpleado(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: empleadosKeys.lists() });
+    },
+  });
+};
+
+// Alta del usuario de un empleado (SCRUM-21). Refresca la tabla para que el
+// empleado aparezca con usuario.
+export const useCreateEmployeeAccount = (id: number) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateAccountDto) => createEmployeeAccount(id, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: empleadosKeys.lists() });
     },

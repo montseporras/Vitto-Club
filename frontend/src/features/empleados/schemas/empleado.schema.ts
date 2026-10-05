@@ -2,6 +2,7 @@
 // Reglas alineadas con la base de datos: nombre/apellido/mail/rol obligatorios,
 // teléfono opcional. Los largos máximos siguen al schema de Prisma.
 import { z } from 'zod';
+import { PASSWORD_MIN_LENGTH, PASSWORD_RULES } from '@/shared/lib/password';
 
 export const registrarEmpleadoSchema = z.object({
   nombre: z
@@ -40,3 +41,19 @@ export const editarEmpleadoSchema = registrarEmpleadoSchema.omit({
 });
 
 export type EditarEmpleadoForm = z.infer<typeof editarEmpleadoSchema>;
+
+// Usuario del empleado (SCRUM-21). El usuario es el mail, que ya está validado
+// en el alta; acá solo se valida la contraseña, por si la editan a mano.
+export const createAccountSchema = z.object({
+  password: z
+    .string()
+    .min(PASSWORD_MIN_LENGTH, `Mínimo ${PASSWORD_MIN_LENGTH} caracteres`)
+    .regex(PASSWORD_RULES.uppercase, 'Tiene que tener al menos una mayúscula')
+    .regex(PASSWORD_RULES.digit, 'Tiene que tener al menos un número')
+    .regex(
+      PASSWORD_RULES.special,
+      'Tiene que tener al menos un carácter especial',
+    ),
+});
+
+export type CreateAccountForm = z.infer<typeof createAccountSchema>;

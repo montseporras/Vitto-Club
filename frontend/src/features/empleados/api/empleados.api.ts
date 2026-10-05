@@ -5,7 +5,9 @@ import type {
   RegistrarEmpleadoForm,
 } from '../schemas/empleado.schema';
 import type {
+  Account,
   ActualizarEmpleadoDto,
+  CreateAccountDto,
   CrearEmpleadoDto,
   Empleado,
 } from '../types/empleado';
@@ -62,5 +64,14 @@ export async function actualizarEmpleado(
   body: ActualizarEmpleadoDto,
 ): Promise<Empleado> {
   const { data } = await http.patch<Empleado>(`/empleados/${id}`, body);
+  return data;
+}
+
+// Alta del usuario de un empleado (SCRUM-21): con este usuario entra al sistema.
+export async function createEmployeeAccount(
+  id: number,
+  body: CreateAccountDto,
+): Promise<Account> {
+  const { data } = await http.post<Account>(`/empleados/${id}/usuario`, body);
   return data;
 }

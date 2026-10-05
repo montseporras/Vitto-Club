@@ -1,5 +1,6 @@
 // Sección "Empleados y usuarios": listado y búsqueda (RF-01/RF-03), alta
-// (RF-01), edición (RF-02) y baja lógica (RF-04) de empleados.
+// (RF-01), edición (RF-02) y baja lógica (RF-04) de empleados, y alta del
+// usuario con el que el empleado entra al sistema (SCRUM-21).
 // Es la pantalla del prototipo dentro del modal de Configuración del Administrador;
 // el título y la descripción los muestra el encabezado de ese modal.
 import { useMemo, useState } from 'react';
@@ -12,16 +13,26 @@ import { Modal } from '@/shared/components/ui/Modal';
 import { useEmpleados } from '../api/empleados.queries';
 import { BuscadorEmpleados } from '../components/BuscadorEmpleados';
 import { ConfirmarBajaEmpleado } from '../components/ConfirmarBajaEmpleado';
+import { CreateAccountForm } from '../components/CreateAccountForm';
 import { FormEditarEmpleado } from '../components/FormEditarEmpleado';
 import { FormRegistrarEmpleado } from '../components/FormRegistrarEmpleado';
 import { TablaEmpleados } from '../components/TablaEmpleados';
 import type { Empleado } from '../types/empleado';
 
+// Qué muestra el modal del empleado seleccionado
+type EmployeeModalView = 'edit' | 'deactivate' | 'createAccount';
+
+const MODAL_TITLES: Record<EmployeeModalView, string> = {
+  edit: 'Editar empleado',
+  deactivate: 'Dar de baja empleado',
+  createAccount: 'Crear usuario',
+};
+
 export function EmpleadosPage() {
   const [creando, setCreando] = useState(false);
   const [empleadoSeleccionado, setEmpleadoSeleccionado] =
     useState<Empleado | null>(null);
-  const [dandoDeBaja, setDandoDeBaja] = useState(false);
+  const [modalView, setModalView] = useState<EmployeeModalView>('edit');
   const [busqueda, setBusqueda] = useState('');
   const { data: empleados, isLoading, isError, refetch } = useEmpleados();
 
@@ -37,7 +48,7 @@ export function EmpleadosPage() {
 
   const cerrarEdicion = () => {
     setEmpleadoSeleccionado(null);
-    setDandoDeBaja(false);
+    setModalView('edit');
   };
 
   return (
@@ -99,19 +110,26 @@ export function EmpleadosPage() {
       )}
 
       {empleadoSeleccionado && (
-        <Modal title={dandoDeBaja ? 'Dar de baja empleado' : 'Editar empleado'}>
-          {dandoDeBaja ? (
+        <Modal title={MODAL_TITLES[modalView]}>
+          {modalView === 'deactivate' ? (
             <ConfirmarBajaEmpleado
               empleado={empleadoSeleccionado}
               onSuccess={cerrarEdicion}
-              onCancel={() => setDandoDeBaja(false)}
+              onCancel={() => setModalView('edit')}
+            />
+          ) : modalView === 'createAccount' ? (
+            <CreateAccountForm
+              empleado={empleadoSeleccionado}
+              onDone={cerrarEdicion}
+              onCancel={() => setModalView('edit')}
             />
           ) : (
             <FormEditarEmpleado
               empleado={empleadoSeleccionado}
               onSuccess={cerrarEdicion}
               onCancel={cerrarEdicion}
-              onSolicitarBaja={() => setDandoDeBaja(true)}
+              onSolicitarBaja={() => setModalView('deactivate')}
+              onCreateAccount={() => setModalView('createAccount')}
             />
           )}
         </Modal>
