@@ -1,24 +1,51 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Injectable } from '@nestjs/common';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { PrismaTransactionRunner } from '../src/prisma/prisma-transaction-runner.js';
 
+const employee = (email: string) => ({
+  firstName: 'Test',
+  lastName: 'Tx',
+  phone: '3510000000',
+  email,
+  role: 'CASHIER' as const,
+});
+
+// Listener de prueba: se comporta como el de un módulo real que escucha un evento de otro.
+const TEST_EVENT = 'test.transaction-event';
+
+@Injectable()
+class TestListener {
+  // Lo que el listener alcanzó a ver en la base al recibir el evento
+  seenEmails: string[] = [];
+
+  constructor(private readonly tx: PrismaTransactionRunner) {}
+
+  @OnEvent(TEST_EVENT, { suppressErrors: false })
+  async handle(payload: { email: string; fail: boolean }): Promise<void> {
+    const visible = await this.tx.client.employee.findMany({ orderBy: { email: 'asc' } });
+    this.seenEmails = visible.map((e) => e.email);
+
+    await this.tx.client.employee.create({ data: employee(payload.email) });
+
+    if (payload.fail) {
+      throw new Error('listener boom');
+    }
+  }
+}
+
 // Cubre PrismaTransactionRunner, que es lo que usan los casos de uso (vía su puerto) y los
-// repositorios. Corre contra la base de tests.
+// repositorios, y los eventos de dominio publicados dentro de una transacción.
+// Corre contra la base de tests.
 describe('Transacción ambiente (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   let tx: PrismaTransactionRunner;
-
-  const employee = (email: string) => ({
-    firstName: 'Test',
-    lastName: 'Tx',
-    phone: '3510000000',
-    email,
-    role: 'CASHIER' as const,
-  });
+  let events: EventEmitter2;
+  let listener: TestListener;
 
   const emails = async () =>
     (await prisma.employee.findMany({ orderBy: { email: 'asc' } })).map((e) => e.email);
@@ -26,6 +53,7 @@ describe('Transacción ambiente (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
+      providers: [TestListener],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -33,12 +61,15 @@ describe('Transacción ambiente (e2e)', () => {
 
     prisma = app.get(PrismaService);
     tx = app.get(PrismaTransactionRunner);
+    events = app.get(EventEmitter2);
+    listener = app.get(TestListener);
   });
 
   beforeEach(async () => {
     await prisma.session.deleteMany();
     await prisma.account.deleteMany();
     await prisma.employee.deleteMany();
+    listener.seenEmails = [];
   });
 
   afterAll(async () => {
@@ -114,5 +145,36 @@ describe('Transacción ambiente (e2e)', () => {
     });
 
     expect(await emails()).toEqual(['a@test.com']);
+  });
+
+  describe('eventos de dominio', () => {
+    it('si el listener termina bien, queda lo del publicador y lo del listener', async () => {
+      await tx.run(async () => {
+        await tx.client.employee.create({ data: employee('publisher@test.com') });
+        await events.emitAsync(TEST_EVENT, { email: 'listener@test.com', fail: false });
+      });
+
+      expect(await emails()).toEqual(['listener@test.com', 'publisher@test.com']);
+    });
+
+    it('si el listener tira, el error llega al publicador y se deshace todo', async () => {
+      await expect(
+        tx.run(async () => {
+          await tx.client.employee.create({ data: employee('publisher@test.com') });
+          await events.emitAsync(TEST_EVENT, { email: 'listener@test.com', fail: true });
+        }),
+      ).rejects.toThrow('listener boom');
+
+      expect(await emails()).toEqual([]);
+    });
+
+    it('el listener ve lo que el publicador escribió en la misma transacción', async () => {
+      await tx.run(async () => {
+        await tx.client.employee.create({ data: employee('publisher@test.com') });
+        await events.emitAsync(TEST_EVENT, { email: 'listener@test.com', fail: false });
+      });
+
+      expect(listener.seenEmails).toEqual(['publisher@test.com']);
+    });
   });
 });
