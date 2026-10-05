@@ -1,6 +1,6 @@
 import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
-import { EMPLOYEE_ROLES } from '../../../employees/domain/employee.js';
-import type { EmployeeRole } from '../../../employees/domain/employee.js';
+import { ACCOUNT_ROLES } from '../../domain/account-role.js';
+import type { AccountRole } from '../../domain/account-role.js';
 
 // US-06. Body completo: cambiar rol, resetear password, o ambos. El email no está acá
 // (no se edita desde este ABMC); si se envía, el ValidationPipe global (forbidNonWhitelisted)
@@ -10,8 +10,8 @@ import type { EmployeeRole } from '../../../employees/domain/employee.js';
 // CustomersService.update(), que hace ese mismo tipo de chequeo a nivel de aplicación).
 export class UpdateAccountDto {
   @IsOptional()
-  @IsIn(EMPLOYEE_ROLES)
-  role?: EmployeeRole;
+  @IsIn(ACCOUNT_ROLES)
+  role?: AccountRole;
 
   @IsOptional()
   @IsString()

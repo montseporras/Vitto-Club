@@ -3,4 +3,7 @@
 // ni decide el algoritmo: solo depende de este contrato.
 export abstract class PasswordHasher {
   abstract hash(plainPassword: string): Promise<string>;
+  // Usado por AccountsService.verifyCredentials() (login de empleados). Nunca expone el
+  // passwordHash fuera de este puerto.
+  abstract verify(plainPassword: string, passwordHash: string): Promise<boolean>;
 }

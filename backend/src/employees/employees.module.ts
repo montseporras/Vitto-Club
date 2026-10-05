@@ -2,16 +2,18 @@ import { forwardRef, Module } from '@nestjs/common';
 import { EmployeesController } from './http/employees.controller.js';
 import { EmployeesService } from './application/employees.service.js';
 import { EmployeeRepository } from './domain/port/employee.repository.js';
+import { TransactionRunner } from './domain/port/transaction-runner.js';
 import { EmployeePrismaRepository } from './infrastructure/employees.repository.js';
 import { CustomersModule } from '../customers/customers.module.js';
-import { AccountsModule } from '../accounts/accounts.module.js';
+import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
 
+// Employees NO importa AccountsModule: la integración Employee -> Account se hace vía
+// eventos de dominio (employee.deactivated / employee.role-changed), no por llamada
+// directa. Ver docs/ARCHITECTURE.md y src/accounts/application/employee-events.listener.ts.
 @Module({
   // forwardRef: CustomersModule importa EmployeesModule en sentido inverso (unicidad
   // global de email entre Employee y Customer, ver EmployeesService/CustomersService).
-  // AccountsModule también importa EmployeesModule en sentido inverso (AccountsService
-  // depende de EmployeesService para leer Employee.role/email/isActive).
-  imports: [forwardRef(() => CustomersModule), forwardRef(() => AccountsModule)],
+  imports: [forwardRef(() => CustomersModule)],
   controllers: [EmployeesController],
   providers: [
     EmployeesService,
@@ -19,6 +21,12 @@ import { AccountsModule } from '../accounts/accounts.module.js';
     {
       provide: EmployeeRepository,
       useClass: EmployeePrismaRepository,
+    },
+    // Vincular el puerto de transacción ambiente con la implementación real (PrismaModule
+    // es @Global(), así que PrismaTransactionRunner ya está disponible para ligarlo acá).
+    {
+      provide: TransactionRunner,
+      useExisting: PrismaTransactionRunner,
     },
   ],
   exports: [EmployeesService],

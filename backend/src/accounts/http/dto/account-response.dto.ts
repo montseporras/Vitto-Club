@@ -1,5 +1,5 @@
 import type { AccountProfile } from '../../application/accounts.service.js';
-import type { EmployeeRole } from '../../../employees/domain/employee.js';
+import type { AccountRole } from '../../domain/account-role.js';
 
 // US-05/06/07/08. Forma exacta de la respuesta HTTP. Nunca incluye passwordHash,
 // identifier, session ni ningún campo interno — AccountProfile ya los excluye por diseño.
@@ -7,7 +7,7 @@ export class AccountResponseDto {
   accountId: number;
   employeeId: number;
   email: string;
-  role: EmployeeRole;
+  role: AccountRole;
   active: boolean;
 
   private constructor(profile: AccountProfile) {

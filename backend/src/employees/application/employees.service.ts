@@ -1,9 +1,16 @@
 import { ConflictException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Employee, EmployeeData, EmployeeUpdateData } from '../domain/employee.js';
 import { EmployeeListFilters, EmployeeRepository } from '../domain/port/employee.repository.js';
+import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import { EmployeeAlreadyExists } from '../domain/errors/employee-already-exists.error.js';
 import { CustomersService } from '../../customers/application/customers.service.js';
-import { AccountsService } from '../../accounts/application/accounts.service.js';
+import {
+  EMPLOYEE_DEACTIVATED,
+  EMPLOYEE_ROLE_CHANGED,
+  type EmployeeDeactivatedEvent,
+  type EmployeeRoleChangedEvent,
+} from '../../shared/events/domain-events.js';
 
 // El token de inyección real sigue siendo CustomersService (ver @Inject(forwardRef(...))
 // más abajo); esta interfaz solo evita que el parámetro use CustomersService como TIPO
@@ -16,16 +23,13 @@ import { AccountsService } from '../../accounts/application/accounts.service.js'
 // "ReferenceError: Cannot access 'CustomersService' before initialization".
 // forwardRef() resuelve el ciclo para la inyección de Nest en tiempo de ejecución, pero no
 // evita esta referencia eager de TypeScript — por eso además hace falta este tipo acotado.
+//
+// Employees NO tiene (ni importa) ningún equivalente para Accounts: la integración
+// Employee -> Account se hace exclusivamente vía los eventos de dominio de abajo
+// (employee.deactivated / employee.role-changed, ver shared/events/domain-events.ts).
+// Este módulo no conoce a accounts, ni en código ni en imports.
 interface EmailUniquenessChecker {
   existsByEmail(email: string): Promise<boolean>;
-}
-
-// Mismo motivo que EmailUniquenessChecker arriba: el token real sigue siendo
-// AccountsService (@Inject(forwardRef(...)) más abajo), pero el parámetro no puede estar
-// tipado con la clase concreta porque AccountsService importa EmployeesService en sentido
-// inverso (para leer Employee.role/email/isActive) — mismo ciclo ESM.
-interface EmployeeAccountDeactivator {
-  deactivateByEmployeeId(employeeId: number): Promise<void>;
 }
 
 @Injectable()
@@ -37,11 +41,8 @@ export class EmployeesService {
     // EmployeesService en sentido inverso por la misma razón.
     @Inject(forwardRef(() => CustomersService))
     private readonly customersService: EmailUniquenessChecker,
-    // Dependencia cruzada con accounts: al dar de baja un Employee, hay que intentar dar
-    // de baja su Account (si tiene). Toda la lógica (protección del último ADMIN,
-    // revocación de sesiones, etc.) vive en AccountsService — acá solo se la invoca.
-    @Inject(forwardRef(() => AccountsService))
-    private readonly accountsService: EmployeeAccountDeactivator,
+    private readonly transactionRunner: TransactionRunner,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // --- REGISTRAR (US-01) ---
@@ -88,41 +89,60 @@ export class EmployeesService {
 
   // --- EDITAR (US-02) ---
   async update(id: number, data: EmployeeUpdateData): Promise<Employee> {
-    // 1. Buscar el empleado (404 si no existe)
-    const employee = await this.findById(id);
+    return await this.transactionRunner.run(async () => {
+      // 1. Buscar el empleado (404 si no existe)
+      const employee = await this.findById(id);
 
-    // 2. Un empleado dado de baja no se modifica
-    if (!employee.isActive()) {
-      throw new ConflictException(`Employee with ID ${id} is inactive and cannot be modified`);
-    }
+      // 2. Un empleado dado de baja no se modifica
+      if (!employee.isActive()) {
+        throw new ConflictException(`Employee with ID ${id} is inactive and cannot be modified`);
+      }
 
-    // 3. Aplicar los cambios (valida todo antes de modificar la entidad)
-    employee.update(data);
+      const previousRole = employee.getRole();
 
-    // 4. Persistir
-    await this.employeesRepository.update(employee);
+      // 3. Aplicar los cambios (valida todo antes de modificar la entidad)
+      employee.update(data);
 
-    return employee;
+      // 4. Persistir
+      await this.employeesRepository.update(employee);
+
+      // 5. Si el rol realmente cambió, publicar el evento DENTRO de la misma transacción,
+      // después de persistir. accounts escucha esto para sincronizar Account.role y aplicar
+      // la protección del último ADMIN — si el listener tira, esta transacción entera
+      // (incluido el cambio de rol en Employee) se deshace.
+      const newRole = employee.getRole();
+      if (newRole !== previousRole) {
+        await this.eventEmitter.emitAsync(EMPLOYEE_ROLE_CHANGED, {
+          employeeId: id,
+          previousRole,
+          newRole,
+        } satisfies EmployeeRoleChangedEvent);
+      }
+
+      return employee;
+    });
   }
 
   // --- DAR DE BAJA (US-04): baja lógica, el registro se conserva ---
   async deactivate(id: number): Promise<Employee> {
-    const employee = await this.findById(id);
-    if (!employee.isActive()) {
-      throw new ConflictException(`Employee with ID ${id} is already inactive`);
-    }
+    return await this.transactionRunner.run(async () => {
+      const employee = await this.findById(id);
+      if (!employee.isActive()) {
+        throw new ConflictException(`Employee with ID ${id} is already inactive`);
+      }
 
-    // Orden deliberado: la Account (si existe y está activa) se da de baja PRIMERO, antes
-    // de tocar el Employee. Si AccountsService rechaza la operación (ConflictException por
-    // ser el último ADMIN disponible), ese error se propaga sin capturarlo acá y el
-    // Employee queda sin modificar — nunca termina inactivo con su Account todavía activa.
-    // Hacerlo en el orden inverso dejaría exactamente ese estado inconsistente si el paso
-    // de Account fallara después de haber persistido ya la baja del Employee.
-    // Si el Employee no tiene Account, deactivateByEmployeeId no hace nada (no-op).
-    await this.accountsService.deactivateByEmployeeId(id);
+      employee.deactivate();
+      await this.employeesRepository.updateStatus(employee);
 
-    employee.deactivate();
-    await this.employeesRepository.updateStatus(employee);
-    return employee;
+      // Publicado DENTRO de la misma transacción, después de persistir. accounts escucha
+      // esto para dar de baja la Account asociada (si tiene) y aplicar la protección del
+      // último ADMIN — si el listener tira, esta transacción entera (incluida la baja del
+      // Employee) se deshace, sin dejar Employee inactivo con su Account todavía activa.
+      await this.eventEmitter.emitAsync(EMPLOYEE_DEACTIVATED, {
+        employeeId: id,
+      } satisfies EmployeeDeactivatedEvent);
+
+      return employee;
+    });
   }
 }

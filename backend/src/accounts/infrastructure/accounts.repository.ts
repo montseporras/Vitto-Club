@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Account as PrismaAccountRecord } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import { Account } from '../domain/account.js';
 import { AccountRepository } from '../domain/port/account.repository.js';
-import type { EmployeeRole } from '../../employees/domain/employee.js';
+import type { AccountRole } from '../domain/account-role.js';
 
 // Esta tabla también guarda cuentas de Customer (role CUSTOMER, employeeId null); nuestro
 // dominio Account solo modela cuentas de empleado, así que toda query de este repositorio
@@ -28,13 +28,19 @@ export function toDomain(record: PrismaAccountRecord): Account {
 
 @Injectable()
 export class AccountPrismaRepository implements AccountRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  // Inyecta PrismaTransactionRunner (no PrismaService) y usa .client en cada query: así
+  // participa de la transacción ambiente abierta por AccountsService/EmployeesService sin
+  // que este repositorio sepa nada de transacciones (ver docs/ARCHITECTURE.md).
+  constructor(private readonly transactionRunner: PrismaTransactionRunner) {}
 
-  // Account.identifier (ex Account.username, ver migración 20261005213626_account_identifier)
-  // es NOT NULL + UNIQUE y nuestro dominio no lo modela, igual que Account.role. Para una
-  // cuenta de empleado la solución integrada por auth ya estableció que
-  // identifier = Employee.email (comentario del schema: "Employees: copy of Employee.email
-  // (not editable)"). No se inventa ninguna otra estrategia.
+  private get prisma() {
+    return this.transactionRunner.client;
+  }
+
+  // Account.identifier es NOT NULL + UNIQUE. Para una cuenta de empleado, la solución
+  // integrada por auth estableció que identifier = Employee.email (comentario del schema:
+  // "Employees: copy of Employee.email (not editable)"). No se inventa ninguna otra
+  // estrategia.
   async save(account: Account): Promise<Account> {
     const employeeId = account.getEmployeeId();
     const employee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
@@ -65,6 +71,15 @@ export class AccountPrismaRepository implements AccountRepository {
   async findByEmployeeId(employeeId: number): Promise<Account | null> {
     const record = await this.prisma.account.findUnique({ where: { employeeId } });
     return record ? toDomain(record) : null;
+  }
+
+  // Login de empleados: identifier = Employee.email. Si la fila encontrada es de un
+  // customer (employeeId null), se trata como "no encontrada" en vez de lanzar: ese caso
+  // está fuera de este dominio, no es un dato inconsistente.
+  async findByIdentifier(identifier: string): Promise<Account | null> {
+    const record = await this.prisma.account.findUnique({ where: { identifier } });
+    if (!record || record.employeeId === null) return null;
+    return toDomain(record);
   }
 
   async existsByEmployeeId(employeeId: number): Promise<boolean> {
@@ -102,8 +117,8 @@ export class AccountPrismaRepository implements AccountRepository {
   }
 
   // Account.role es una copia derivada de Employee.role (fuente de verdad). Sin lógica de
-  // negocio acá: quien llama (AccountsService.updateRole) ya decidió el valor a escribir.
-  async syncRoleFromEmployee(accountId: number, role: EmployeeRole): Promise<void> {
+  // negocio acá: quien llama (el listener de employee.role-changed) ya decidió el valor.
+  async syncRoleFromEmployee(accountId: number, role: AccountRole): Promise<void> {
     await this.prisma.account.update({
       where: { id: accountId },
       data: { role },
