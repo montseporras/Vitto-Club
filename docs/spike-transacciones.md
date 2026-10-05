@@ -2,7 +2,7 @@
 
 - **Fecha:** 2026-10-05
 - **Rama:** `spike/transacciones` (sale de `feature/login`)
-- **Estado:** el spike pasó los tres criterios. Falta que el equipo decida si se adopta.
+- **Estado:** adoptado. La librería queda detrás de `PrismaTransactionRunner` (`backend/src/prisma/prisma-transaction-runner.ts`); `application/` la usa por un puerto propio de cada módulo.
 
 ## Qué se quería saber
 
