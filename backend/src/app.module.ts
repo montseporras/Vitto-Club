@@ -12,7 +12,7 @@ import { EmployeesModule } from './employees/employees.module.js';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    // SPIKE: transacción ambiente con @nestjs-cls/transactional
+    // Transacción ambiente (ver src/prisma/prisma-transaction-runner.ts)
     ClsModule.forRoot({
       global: true,
       middleware: { mount: true },
