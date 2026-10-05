@@ -62,8 +62,26 @@ $ npm run test:cov
 > ESM y Jest se lanza con `--experimental-vm-modules` (ya incluido en los
 > scripts). En ESM el objeto `jest` no es global, así que se expone desde
 > `test/jest-esm-globals.ts`; en los specs se sigue usando `jest.fn()` sin
-> importarlo. `npm run test:e2e` necesita la base levantada
-> (`docker compose up -d db`).
+> importarlo.
+
+### Tests e2e
+
+`npm run test:e2e` corre contra una base separada, `vitto_club_test`, para no
+pisar los datos de desarrollo. Necesita:
+
+1. La base levantada: `docker compose up -d db`.
+2. La base de tests creada (una sola vez por máquina):
+   `docker exec vitto_db createdb -U vitto vitto_club_test`
+3. `DATABASE_URL_TEST` en `backend/.env` (ver `.env.example`).
+
+Las migraciones se aplican solas a la base de tests antes de cada corrida
+(`test/global-setup-e2e.ts`). Los tests **se niegan a correr** si
+`DATABASE_URL_TEST` no apunta a `localhost`/`127.0.0.1` o si el nombre de la
+base no contiene `test` (`test/e2e-database.ts`).
+
+Corren en serie (`--runInBand`) porque comparten la base. Cada spec limpia en
+un `beforeEach` las tablas que usa, en orden de claves foráneas (`sessions`,
+`accounts`, y después `employees` y `customers`).
 
 ## Resources
 
