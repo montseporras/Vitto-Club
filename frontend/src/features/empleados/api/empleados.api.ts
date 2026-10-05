@@ -24,8 +24,13 @@ export function formACrearEmpleadoDto(
   };
 }
 
-export async function listarEmpleados(): Promise<Empleado[]> {
-  const { data } = await http.get<Empleado[]>('/empleados');
+// Listado de empleados (RF-03). La búsqueda por nombre y/o apellido la resuelve
+// el backend (?name=); sin `nombre` devuelve todos, activos e inactivos.
+export async function listarEmpleados(nombre?: string): Promise<Empleado[]> {
+  const name = nombre?.trim();
+  const { data } = await http.get<Empleado[]>('/empleados', {
+    params: name ? { name } : undefined,
+  });
   return data;
 }
 

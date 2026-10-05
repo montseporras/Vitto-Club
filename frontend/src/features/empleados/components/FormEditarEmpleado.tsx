@@ -1,12 +1,16 @@
 // Formulario de edición de empleado (RF-02). El mail no se edita.
 // La baja lógica (RF-04) se ofrece acá mismo (onSolicitarBaja) en vez de un
 // botón aparte en la tabla.
+// Un empleado dado de baja no se puede editar (el backend responde 409): sus
+// datos se muestran en modo sólo lectura.
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { ROLES_EMPLEADO } from '@/domain/roles';
+import { toApiError } from '@/shared/api/ApiError';
 import { FormActions } from '@/shared/components/forms/FormActions';
 import { FormField } from '@/shared/components/forms/FormField';
 import { FormSection } from '@/shared/components/forms/FormSection';
+import { StatusText } from '@/shared/components/feedback/StatusText';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
@@ -30,12 +34,31 @@ const ROL_OPTIONS = Object.entries(ROLES_EMPLEADO).map(([value, label]) => ({
   label,
 }));
 
+// Mensaje según la respuesta del backend (PATCH /empleados/:id).
+function mensajeDeError(error: unknown): string {
+  const apiError = toApiError(error);
+  switch (apiError.status) {
+    case undefined:
+      return apiError.message;
+    case 409:
+      return 'Este empleado está dado de baja: no se puede editar.';
+    case 404:
+      return 'El empleado ya no existe.';
+    case 400:
+      return 'Hay datos inválidos. Revisá el formulario e intentá nuevamente.';
+    default:
+      return 'No se pudieron guardar los cambios. Intentá nuevamente.';
+  }
+}
+
 export function FormEditarEmpleado({
   empleado,
   onSuccess,
   onCancel,
   onSolicitarBaja,
 }: FormEditarEmpleadoProps) {
+  const soloLectura = !empleado.isActive;
+
   const {
     register,
     handleSubmit,
@@ -53,6 +76,7 @@ export function FormEditarEmpleado({
   const actualizar = useActualizarEmpleado(empleado.id);
 
   const onSubmit = handleSubmit((form) => {
+    if (soloLectura) return;
     actualizar.mutate(form, { onSuccess });
   });
 
@@ -65,15 +89,26 @@ export function FormEditarEmpleado({
 
   return (
     <form onSubmit={onSubmit} noValidate>
+      {soloLectura && (
+        <StatusText className="mb-6">
+          Este empleado está dado de baja: sus datos no se pueden editar.
+        </StatusText>
+      )}
+
       {actualizar.isError && (
         <Alert variant="error" className="mb-6">
-          No se pudieron guardar los cambios. Intentá nuevamente.
+          {mensajeDeError(actualizar.error)}
         </Alert>
       )}
 
       <FormSection step={1} title="Datos personales">
         <FormField id="nombre" label="Nombre" error={errors.nombre?.message}>
-          <Input autoComplete="off" {...a11y('nombre')} {...register('nombre')} />
+          <Input
+            autoComplete="off"
+            disabled={soloLectura}
+            {...a11y('nombre')}
+            {...register('nombre')}
+          />
         </FormField>
 
         <FormField
@@ -83,6 +118,7 @@ export function FormEditarEmpleado({
         >
           <Input
             autoComplete="off"
+            disabled={soloLectura}
             {...a11y('apellido')}
             {...register('apellido')}
           />
@@ -104,6 +140,7 @@ export function FormEditarEmpleado({
             type="tel"
             inputMode="tel"
             autoComplete="off"
+            disabled={soloLectura}
             {...a11y('telefono')}
             {...register('telefono')}
           />
@@ -115,6 +152,7 @@ export function FormEditarEmpleado({
           <Select
             id="rol"
             options={ROL_OPTIONS}
+            disabled={soloLectura}
             aria-invalid={errors.rol ? true : undefined}
             aria-describedby={errors.rol ? 'rol-error' : undefined}
             {...register('rol')}
@@ -122,8 +160,14 @@ export function FormEditarEmpleado({
         </FormField>
       </FormSection>
 
-      <FormActions>
-        {empleado.isActive && (
+      {soloLectura ? (
+        <FormActions>
+          <Button type="button" variant="secondary" size="lg" onClick={onCancel}>
+            Cerrar
+          </Button>
+        </FormActions>
+      ) : (
+        <FormActions>
           <Button
             type="button"
             variant="ghost"
@@ -133,14 +177,14 @@ export function FormEditarEmpleado({
           >
             Dar de baja
           </Button>
-        )}
-        <Button type="button" variant="secondary" size="lg" onClick={onCancel}>
-          Cancelar
-        </Button>
-        <Button type="submit" size="lg" disabled={actualizar.isPending}>
-          {actualizar.isPending ? 'Guardando…' : 'Guardar'}
-        </Button>
-      </FormActions>
+          <Button type="button" variant="secondary" size="lg" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button type="submit" size="lg" disabled={actualizar.isPending}>
+            {actualizar.isPending ? 'Guardando…' : 'Guardar'}
+          </Button>
+        </FormActions>
+      )}
     </form>
   );
 }

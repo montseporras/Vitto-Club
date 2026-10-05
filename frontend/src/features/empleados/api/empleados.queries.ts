@@ -1,5 +1,10 @@
 // Hooks de datos del feature empleados (TanStack Query).
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import type {
   EditarEmpleadoForm,
   RegistrarEmpleadoForm,
@@ -14,11 +19,13 @@ import {
 } from './empleados.api';
 import { empleadosKeys } from './empleados.keys';
 
-// Listado de empleados registrados (Consultar / tabla de RF-01).
-export const useEmpleados = () =>
+// Listado de empleados, filtrado por nombre y/o apellido en el backend (RF-03).
+// Mientras llega una búsqueda nueva se sigue mostrando el resultado anterior.
+export const useEmpleados = (nombre = '') =>
   useQuery({
-    queryKey: empleadosKeys.lists(),
-    queryFn: listarEmpleados,
+    queryKey: empleadosKeys.list(nombre),
+    queryFn: () => listarEmpleados(nombre),
+    placeholderData: keepPreviousData,
   });
 
 // Alta de empleado (RF-01). Recibe el formulario y lo traduce al DTO del backend.
@@ -34,12 +41,14 @@ export const useRegistrarEmpleado = () => {
 };
 
 // Edición de empleado (RF-02). Recibe el formulario y lo traduce al DTO del backend.
+// Se refresca el listado también si falla: un 404/409 significa que la tabla
+// estaba desactualizada.
 export const useActualizarEmpleado = (id: number) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (form: EditarEmpleadoForm) =>
       actualizarEmpleado(id, formAActualizarEmpleadoDto(form)),
-    onSuccess: () => {
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: empleadosKeys.lists() });
     },
   });
@@ -50,7 +59,7 @@ export const useDarDeBajaEmpleado = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => darDeBajaEmpleado(id),
-    onSuccess: () => {
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: empleadosKeys.lists() });
     },
   });

@@ -78,7 +78,9 @@ export function FormRegistrarEmpleado({
         <Alert variant="error" className="mb-6">
           {errorApi.status === undefined
             ? errorApi.message
-            : 'No se pudo registrar el empleado. Intentá nuevamente.'}
+            : errorApi.status === 400
+              ? 'Hay datos inválidos. Revisá el formulario e intentá nuevamente.'
+              : 'No se pudo registrar el empleado. Intentá nuevamente.'}
         </Alert>
       )}
 
