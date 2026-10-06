@@ -1245,6 +1245,43 @@ formato y el código esperados, el logout sin cookie responde 204, y
 `GET /api/empleados` sigue respondiendo 200 sin token (los guards todavía no
 son globales).
 
+### `endpoint-permissions.e2e-spec.ts` — 14 tests
+
+Prueba la **matriz de permisos** con los controllers reales de `customers` y
+`employees`, credenciales falsas y los guards activados solo dentro del test
+(igual que `auth-http.e2e-spec.ts`).
+
+Por cada endpoint comprueba dos cosas:
+
+1. **Sin token responde 401** con el código `UNAUTHENTICATED`.
+2. **Cada rol puede o no puede usarlo** según la matriz. El Cliente recibe 403
+   en todo; el Cajero entra a `customers` y recibe 403 en `employees`; el
+   Administrador entra a todo.
+
+Además comprueba que el health check es público.
+
+La tabla de endpoints que recorre:
+
+| Grupo | Endpoints | Pueden usarlos |
+|---|---|---|
+| `customers` (8) | listar, buscar por documento, ver uno, historial, crear, editar, dar de baja, reactivar | Administrador y Cajero |
+| `empleados` (5) | listar, ver uno, crear, editar, dar de baja | Administrador |
+
+Los ids de los pedidos no existen a propósito: si el guard deja pasar, el
+endpoint responde 400 o 404, y eso alcanza para saber que el pedido llegó al
+controller. El test no mira qué respondió el endpoint, solo que no fue 401 ni
+403.
+
+**Qué demuestra de los filtros de error.** El test se escribió antes de
+arreglar los filtros de `customers` y `employees`, y fallaron 13 de los 14:
+los filtros descartaban el campo `code` y mostraban el 403 como
+`"error": "Error"`. Después de agregar el 403 a su tabla de nombres y dejar
+pasar el `code`, pasaron los 14. Es la prueba de que el test mide lo que debe
+y no pasa de casualidad.
+
+Resultado esperado de `npm run test:e2e`: 54 tests (40 de antes y 14 de
+este archivo).
+
 ---
 
 ## 10. Decisiones tomadas
@@ -1322,12 +1359,11 @@ son globales).
    reemplazo del provisorio.
 3. Registrar `AccountsModule` en `AppModule`.
 4. Registrar los dos guards para toda la aplicación.
-5. Poner `@Roles()` en cada endpoint de `customers`, `employees` y `usuarios`
-   según la matriz de permisos, y `@Public()` en los que quedan abiertos.
-6. Ajustar los filtros de `customers` y `employees` para el 403 y el campo
-   `code`.
-7. Quitar `PrismaSessionRevoker` de `accounts`: lo reemplaza el listener.
-8. Actualizar los tests e2e existentes para que manden token.
+5. Poner `@Roles('ADMIN')` en el controller de `usuarios`. (`customers`,
+   `employees` y `health` ya tienen sus marcas, y sus filtros de error ya
+   conocen el 403 y el campo `code`.)
+6. Quitar `PrismaSessionRevoker` de `accounts`: lo reemplaza el listener.
+7. Actualizar los tests e2e existentes para que manden token.
 
 Hasta ese paso, el login se prueba con una verificación de credenciales falsa.
 Recién ahí entra el usuario real de la base.
@@ -1336,16 +1372,14 @@ Recién ahí entra el usuario real de la base.
 
 | Con quién | Qué |
 |---|---|
-| Quien hizo `users` | Que `verifyCredentials` y `findActiveById` devuelvan también el `email` de la cuenta. Sin eso la renovación no puede incluirlo |
-| Quien hizo `users` | Que `owner` admita `{ customerId }` además de `{ employeeId }`; el hash de relleno generado al arrancar; confirmar que `accounts` normaliza el email |
-| Quien hizo `users` | Dejar el chequeo de email en un solo sentido (`customers` consulta a `employees`) y sacar los `forwardRef` |
+| Quien hizo `users` | Reactivar cuenta (SCRUM-27 es reversible, solo si el empleado está activo) |
+| Quien hizo `users` | E2E de aceptación contra la base y por HTTP, con sus módulos reales: degradar o dar de baja al único administrador responde 409 y no cambia nada; con dos administradores se puede |
+| Quien hizo `users` | Corregir en `docs/accounts-abmc-status.md` que `AuthAccountInfo` sí incluye `email`; revisar que su filtro de errores deje pasar `code` y conozca el 403; abrir el PR de `users` a `develop` |
+| Cuentas de clientes | Que `AccountRole` y `findByEmail` admitan clientes; que su endpoint de registro lleve `@Public()` |
+| Frontend | `VITE_API_URL=/api`, proxy de Vite, y las reglas de la sección 8 de `docs/auth-api.md` |
 | Frontend | Si necesita el nombre del usuario (ver `/me` en deuda técnica) |
-| Frontend | El contrato: campo `email` en el login, códigos de error, que la renovación devuelve lo mismo que el login, renovar solo ante un 401 real y reintentar una vez |
 | Quien maneja Vercel | El rewrite de `/api/*` hacia Render, para que la cookie sea del mismo origen. **Bloquea**: si no se puede, hay que rediseñar cómo viaja el refresh token |
-| Frontend | Que en desarrollo use el proxy de Vite (`/api` hacia `localhost:3000`), para que la cookie funcione igual que en producción |
-| Frontend | Que el access token se guarde en memoria y se mande como `Authorization: Bearer <token>`; que distinga 401 (`UNAUTHENTICATED`: renovar) de 403 (`FORBIDDEN`: sin permiso) |
-| Quienes hicieron `customers` y `employees` | Que sus filtros de error dejen pasar el campo `code` y conozcan el 403 |
-| Bloque de cuentas de clientes | Que su endpoint de registro lleve `@Public()` |
+| Quien maneja Render | Cargar `NODE_ENV=production` (sin eso la cookie no sale `Secure`) y un `JWT_SECRET` propio de producción |
 | Equipo | Avisar que la aplicación no arranca sin `JWT_SECRET` |
 | Equipo | Unificar el idioma de los mensajes de error |
 
@@ -1381,3 +1415,4 @@ Recién ahí entra el usuario real de la base.
 | 2026-10-05 | Infraestructura completa: repositorio de sesiones, `auth.module.ts` y registro en `AppModule`. 10 tests contra la base. La aplicación ya exige `JWT_SECRET` para arrancar |
 | 2026-10-05 | Casos de uso: login, renovación y cierre de sesión, con códigos de error fijos y el email en la respuesta. Listener de `account.deactivated`. Verificador de credenciales provisorio. 22 tests unitarios y 3 contra la base. Se agregan las limitaciones conocidas y los pendientes con otras personas |
 | 2026-10-05 | Capa HTTP: los tres endpoints, la cookie del refresh token, los dos guards, los decoradores en `src/shared/security/` y el filtro de errores. 14 tests unitarios y 16 por HTTP. Los guards quedan sin activar para toda la aplicación hasta la integración. Se detalla el paso E |
+| 2026-10-05 | Roles declarados en `customers`, `employees` y `health`; filtros de error de `customers` y `employees` con 403 y `code`; e2e de la matriz de permisos (14 tests); contrato para el frontend en `docs/auth-api.md`. Se actualizan los pendientes con otras personas |
