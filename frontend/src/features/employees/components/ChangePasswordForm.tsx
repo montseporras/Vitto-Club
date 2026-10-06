@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toApiError } from '@/shared/api/ApiError';
-import { StatusText } from '@/shared/components/feedback/StatusText';
 import { FormActions } from '@/shared/components/forms/FormActions';
 import { FormField } from '@/shared/components/forms/FormField';
 import { FormSection } from '@/shared/components/forms/FormSection';
@@ -14,19 +13,17 @@ import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { generatePassword } from '@/shared/lib/password';
-import {
-  useEmployeeAccount,
-  useUpdateAccountPassword,
-} from '../api/employees.queries';
+import { useUpdateAccountPassword } from '../api/employees.queries';
 import {
   accountPasswordSchema,
   type AccountPasswordFormValues,
 } from '../schemas/employee.schema';
-import type { Account, Employee } from '../types/employee';
+import type { Employee, EmployeeAccount } from '../types/employee';
 import { IssuedCredentials, PasswordField } from './AccountPassword';
 
 interface ChangePasswordFormProps {
   employee: Employee;
+  account: EmployeeAccount;
   onDone: () => void;
   onCancel: () => void;
 }
@@ -46,72 +43,14 @@ function errorMessage(error: unknown): string {
   }
 }
 
-// Primero se busca el usuario del empleado: hace falta su id y saber si sigue
-// activo.
 export function ChangePasswordForm({
-  employee,
-  onDone,
-  onCancel,
-}: ChangePasswordFormProps) {
-  const { data: account, isLoading, error, refetch } = useEmployeeAccount(
-    employee.id,
-  );
-
-  if (isLoading) return <StatusText>Cargando usuario…</StatusText>;
-
-  if (error || !account || !account.active) {
-    const notFound = toApiError(error).status === 404;
-    return (
-      <div>
-        <Alert variant="error" className="mb-6">
-          {account && !account.active ? (
-            'El usuario está dado de baja: no se puede cambiar la contraseña.'
-          ) : notFound ? (
-            'Este empleado ya no tiene usuario.'
-          ) : (
-            <p>
-              No se pudo cargar el usuario.{' '}
-              <button
-                type="button"
-                onClick={() => void refetch()}
-                className="cursor-pointer font-semibold underline underline-offset-2"
-              >
-                Reintentar
-              </button>
-            </p>
-          )}
-        </Alert>
-        <FormActions>
-          <Button type="button" variant="secondary" size="lg" onClick={onCancel}>
-            Volver
-          </Button>
-        </FormActions>
-      </div>
-    );
-  }
-
-  return (
-    <NewPasswordForm
-      employee={employee}
-      account={account}
-      onDone={onDone}
-      onCancel={onCancel}
-    />
-  );
-}
-
-interface NewPasswordFormProps extends ChangePasswordFormProps {
-  account: Account;
-}
-
-function NewPasswordForm({
   employee,
   account,
   onDone,
   onCancel,
-}: NewPasswordFormProps) {
+}: ChangePasswordFormProps) {
   const [newPassword, setNewPassword] = useState<string | null>(null);
-  const updatePassword = useUpdateAccountPassword(account.accountId);
+  const updatePassword = useUpdateAccountPassword(account.id);
 
   const {
     register,
@@ -120,7 +59,7 @@ function NewPasswordForm({
     getValues,
     formState: { errors },
   } = useForm<AccountPasswordFormValues>({
-    resolver: zodResolver(accountPasswordSchema(account.email)),
+    resolver: zodResolver(accountPasswordSchema(employee.email)),
     defaultValues: { password: generatePassword() },
   });
 
@@ -134,7 +73,7 @@ function NewPasswordForm({
   if (newPassword) {
     return (
       <IssuedCredentials
-        email={account.email}
+        email={employee.email}
         password={newPassword}
         onDone={onDone}
       >
@@ -165,7 +104,7 @@ function NewPasswordForm({
 
       <FormSection step={1} title="Datos de acceso">
         <FormField id="usuario" label="Usuario">
-          <Input id="usuario" value={account.email} readOnly disabled />
+          <Input id="usuario" value={employee.email} readOnly disabled />
         </FormField>
 
         <PasswordField

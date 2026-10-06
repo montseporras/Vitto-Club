@@ -63,7 +63,7 @@ export function AdminLayout() {
           title={activeSection.label}
           description={'description' in activeSection ? activeSection.description : undefined}
           onClose={() => setSettingsOpen(false)}
-          className="min-h-[70vh] max-w-5xl"
+          className="min-h-[70vh] max-w-7xl"
           bodyClassName="flex flex-1 gap-6 px-5 py-6 sm:px-6"
         >
           <SideNav

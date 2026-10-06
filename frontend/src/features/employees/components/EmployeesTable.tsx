@@ -12,6 +12,7 @@ import {
   TableRow,
 } from '@/shared/components/ui/Table';
 import type { Employee } from '../types/employee';
+import { AccountBadge } from './EmployeeAccountSection';
 
 interface EmployeesTableProps {
   employees: Employee[];
@@ -23,7 +24,8 @@ export function EmployeesTable({
   onSelectEmployee,
 }: EmployeesTableProps) {
   return (
-    <Table>
+    // Cada fila en una sola línea: si no entra, la tabla se desplaza de costado.
+    <Table className="whitespace-nowrap">
       <TableHead>
         <tr>
           <TableHeaderCell>Apellido</TableHeaderCell>
@@ -53,9 +55,7 @@ export function EmployeesTable({
               </Badge>
             </TableCell>
             <TableCell>
-              <Badge variant={employee.hasAccount ? 'success' : 'neutral'}>
-                {employee.hasAccount ? 'Con usuario' : 'Sin usuario'}
-              </Badge>
+              <AccountBadge account={employee.account} />
             </TableCell>
           </TableRow>
         ))}

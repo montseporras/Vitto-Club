@@ -16,8 +16,9 @@ import type {
 import {
   updateEmployee,
   createEmployeeAccount,
-  getEmployeeAccount,
   updateAccountPassword,
+  deactivateAccount,
+  reactivateAccount,
   deactivateEmployee,
   formToUpdateEmployeeDto,
   formToCreateEmployeeDto,
@@ -85,20 +86,31 @@ export const useCreateEmployeeAccount = () => {
   });
 };
 
-// Usuario de un empleado (SCRUM-24): hace falta su id para cambiarle la
-// contraseña. Se pide cada vez que se abre, para ver si sigue activo.
-export const useEmployeeAccount = (employeeId: number) =>
-  useQuery({
-    queryKey: employeesKeys.account(employeeId),
-    queryFn: () => getEmployeeAccount(employeeId),
-    // El queryClient guarda 30 s por defecto; acá se quiere el estado actual.
-    staleTime: 0,
-    retry: false,
-  });
-
 // Cambio de contraseña del usuario (SCRUM-24).
 export const useUpdateAccountPassword = (accountId: number) =>
   useMutation({
     mutationFn: (body: UpdateAccountPasswordDto) =>
       updateAccountPassword(accountId, body),
   });
+
+// Baja y reactivación del usuario (SCRUM-27). Se refresca el listado también
+// si fallan: un 404/409 significa que la tabla estaba desactualizada.
+export const useDeactivateAccount = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (accountId: number) => deactivateAccount(accountId),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: employeesKeys.lists() });
+    },
+  });
+};
+
+export const useReactivateAccount = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (accountId: number) => reactivateAccount(accountId),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: employeesKeys.lists() });
+    },
+  });
+};

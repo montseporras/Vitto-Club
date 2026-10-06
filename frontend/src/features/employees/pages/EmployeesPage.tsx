@@ -1,7 +1,7 @@
 // Sección "Empleados y usuarios": listado y búsqueda (RF-01/RF-03), alta
-// (RF-01), edición (RF-02) y baja lógica (RF-04) de empleados, y alta del
-// usuario con el que el empleado entra al sistema (SCRUM-21) y cambio de su
-// contraseña (SCRUM-24).
+// (RF-01), edición (RF-02) y baja lógica (RF-04) de empleados, y el usuario
+// con el que el empleado entra al sistema: alta (SCRUM-21), cambio de
+// contraseña (SCRUM-24), baja y reactivación (SCRUM-27).
 // Es la pantalla del prototipo dentro del modal de Configuración del Administrador;
 // el título y la descripción los muestra el encabezado de ese modal.
 import { useState } from 'react';
@@ -15,9 +15,11 @@ import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useEmployees } from '../api/employees.queries';
 import { EmployeeSearch } from '../components/EmployeeSearch';
 import { ChangePasswordForm } from '../components/ChangePasswordForm';
+import { ConfirmAccountStatusChange } from '../components/ConfirmAccountStatusChange';
 import { ConfirmEmployeeDeactivation } from '../components/ConfirmEmployeeDeactivation';
 import { CreateAccountForm } from '../components/CreateAccountForm';
 import { EditEmployeeForm } from '../components/EditEmployeeForm';
+import type { AccountAction } from '../components/EmployeeAccountSection';
 import { CreateEmployeeForm } from '../components/CreateEmployeeForm';
 import { EmployeesTable } from '../components/EmployeesTable';
 import type { Employee } from '../types/employee';
@@ -26,16 +28,14 @@ import type { Employee } from '../types/employee';
 const MAX_SEARCH_LENGTH = 80;
 
 // Qué muestra el modal del empleado seleccionado
-type EmployeeModalView =
-  | 'edit'
-  | 'deactivate'
-  | 'createAccount'
-  | 'changePassword';
+type EmployeeModalView = 'edit' | 'deactivate' | AccountAction;
 
 const MODAL_TITLES: Record<Exclude<EmployeeModalView, 'edit'>, string> = {
   deactivate: 'Dar de baja empleado',
   createAccount: 'Crear usuario',
   changePassword: 'Cambiar contraseña',
+  deactivateAccount: 'Dar de baja usuario',
+  reactivateAccount: 'Reactivar usuario',
 };
 
 export function EmployeesPage() {
@@ -61,6 +61,63 @@ export function EmployeesPage() {
   };
 
   const hasSearch = term !== '';
+
+  // Contenido del modal del empleado según la vista elegida. Las vistas del
+  // usuario necesitan que tenga uno; si no, se vuelve a la edición.
+  const renderEmployeeModal = (employee: Employee) => {
+    const backToEdit = () => setModalView('edit');
+    const { account } = employee;
+
+    switch (modalView) {
+      case 'deactivate':
+        return (
+          <ConfirmEmployeeDeactivation
+            employee={employee}
+            onSuccess={closeEdit}
+            onCancel={backToEdit}
+          />
+        );
+      case 'createAccount':
+        return (
+          <CreateAccountForm
+            employee={employee}
+            onDone={closeEdit}
+            onCancel={backToEdit}
+          />
+        );
+      case 'changePassword':
+        if (!account) break;
+        return (
+          <ChangePasswordForm
+            employee={employee}
+            account={account}
+            onDone={closeEdit}
+            onCancel={backToEdit}
+          />
+        );
+      case 'deactivateAccount':
+      case 'reactivateAccount':
+        if (!account) break;
+        return (
+          <ConfirmAccountStatusChange
+            change={modalView === 'deactivateAccount' ? 'deactivate' : 'reactivate'}
+            employee={employee}
+            account={account}
+            onSuccess={closeEdit}
+            onCancel={backToEdit}
+          />
+        );
+    }
+    return (
+      <EditEmployeeForm
+        employee={employee}
+        onSuccess={closeEdit}
+        onCancel={closeEdit}
+        onRequestDeactivation={() => setModalView('deactivate')}
+        onAccountAction={setModalView}
+      />
+    );
+  };
 
   return (
     <div>
@@ -134,34 +191,7 @@ export function EmployeesPage() {
                 : 'Empleado dado de baja'
           }
         >
-          {modalView === 'deactivate' ? (
-            <ConfirmEmployeeDeactivation
-              employee={selectedEmployee}
-              onSuccess={closeEdit}
-              onCancel={() => setModalView('edit')}
-            />
-          ) : modalView === 'createAccount' ? (
-            <CreateAccountForm
-              employee={selectedEmployee}
-              onDone={closeEdit}
-              onCancel={() => setModalView('edit')}
-            />
-          ) : modalView === 'changePassword' ? (
-            <ChangePasswordForm
-              employee={selectedEmployee}
-              onDone={closeEdit}
-              onCancel={() => setModalView('edit')}
-            />
-          ) : (
-            <EditEmployeeForm
-              employee={selectedEmployee}
-              onSuccess={closeEdit}
-              onCancel={closeEdit}
-              onRequestDeactivation={() => setModalView('deactivate')}
-              onCreateAccount={() => setModalView('createAccount')}
-              onChangePassword={() => setModalView('changePassword')}
-            />
-          )}
+          {renderEmployeeModal(selectedEmployee)}
         </Modal>
       )}
     </div>

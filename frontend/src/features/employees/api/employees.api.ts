@@ -81,12 +81,6 @@ export async function createEmployeeAccount(
   return data;
 }
 
-// Usuario de un empleado (SCRUM-24). Responde 404 si el empleado no tiene.
-export async function getEmployeeAccount(employeeId: number): Promise<Account> {
-  const { data } = await http.get<Account>(`/usuarios/empleado/${employeeId}`);
-  return data;
-}
-
 // Cambio de contraseña del usuario (SCRUM-24).
 export async function updateAccountPassword(
   accountId: number,
@@ -94,4 +88,16 @@ export async function updateAccountPassword(
 ): Promise<Account> {
   const { data } = await http.patch<Account>(`/usuarios/${accountId}`, body);
   return data;
+}
+
+// Baja lógica del usuario (SCRUM-27): no puede ingresar más y se cierran sus
+// sesiones. El empleado sigue activo.
+export async function deactivateAccount(accountId: number): Promise<void> {
+  await http.patch(`/usuarios/${accountId}/deactivate`);
+}
+
+// Reactivación del usuario dado de baja (SCRUM-27). La contraseña sigue
+// siendo la que tenía.
+export async function reactivateAccount(accountId: number): Promise<void> {
+  await http.patch(`/usuarios/${accountId}/reactivate`);
 }
