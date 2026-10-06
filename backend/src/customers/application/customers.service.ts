@@ -5,6 +5,7 @@ import { CustomerRepository, CustomerListParams, CustomerListResult } from '../d
 import { CreateCustomerDto } from '../http/dto/create-customer.dto.js';
 import { UpdateCustomerDto } from '../http/dto/update-customer.dto.js';
 import { CustomerAlreadyExists } from '../domain/errors/customer-already-exists.error.js';
+import { Mail } from '../domain/mail.js';
 
 @Injectable()
 export class CustomersService {
@@ -25,11 +26,12 @@ export class CustomersService {
       dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
     });
 
-    // 2. Verificar que el documento no esté ya registrado
+    // 2. Verificar que ningún cliente activo use el documento ni el email
     await this.assertDocumentAvailable(
       customer.getDocumentType(),
       customer.getDocumentNumber(),
     );
+    await this.assertEmailAvailable(customer.getEmail());
 
     // 3. Persistir
     return await this.customersRepository.save(customer);
@@ -93,6 +95,11 @@ export class CustomersService {
       await this.assertDocumentAvailable(documentType, documentNumber, customer.getId() ?? undefined);
     }
 
+    // 2b. Lo mismo con el email (se normaliza igual que al guardar)
+    if (dto.email !== undefined) {
+      await this.assertEmailAvailable(Mail.create(dto.email).getValue(), customer.getId() ?? undefined);
+    }
+
     // 3. Aplicar los cambios sobre la entidad recuperada
     customer.update({
       firstName: dto.firstName,
@@ -146,9 +153,15 @@ export class CustomersService {
     documentNumber: string,
     excludeId?: number,
   ): Promise<void> {
-    const taken = await this.customersRepository.existsByDocument(documentType, documentNumber, excludeId);
+    const taken = await this.customersRepository.existsActiveByDocument(documentType, documentNumber, excludeId);
     if (taken) {
-      throw new ConflictException(new CustomerAlreadyExists(documentType, documentNumber).message);
+      throw new ConflictException(CustomerAlreadyExists.withDocument(documentType, documentNumber).message);
+    }
+  }
+
+  private async assertEmailAvailable(email: string, excludeId?: number): Promise<void> {
+    if (await this.customersRepository.existsActiveByEmail(email, excludeId)) {
+      throw new ConflictException(CustomerAlreadyExists.withEmail(email).message);
     }
   }
 }
