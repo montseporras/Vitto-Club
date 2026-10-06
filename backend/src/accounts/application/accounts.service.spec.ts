@@ -118,7 +118,7 @@ class FakeAccountRepository implements AccountRepository {
   async findByEmployeeId(employeeId: number): Promise<Account | null> {
     return [...this.items.values()].find((a) => a.getEmployeeId() === employeeId) ?? null;
   }
-  async findByIdentifier(_identifier: string): Promise<Account | null> {
+  async findByEmail(_email: string): Promise<Account | null> {
     throw new Error('not implemented: se reasigna por test en el describe de verifyCredentials');
   }
   async existsByEmployeeId(employeeId: number): Promise<boolean> {
@@ -183,21 +183,18 @@ describe('AccountsService', () => {
     accountRepo = new FakeAccountRepository();
     passwordHasher = new FakePasswordHasher();
     eventEmitter = new FakeEventEmitter();
-    // EmployeesService y CustomersService dependen mutuamente entre sí (unicidad global
-    // de email, ver employees.service.ts/customers.service.ts), de la forma estructural
-    // { existsByEmail(email) }. Ninguno de los tests de AccountsService ejercita
-    // employeesService.create() (acá se usa employeeRepo.seed() directamente), así que el
-    // otro extremo de esa dependencia cruzada nunca se invoca: un stub inerte alcanza.
-    // EmployeesService ya NO depende de AccountsService (ver employees.service.ts): no
-    // hace falta ningún stub circular para construirlo.
-    const inertEmailChecker = { existsByEmail: async () => false };
+    // EmployeesService ya no depende de customers ni de accounts (ver employees.service.ts:
+    // dirección única Customers -> Employees), así que se construye sin ningún stub
+    // circular. CustomersService sigue necesitando el EmployeesService real para su propio
+    // chequeo (Customers -> Employees); ninguno de los tests de AccountsService ejercita
+    // customersService.create()/update() (acá se usa employeeRepo.seed()/customerRepo.emails
+    // directamente), así que no importa que ese chequeo nunca encuentre nada.
     employeesService = new EmployeesService(
       employeeRepo,
-      inertEmailChecker,
       new PassthroughEmployeeTransactionRunner(),
       eventEmitter as unknown as import('@nestjs/event-emitter').EventEmitter2,
     );
-    customersService = new CustomersService(customerRepo, inertEmailChecker);
+    customersService = new CustomersService(customerRepo, employeesService);
     service = new AccountsService(
       accountRepo,
       employeesService,
@@ -358,25 +355,24 @@ describe('AccountsService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    // La regla actual (assertPasswordIsNotEmail) compara password.toLowerCase() contra
-    // Employee.email (ya normalizado por el VO Mail: trim + lowercase). Por eso una
-    // diferencia de mayúsculas también se detecta...
-    it('rechaza password igual al email con mayúsculas distintas (la regla normaliza el caso)', async () => {
+    // Decisión vigente (punto 8): la password es opaca — NO se le aplica trim() ni
+    // lowercase() para esta comparación. Solo el email se normaliza (ya lo hace el VO Mail
+    // de Employee). Por eso una password que coincide con el email salvo por mayúsculas o
+    // espacios NO se considera "la misma" a los efectos de esta regla: solo se rechaza la
+    // igualdad literal, byte a byte.
+    it('NO rechaza una password que solo coincide con el email tras cambiar mayúsculas (comparación byte a byte)', async () => {
       employeeRepo.seed(CASHIER_EMPLOYEE);
 
-      await expect(
-        service.register({
-          employeeId: 2,
-          email: 'bruno.perez@vitto.club',
-          password: 'BRUNO.PEREZ@VITTO.CLUB',
-        }),
-      ).rejects.toThrow(BadRequestException);
+      const account = await service.register({
+        employeeId: 2,
+        email: 'bruno.perez@vitto.club',
+        password: 'BRUNO.PEREZ@VITTO.CLUB',
+      });
+
+      expect(account.getEmployeeId()).toBe(2);
     });
 
-    // ...pero NO recorta espacios del lado de la password (solo normaliza el email, no la
-    // password): esto documenta el comportamiento real, no uno ideal. Si se requiere que
-    // también compare recortando espacios de la password, es un cambio deliberado aparte.
-    it('NO rechaza una password que solo coincide con el email después de recortar espacios (comportamiento actual)', async () => {
+    it('NO rechaza una password que solo coincide con el email después de recortar espacios (comparación byte a byte)', async () => {
       employeeRepo.seed(CASHIER_EMPLOYEE);
 
       const account = await service.register({
@@ -719,54 +715,82 @@ describe('AccountsService', () => {
   });
 
   describe('verifyCredentials (consumido por auth; sin endpoint HTTP propio)', () => {
-    it('devuelve accountId, role y owner cuando el identifier y la password son correctos', async () => {
+    it('devuelve accountId, role y owner cuando el email y la password son correctos', async () => {
       employeeRepo.seed(CASHIER_EMPLOYEE);
       const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
-      accountRepo.findByIdentifier = async (identifier: string) =>
-        identifier === 'bruno.perez@vitto.club' ? (accountRepo.items.get(account.getId() as number) ?? null) : null;
+      accountRepo.findByEmail = async (email: string) =>
+        email === 'bruno.perez@vitto.club' ? (accountRepo.items.get(account.getId() as number) ?? null) : null;
 
       const result = await service.verifyCredentials('bruno.perez@vitto.club', 'secreta123');
 
       expect(result).toEqual({ accountId: account.getId(), role: 'CASHIER', owner: { employeeId: 2 } });
     });
 
-    it('normaliza el identifier: mayúsculas y espacios no impiden encontrar la cuenta', async () => {
+    it('acepta la contraseña correcta aunque tenga mayúsculas/espacios (la password es opaca, no se normaliza)', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: ' Secreta123 ' });
+      accountRepo.findByEmail = async () => accountRepo.items.get(account.getId() as number) ?? null;
+
+      const result = await service.verifyCredentials('bruno.perez@vitto.club', ' Secreta123 ');
+
+      expect(result).not.toBeUndefined();
+    });
+
+    it('rechaza la contraseña correcta si llega con una variación de mayúsculas/espacios (comparación byte a byte)', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'Secreta123' });
+      accountRepo.findByEmail = async () => accountRepo.items.get(account.getId() as number) ?? null;
+
+      expect(await service.verifyCredentials('bruno.perez@vitto.club', 'secreta123')).toBeUndefined();
+      expect(await service.verifyCredentials('bruno.perez@vitto.club', ' Secreta123 ')).toBeUndefined();
+    });
+
+    it('normaliza el email: mayúsculas y espacios no impiden encontrar la cuenta', async () => {
       employeeRepo.seed(CASHIER_EMPLOYEE);
       const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
-      let receivedIdentifier: string | undefined;
-      accountRepo.findByIdentifier = async (identifier: string) => {
-        receivedIdentifier = identifier;
+      let receivedEmail: string | undefined;
+      accountRepo.findByEmail = async (email: string) => {
+        receivedEmail = email;
         return accountRepo.items.get(account.getId() as number) ?? null;
       };
 
       await service.verifyCredentials('  BRUNO.Perez@Vitto.Club  ', 'secreta123');
 
-      expect(receivedIdentifier).toBe('bruno.perez@vitto.club');
+      expect(receivedEmail).toBe('bruno.perez@vitto.club');
     });
 
-    it('no valida formato de email: un identifier tipo documento se busca igual, normalizado', async () => {
-      let receivedIdentifier: string | undefined;
-      accountRepo.findByIdentifier = async (identifier: string) => {
-        receivedIdentifier = identifier;
+    it('acepta un email ya normalizado sin alterarlo', async () => {
+      let receivedEmail: string | undefined;
+      accountRepo.findByEmail = async (email: string) => {
+        receivedEmail = email;
         return null;
       };
 
-      await service.verifyCredentials('  40123456  ', 'cualquiera');
+      await service.verifyCredentials('ya.normalizado@vitto.club', 'cualquiera');
 
-      expect(receivedIdentifier).toBe('40123456');
+      expect(receivedEmail).toBe('ya.normalizado@vitto.club');
     });
 
-    it('devuelve undefined (ausencia) si el identifier no existe', async () => {
-      accountRepo.findByIdentifier = async () => null;
+    it('devuelve undefined (ausencia) si el email no existe', async () => {
+      accountRepo.findByEmail = async () => null;
 
       expect(await service.verifyCredentials('nadie@vitto.club', 'cualquiera')).toBeUndefined();
+    });
+
+    it('si el email no existe, igual ejecuta PasswordHasher.verify (mitigación de timing) y descarta el resultado', async () => {
+      accountRepo.findByEmail = async () => null;
+      const verifySpy = jest.spyOn(passwordHasher, 'verify');
+
+      await service.verifyCredentials('nadie@vitto.club', 'cualquiera');
+
+      expect(verifySpy).toHaveBeenCalledWith('cualquiera', expect.any(String));
     });
 
     it('devuelve undefined si la cuenta está inactiva', async () => {
       employeeRepo.seed(CASHIER_EMPLOYEE);
       const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
       await service.deactivate(account.getId() as number);
-      accountRepo.findByIdentifier = async () => accountRepo.items.get(account.getId() as number) ?? null;
+      accountRepo.findByEmail = async () => accountRepo.items.get(account.getId() as number) ?? null;
 
       expect(await service.verifyCredentials('bruno.perez@vitto.club', 'secreta123')).toBeUndefined();
     });
@@ -774,7 +798,7 @@ describe('AccountsService', () => {
     it('devuelve undefined si la password no coincide, y nunca expone el passwordHash', async () => {
       employeeRepo.seed(CASHIER_EMPLOYEE);
       const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
-      accountRepo.findByIdentifier = async () => accountRepo.items.get(account.getId() as number) ?? null;
+      accountRepo.findByEmail = async () => accountRepo.items.get(account.getId() as number) ?? null;
 
       const result = await service.verifyCredentials('bruno.perez@vitto.club', 'incorrecta123');
 

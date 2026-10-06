@@ -5,9 +5,9 @@ export abstract class AccountRepository {
   abstract save(account: Account): Promise<Account>;
   abstract findById(id: number): Promise<Account | null>;
   abstract findByEmployeeId(employeeId: number): Promise<Account | null>;
-  // Login de empleados: identifier = Employee.email (ver infrastructure). Devuelve null si
+  // Login: todos los roles usan email + password (ver infrastructure). Devuelve null si
   // no existe, o si la fila encontrada no es una cuenta de empleado (employeeId nulo).
-  abstract findByIdentifier(identifier: string): Promise<Account | null>;
+  abstract findByEmail(email: string): Promise<Account | null>;
   abstract existsByEmployeeId(employeeId: number): Promise<boolean>;
 
   // Guarda solo el hash de password

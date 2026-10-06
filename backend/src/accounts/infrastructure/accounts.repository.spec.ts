@@ -30,7 +30,7 @@ function fakeTransactionRunner(prismaLike: ReturnType<typeof fakePrisma>): Prism
 
 const BASE_RECORD = {
   id: 7,
-  identifier: 'bruno.perez@vitto.club',
+  email: 'bruno.perez@vitto.club',
   passwordHash: 'hashed:secreta123',
   role: 'CASHIER' as const,
   isActive: true,
@@ -54,7 +54,7 @@ const EMPLOYEE_RECORD = {
 };
 
 describe('toDomain (mapeo Account dominio <-> Prisma)', () => {
-  it('mapea los campos que el dominio sí modela e ignora identifier/role', () => {
+  it('mapea los campos que el dominio sí modela e ignora email/role', () => {
     const account = toDomain(BASE_RECORD);
 
     expect(account.getId()).toBe(7);
@@ -75,7 +75,7 @@ describe('toDomain (mapeo Account dominio <-> Prisma)', () => {
 
 describe('AccountPrismaRepository', () => {
   describe('save()', () => {
-    it('guarda la Account vinculada al Employee correcto, con identifier = Employee.email y role = Employee.role', async () => {
+    it('guarda la Account vinculada al Employee correcto, con email = Employee.email y role = Employee.role', async () => {
       const prisma = fakePrisma();
       (prisma.employee.findUnique as jest.Mock).mockResolvedValue(EMPLOYEE_RECORD);
       (prisma.account.create as jest.Mock).mockResolvedValue(BASE_RECORD);
@@ -90,7 +90,7 @@ describe('AccountPrismaRepository', () => {
           employeeId: 2,
           passwordHash: 'hashed:secreta123',
           isActive: true,
-          identifier: 'bruno.perez@vitto.club', // = Employee.email, nunca un username
+          email: 'bruno.perez@vitto.club',
           role: 'CASHIER', // = Employee.role, fuente de verdad
         },
       });
@@ -124,10 +124,11 @@ describe('AccountPrismaRepository', () => {
 
       const call = (prisma.account.create as jest.Mock).mock.calls[0][0];
       expect(call.data).not.toHaveProperty('username');
-      expect(call.data.identifier).toBe(EMPLOYEE_RECORD.email);
+      expect(call.data).not.toHaveProperty('identifier');
+      expect(call.data.email).toBe(EMPLOYEE_RECORD.email);
     });
 
-    it('no inventa un identifier propio: siempre sale de Employee.email, sin importar employeeId/passwordHash', async () => {
+    it('no inventa un email propio: siempre sale de Employee.email, sin importar employeeId/passwordHash', async () => {
       const prisma = fakePrisma();
       (prisma.employee.findUnique as jest.Mock).mockResolvedValue({
         ...EMPLOYEE_RECORD,
@@ -140,7 +141,7 @@ describe('AccountPrismaRepository', () => {
       await repo.save(account);
 
       const call = (prisma.account.create as jest.Mock).mock.calls[0][0];
-      expect(call.data.identifier).toBe('otro.correo@vitto.club');
+      expect(call.data.email).toBe('otro.correo@vitto.club');
     });
 
     it('si el Employee no existe, no crea ninguna Account (404, no INSERT)', async () => {
@@ -153,7 +154,7 @@ describe('AccountPrismaRepository', () => {
       expect(prisma.account.create).not.toHaveBeenCalled();
     });
 
-    it('la Account reconstruida a partir del resultado sigue sin exponer identifier/role (AccountProfile los toma de Employee)', async () => {
+    it('la Account reconstruida a partir del resultado sigue sin exponer email/role (AccountProfile los toma de Employee)', async () => {
       const prisma = fakePrisma();
       (prisma.employee.findUnique as jest.Mock).mockResolvedValue(EMPLOYEE_RECORD);
       (prisma.account.create as jest.Mock).mockResolvedValue(BASE_RECORD);
@@ -162,9 +163,9 @@ describe('AccountPrismaRepository', () => {
 
       const saved = await repo.save(account);
 
-      // El dominio Account no tiene getters para identifier/role ni para passwordHash
+      // El dominio Account no tiene getters para email/role ni para passwordHash
       // expuestos fuera de getPasswordHash(): nada de esto se filtra a un AccountProfile.
-      expect(saved).not.toHaveProperty('identifier');
+      expect(saved).not.toHaveProperty('email');
       expect(saved).not.toHaveProperty('role');
     });
   });
@@ -192,29 +193,29 @@ describe('AccountPrismaRepository', () => {
     });
   });
 
-  describe('findByIdentifier()', () => {
-    it('busca por el unique identifier y mapea el resultado (login de empleados)', async () => {
+  describe('findByEmail()', () => {
+    it('busca por el unique email y mapea el resultado (login de todos los roles)', async () => {
       const prisma = fakePrisma();
       (prisma.account.findUnique as jest.Mock).mockResolvedValue(BASE_RECORD);
       const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
 
-      const account = await repo.findByIdentifier('bruno.perez@vitto.club');
+      const account = await repo.findByEmail('bruno.perez@vitto.club');
 
       expect(prisma.account.findUnique).toHaveBeenCalledWith({
-        where: { identifier: 'bruno.perez@vitto.club' },
+        where: { email: 'bruno.perez@vitto.club' },
       });
       expect(account?.getEmployeeId()).toBe(2);
     });
 
-    it('devuelve null si no existe ningún identifier así', async () => {
+    it('devuelve null si no existe ninguna cuenta con ese email', async () => {
       const prisma = fakePrisma();
       (prisma.account.findUnique as jest.Mock).mockResolvedValue(null);
       const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
 
-      expect(await repo.findByIdentifier('nadie@vitto.club')).toBeNull();
+      expect(await repo.findByEmail('nadie@vitto.club')).toBeNull();
     });
 
-    it('devuelve null (no lanza) si el identifier es de una cuenta de customer', async () => {
+    it('devuelve null (no lanza) si el email encontrado es de una cuenta de customer', async () => {
       const prisma = fakePrisma();
       (prisma.account.findUnique as jest.Mock).mockResolvedValue({
         ...BASE_RECORD,
@@ -223,7 +224,7 @@ describe('AccountPrismaRepository', () => {
       });
       const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
 
-      expect(await repo.findByIdentifier('40123456')).toBeNull();
+      expect(await repo.findByEmail('lucia@example.com')).toBeNull();
     });
   });
 

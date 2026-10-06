@@ -37,10 +37,9 @@ export class AccountPrismaRepository implements AccountRepository {
     return this.transactionRunner.client;
   }
 
-  // Account.identifier es NOT NULL + UNIQUE. Para una cuenta de empleado, la solución
-  // integrada por auth estableció que identifier = Employee.email (comentario del schema:
-  // "Employees: copy of Employee.email (not editable)"). No se inventa ninguna otra
-  // estrategia.
+  // Account.email es NOT NULL + UNIQUE (migración 20261006001522_account_email: antes era
+  // Account.identifier). Para una cuenta de empleado, Account.email = Employee.email
+  // (comentario del schema: "Copy of Employee.email (not editable)...").
   async save(account: Account): Promise<Account> {
     const employeeId = account.getEmployeeId();
     const employee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
@@ -53,7 +52,7 @@ export class AccountPrismaRepository implements AccountRepository {
         employeeId,
         passwordHash: account.getPasswordHash(),
         isActive: account.isActive(),
-        identifier: employee.email,
+        email: employee.email,
         role: employee.role,
       },
     });
@@ -73,11 +72,11 @@ export class AccountPrismaRepository implements AccountRepository {
     return record ? toDomain(record) : null;
   }
 
-  // Login de empleados: identifier = Employee.email. Si la fila encontrada es de un
-  // customer (employeeId null), se trata como "no encontrada" en vez de lanzar: ese caso
-  // está fuera de este dominio, no es un dato inconsistente.
-  async findByIdentifier(identifier: string): Promise<Account | null> {
-    const record = await this.prisma.account.findUnique({ where: { identifier } });
+  // Login: todos los roles usan email + password. Si la fila encontrada es de un customer
+  // (employeeId null), se trata como "no encontrada" en vez de lanzar: ese caso está fuera
+  // de este dominio (todavía no modelado), no es un dato inconsistente.
+  async findByEmail(email: string): Promise<Account | null> {
+    const record = await this.prisma.account.findUnique({ where: { email } });
     if (!record || record.employeeId === null) return null;
     return toDomain(record);
   }

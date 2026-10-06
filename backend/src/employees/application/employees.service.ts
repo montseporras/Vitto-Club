@@ -1,10 +1,9 @@
-import { ConflictException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Employee, EmployeeData, EmployeeUpdateData } from '../domain/employee.js';
 import { EmployeeListFilters, EmployeeRepository } from '../domain/port/employee.repository.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import { EmployeeAlreadyExists } from '../domain/errors/employee-already-exists.error.js';
-import { CustomersService } from '../../customers/application/customers.service.js';
 import {
   EMPLOYEE_DEACTIVATED,
   EMPLOYEE_ROLE_CHANGED,
@@ -12,35 +11,22 @@ import {
   type EmployeeRoleChangedEvent,
 } from '../../shared/events/domain-events.js';
 
-// El token de inyección real sigue siendo CustomersService (ver @Inject(forwardRef(...))
-// más abajo); esta interfaz solo evita que el parámetro use CustomersService como TIPO
-// estático. Con "emitDecoratorMetadata" (tsconfig) y módulos ESM nativos ("type": "module"
-// en package.json), tipar el parámetro con la clase concreta hace que TypeScript emita una
-// referencia de VALOR a CustomersService en el metadata del decorador, evaluada en el
-// momento en que se define esta clase — como customers.service.ts importa a su vez a
-// EmployeesService (misma razón, en sentido inverso), eso es un ciclo real entre dos
-// módulos ES que se referencian mutuamente, y revienta con
-// "ReferenceError: Cannot access 'CustomersService' before initialization".
-// forwardRef() resuelve el ciclo para la inyección de Nest en tiempo de ejecución, pero no
-// evita esta referencia eager de TypeScript — por eso además hace falta este tipo acotado.
+// Employees NO conoce a customers ni a accounts, ni en código ni en imports (decisión
+// vigente: la unicidad global de email la garantiza Customers -> Employees, en un solo
+// sentido — ver customers.service.ts — y, cuando la migración de Account.email @unique
+// esté integrada, también esa columna. La integración Employee -> Account es exclusiva-
+// mente por los eventos de dominio de abajo (employee.deactivated / employee.role-changed,
+// ver shared/events/domain-events.ts).
 //
-// Employees NO tiene (ni importa) ningún equivalente para Accounts: la integración
-// Employee -> Account se hace exclusivamente vía los eventos de dominio de abajo
-// (employee.deactivated / employee.role-changed, ver shared/events/domain-events.ts).
-// Este módulo no conoce a accounts, ni en código ni en imports.
-interface EmailUniquenessChecker {
-  existsByEmail(email: string): Promise<boolean>;
-}
-
+// Riesgo aceptado: si un ADMIN crea un Employee con el email de un Customer ya existente,
+// EmployeesService.create() ya NO lo detecta (antes sí, vía el chequeo cruzado que existía
+// en ambos sentidos). El conflicto se va a detectar más tarde, al intentar crear la Account
+// de ese Employee, por la restricción Account.email @unique — nunca antes de eso. Esta
+// consecuencia fue aceptada explícitamente por el equipo.
 @Injectable()
 export class EmployeesService {
   constructor(
     private readonly employeesRepository: EmployeeRepository,
-    // Dependencia cruzada con customers (vía su Service exportado, no su repository) para
-    // la unicidad global de email. Requiere forwardRef porque CustomersService depende de
-    // EmployeesService en sentido inverso por la misma razón.
-    @Inject(forwardRef(() => CustomersService))
-    private readonly customersService: EmailUniquenessChecker,
     private readonly transactionRunner: TransactionRunner,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -50,20 +36,14 @@ export class EmployeesService {
     // 1. Instanciar el Employee (valida, normaliza y nace activo)
     const employee = Employee.create(data);
 
-    // 2. Verificar que el email no esté registrado. El schema no tiene @unique en email,
-    //    así que la unicidad se controla acá.
+    // 2. Verificar que el email no esté registrado entre empleados. El schema no tiene
+    //    @unique en email, así que esa parte de la unicidad se controla acá. La unicidad
+    //    cruzada contra customers ya NO se chequea desde este lado (ver nota de arriba).
     if (await this.employeesRepository.existsByEmail(employee.getEmail())) {
       throw new ConflictException(new EmployeeAlreadyExists(employee.getEmail()).message);
     }
 
-    // 3. El email debe ser único en todo el sistema, no solo entre empleados.
-    if (await this.customersService.existsByEmail(employee.getEmail())) {
-      throw new ConflictException(
-        `Email "${employee.getEmail()}" is already registered as a customer`,
-      );
-    }
-
-    // 4. Persistir
+    // 3. Persistir
     return await this.employeesRepository.save(employee);
   }
 

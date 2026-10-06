@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Employee } from '../../employees/domain/employee.js';
@@ -229,21 +230,17 @@ export class AccountsService {
   // Decisión definitiva: TODOS los usuarios (empleados y clientes) se autentican con
   // email + password. El DNI queda solo para búsquedas operativas de clientes en caja,
   // nunca como credencial. Hoy este método solo resuelve cuentas de Employee (ver
-  // AccountRepository.findByIdentifier — el nombre sigue siendo "identifier" porque la
-  // columna de Prisma todavía se llama así; se renombra junto con la migración de auth,
-  // ver nota en AccountPrismaRepository), pero el tipo de retorno ya admite Customer.
+  // AccountRepository.findByEmail), pero el tipo de retorno ya admite Customer.
   async verifyCredentials(email: string, password: string): Promise<AuthAccountInfo | undefined> {
     const normalizedEmail = email.trim().toLowerCase();
-    const account = await this.accountsRepository.findByIdentifier(normalizedEmail);
+    const account = await this.accountsRepository.findByEmail(normalizedEmail);
 
     if (!account || !account.isActive()) {
-      // TODO(auth): ejecutar igual this.passwordHasher.verify(password, DUMMY_HASH) y
-      // descartar el resultado antes de este return, para que responder "no existe"/"no
-      // está activa" tome un tiempo parecido a una verificación real (mitiga timing
-      // attacks que permitirían enumerar emails registrados). Verificado: no hay ninguna
-      // constante DUMMY_HASH definida todavía en el proyecto (ni en código ni en .env) —
-      // no se inventa un valor acá. Falta de auth: un hash fijo válido para el algoritmo
-      // concreto que elijan (bcrypt u otro) antes de poder completar este punto.
+      // Mitigación de timing: igual se ejecuta una verificación de hash (y se descarta el
+      // resultado), para que responder "no existe"/"no está activa" tarde parecido a una
+      // verificación real y no permita enumerar emails registrados midiendo el tiempo de
+      // respuesta. Ver getDummyPasswordHash() más abajo.
+      await this.passwordHasher.verify(password, await this.getDummyPasswordHash());
       return undefined;
     }
 
@@ -256,6 +253,25 @@ export class AccountsService {
       role: employee.getRole() as AccountRole,
       owner: { employeeId: employee.getId() as number },
     };
+  }
+
+  // Hash "señuelo" para el caso "email inexistente" de verifyCredentials. NO es una
+  // constante fija configurada externamente: se genera hasheando un texto aleatorio
+  // interno (nunca una contraseña real ni derivada de ningún dato de negocio) la primera
+  // vez que hace falta, y se memoiza para el resto de la vida de esta instancia — así el
+  // costo de hashear no se repite en cada intento de login con un email que no existe.
+  // Lazy (no en el constructor) a propósito: todavía no hay un provider concreto de
+  // PasswordHasher registrado en AccountsModule (pendiente de auth); si esto se calculara
+  // de forma eager al construir el servicio, instanciar AccountsService sin esa
+  // implementación fallaría incluso en flujos que nunca llegan a necesitar el señuelo.
+  private dummyPasswordHashPromise: Promise<string> | null = null;
+
+  private getDummyPasswordHash(): Promise<string> {
+    if (!this.dummyPasswordHashPromise) {
+      const randomInternalText = randomBytes(32).toString('hex');
+      this.dummyPasswordHashPromise = this.passwordHasher.hash(randomInternalText);
+    }
+    return this.dummyPasswordHashPromise;
   }
 
   // Para refresh (auth trabaja con accountId, no con el identifier de login). Misma forma
@@ -322,8 +338,13 @@ export class AccountsService {
     return await this.accountsRepository.countActiveByEmployeeIds(adminIds);
   }
 
+  // El email se normaliza (trim + lowercase, ya aplicado por el VO Mail de Employee); la
+  // password es opaca y se compara tal cual — sin trim, sin lowercase, sin ninguna
+  // transformación. Por diseño: "Password123" y "password123" (o el email con espacios)
+  // NO se consideran la misma password a los efectos de esta regla, aunque coincidan tras
+  // alguna normalización. Solo se rechaza la igualdad literal, byte a byte.
   private assertPasswordIsNotEmail(password: Password, employee: Employee): void {
-    if (password.getValue().toLowerCase() === employee.getEmail()) {
+    if (password.getValue() === employee.getEmail()) {
       throw new BadRequestException('Password cannot be the same as the email');
     }
   }

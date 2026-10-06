@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { Customer, DocumentType, normalizeDocumentNumber } from '../domain/customer.js';
 import { CustomerStatusChange } from '../domain/customer-status-change.js';
 import { CustomerRepository, CustomerListParams, CustomerListResult } from '../domain/port/customer.repository.js';
@@ -7,24 +7,18 @@ import { UpdateCustomerDto } from '../http/dto/update-customer.dto.js';
 import { CustomerAlreadyExists } from '../domain/errors/customer-already-exists.error.js';
 import { EmployeesService } from '../../employees/application/employees.service.js';
 
-// El token de inyección real sigue siendo EmployeesService (ver @Inject(forwardRef(...))
-// más abajo); esta interfaz solo evita que el parámetro use EmployeesService como TIPO
-// estático. Mismo motivo que en employees.service.ts (ver su comentario completo):
-// bajo ESM nativo + emitDecoratorMetadata, tipar el parámetro con la clase concreta
-// provoca un ReferenceError de inicialización circular entre ambos módulos.
-interface EmailUniquenessChecker {
-  existsByEmail(email: string): Promise<boolean>;
-}
-
+// Dirección única de la unicidad global de email: Customers -> Employees. Employees ya NO
+// consulta a Customers (ver employees.service.ts) — por eso esta dependencia ya no forma
+// un ciclo y puede tipar la clase concreta de EmployeesService sin forwardRef.
+//
+// Riesgo aceptado: si se crea un Employee con el email de un Customer ya existente,
+// EmployeesService.create() no lo detecta (esa dirección se eliminó). El conflicto recién
+// aparece al intentar crear la Account de ese Employee, por Account.email @unique.
 @Injectable()
 export class CustomersService {
   constructor(
     private readonly customersRepository: CustomerRepository,
-    // Dependencia cruzada con employees (vía su Service exportado, no su repository) para
-    // la unicidad global de email. Requiere forwardRef porque EmployeesService depende de
-    // CustomersService en sentido inverso por la misma razón.
-    @Inject(forwardRef(() => EmployeesService))
-    private readonly employeesService: EmailUniquenessChecker,
+    private readonly employeesService: EmployeesService,
   ) {}
 
   // --- CREAR ---
@@ -113,6 +107,15 @@ export class CustomersService {
           : customer.getDocumentNumber();
 
       await this.assertDocumentAvailable(documentType, documentNumber, customer.getId() ?? undefined);
+    }
+
+    // 2b. Si cambia el email, también debe ser único frente a employees (misma regla que
+    // al crear; Customers -> Employees es la única dirección de este chequeo).
+    if (dto.email !== undefined) {
+      const normalizedEmail = dto.email.trim().toLowerCase();
+      if (await this.employeesService.existsByEmail(normalizedEmail)) {
+        throw new ConflictException(`Email "${normalizedEmail}" is already registered as an employee`);
+      }
     }
 
     // 3. Aplicar los cambios sobre la entidad recuperada

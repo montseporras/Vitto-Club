@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { CustomersService } from './customers.service.js';
+import { EmployeesService } from '../../employees/application/employees.service.js';
 import { Customer, DocumentType } from '../domain/customer.js';
 import { CustomerStatusAction, CustomerStatusChange } from '../domain/customer-status-change.js';
 import {
@@ -8,8 +9,10 @@ import {
   CustomerListResult,
 } from '../domain/port/customer.repository.js';
 // Doble liviano: CustomersService solo depende de la forma estructural
-// { existsByEmail(email) } (ver EmailUniquenessChecker en customers.service.ts), así que
-// no hace falta instanciar ni castear la clase EmployeesService real para este test.
+// { existsByEmail(email) }. Ya no hay ciclo Customers<->Employees (ver customers.service.ts:
+// dirección única Customers -> Employees), así que el parámetro acepta la clase concreta
+// EmployeesService — este fake se castea para no tener que instanciar sus dependencias
+// reales (employeesRepository, transactionRunner, eventEmitter), que esta suite no ejercita.
 class FakeEmployeesService {
   readonly emails = new Set<string>();
   async existsByEmail(email: string): Promise<boolean> {
@@ -102,7 +105,7 @@ describe('CustomersService', () => {
   beforeEach(async () => {
     repo = new FakeCustomerRepository();
     employeesService = new FakeEmployeesService();
-    service = new CustomersService(repo, employeesService);
+    service = new CustomersService(repo, employeesService as unknown as EmployeesService);
     const created = await service.create({
       firstName: 'Juan',
       lastName: 'Pérez',
@@ -240,6 +243,34 @@ describe('CustomersService', () => {
     it('permite borrar el teléfono con null', async () => {
       const customer = await service.update(id, { phone: null });
       expect(customer.getPhone()).toBeNull();
+    });
+
+    // Nuevo (Customers -> Employees también al editar, no solo al crear): cambiar el
+    // email de un Customer a uno que ya es de un Employee debe rechazarse igual.
+    it('lanza 409 si se cambia el email a uno ya registrado como employee', async () => {
+      employeesService.emails.add('empleado@vitto.club');
+
+      await expect(service.update(id, { email: 'empleado@vitto.club' })).rejects.toThrow(
+        ConflictException,
+      );
+      const customer = await service.findById(id);
+      expect(customer.getEmail()).not.toBe('empleado@vitto.club');
+    });
+
+    it('normaliza el email antes de chequearlo contra employees', async () => {
+      employeesService.emails.add('empleado@vitto.club');
+
+      await expect(
+        service.update(id, { email: '  Empleado@Vitto.Club  ' }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('permite cambiar el email si no está registrado como employee', async () => {
+      employeesService.emails.add('otro.distinto@vitto.club');
+
+      const customer = await service.update(id, { email: 'nuevo.email@example.com' });
+
+      expect(customer.getEmail()).toBe('nuevo.email@example.com');
     });
   });
 

@@ -121,7 +121,6 @@ class FakeEmployeeRepository implements EmployeeRepository {
 
 describe('EmployeesService', () => {
   let repo: FakeEmployeeRepository;
-  let customersService: FakeCustomersService;
   let service: EmployeesService;
 
   const validData: EmployeeData = {
@@ -134,10 +133,8 @@ describe('EmployeesService', () => {
 
   beforeEach(() => {
     repo = new FakeEmployeeRepository();
-    customersService = new FakeCustomersService();
     service = new EmployeesService(
       repo,
-      customersService,
       new PassthroughTransactionRunner(),
       new FakeEventEmitter() as unknown as EventEmitter2,
     );
@@ -184,21 +181,18 @@ describe('EmployeesService', () => {
       await expect(service.create(validData)).rejects.toThrow(ConflictException);
     });
 
-    // Escenario A (unicidad global de email): existe un Customer con ese email -> se
-    // rechaza crear un Employee con el mismo email.
-    it('lanza 409 si el email ya está registrado como customer', async () => {
-      customersService.emails.add(validData.email.toLowerCase());
-
-      await expect(service.create(validData)).rejects.toThrow(ConflictException);
-      expect(repo.items.size).toBe(0);
-    });
-
-    it('permite crear el empleado si el email no está en uso ni por otro empleado ni por un customer', async () => {
-      customersService.emails.add('otro.distinto@vitto.club');
-
+    // Decisión vigente: la unicidad global de email quedó en una sola dirección,
+    // Customers -> Employees (ver customers.service.ts). EmployeesService.create() ya NO
+    // consulta a customers de ninguna forma — no hay ningún constructor param ni mecanismo
+    // para hacerlo. Este test documenta esa ausencia: crear un empleado nunca depende de
+    // nada fuera de employeesRepository, aunque el email "ya exista" como customer en la
+    // base real (ese conflicto se detecta recién al intentar crear la Account, por
+    // Account.email @unique — riesgo aceptado explícitamente por el equipo).
+    it('ya no valida unicidad cruzada contra customers (Employees -> Customers se eliminó)', async () => {
       const employee = await service.create(validData);
 
       expect(employee.getId()).toBe(1);
+      expect(employee.isActive()).toBe(true);
     });
 
     it('no persiste nada si los datos son inválidos', async () => {
@@ -323,7 +317,7 @@ describe('EmployeesService', () => {
 
     it('si el rol no cambia, no publica employee.role-changed', async () => {
       const emitAsync = jest.fn().mockResolvedValue([]);
-      service = new EmployeesService(repo, customersService, new PassthroughTransactionRunner(), {
+      service = new EmployeesService(repo, new PassthroughTransactionRunner(), {
         emitAsync,
       } as unknown as EventEmitter2);
 
@@ -334,7 +328,7 @@ describe('EmployeesService', () => {
 
     it('si el rol cambia, publica employee.role-changed con previousRole/newRole', async () => {
       const emitAsync = jest.fn().mockResolvedValue([]);
-      service = new EmployeesService(repo, customersService, new PassthroughTransactionRunner(), {
+      service = new EmployeesService(repo, new PassthroughTransactionRunner(), {
         emitAsync,
       } as unknown as EventEmitter2);
 
@@ -418,7 +412,7 @@ describe('EmployeesService', () => {
 
     it('publica employee.deactivated con el employeeId', async () => {
       const emitAsync = jest.fn().mockResolvedValue([]);
-      service = new EmployeesService(repo, customersService, new PassthroughTransactionRunner(), {
+      service = new EmployeesService(repo, new PassthroughTransactionRunner(), {
         emitAsync,
       } as unknown as EventEmitter2);
       const freshId = (await service.create({ ...validData, email: 'otra@vitto.club' })).getId() as number;
@@ -493,7 +487,7 @@ describe('EmployeesService', () => {
       async findByEmployeeId(employeeId: number): Promise<Account | null> {
         return [...this.items.values()].find((a) => a.getEmployeeId() === employeeId) ?? null;
       }
-      async findByIdentifier(): Promise<Account | null> {
+      async findByEmail(): Promise<Account | null> {
         throw new Error('not implemented: no usado en esta suite');
       }
       async existsByEmployeeId(employeeId: number): Promise<boolean> {
@@ -558,7 +552,7 @@ describe('EmployeesService', () => {
       const eventEmitter = new EventEmitter2();
       const transactionRunner = new SharedFakeTransactionRunner([employeeRepo, accountRepo]);
 
-      const employees = new EmployeesService(employeeRepo, customers, transactionRunner, eventEmitter);
+      const employees = new EmployeesService(employeeRepo, transactionRunner, eventEmitter);
       const accounts = new AccountsService(
         accountRepo,
         employees,
