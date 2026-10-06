@@ -83,23 +83,23 @@ frontend/src/
 │   │   ├── RoleRoute.tsx       # ¿el rol de la sesión está permitido?
 │   │   └── paths.ts            # constantes de rutas
 │   └── layouts/
-│       ├── ClienteLayout.tsx   # mobile-first, tabs abajo
-│       ├── CajeroLayout.tsx    # pantalla operativa de caja
+│       ├── CustomerLayout.tsx  # mobile-first, tabs abajo
+│       ├── CashierLayout.tsx   # pantalla operativa de caja
 │       ├── AdminLayout.tsx     # sidebar + topbar
 │       └── AuthLayout.tsx      # /login y /registro
 │
 ├── features/                   # un módulo por Epic del backlog
 │   ├── auth/                   # EP01 — login unificado + registro de Cliente
-│   ├── empleados/              # EP01 — alta de Cajeros y Administradores
-│   ├── clientes/               # EP03 — directorio del Administrador
-│   ├── caja/                   # EP03/EP04/EP06/EP07 — pantallas del Cajero
-│   ├── recompensas/            # EP06 — catálogo (ABM del Administrador)
-│   ├── misiones/               # EP05 — misiones mensuales (ABM)
-│   ├── niveles/                # EP05 — Bronce / Plata / Oro (ABM)
-│   ├── notificaciones/         # EP08 — mensajes automáticos (config)
-│   ├── estadisticas/           # EP09 — dashboards + exportar PDF
-│   ├── auditoria/              # EP09 — historial de operaciones
-│   └── mi-cuenta/              # EP03/EP04/EP05/EP06 — vista del Cliente
+│   ├── employees/              # EP01 — alta de Cajeros y Administradores
+│   ├── customers/              # EP03 — directorio del Administrador
+│   ├── cashier/                # EP03/EP04/EP06/EP07 — pantallas del Cajero
+│   ├── rewards/                # EP06 — catálogo (ABM del Administrador)
+│   ├── missions/               # EP05 — misiones mensuales (ABM)
+│   ├── levels/                 # EP05 — Bronce / Plata / Oro (ABM)
+│   ├── notifications/          # EP08 — mensajes automáticos (config)
+│   ├── statistics/             # EP09 — dashboards + exportar PDF
+│   ├── audit/                  # EP09 — historial de operaciones
+│   └── my-account/             # EP03/EP04/EP05/EP06 — vista del Cliente
 │
 ├── shared/                     # infraestructura técnica
 │   ├── api/
@@ -118,10 +118,10 @@ frontend/src/
 │
 ├── domain/                     # vocabulario del negocio compartido
 │   ├── roles.ts                # Cliente, Cajero, Administrador
-│   ├── estados-canje.ts        # Pendiente, Confirmado, Utilizado, Rechazado, Vencido
-│   ├── estados.ts              # estados de compra, misión y recompensa
-│   ├── niveles.ts              # Bronce (0) / Plata (300) / Oro (800)
-│   └── vigencia.ts             # reglas de vencimiento (puntos, canjes, recompensas)
+│   ├── redemption-statuses.ts  # Pendiente, Confirmado, Utilizado, Rechazado, Vencido
+│   ├── statuses.ts             # estados de compra, misión y recompensa
+│   ├── levels.ts               # Bronce (0) / Plata (300) / Oro (800)
+│   └── expiration.ts           # reglas de vencimiento (puntos, canjes, recompensas)
 │
 ├── mocks/                      # MSW — handlers que simulan la API de NestJS
 │   ├── handlers/               # uno por feature, mismas rutas que el backend real
@@ -158,8 +158,8 @@ La ruta raíz `/` no tiene pantalla propia: evalúa el rol de la sesión activa 
 
 | Layout | Rol | Ruta raíz | Forma |
 |---|---|---|---|
-| `ClienteLayout` | Cliente | `/mi-cuenta` | Mobile-first, tabs fijas abajo (RNF-3) |
-| `CajeroLayout` | Cajero | `/caja` | Pantalla completa, botones grandes, sin sidebar (RNF-1, RNF-2, RNF-5) |
+| `CustomerLayout` | Cliente | `/mi-cuenta` | Mobile-first, tabs fijas abajo (RNF-3) |
+| `CashierLayout` | Cajero | `/caja` | Pantalla completa, botones grandes, sin sidebar (RNF-1, RNF-2, RNF-5) |
 | `AdminLayout` | Administrador | `/admin` | Sidebar + topbar, escritorio |
 | `AuthLayout` | todos | `/login`, `/registro` | Centrado, una tarjeta |
 
@@ -198,11 +198,11 @@ El archivo `index.ts` define la API pública del feature. Cuando un feature nece
 
 Existe vocabulario de negocio que no pertenece a un único feature. El estado de un canje, por ejemplo, se utiliza en tres módulos distintos:
 
-- `features/caja/` — el Cajero confirma o rechaza un canje.
-- `features/mi-cuenta/` — el Cliente consulta el estado de sus canjes.
-- `features/estadisticas/` — reporte de canjes por estado.
+- `features/cashier/` — el Cajero confirma o rechaza un canje.
+- `features/my-account/` — el Cliente consulta el estado de sus canjes.
+- `features/statistics/` — reporte de canjes por estado.
 
-Si esa definición viviera dentro de `features/caja/`, los otros dos módulos tendrían que importar desde allí y se rompería la regla de capas de la sección 02. Por eso se centraliza en `domain/`, junto con las transiciones válidas entre estados; las acciones disponibles en pantalla («Aplicar», «Rechazar») se derivan de esas transiciones en lugar de repetir la misma condición en cada pantalla.
+Si esa definición viviera dentro de `features/cashier/`, los otros dos módulos tendrían que importar desde allí y se rompería la regla de capas de la sección 02. Por eso se centraliza en `domain/`, junto con las transiciones válidas entre estados; las acciones disponibles en pantalla («Aplicar», «Rechazar») se derivan de esas transiciones en lugar de repetir la misma condición en cada pantalla.
 
 | | `shared/` | `domain/` | `features/` |
 |---|---|---|---|
@@ -241,7 +241,7 @@ Las pantallas y sus nombres corresponden a las validadas en el prototipo interac
 | `/login` | Ingresar — usuario/correo y contraseña, un solo formulario para los tres roles |
 | `/registro` | Registrarme — solo crea cuentas con rol Cliente |
 
-### Cliente — `ClienteLayout`, tabs fijas abajo
+### Cliente — `CustomerLayout`, tabs fijas abajo
 
 | Ruta | Pantalla |
 |---|---|
@@ -251,7 +251,7 @@ Las pantallas y sus nombres corresponden a las validadas en el prototipo interac
 | `/mi-cuenta/canjes` | Mis canjes — código y estado |
 | `/mi-cuenta/perfil` | Mi perfil — editar teléfono, correo, fecha de nacimiento |
 
-### Cajero — `CajeroLayout`
+### Cajero — `CashierLayout`
 
 | Ruta | Pantalla |
 |---|---|
@@ -288,7 +288,7 @@ Cada acreditación de puntos tiene su propia fecha de vencimiento. El saldo se c
 
 > **Importante**
 >
-> El cálculo autoritativo corresponde al backend, que también vence los puntos automáticamente. El frontend utiliza `domain/vigencia.ts` únicamente para decidir qué indicador mostrar (por ejemplo, «vence pronto»), nunca para descontar puntos por su cuenta.
+> El cálculo autoritativo corresponde al backend, que también vence los puntos automáticamente. El frontend utiliza `domain/expiration.ts` únicamente para decidir qué indicador mostrar (por ejemplo, «vence pronto»), nunca para descontar puntos por su cuenta.
 
 ### b) Actualización de canjes en caja
 
@@ -352,11 +352,11 @@ El sistema se compone de tres niveles:
 
 | Qué | Convención | Ejemplo |
 |---|---|---|
-| Carpetas | kebab-case, dominio en español | `mi-cuenta/` |
-| Componentes | PascalCase, `.tsx` | `ResumenCliente.tsx` |
-| Hooks | `use` + camelCase | `useClientePorDocumento.ts` |
+| Carpetas | kebab-case, en inglés (mismos términos que el backend) | `my-account/` |
+| Componentes | PascalCase, `.tsx` | `CustomerSummary.tsx` |
+| Hooks | `use` + camelCase | `useCustomerByDocument.ts` |
 | Rutas URL | español, sin tildes ni ñ | `/mi-cuenta/misiones` |
-| Carpetas técnicas | inglés | `components/`, `api/` |
+| Archivos | inglés, mismos términos que el backend | `create-customer.schema.ts` |
 | Imports | alias `@/` desde `src` | `@/shared/api/http` |
 | Barrels | solo `features/*/index.ts` | evita ciclos |
 

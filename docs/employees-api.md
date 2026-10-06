@@ -18,7 +18,7 @@ de empleados, qué se puede enviar, qué devuelve la API y qué reglas aplica.
 | **Autenticación** | **No hay** todavía |
 
 La ruta es **`/api/empleados`** (en español) para respetar el contrato que ya usa el frontend
-(`features/empleados/api/empleados.api.ts` y los handlers de MSW).
+(`features/employees/api/employees.api.ts` y los handlers de MSW).
 
 > El backend rechaza con **400** cualquier campo del body o parámetro de la URL que no esté documentado
 > (`property foo should not exist`).

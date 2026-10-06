@@ -1,37 +1,37 @@
 import { createBrowserRouter, Navigate } from 'react-router'
-import { CajeroLayout } from '@/app/layouts/CajeroLayout'
+import { CashierLayout } from '@/app/layouts/CashierLayout'
 import { PATHS } from './paths'
 
 export const router = createBrowserRouter([
   {
     // TODO: cuando exista login, "/" redirige según el rol de la sesión.
     path: '/',
-    element: <Navigate to={PATHS.caja.root} replace />,
+    element: <Navigate to={PATHS.cashier.root} replace />,
   },
   {
-    path: PATHS.caja.root,
-    element: <CajeroLayout />,
+    path: PATHS.cashier.root,
+    element: <CashierLayout />,
     children: [
-      { index: true, element: <Navigate to={PATHS.caja.cliente} replace /> },
+      { index: true, element: <Navigate to={PATHS.cashier.customer} replace /> },
       {
-        path: PATHS.caja.cliente,
+        path: PATHS.cashier.customer,
         lazy: async () => {
-          const { IdentificarClientePage } = await import('@/features/caja')
-          return { Component: IdentificarClientePage }
+          const { IdentifyCustomerPage } = await import('@/features/cashier')
+          return { Component: IdentifyCustomerPage }
         },
       },
       {
-        path: PATHS.caja.canje,
+        path: PATHS.cashier.redemption,
         lazy: async () => {
-          const { GestionarCanjePage } = await import('@/features/caja')
-          return { Component: GestionarCanjePage }
+          const { ManageRedemptionPage } = await import('@/features/cashier')
+          return { Component: ManageRedemptionPage }
         },
       },
       {
-        path: PATHS.caja.altaCliente,
+        path: PATHS.cashier.newCustomer,
         lazy: async () => {
-          const { AltaManualClientePage } = await import('@/features/caja')
-          return { Component: AltaManualClientePage }
+          const { ManualCustomerRegistrationPage } = await import('@/features/cashier')
+          return { Component: ManualCustomerRegistrationPage }
         },
       },
     ],
