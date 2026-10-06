@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { AccountsService } from './accounts.service.js';
+import { AccountsService, type AccountOwner } from './accounts.service.js';
 import { Account } from '../domain/account.js';
 import { AccountRepository } from '../domain/port/account.repository.js';
 import { PasswordHasher } from '../domain/port/password-hasher.js';
@@ -357,6 +357,48 @@ describe('AccountsService', () => {
         }),
       ).rejects.toThrow(BadRequestException);
     });
+
+    // La regla actual (assertPasswordIsNotEmail) compara password.toLowerCase() contra
+    // Employee.email (ya normalizado por el VO Mail: trim + lowercase). Por eso una
+    // diferencia de mayúsculas también se detecta...
+    it('rechaza password igual al email con mayúsculas distintas (la regla normaliza el caso)', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+
+      await expect(
+        service.register({
+          employeeId: 2,
+          email: 'bruno.perez@vitto.club',
+          password: 'BRUNO.PEREZ@VITTO.CLUB',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    // ...pero NO recorta espacios del lado de la password (solo normaliza el email, no la
+    // password): esto documenta el comportamiento real, no uno ideal. Si se requiere que
+    // también compare recortando espacios de la password, es un cambio deliberado aparte.
+    it('NO rechaza una password que solo coincide con el email después de recortar espacios (comportamiento actual)', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+
+      const account = await service.register({
+        employeeId: 2,
+        email: 'bruno.perez@vitto.club',
+        password: ' bruno.perez@vitto.club ',
+      });
+
+      expect(account.getEmployeeId()).toBe(2);
+    });
+
+    it('acepta una password distinta del email sin restricciones adicionales', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+
+      const account = await service.register({
+        employeeId: 2,
+        email: 'bruno.perez@vitto.club',
+        password: 'secreta123',
+      });
+
+      expect(account.getPasswordHash()).toBe('hashed:secreta123');
+    });
   });
 
   describe('findProfileByEmployeeId / findProfileById (US-08)', () => {
@@ -688,29 +730,100 @@ describe('AccountsService', () => {
       expect(result).toEqual({ accountId: account.getId(), role: 'CASHIER', owner: { employeeId: 2 } });
     });
 
-    it('devuelve null (ausencia) si el identifier no existe', async () => {
-      accountRepo.findByIdentifier = async () => null;
+    it('normaliza el identifier: mayúsculas y espacios no impiden encontrar la cuenta', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+      let receivedIdentifier: string | undefined;
+      accountRepo.findByIdentifier = async (identifier: string) => {
+        receivedIdentifier = identifier;
+        return accountRepo.items.get(account.getId() as number) ?? null;
+      };
 
-      expect(await service.verifyCredentials('nadie@vitto.club', 'cualquiera')).toBeNull();
+      await service.verifyCredentials('  BRUNO.Perez@Vitto.Club  ', 'secreta123');
+
+      expect(receivedIdentifier).toBe('bruno.perez@vitto.club');
     });
 
-    it('devuelve null si la cuenta está inactiva', async () => {
+    it('no valida formato de email: un identifier tipo documento se busca igual, normalizado', async () => {
+      let receivedIdentifier: string | undefined;
+      accountRepo.findByIdentifier = async (identifier: string) => {
+        receivedIdentifier = identifier;
+        return null;
+      };
+
+      await service.verifyCredentials('  40123456  ', 'cualquiera');
+
+      expect(receivedIdentifier).toBe('40123456');
+    });
+
+    it('devuelve undefined (ausencia) si el identifier no existe', async () => {
+      accountRepo.findByIdentifier = async () => null;
+
+      expect(await service.verifyCredentials('nadie@vitto.club', 'cualquiera')).toBeUndefined();
+    });
+
+    it('devuelve undefined si la cuenta está inactiva', async () => {
       employeeRepo.seed(CASHIER_EMPLOYEE);
       const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
       await service.deactivate(account.getId() as number);
       accountRepo.findByIdentifier = async () => accountRepo.items.get(account.getId() as number) ?? null;
 
-      expect(await service.verifyCredentials('bruno.perez@vitto.club', 'secreta123')).toBeNull();
+      expect(await service.verifyCredentials('bruno.perez@vitto.club', 'secreta123')).toBeUndefined();
     });
 
-    it('devuelve null si la password no coincide, y nunca expone el passwordHash', async () => {
+    it('devuelve undefined si la password no coincide, y nunca expone el passwordHash', async () => {
       employeeRepo.seed(CASHIER_EMPLOYEE);
       const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
       accountRepo.findByIdentifier = async () => accountRepo.items.get(account.getId() as number) ?? null;
 
       const result = await service.verifyCredentials('bruno.perez@vitto.club', 'incorrecta123');
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('findActiveById (consumido por auth para refresh; trabaja con accountId)', () => {
+    it('devuelve accountId, role y owner cuando la cuenta existe y está activa', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+
+      const result = await service.findActiveById(account.getId() as number);
+
+      expect(result).toEqual({ accountId: account.getId(), role: 'CASHIER', owner: { employeeId: 2 } });
+    });
+
+    it('devuelve undefined si la cuenta no existe', async () => {
+      expect(await service.findActiveById(999)).toBeUndefined();
+    });
+
+    it('devuelve undefined si la cuenta está inactiva', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+      await service.deactivate(account.getId() as number);
+
+      expect(await service.findActiveById(account.getId() as number)).toBeUndefined();
+    });
+
+    it('nunca expone passwordHash', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+
+      const result = await service.findActiveById(account.getId() as number);
+
+      expect(result).not.toHaveProperty('passwordHash');
+    });
+
+    // Prueba de tipo, no de comportamiento: AuthAccountInfo/AccountOwner ya admiten un
+    // owner de Customer, aunque este módulo todavía no resuelve cuentas de Customer en
+    // tiempo de ejecución (AccountRepository.findByIdentifier/findById siguen limitados a
+    // employeeId, ver accounts.repository.ts). Si esto dejara de compilar, significaría
+    // que alguien angostó el tipo de vuelta a solo employeeId.
+    it('AuthAccountInfo admite un owner de Customer a nivel de tipo', () => {
+      // AccountRole hoy solo modela ADMIN/CASHIER (roles de empleado); ampliarlo a
+      // 'CUSTOMER' es una decisión aparte, no pedida acá. Esta prueba se limita a
+      // confirmar que AccountOwner (la otra mitad de AuthAccountInfo) ya acepta customerId.
+      const owner: AccountOwner = { customerId: 9 };
+      expect(owner).toEqual({ customerId: 9 });
     });
   });
 });

@@ -35,12 +35,17 @@ export type AccountProfile = {
   active: boolean;
 };
 
-// Resultado de verifyCredentials (consumido por auth para construir la sesión/JWT). Nunca
-// incluye passwordHash, password, token ni session.
-export type VerifiedAccount = {
+// Dueño de una Account: hoy este módulo solo resuelve cuentas de Employee, pero el tipo ya
+// admite Customer (identifier = su documento) para que auth tenga un único contrato de
+// login sin dos formas de resultado distintas según el tipo de cuenta.
+export type AccountOwner = { employeeId: number } | { customerId: number };
+
+// Resultado de verifyCredentials/findActiveById (consumido por auth para construir la
+// sesión/JWT). Nunca incluye passwordHash, password, token ni session.
+export type AuthAccountInfo = {
   accountId: number;
   role: AccountRole;
-  owner: { employeeId: number };
+  owner: AccountOwner;
 };
 
 @Injectable()
@@ -220,13 +225,44 @@ export class AccountsService {
     });
   }
 
-  // --- Login de empleados (consumido por auth; sin endpoint HTTP propio) ---
-  async verifyCredentials(identifier: string, password: string): Promise<VerifiedAccount | null> {
-    const account = await this.accountsRepository.findByIdentifier(identifier.trim().toLowerCase());
-    if (!account || !account.isActive()) return null;
+  // --- Login (consumido por auth; sin endpoint HTTP propio) ---
+  // Decisión definitiva: TODOS los usuarios (empleados y clientes) se autentican con
+  // email + password. El DNI queda solo para búsquedas operativas de clientes en caja,
+  // nunca como credencial. Hoy este método solo resuelve cuentas de Employee (ver
+  // AccountRepository.findByIdentifier — el nombre sigue siendo "identifier" porque la
+  // columna de Prisma todavía se llama así; se renombra junto con la migración de auth,
+  // ver nota en AccountPrismaRepository), pero el tipo de retorno ya admite Customer.
+  async verifyCredentials(email: string, password: string): Promise<AuthAccountInfo | undefined> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const account = await this.accountsRepository.findByIdentifier(normalizedEmail);
+
+    if (!account || !account.isActive()) {
+      // TODO(auth): ejecutar igual this.passwordHasher.verify(password, DUMMY_HASH) y
+      // descartar el resultado antes de este return, para que responder "no existe"/"no
+      // está activa" tome un tiempo parecido a una verificación real (mitiga timing
+      // attacks que permitirían enumerar emails registrados). Verificado: no hay ninguna
+      // constante DUMMY_HASH definida todavía en el proyecto (ni en código ni en .env) —
+      // no se inventa un valor acá. Falta de auth: un hash fijo válido para el algoritmo
+      // concreto que elijan (bcrypt u otro) antes de poder completar este punto.
+      return undefined;
+    }
 
     const matches = await this.passwordHasher.verify(password, account.getPasswordHash());
-    if (!matches) return null;
+    if (!matches) return undefined;
+
+    const employee = await this.employeesService.findById(account.getEmployeeId());
+    return {
+      accountId: account.getId() as number,
+      role: employee.getRole() as AccountRole,
+      owner: { employeeId: employee.getId() as number },
+    };
+  }
+
+  // Para refresh (auth trabaja con accountId, no con el identifier de login). Misma forma
+  // de resultado que verifyCredentials: nunca passwordHash. No reemplaza el login inicial.
+  async findActiveById(accountId: number): Promise<AuthAccountInfo | undefined> {
+    const account = await this.accountsRepository.findById(accountId);
+    if (!account || !account.isActive()) return undefined;
 
     const employee = await this.employeesService.findById(account.getEmployeeId());
     return {
