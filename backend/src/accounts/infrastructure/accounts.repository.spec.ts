@@ -54,11 +54,12 @@ const EMPLOYEE_RECORD = {
 };
 
 describe('toDomain (mapeo Account dominio <-> Prisma)', () => {
-  it('mapea los campos que el dominio sí modela e ignora email/role', () => {
+  it('mapea los campos que el dominio sí modela (incluye email) e ignora role', () => {
     const account = toDomain(BASE_RECORD);
 
     expect(account.getId()).toBe(7);
     expect(account.getEmployeeId()).toBe(2);
+    expect(account.getEmail()).toBe('bruno.perez@vitto.club');
     expect(account.getPasswordHash()).toBe('hashed:secreta123');
     expect(account.isActive()).toBe(true);
     // La tabla real no tiene deactivatedAt: el dominio siempre lo reconstruye en null.
@@ -335,6 +336,7 @@ function toReconstructInput(record: typeof BASE_RECORD) {
   return {
     id: record.id,
     employeeId: record.employeeId as number,
+    email: record.email,
     passwordHash: record.passwordHash,
     active: record.isActive,
     createdAt: record.createdAt,

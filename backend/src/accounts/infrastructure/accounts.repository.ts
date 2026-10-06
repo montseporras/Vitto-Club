@@ -16,6 +16,7 @@ export function toDomain(record: PrismaAccountRecord): Account {
   return Account.reconstruct({
     id: record.id,
     employeeId: record.employeeId,
+    email: record.email,
     passwordHash: record.passwordHash,
     active: record.isActive,
     // La tabla real (a diferencia de Employee/Customer) no tiene columna "deactivatedAt":

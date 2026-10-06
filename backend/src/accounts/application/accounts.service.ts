@@ -42,11 +42,15 @@ export type AccountProfile = {
 export type AccountOwner = { employeeId: number } | { customerId: number };
 
 // Resultado de verifyCredentials/findActiveById (consumido por auth para construir la
-// sesión/JWT). Nunca incluye passwordHash, password, token ni session.
+// sesión/JWT, y para que el refresh devuelva la misma forma que el login). Nunca incluye
+// passwordHash, password, token ni session. email sale directo de Account.email, ya
+// normalizado (trim + lowercase) desde que se persistió — no hace falta volver a resolver
+// Employee/Customer solo para esto.
 export type AuthAccountInfo = {
   accountId: number;
   role: AccountRole;
   owner: AccountOwner;
+  email: string;
 };
 
 @Injectable()
@@ -252,6 +256,7 @@ export class AccountsService {
       accountId: account.getId() as number,
       role: employee.getRole() as AccountRole,
       owner: { employeeId: employee.getId() as number },
+      email: account.getEmail() as string,
     };
   }
 
@@ -285,6 +290,7 @@ export class AccountsService {
       accountId: account.getId() as number,
       role: employee.getRole() as AccountRole,
       owner: { employeeId: employee.getId() as number },
+      email: account.getEmail() as string,
     };
   }
 

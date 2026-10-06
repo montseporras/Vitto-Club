@@ -98,11 +98,17 @@ class FakeAccountRepository implements AccountRepository {
   readonly syncedRoles: { accountId: number; role: string }[] = [];
   private nextId = 1;
 
+  // Mismo criterio que AccountPrismaRepository.save(): el email no viene en AccountData,
+  // se copia de Employee.email en el momento de persistir.
+  constructor(private readonly employeeRepo: FakeEmployeeRepository) {}
+
   async save(account: Account): Promise<Account> {
     const id = this.nextId++;
+    const employee = await this.employeeRepo.findById(account.getEmployeeId());
     const saved = Account.reconstruct({
       id,
       employeeId: account.getEmployeeId(),
+      email: employee?.getEmail() as string,
       passwordHash: account.getPasswordHash(),
       active: account.isActive(),
       deactivatedAt: account.getDeactivatedAt(),
@@ -180,7 +186,7 @@ describe('AccountsService', () => {
   beforeEach(() => {
     employeeRepo = new FakeEmployeeRepository();
     customerRepo = new FakeCustomerRepository();
-    accountRepo = new FakeAccountRepository();
+    accountRepo = new FakeAccountRepository(employeeRepo);
     passwordHasher = new FakePasswordHasher();
     eventEmitter = new FakeEventEmitter();
     // EmployeesService ya no depende de customers ni de accounts (ver employees.service.ts:
@@ -595,6 +601,7 @@ describe('AccountsService', () => {
       const orphanAccount = Account.reconstruct({
         id: 500,
         employeeId: 12345,
+        email: 'orphan@vitto.club',
         passwordHash: 'hashed:x',
         active: true,
       });
@@ -723,7 +730,32 @@ describe('AccountsService', () => {
 
       const result = await service.verifyCredentials('bruno.perez@vitto.club', 'secreta123');
 
-      expect(result).toEqual({ accountId: account.getId(), role: 'CASHIER', owner: { employeeId: 2 } });
+      expect(result).toEqual({
+        accountId: account.getId(),
+        role: 'CASHIER',
+        owner: { employeeId: 2 },
+        email: 'bruno.perez@vitto.club',
+      });
+    });
+
+    it('devuelve el email ya normalizado aunque el login llegue con mayúsculas/espacios', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+      accountRepo.findByEmail = async () => accountRepo.items.get(account.getId() as number) ?? null;
+
+      const result = await service.verifyCredentials('  BRUNO.Perez@Vitto.Club  ', 'secreta123');
+
+      expect(result?.email).toBe('bruno.perez@vitto.club');
+    });
+
+    it('nunca devuelve passwordHash', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+      accountRepo.findByEmail = async () => accountRepo.items.get(account.getId() as number) ?? null;
+
+      const result = await service.verifyCredentials('bruno.perez@vitto.club', 'secreta123');
+
+      expect(result).not.toHaveProperty('passwordHash');
     });
 
     it('acepta la contraseña correcta aunque tenga mayúsculas/espacios (la password es opaca, no se normaliza)', async () => {
@@ -813,7 +845,12 @@ describe('AccountsService', () => {
 
       const result = await service.findActiveById(account.getId() as number);
 
-      expect(result).toEqual({ accountId: account.getId(), role: 'CASHIER', owner: { employeeId: 2 } });
+      expect(result).toEqual({
+        accountId: account.getId(),
+        role: 'CASHIER',
+        owner: { employeeId: 2 },
+        email: 'bruno.perez@vitto.club',
+      });
     });
 
     it('devuelve undefined si la cuenta no existe', async () => {

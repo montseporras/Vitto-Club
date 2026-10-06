@@ -446,10 +446,15 @@ describe('EmployeesService', () => {
       private snapshotData: Map<number, Account> | null = null;
       readonly syncedRoles: { accountId: number; role: string }[] = [];
 
+      // Mismo criterio que AccountPrismaRepository.save(): el email se copia de
+      // Employee.email en el momento de persistir.
+      constructor(private readonly employeeRepo: FakeEmployeeRepository) {}
+
       private clone(account: Account): Account {
         return Account.reconstruct({
           id: account.getId() as number,
           employeeId: account.getEmployeeId(),
+          email: account.getEmail() as string,
           passwordHash: account.getPasswordHash(),
           active: account.isActive(),
           deactivatedAt: account.getDeactivatedAt(),
@@ -467,10 +472,12 @@ describe('EmployeesService', () => {
 
       async save(account: Account): Promise<Account> {
         const id = this.nextId++;
+        const employee = await this.employeeRepo.findById(account.getEmployeeId());
         const saved = this.clone(
           Account.reconstruct({
             id,
             employeeId: account.getEmployeeId(),
+            email: employee?.getEmail() as string,
             passwordHash: account.getPasswordHash(),
             active: account.isActive(),
             deactivatedAt: account.getDeactivatedAt(),
@@ -546,7 +553,7 @@ describe('EmployeesService', () => {
 
     function buildIntegratedServices() {
       const employeeRepo = new FakeEmployeeRepository();
-      const accountRepo = new FakeAccountRepository();
+      const accountRepo = new FakeAccountRepository(employeeRepo);
       const customers = new FakeCustomersService();
       const passwordHasher = new FakePasswordHasher();
       const eventEmitter = new EventEmitter2();
