@@ -1,6 +1,7 @@
 // Sección "Empleados y usuarios": listado y búsqueda (RF-01/RF-03), alta
 // (RF-01), edición (RF-02) y baja lógica (RF-04) de empleados, y alta del
-// usuario con el que el empleado entra al sistema (SCRUM-21).
+// usuario con el que el empleado entra al sistema (SCRUM-21) y cambio de su
+// contraseña (SCRUM-24).
 // Es la pantalla del prototipo dentro del modal de Configuración del Administrador;
 // el título y la descripción los muestra el encabezado de ese modal.
 import { useState } from 'react';
@@ -13,6 +14,7 @@ import { Modal } from '@/shared/components/ui/Modal';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useEmployees } from '../api/employees.queries';
 import { EmployeeSearch } from '../components/EmployeeSearch';
+import { ChangePasswordForm } from '../components/ChangePasswordForm';
 import { ConfirmEmployeeDeactivation } from '../components/ConfirmEmployeeDeactivation';
 import { CreateAccountForm } from '../components/CreateAccountForm';
 import { EditEmployeeForm } from '../components/EditEmployeeForm';
@@ -24,11 +26,16 @@ import type { Employee } from '../types/employee';
 const MAX_SEARCH_LENGTH = 80;
 
 // Qué muestra el modal del empleado seleccionado
-type EmployeeModalView = 'edit' | 'deactivate' | 'createAccount';
+type EmployeeModalView =
+  | 'edit'
+  | 'deactivate'
+  | 'createAccount'
+  | 'changePassword';
 
 const MODAL_TITLES: Record<Exclude<EmployeeModalView, 'edit'>, string> = {
   deactivate: 'Dar de baja empleado',
   createAccount: 'Crear usuario',
+  changePassword: 'Cambiar contraseña',
 };
 
 export function EmployeesPage() {
@@ -139,6 +146,12 @@ export function EmployeesPage() {
               onDone={closeEdit}
               onCancel={() => setModalView('edit')}
             />
+          ) : modalView === 'changePassword' ? (
+            <ChangePasswordForm
+              employee={selectedEmployee}
+              onDone={closeEdit}
+              onCancel={() => setModalView('edit')}
+            />
           ) : (
             <EditEmployeeForm
               employee={selectedEmployee}
@@ -146,6 +159,7 @@ export function EmployeesPage() {
               onCancel={closeEdit}
               onRequestDeactivation={() => setModalView('deactivate')}
               onCreateAccount={() => setModalView('createAccount')}
+              onChangePassword={() => setModalView('changePassword')}
             />
           )}
         </Modal>

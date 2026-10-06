@@ -10,6 +10,7 @@ import type {
   CreateAccountDto,
   CreateEmployeeDto,
   Employee,
+  UpdateAccountPasswordDto,
 } from '../types/employee';
 
 // Traduce el formulario al cuerpo que espera la API (contrato del backend).
@@ -77,5 +78,20 @@ export async function createEmployeeAccount(
   body: CreateAccountDto,
 ): Promise<Account> {
   const { data } = await http.post<Account>('/usuarios', body);
+  return data;
+}
+
+// Usuario de un empleado (SCRUM-24). Responde 404 si el empleado no tiene.
+export async function getEmployeeAccount(employeeId: number): Promise<Account> {
+  const { data } = await http.get<Account>(`/usuarios/empleado/${employeeId}`);
+  return data;
+}
+
+// Cambio de contraseña del usuario (SCRUM-24).
+export async function updateAccountPassword(
+  accountId: number,
+  body: UpdateAccountPasswordDto,
+): Promise<Account> {
+  const { data } = await http.patch<Account>(`/usuarios/${accountId}`, body);
   return data;
 }

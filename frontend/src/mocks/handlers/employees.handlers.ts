@@ -275,6 +275,9 @@ export const employeesHandlers = [
       );
     }
     employee.isActive = false;
+    // En el backend, el evento employee.deactivated da de baja también su cuenta.
+    const account = accounts.find((a) => a.employeeId === employee.id);
+    if (account) account.active = false;
     return HttpResponse.json(employee);
   }),
 
@@ -328,7 +331,11 @@ export const employeesHandlers = [
       );
     }
     if (password === employee.email) {
-      return domainError('password', 'Password cannot be equal to the email', request);
+      return errorResponse(
+        400,
+        'Password cannot be the same as the email',
+        request,
+      );
     }
 
     const account: Account = {
@@ -341,5 +348,69 @@ export const employeesHandlers = [
     accounts.push(account);
     employee.hasAccount = true;
     return HttpResponse.json(account, { status: 201 });
+  }),
+
+  // SCRUM-24: GET /api/usuarios/empleado/:employeeId responde 200 / 400 / 404.
+  http.get(`${API_URL}/usuarios/empleado/:employeeId`, ({ params, request }) => {
+    const { employee, error } = findById(params.employeeId, request);
+    if (error) return error;
+
+    const account = accounts.find((a) => a.employeeId === employee.id);
+    if (!account) {
+      return errorResponse(
+        404,
+        `Employee with ID ${employee.id} has no account`,
+        request,
+      );
+    }
+    return HttpResponse.json(account);
+  }),
+
+  // SCRUM-24: PATCH /api/usuarios/:id responde 200 / 400 / 404 / 409, en el
+  // mismo orden que AccountsService.resetPassword. El backend también acepta
+  // `role`, pero el front no lo manda: el rol se cambia desde el empleado.
+  http.patch(`${API_URL}/usuarios/:id`, async ({ params, request }) => {
+    if (typeof params.id !== 'string' || !/^-?\d+$/.test(params.id)) {
+      return errorResponse(
+        400,
+        'Validation failed (numeric string is expected)',
+        request,
+      );
+    }
+    const body = (await request.json()) as Record<string, unknown>;
+
+    const errors = Object.keys(body)
+      .filter((key) => key !== 'password')
+      .map((key) => `property ${key} should not exist`);
+    const { password } = body;
+    if (password === undefined) {
+      errors.push('At least one of role or password must be provided');
+    } else if (typeof password !== 'string' || password.length < 8) {
+      errors.push('password must be longer than or equal to 8 characters');
+    } else if (password.length > 64) {
+      errors.push('password must be shorter than or equal to 64 characters');
+    }
+    if (errors.length) return errorResponse(400, errors, request);
+
+    const id = Number(params.id);
+    const account = accounts.find((a) => a.accountId === id);
+    if (!account) {
+      return errorResponse(404, `Account with ID ${id} not found`, request);
+    }
+    if (!account.active) {
+      return errorResponse(
+        409,
+        `Account with ID ${id} is inactive and cannot be modified`,
+        request,
+      );
+    }
+    if (password === account.email) {
+      return errorResponse(
+        400,
+        'Password cannot be the same as the email',
+        request,
+      );
+    }
+    return HttpResponse.json(account);
   }),
 ];
