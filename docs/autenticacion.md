@@ -4,10 +4,12 @@ Guía para entender el módulo `auth`: qué problema resuelve, qué piezas tiene
 en qué archivo está cada una y qué prueba cada test. Se va actualizando a
 medida que el módulo avanza.
 
-- **Estado:** están hechos el **dominio** y la **primera parte de la
-  infraestructura** (configuración y los dos adaptadores de tokens). Todavía
-  **no hay login**: no existe el módulo de Nest, ni endpoints, ni nada que
-  escriba en la base. Ver "Qué falta" al final.
+- **Estado:** están hechos el **dominio** y la **infraestructura**
+  (configuración, los dos adaptadores de tokens y el repositorio de sesiones),
+  y el módulo ya está registrado en la aplicación. Todavía **no hay login**:
+  faltan los casos de uso y los endpoints. Ver "Qué falta" al final.
+- **Importante:** desde que el módulo está registrado, **la aplicación no
+  arranca sin `JWT_SECRET`** en el `.env` (ver 6.1).
 - **Rama:** `feature/auth-login`.
 - **Documentos relacionados:** `docs/ARCHITECTURE.md` (reglas de la
   arquitectura) y `docs/transacciones-y-eventos.md` (transacciones y eventos).
@@ -149,22 +151,25 @@ backend/src/auth/
       credentials-verifier.ts
       session-policies.ts
       transaction-runner.ts
-  infrastructure/                 EN CURSO  implementaciones reales
+  infrastructure/                 HECHO  implementaciones reales
     auth.config.ts
     auth.config.spec.ts
     crypto-refresh-token-generator.ts
     crypto-refresh-token-generator.spec.ts
     jwt-access-token-issuer.ts
     jwt-access-token-issuer.spec.ts
+    sessions.repository.ts
+  auth.module.ts                  HECHO  liga cada puerto con su implementación
   application/                    FALTA  casos de uso: login, refresh, logout
   http/                           FALTA  endpoints, cookie y guards
-  auth.module.ts                  FALTA
 ```
 
 Fuera del módulo:
 
 | Archivo | Cambio |
 |---|---|
+| `backend/src/app.module.ts` | Registra `AuthModule` |
+| `backend/test/auth-sessions.e2e-spec.ts` | Tests del repositorio y del armado del módulo, contra la base |
 | `backend/.env.example` | Seis variables nuevas de autenticación |
 | `backend/package.json` | Dependencia `@nestjs/jwt` |
 
@@ -273,7 +278,7 @@ pero no el contenido.
 
 | Puerto | Qué necesita `auth` | Quién lo implementa |
 |---|---|---|
-| `SessionRepository` | Guardar, buscar, renovar y revocar sesiones | Falta (repositorio con Prisma) |
+| `SessionRepository` | Guardar, buscar, renovar y revocar sesiones | `SessionPrismaRepository` |
 | `AccessTokenIssuer` | Emitir y verificar el access token | `JwtAccessTokenIssuer` |
 | `RefreshTokenGenerator` | Generar el refresh token y calcular su hash | `CryptoRefreshTokenGenerator` |
 | `SessionPolicies` | Saber los plazos de sesión según el rol | `AuthConfig` |
@@ -455,11 +460,84 @@ Después de verificar la firma hay un segundo control, `toAccount`, que revisa
 que el contenido tenga la forma esperada (un id de cuenta válido y un rol
 conocido). Un token bien firmado pero con un rol inventado tampoco se acepta.
 
+### 6.5 `sessions.repository.ts` — guardar las sesiones
+
+Traduce entre la entidad `Session` y la tabla `sessions`. Tiene cinco
+operaciones; la que más importa es la que guarda una renovación:
+
+```ts
+async saveRotation(session: Session, previousTokenHash: string): Promise<boolean> {
+  const result = await this.tx.client.session.updateMany({
+    where: { id: requiredId(session), tokenHash: previousTokenHash, revokedAt: null },
+    data: { tokenHash: session.getTokenHash(), expiresAt: session.getExpiresAt() },
+  });
+  return result.count === 1;
+}
+```
+
+El `where` no pide solo "la sesión con este id": pide "la sesión con este id,
+**que todavía tenga el token anterior y que no esté revocada**". Si dos
+pedidos llegan a la vez con el mismo refresh token (dos pestañas abiertas):
+
+1. Los dos leen la sesión con el token `A`.
+2. El primero la actualiza: ahora tiene el token `B`.
+3. El segundo intenta actualizar "la sesión que tenga el token `A`". Ya no hay
+   ninguna: no modifica nada y recibe `false`.
+
+Quien decide quién gana es la base de datos, así que es imposible que pasen
+los dos. Lo mismo protege contra renovar una sesión que alguien revocó un
+instante antes.
+
+Otro detalle: usa `this.tx.client`, el cliente del adaptador de transacciones,
+y no `PrismaService`. Por eso, si el caso de uso que lo llama abrió una
+transacción y después falla, la sesión no queda guardada (ver
+`docs/transacciones-y-eventos.md`).
+
+### 6.6 `auth.module.ts` — el armado
+
+Es la tabla de "cuando alguien pida este puerto, entregale esta
+implementación":
+
+```ts
+providers: [
+  AuthConfig,
+  { provide: SessionPolicies, useExisting: AuthConfig },
+  { provide: SessionRepository, useClass: SessionPrismaRepository },
+  { provide: AccessTokenIssuer, useClass: JwtAccessTokenIssuer },
+  { provide: RefreshTokenGenerator, useClass: CryptoRefreshTokenGenerator },
+  { provide: TransactionRunner, useExisting: PrismaTransactionRunner },
+],
+```
+
+Falta una línea: la de `CredentialsVerifier`, que se agrega al integrar con
+`accounts`.
+
+También configura el JWT en un solo lugar:
+
+```ts
+secret: config.jwtSecret,
+signOptions: { expiresIn: config.accessTokenTtlSeconds, algorithm: 'HS256' as const },
+verifyOptions: { algorithms: ['HS256' as const] },
+```
+
+El algoritmo se declara **al firmar y al verificar**. Declararlo al verificar
+evita aceptar un token armado con otro algoritmo, que es una forma conocida de
+atacar implementaciones de JWT.
+
+Como `AuthModule` está registrado en `AppModule`, `AuthConfig` se construye al
+arrancar. Si falta `JWT_SECRET`, la aplicación corta ahí con este mensaje:
+
+```
+Error: JWT_SECRET is required and must have at least 32 characters (see .env.example)
+```
+
 ---
 
 ## 7. Los tests
 
-Son todos unitarios: no usan base de datos ni levantan la aplicación.
+### Unitarios
+
+No usan base de datos ni levantan la aplicación.
 
 ```bash
 cd backend
@@ -532,6 +610,49 @@ Toma el token de un cajero, le reemplaza el contenido por uno que dice
 "administrador" y deja la firma original. El resultado es `null`: no se puede
 ascender uno mismo editando el token.
 
+### Contra la base: `auth-sessions.e2e-spec.ts` — 10 tests
+
+Levantan la aplicación completa y usan la base de tests (`vitto_club_test`).
+
+```bash
+cd backend
+npm run test:e2e
+```
+
+Resultado esperado: 21 tests en total (2 de health, 9 de transacciones y
+eventos, 10 de sesiones).
+
+| Test | Qué prueba |
+|---|---|
+| Guardar y recuperar | Una sesión guardada se encuentra por el hash de su token, con sus dos fechas |
+| Hash desconocido | Devuelve `null` |
+| Renovación | El token anterior deja de servir y el nuevo sirve |
+| Dos pestañas | Dos renovaciones con el mismo token: solo gana la primera |
+| Revocada mientras tanto | No se puede renovar una sesión que otro revocó un instante antes |
+| Revocación | Queda guardada y la sesión deja de estar vigente |
+| Revocar todas | Revoca las vigentes de una cuenta, no toca las de otra y conserva la fecha de las ya revocadas |
+| Transacción | Una sesión guardada dentro de un caso de uso que falla no queda en la base |
+| Emisor de tokens | Funciona con el secreto y la duración reales de la configuración |
+| Plazos | Salen de la configuración según el rol |
+
+El de las **dos pestañas** muestra la protección de `saveRotation`:
+
+```ts
+const tabA = (await sessions.findByTokenHash('hash-1'))!;
+const tabB = (await sessions.findByTokenHash('hash-1'))!;
+
+tabA.rotate('hash-a', after(20 * MINUTE), INACTIVITY);
+tabB.rotate('hash-b', after(20 * MINUTE), INACTIVITY);
+const first = await sessions.saveRotation(tabA, 'hash-1');
+const second = await sessions.saveRotation(tabB, 'hash-1');
+
+expect(first).toBe(true);
+expect(second).toBe(false);
+```
+
+Las dos pestañas leen la misma sesión y las dos intentan renovarla. La primera
+lo logra; la segunda recibe `false` y su token nuevo nunca llega a existir.
+
 ---
 
 ## 8. Decisiones tomadas
@@ -566,8 +687,7 @@ ascender uno mismo editando el token.
 
 | Paso | Qué es | Depende de |
 |---|---|---|
-| B2 | Repositorio de sesiones con Prisma, `auth.module.ts` y sus tests contra la base | — |
-| C | Casos de uso: login, refresh, logout, y el listener que revoca sesiones cuando dan de baja una cuenta | B2 |
+| C | Casos de uso: login, refresh, logout, y el listener que revoca sesiones cuando dan de baja una cuenta | — |
 | D | Endpoints, cookie del refresh token, guards y decoradores (`@Roles`, `@Public`, `@CurrentUser`) | C |
 | E | Integración con `accounts`: hasher de contraseñas, conectar el login con la verificación de credenciales, proteger todos los endpoints | D y la rama `users` |
 | F | Tests de punta a punta, contrato para el frontend y documentación | E |
@@ -604,3 +724,4 @@ falsa. Recién en el E entra el usuario real de la base.
 | Fecha | Cambio |
 |---|---|
 | 2026-10-05 | Versión inicial: dominio (sesión y puertos) y primera parte de la infraestructura (configuración, refresh token y JWT). 31 tests |
+| 2026-10-05 | Infraestructura completa: repositorio de sesiones, `auth.module.ts` y registro en `AppModule`. 10 tests contra la base. La aplicación ya exige `JWT_SECRET` para arrancar |
