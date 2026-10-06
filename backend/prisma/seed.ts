@@ -52,7 +52,7 @@ type AccountOwner = { employeeId: number } | { customerId: number };
 async function ensureAccount(
   tx: Prisma.TransactionClient,
   owner: AccountOwner,
-  data: { identifier: string; passwordHash: string; role: AccountRole },
+  data: { email: string; passwordHash: string; role: AccountRole },
 ): Promise<void> {
   const existing = await tx.account.findUnique({ where: owner });
   if (existing) return;
@@ -84,7 +84,7 @@ async function seedAdmin(cost: number): Promise<void> {
     });
 
     // El rol sale del empleado (fuente de verdad), no se escribe fijo.
-    await ensureAccount(tx, { employeeId: employee.id }, { identifier: employee.email, passwordHash, role: employee.role });
+    await ensureAccount(tx, { employeeId: employee.id }, { email: employee.email, passwordHash, role: employee.role });
   });
 }
 
@@ -130,12 +130,12 @@ async function seedDemoData(cost: number): Promise<void> {
     // Cuentas de prueba para el login por rol: un cajero y un cliente.
     // Carla y Martín quedan sin cuenta a propósito (caso "sin cuenta").
     const bruno = await tx.employee.findUniqueOrThrow({ where: { email: 'bruno.perez@vitto.club' } });
-    await ensureAccount(tx, { employeeId: bruno.id }, { identifier: bruno.email, passwordHash, role: bruno.role });
+    await ensureAccount(tx, { employeeId: bruno.id }, { email: bruno.email, passwordHash, role: bruno.role });
 
     const lucia = await tx.customer.findUniqueOrThrow({
       where: { unique_document: { documentType: DocumentType.DNI, documentNumber: '40123456' } },
     });
-    await ensureAccount(tx, { customerId: lucia.id }, { identifier: lucia.documentNumber, passwordHash, role: AccountRole.CUSTOMER });
+    await ensureAccount(tx, { customerId: lucia.id }, { email: lucia.email, passwordHash, role: AccountRole.CUSTOMER });
   });
 }
 
