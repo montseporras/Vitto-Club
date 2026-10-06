@@ -2,15 +2,19 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
+import { AuthService } from './application/auth.service.js';
 import { AccessTokenIssuer } from './domain/port/access-token-issuer.js';
+import { CredentialsVerifier } from './domain/port/credentials-verifier.js';
 import { RefreshTokenGenerator } from './domain/port/refresh-token-generator.js';
 import { SessionPolicies } from './domain/port/session-policies.js';
 import { SessionRepository } from './domain/port/session.repository.js';
 import { TransactionRunner } from './domain/port/transaction-runner.js';
+import { AccountDeactivatedListener } from './infrastructure/account-deactivated.listener.js';
 import { AuthConfig } from './infrastructure/auth.config.js';
 import { CryptoRefreshTokenGenerator } from './infrastructure/crypto-refresh-token-generator.js';
 import { JwtAccessTokenIssuer } from './infrastructure/jwt-access-token-issuer.js';
 import { SessionPrismaRepository } from './infrastructure/sessions.repository.js';
+import { UnavailableCredentialsVerifier } from './infrastructure/unavailable-credentials-verifier.js';
 
 @Module({
   imports: [
@@ -36,7 +40,11 @@ import { SessionPrismaRepository } from './infrastructure/sessions.repository.js
     { provide: AccessTokenIssuer, useClass: JwtAccessTokenIssuer },
     { provide: RefreshTokenGenerator, useClass: CryptoRefreshTokenGenerator },
     { provide: TransactionRunner, useExisting: PrismaTransactionRunner },
-    // Falta CredentialsVerifier: se vincula cuando se integre con accounts.
+    // PROVISORIO: rechaza todo. Se cambia por el adaptador hacia accounts en la integración.
+    { provide: CredentialsVerifier, useClass: UnavailableCredentialsVerifier },
+    AuthService,
+    AccountDeactivatedListener,
   ],
+  exports: [AuthService],
 })
 export class AuthModule {}

@@ -4,10 +4,11 @@ Guía para entender el módulo `auth`: qué problema resuelve, qué piezas tiene
 en qué archivo está cada una y qué prueba cada test. Se va actualizando a
 medida que el módulo avanza.
 
-- **Estado:** están hechos el **dominio** y la **infraestructura**
-  (configuración, los dos adaptadores de tokens y el repositorio de sesiones),
-  y el módulo ya está registrado en la aplicación. Todavía **no hay login**:
-  faltan los casos de uso y los endpoints. Ver "Qué falta" al final.
+- **Estado:** están hechos el **dominio**, la **infraestructura** y los
+  **casos de uso** (login, renovación y cierre de sesión), y el módulo está
+  registrado en la aplicación. Todavía **nadie puede iniciar sesión**: faltan
+  los endpoints, y la verificación de credenciales es provisoria (rechaza
+  todo) hasta integrarse con `accounts`. Ver "Qué falta" al final.
 - **Importante:** desde que el módulo está registrado, **la aplicación no
   arranca sin `JWT_SECRET`** en el `.env` (ver 6.1).
 - **Rama:** `feature/auth-login`.
@@ -133,7 +134,7 @@ sesión venció a las 12:50 por inactividad y tiene que volver a entrar.
 
 ## 4. Las capas y los archivos
 
-El módulo sigue la arquitectura del proyecto. Hoy existen dos de las cuatro
+El módulo sigue la arquitectura del proyecto. Hoy existen tres de las cuatro
 capas:
 
 ```
@@ -159,8 +160,12 @@ backend/src/auth/
     jwt-access-token-issuer.ts
     jwt-access-token-issuer.spec.ts
     sessions.repository.ts
+    account-deactivated.listener.ts
+    unavailable-credentials-verifier.ts     PROVISORIO
+  application/                    HECHO  casos de uso
+    auth.service.ts
+    auth.service.spec.ts
   auth.module.ts                  HECHO  liga cada puerto con su implementación
-  application/                    FALTA  casos de uso: login, refresh, logout
   http/                           FALTA  endpoints, cookie y guards
 ```
 
@@ -282,7 +287,7 @@ pero no el contenido.
 | `AccessTokenIssuer` | Emitir y verificar el access token | `JwtAccessTokenIssuer` |
 | `RefreshTokenGenerator` | Generar el refresh token y calcular su hash | `CryptoRefreshTokenGenerator` |
 | `SessionPolicies` | Saber los plazos de sesión según el rol | `AuthConfig` |
-| `CredentialsVerifier` | Preguntar si email y contraseña son válidos | Falta (adaptador hacia `accounts`) |
+| `CredentialsVerifier` | Preguntar si email y contraseña son válidos | Provisorio: `UnavailableCredentialsVerifier`, que rechaza todo. El real llega con la integración |
 | `TransactionRunner` | Abrir una transacción | `PrismaTransactionRunner` |
 
 **¿Para qué sirve esta separación?** El caso de uso del login va a usar estos
@@ -506,11 +511,16 @@ providers: [
   { provide: AccessTokenIssuer, useClass: JwtAccessTokenIssuer },
   { provide: RefreshTokenGenerator, useClass: CryptoRefreshTokenGenerator },
   { provide: TransactionRunner, useExisting: PrismaTransactionRunner },
+  // PROVISORIO: rechaza todo. Se cambia por el adaptador hacia accounts en la integración.
+  { provide: CredentialsVerifier, useClass: UnavailableCredentialsVerifier },
+  AuthService,
+  AccountDeactivatedListener,
 ],
+exports: [AuthService],
 ```
 
-Falta una línea: la de `CredentialsVerifier`, que se agrega al integrar con
-`accounts`.
+La línea de `CredentialsVerifier` es provisoria: en la integración con
+`accounts` se reemplaza por el adaptador real (ver 6.8).
 
 También configura el JWT en un solo lugar:
 
@@ -531,9 +541,207 @@ arrancar. Si falta `JWT_SECRET`, la aplicación corta ahí con este mensaje:
 Error: JWT_SECRET is required and must have at least 32 characters (see .env.example)
 ```
 
+### 6.7 `account-deactivated.listener.ts` — cuando dan de baja una cuenta
+
+```ts
+@OnEvent(ACCOUNT_DEACTIVATED, { suppressErrors: false })
+async handle(event: AccountDeactivatedEvent): Promise<void> {
+  await this.authService.revokeAllSessionsOfAccount(event.accountId);
+}
+```
+
+Cuando `accounts` da de baja una cuenta publica el evento
+`account.deactivated`. Este listener lo escucha y cierra todas las sesiones de
+esa cuenta: desde ese momento ya no puede renovar. (El access token que tenga
+emitido sigue valiendo hasta 15 minutos; ver la sección 2.)
+
+Vive en `infrastructure/` y no en `application/` porque es un **adaptador de
+entrada**: cumple el mismo papel que un controller, solo que lo dispara un
+evento en lugar de un pedido HTTP. Así el caso de uso no conoce la librería de
+eventos.
+
+`suppressErrors: false` hace que, si revocar fallara, el error llegue a quien
+dio de baja la cuenta y se deshaga toda la operación (ver
+`docs/transacciones-y-eventos.md`).
+
+### 6.8 `unavailable-credentials-verifier.ts` — provisorio
+
+```ts
+export class UnavailableCredentialsVerifier implements CredentialsVerifier {
+  async verify(): Promise<null> {
+    return null;
+  }
+
+  async findActiveById(): Promise<null> {
+    return null;
+  }
+}
+```
+
+Responde "no" a todo. Existe por un motivo práctico: el caso de uso del login
+necesita un verificador de credenciales para que la aplicación arranque, y el
+real depende de `accounts`, que todavía no está integrado.
+
+Mientras esté registrado **nadie puede iniciar sesión**, que es el
+comportamiento seguro. Los tests lo reemplazan por uno falso. En la
+integración se cambia por un adaptador que llama a
+`AccountsService.verifyCredentials` y `AccountsService.findActiveById`.
+
 ---
 
-## 7. Los tests
+## 7. Los casos de uso
+
+Están en `application/auth.service.ts`. Usan solo los puertos: no saben nada
+de Prisma, de JWT ni de HTTP.
+
+### 7.1 Qué devuelven el login y la renovación
+
+Los dos devuelven **exactamente lo mismo**:
+
+```ts
+export type AuthResult = {
+  accessToken: string;
+  refreshToken: string;
+  refreshTokenExpiresAt: Date;
+  user: AuthenticatedUser;   // accountId, role, employeeId o customerId, y email
+};
+```
+
+Que sean iguales es una necesidad del frontend: al recargar la página pierde
+el access token (lo tiene en memoria), llama a la renovación y con esa
+respuesta tiene que poder reconstruir todo: quién es el usuario y qué pantalla
+mostrarle. Los dos casos de uso arman la respuesta con la misma función
+(`toResult`), así que no pueden divergir.
+
+- `refreshTokenExpiresAt` es el tope máximo de la sesión. Lo usa la capa HTTP
+  para la duración de la cookie.
+- El **email** va en la respuesta pero **no dentro del access token**, porque
+  puede cambiar. `auth` no lo conoce por sí mismo: se lo da `accounts`.
+- No incluye el **nombre** del usuario (ver deuda técnica, `/me`).
+
+### 7.2 Iniciar sesión
+
+```ts
+async login(email: string, password: string): Promise<AuthResult> {
+  const verified = await this.credentials.verify(email, password);
+  if (!verified) {
+    throw invalidCredentials();
+  }
+
+  const policy = this.policies.forRole(verified.account.role);
+
+  const refresh = this.refreshTokens.generate();
+  const session = await this.sessions.save(
+    Session.start({
+      accountId: verified.account.accountId,
+      tokenHash: refresh.hash,
+      now: new Date(),
+      inactivityMs: policy.inactivityMs,
+      absoluteMs: policy.absoluteMs,
+    }),
+  );
+
+  return await this.toResult(verified, refresh.token, session);
+}
+```
+
+1. Le pregunta a `accounts` si las credenciales son válidas. `auth` le pasa el
+   email tal como lo tipeó el usuario; normalizarlo es tarea de `accounts`.
+2. Si la respuesta es "no", tira el error genérico y **no guarda nada**.
+3. Pide los plazos del rol.
+4. Genera el refresh token y guarda la sesión con su **hash**.
+5. Emite el access token y arma la respuesta.
+
+Es el mismo flujo para los tres roles: no hay una rama para empleados y otra
+para clientes.
+
+### 7.3 Renovar
+
+```ts
+const previousHash = this.refreshTokens.hash(refreshToken);
+const session = await this.sessions.findByTokenHash(previousHash);
+const now = new Date();
+if (!session || !session.isUsable(now)) {
+  throw invalidSession();
+}
+
+const verified = await this.credentials.findActiveById(session.getAccountId());
+if (!verified) {
+  throw invalidSession();
+}
+
+const policy = this.policies.forRole(verified.account.role);
+const next = this.refreshTokens.generate();
+session.rotate(next.hash, now, policy.inactivityMs);
+
+const rotated = await this.sessions.saveRotation(session, previousHash);
+if (!rotated) {
+  throw invalidSession();
+}
+```
+
+Cuatro controles, y cualquiera que falle responde lo mismo:
+
+| Control | Qué caso cubre |
+|---|---|
+| La sesión existe | Token inventado, o ya rotado |
+| La sesión está vigente | Venció por inactividad, pasó el tope, o fue revocada |
+| La cuenta sigue activa | Dieron de baja al usuario |
+| `saveRotation` devolvió `true` | Otra pestaña renovó primero con el mismo token |
+
+De la consulta a `accounts` sale además el **rol actual**. Por eso, si a un
+cajero lo ascienden a administrador, en su próxima renovación (15 minutos como
+máximo) el access token ya sale con el rol nuevo, sin volver a iniciar sesión.
+
+### 7.4 Cerrar sesión
+
+```ts
+async logout(refreshToken: string | undefined): Promise<void> {
+  if (!refreshToken) return;
+
+  const session = await this.sessions.findByTokenHash(this.refreshTokens.hash(refreshToken));
+  if (!session) return;
+
+  session.revoke(new Date());
+  await this.sessions.saveRevocation(session);
+}
+```
+
+**Nunca falla.** Sin token, con un token desconocido o con la sesión ya
+cerrada, termina igual. Cierra solo esa sesión: si el usuario tiene otra
+abierta en otro dispositivo, sigue vigente.
+
+### 7.5 Los errores
+
+```ts
+function invalidCredentials(): UnauthorizedException {
+  return new UnauthorizedException({
+    statusCode: 401,
+    error: 'Unauthorized',
+    message: 'Los datos de acceso son incorrectos',
+    code: INVALID_CREDENTIALS,
+  });
+}
+```
+
+| Código | Cuándo | Mensaje |
+|---|---|---|
+| `INVALID_CREDENTIALS` | Cualquier fallo de login | Los datos de acceso son incorrectos |
+| `INVALID_SESSION` | Cualquier fallo de renovación | La sesión no es válida |
+
+- El **código** es fijo y es lo que tiene que mirar el frontend. El texto
+  puede cambiar sin romper nada.
+- Hay **un solo error por operación**, a propósito. El login no dice si el
+  email no existe, si la contraseña está mal o si la cuenta está dada de baja.
+  La renovación no dice si la sesión venció, fue revocada o la cuenta ya no
+  está activa.
+- El mensaje del login está en español porque es el único que el frontend
+  muestra tal cual. El resto de los errores del backend están en inglés; esa
+  mezcla queda como tema a resolver con el equipo.
+
+---
+
+## 8. Los tests
 
 ### Unitarios
 
@@ -544,7 +752,7 @@ cd backend
 npm test -- src/auth
 ```
 
-Resultado esperado: 4 archivos, 31 tests.
+Resultado esperado: 5 archivos, 53 tests.
 
 ### `session.spec.ts` — 12 tests
 
@@ -610,7 +818,42 @@ Toma el token de un cajero, le reemplaza el contenido por uno que dice
 "administrador" y deja la firma original. El resultado es `null`: no se puede
 ascender uno mismo editando el token.
 
-### Contra la base: `auth-sessions.e2e-spec.ts` — 10 tests
+### `auth.service.spec.ts` — 22 tests
+
+Prueban los casos de uso con **puertos falsos**: un repositorio en memoria, un
+verificador de credenciales con dos cuentas cargadas (Ana, cajera, y Lucía,
+clienta) y un emisor de tokens simplificado. No hay base ni JWT real.
+
+| Caso de uso | Qué prueba |
+|---|---|
+| Login (6) | Devuelve tokens, fecha tope e identidad con email; guarda el hash y no el token; plazos de empleado; plazos de cliente; con contraseña incorrecta o email inexistente da el mismo error y no guarda sesión; una cuenta dada de baja recibe exactamente el mismo error |
+| Renovación (12) | Devuelve lo mismo que el login; el token anterior deja de servir; no crea otra sesión; corre el vencimiento; usa el rol actual; falla sin token, con token desconocido, sesión vencida, pasada del tope, revocada, cuenta dada de baja y cuando otra pestaña ganó |
+| Logout (3) | Revoca y después no se puede renovar; no da error sin token, con token desconocido ni repetido; cierra solo esa sesión |
+| Revocar todas (1) | Cierra las sesiones de esa cuenta y no las de otra |
+
+El repositorio falso no es un simple "devolvé siempre verdadero": se comporta
+como el real (guarda copias, y la renovación exige el token anterior), para
+que los tests no pasen por casualidad.
+
+El test que comprueba que el error **no revela la causa**:
+
+```ts
+credentials.deactivate(ANA.accountId);
+
+const error = await service.login('ana.gomez@vitto.club', 'secreta-de-ana').catch((e: unknown) => e);
+
+expect((error as UnauthorizedException).getResponse()).toEqual({
+  statusCode: 401,
+  error: 'Unauthorized',
+  message: 'Los datos de acceso son incorrectos',
+  code: INVALID_CREDENTIALS,
+});
+```
+
+Ana fue dada de baja y entra con su contraseña correcta. La respuesta es
+idéntica, campo por campo, a la de una contraseña incorrecta.
+
+### Contra la base: `auth-sessions.e2e-spec.ts` — 13 tests
 
 Levantan la aplicación completa y usan la base de tests (`vitto_club_test`).
 
@@ -619,8 +862,8 @@ cd backend
 npm run test:e2e
 ```
 
-Resultado esperado: 21 tests en total (2 de health, 9 de transacciones y
-eventos, 10 de sesiones).
+Resultado esperado: 24 tests en total (2 de health, 9 de transacciones y
+eventos, 13 de sesiones).
 
 | Test | Qué prueba |
 |---|---|
@@ -632,8 +875,11 @@ eventos, 10 de sesiones).
 | Revocación | Queda guardada y la sesión deja de estar vigente |
 | Revocar todas | Revoca las vigentes de una cuenta, no toca las de otra y conserva la fecha de las ya revocadas |
 | Transacción | Una sesión guardada dentro de un caso de uso que falla no queda en la base |
+| Baja de una cuenta | Al publicar `account.deactivated` se revocan las sesiones de esa cuenta y no las de otra |
+| Baja que falla | Si la operación de quien publica el evento falla, las sesiones **no** quedan revocadas: el listener corre dentro de la transacción |
 | Emisor de tokens | Funciona con el secreto y la duración reales de la configuración |
 | Plazos | Salen de la configuración según el rol |
+| Verificador provisorio | Con la aplicación real, nadie puede iniciar sesión todavía |
 
 El de las **dos pestañas** muestra la protección de `saveRotation`:
 
@@ -655,7 +901,7 @@ lo logra; la segunda recibe `false` y su token nuevo nunca llega a existir.
 
 ---
 
-## 8. Decisiones tomadas
+## 9. Decisiones tomadas
 
 | Decisión | Motivo |
 |---|---|
@@ -669,6 +915,10 @@ lo logra; la segunda recibe `false` y su token nuevo nunca llega a existir.
 | Plazos distintos para empleados y clientes | La caja es una computadora compartida; el celular del cliente no |
 | Varias sesiones simultáneas por cuenta | Dos cajas, o celular y computadora |
 | El logout cierra solo la sesión actual | Consecuencia de lo anterior |
+| Los errores llevan un código fijo además del mensaje | El frontend decide por el código y no depende del texto |
+| El login y la renovación devuelven lo mismo | Al recargar la página, el frontend reconstruye su estado solo con la renovación |
+| El email va en la respuesta pero no en el access token | Puede cambiar, y el token quedaría con un dato viejo |
+| Los decoradores de seguridad viven en `src/shared/security/` | Para que `accounts` no tenga que importar `auth` (ver `docs/ARCHITECTURE.md`) |
 
 ### Fuera de este sprint (deuda técnica)
 
@@ -680,24 +930,56 @@ lo logra; la segunda recibe `false` y su token nuevo nunca llega a existir.
 - **Cambio de contraseña por el propio usuario.**
 - **Verificación del email al registrarse.**
 - **Limpieza de sesiones vencidas** de la tabla.
+- **Datos del propio usuario (`/me`).** El login devuelve id de cuenta, rol,
+  id de empleado o de cliente y email, pero no el nombre: `auth` no lo conoce.
+  Con la matriz de permisos, ni el cliente ni el cajero pueden consultar sus
+  propios datos (`GET /customers/:id` y `GET /empleados` están cerrados para
+  ellos). Si el frontend necesita el nombre, hacen falta `GET /customers/me` y
+  `GET /empleados/me`, resueltos con `@CurrentUser()`. Pendiente de confirmar
+  con el frontend.
+- **Idioma de los mensajes de error.** El del login está en español; el resto
+  del backend, en inglés. A unificar con el equipo.
+
+### Limitaciones conocidas
+
+- **Un email, una cuenta.** Una persona que sea empleada y clienta necesita un
+  email distinto para cada rol.
+- **Un empleado puede quedar sin poder tener cuenta.** `customers` verifica
+  que un cliente no use el email de un empleado, pero no al revés: si un
+  administrador carga un empleado con el email de un cliente que ya tiene
+  cuenta, el conflicto aparece recién al crearle la cuenta. Como el email del
+  empleado no se edita, hay que darlo de baja y cargarlo de nuevo.
+- **Sin verificación de email.** Alguien puede registrarse con un email ajeno.
 
 ---
 
-## 9. Qué falta
+## 10. Qué falta
 
 | Paso | Qué es | Depende de |
 |---|---|---|
-| C | Casos de uso: login, refresh, logout, y el listener que revoca sesiones cuando dan de baja una cuenta | — |
-| D | Endpoints, cookie del refresh token, guards y decoradores (`@Roles`, `@Public`, `@CurrentUser`) | C |
+| D | Endpoints, cookie del refresh token, guards y decoradores (`@Roles`, `@Public`, `@CurrentUser`) | — |
 | E | Integración con `accounts`: hasher de contraseñas, conectar el login con la verificación de credenciales, proteger todos los endpoints | D y la rama `users` |
 | F | Tests de punta a punta, contrato para el frontend y documentación | E |
 
 Hasta el paso D el login se prueba con una verificación de credenciales
 falsa. Recién en el E entra el usuario real de la base.
 
+### Pendiente con otras personas
+
+| Con quién | Qué |
+|---|---|
+| Quien hizo `users` | Que `verifyCredentials` y `findActiveById` devuelvan también el `email` de la cuenta. Sin eso la renovación no puede incluirlo |
+| Quien hizo `users` | Que `owner` admita `{ customerId }` además de `{ employeeId }`; el hash de relleno generado al arrancar; confirmar que `accounts` normaliza el email |
+| Quien hizo `users` | Dejar el chequeo de email en un solo sentido (`customers` consulta a `employees`) y sacar los `forwardRef` |
+| Frontend | Si necesita el nombre del usuario (ver `/me` en deuda técnica) |
+| Frontend | El contrato: campo `email` en el login, códigos de error, que la renovación devuelve lo mismo que el login, renovar solo ante un 401 real y reintentar una vez |
+| Quien maneja Vercel | El rewrite de `/api/*` hacia Render, para que la cookie sea del mismo origen |
+| Equipo | Avisar que la aplicación no arranca sin `JWT_SECRET` |
+| Equipo | Unificar el idioma de los mensajes de error |
+
 ---
 
-## 10. Glosario
+## 11. Glosario
 
 | Término | Significado |
 |---|---|
@@ -725,3 +1007,4 @@ falsa. Recién en el E entra el usuario real de la base.
 |---|---|
 | 2026-10-05 | Versión inicial: dominio (sesión y puertos) y primera parte de la infraestructura (configuración, refresh token y JWT). 31 tests |
 | 2026-10-05 | Infraestructura completa: repositorio de sesiones, `auth.module.ts` y registro en `AppModule`. 10 tests contra la base. La aplicación ya exige `JWT_SECRET` para arrancar |
+| 2026-10-05 | Casos de uso: login, renovación y cierre de sesión, con códigos de error fijos y el email en la respuesta. Listener de `account.deactivated`. Verificador de credenciales provisorio. 22 tests unitarios y 3 contra la base. Se agregan las limitaciones conocidas y los pendientes con otras personas |

@@ -1,8 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, UnauthorizedException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { AuthService } from '../src/auth/application/auth.service.js';
+import { ACCOUNT_DEACTIVATED } from '../src/shared/events/domain-events.js';
 import { Session } from '../src/auth/domain/session.js';
 import { SessionRepository } from '../src/auth/domain/port/session.repository.js';
 import { AccessTokenIssuer } from '../src/auth/domain/port/access-token-issuer.js';
@@ -170,6 +173,32 @@ describe('Sesiones de auth (e2e)', () => {
     });
   });
 
+  describe('baja de una cuenta', () => {
+    it('al publicar account.deactivated se revocan las sesiones de esa cuenta', async () => {
+      const otherAccountId = await createAccount('b@test.com');
+      await sessions.save(startSession('hash-1'));
+      await sessions.save(startSession('hash-otra', otherAccountId));
+
+      await app.get(EventEmitter2).emitAsync(ACCOUNT_DEACTIVATED, { accountId });
+
+      expect((await sessions.findByTokenHash('hash-1'))?.getRevokedAt()).not.toBeNull();
+      expect((await sessions.findByTokenHash('hash-otra'))?.getRevokedAt()).toBeNull();
+    });
+
+    it('si la operación de quien publica falla, las sesiones no quedan revocadas', async () => {
+      await sessions.save(startSession('hash-1'));
+
+      await expect(
+        app.get(TransactionRunner).run(async () => {
+          await app.get(EventEmitter2).emitAsync(ACCOUNT_DEACTIVATED, { accountId });
+          throw new Error('boom');
+        }),
+      ).rejects.toThrow('boom');
+
+      expect((await sessions.findByTokenHash('hash-1'))?.getRevokedAt()).toBeNull();
+    });
+  });
+
   describe('armado del módulo', () => {
     it('el emisor de access tokens funciona con el secreto y la duración configurados', async () => {
       const issuer = app.get(AccessTokenIssuer);
@@ -185,6 +214,10 @@ describe('Sesiones de auth (e2e)', () => {
 
       expect(policies.forRole('ADMIN')).toEqual(policies.forRole('CASHIER'));
       expect(policies.forRole('CUSTOMER').absoluteMs).toBeGreaterThan(policies.forRole('ADMIN').absoluteMs);
+    });
+
+    it('con el verificador provisorio nadie puede iniciar sesión', async () => {
+      await expect(app.get(AuthService).login('a@test.com', 'x')).rejects.toBeInstanceOf(UnauthorizedException);
     });
   });
 });
