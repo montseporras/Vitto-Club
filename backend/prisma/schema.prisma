@@ -91,14 +91,15 @@ enum AccountRole {
   CUSTOMER
 }
 
-/// Login credentials. Employees log in with their email, customers with their document number.
+/// Login credentials. Everyone logs in with an email, employees and customers alike.
 /// Exactly one owner, matching the role: CUSTOMER -> customerId; ADMIN/CASHIER -> employeeId.
 /// Enforced by the CHECK constraint "accounts_owner_matches_role_check", written by hand in the
 /// migration (Prisma does not model CHECK constraints).
 model Account {
   id           Int         @id @default(autoincrement())
-  // Employees: copy of Employee.email (not editable). Customers: their document number.
-  identifier   String      @unique @db.VarChar(150)
+  // Copy of Employee.email (not editable) or Customer.email (kept in sync when it changes).
+  // One email = one account: the same person needs a different email per role.
+  email        String      @unique @db.VarChar(150)
   passwordHash String      @map("password_hash")
   // Derived copy of Employee.role (source of truth); always CUSTOMER for customers
   role         AccountRole
