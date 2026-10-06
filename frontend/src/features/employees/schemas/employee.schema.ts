@@ -2,7 +2,11 @@
 // Reglas alineadas con el backend (docs/employees-api.md): nombre/apellido/mail/rol
 // obligatorios, teléfono opcional. Los largos máximos siguen al schema de Prisma.
 import { z } from 'zod';
-import { PASSWORD_MIN_LENGTH, PASSWORD_RULES } from '@/shared/lib/password';
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_RULES,
+} from '@/shared/lib/password';
 
 export const createEmployeeSchema = z.object({
   firstName: z
@@ -54,16 +58,26 @@ export type EditEmployeeFormValues = z.infer<typeof editEmployeeSchema>;
 
 // Usuario del empleado (SCRUM-21). El usuario es el mail, que ya está validado
 // en el alta; acá solo se valida la contraseña, por si la editan a mano.
-export const createAccountSchema = z.object({
-  password: z
-    .string()
-    .min(PASSWORD_MIN_LENGTH, `Mínimo ${PASSWORD_MIN_LENGTH} caracteres`)
-    .regex(PASSWORD_RULES.uppercase, 'Tiene que tener al menos una mayúscula')
-    .regex(PASSWORD_RULES.digit, 'Tiene que tener al menos un número')
-    .regex(
-      PASSWORD_RULES.special,
-      'Tiene que tener al menos un carácter especial',
-    ),
-});
+// El backend pide 8 a 64 caracteres y que no sea igual al mail; la mayúscula,
+// el número y el carácter especial son una exigencia extra del front.
+export const createAccountSchema = (email: string) =>
+  z.object({
+    password: z
+      .string()
+      .min(PASSWORD_MIN_LENGTH, `Mínimo ${PASSWORD_MIN_LENGTH} caracteres`)
+      .max(PASSWORD_MAX_LENGTH, `Máximo ${PASSWORD_MAX_LENGTH} caracteres`)
+      .regex(PASSWORD_RULES.uppercase, 'Tiene que tener al menos una mayúscula')
+      .regex(PASSWORD_RULES.digit, 'Tiene que tener al menos un número')
+      .regex(
+        PASSWORD_RULES.special,
+        'Tiene que tener al menos un carácter especial',
+      )
+      .refine(
+        (password) => password !== email,
+        'La contraseña no puede ser igual al mail',
+      ),
+  });
 
-export type CreateAccountFormValues = z.infer<typeof createAccountSchema>;
+export type CreateAccountFormValues = z.infer<
+  ReturnType<typeof createAccountSchema>
+>;

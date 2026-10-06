@@ -31,16 +31,20 @@ export interface UpdateEmployeeDto {
   role: EmployeeRole;
 }
 
-// Cuerpo del POST /empleados/:id/usuario (SCRUM-21). El usuario es el mail
-// del empleado y la contraseña se genera en el front.
+// Cuerpo del POST /usuarios (SCRUM-21). El mail tiene que ser el del
+// empleado: con él inicia sesión. La contraseña se genera en el front.
 export interface CreateAccountDto {
-  username: string;
+  employeeId: number;
+  email: string;
   password: string;
 }
 
-// Respuesta del alta de usuario. La contraseña nunca vuelve del backend.
+// Respuesta del alta de usuario. El rol es una copia del rol del empleado y
+// la contraseña nunca vuelve del backend.
 export interface Account {
-  id: number;
-  username: string;
+  accountId: number;
   employeeId: number;
+  email: string;
+  role: EmployeeRole;
+  active: boolean;
 }

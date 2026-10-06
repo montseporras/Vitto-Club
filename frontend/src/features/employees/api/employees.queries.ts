@@ -68,12 +68,13 @@ export const useDeactivateEmployee = () => {
 };
 
 // Alta del usuario de un empleado (SCRUM-21). Refresca la tabla para que el
-// empleado aparezca con usuario.
-export const useCreateEmployeeAccount = (id: number) => {
+// empleado aparezca con usuario; también si falla, porque un 404/409
+// significa que la tabla estaba desactualizada.
+export const useCreateEmployeeAccount = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: CreateAccountDto) => createEmployeeAccount(id, body),
-    onSuccess: () => {
+    mutationFn: (body: CreateAccountDto) => createEmployeeAccount(body),
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: employeesKeys.lists() });
     },
   });

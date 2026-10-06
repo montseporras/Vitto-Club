@@ -74,9 +74,8 @@ export async function updateEmployee(
 
 // Alta del usuario de un empleado (SCRUM-21): con este usuario entra al sistema.
 export async function createEmployeeAccount(
-  id: number,
   body: CreateAccountDto,
 ): Promise<Account> {
-  const { data } = await http.post<Account>(`/empleados/${id}/usuario`, body);
+  const { data } = await http.post<Account>('/usuarios', body);
   return data;
 }

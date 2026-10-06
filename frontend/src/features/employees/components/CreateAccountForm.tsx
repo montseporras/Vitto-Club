@@ -9,7 +9,7 @@ import { toApiError } from '@/shared/api/ApiError';
 import { FormActions } from '@/shared/components/forms/FormActions';
 import { FormField } from '@/shared/components/forms/FormField';
 import { FormSection } from '@/shared/components/forms/FormSection';
-import { Alert, AlertMessages } from '@/shared/components/ui/Alert';
+import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
 import { Icon } from '@/shared/components/ui/Icon';
 import { ICONS } from '@/shared/components/ui/icons';
@@ -29,8 +29,23 @@ interface CreateAccountFormProps {
 }
 
 interface Credentials {
-  username: string;
+  email: string;
   password: string;
+}
+
+// Mensaje según la respuesta del backend (POST /usuarios).
+function errorMessage(error: unknown): string {
+  const apiError = toApiError(error);
+  switch (apiError.status) {
+    case undefined:
+      return apiError.message;
+    case 409:
+      return 'No se pudo crear el usuario: el empleado ya tiene uno, está dado de baja o su mail ya lo usa un cliente.';
+    case 404:
+      return 'El empleado ya no existe.';
+    default:
+      return 'No se pudo crear el usuario. Intentá nuevamente.';
+  }
 }
 
 export function CreateAccountForm({
@@ -39,7 +54,7 @@ export function CreateAccountForm({
   onCancel,
 }: CreateAccountFormProps) {
   const [created, setCreated] = useState<Credentials | null>(null);
-  const createAccount = useCreateEmployeeAccount(employee.id);
+  const createAccount = useCreateEmployeeAccount();
 
   const {
     register,
@@ -48,15 +63,16 @@ export function CreateAccountForm({
     getValues,
     formState: { errors },
   } = useForm<CreateAccountFormValues>({
-    resolver: zodResolver(createAccountSchema),
+    resolver: zodResolver(createAccountSchema(employee.email)),
     defaultValues: { password: generatePassword() },
   });
 
   const onSubmit = handleSubmit(({ password }) => {
-    const credentials = { username: employee.email, password };
-    createAccount.mutate(credentials, {
-      onSuccess: () => setCreated(credentials),
-    });
+    const credentials = { email: employee.email, password };
+    createAccount.mutate(
+      { employeeId: employee.id, ...credentials },
+      { onSuccess: () => setCreated(credentials) },
+    );
   });
 
   const regenerate = () =>
@@ -75,7 +91,7 @@ export function CreateAccountForm({
 
         <FormSection step={1} title="Datos de acceso">
           <FormField id="usuario-creado" label="Usuario">
-            <Input id="usuario-creado" value={created.username} readOnly />
+            <Input id="usuario-creado" value={created.email} readOnly />
           </FormField>
 
           <FormField
@@ -105,18 +121,11 @@ export function CreateAccountForm({
     );
   }
 
-  const apiError = createAccount.error ? toApiError(createAccount.error) : null;
-
   return (
     <form onSubmit={onSubmit} noValidate>
-      {apiError && (
+      {createAccount.isError && (
         <Alert variant="error" className="mb-6">
-          <p>
-            {apiError.status === 409
-              ? 'Este empleado ya tiene un usuario o el mail ya está en uso.'
-              : 'No se pudo crear el usuario. Intentá nuevamente.'}
-          </p>
-          <AlertMessages messages={apiError.messages} />
+          {errorMessage(createAccount.error)}
         </Alert>
       )}
 
