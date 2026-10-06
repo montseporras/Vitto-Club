@@ -313,6 +313,9 @@ Es la lista de avisos que existen y qué datos lleva cada uno.
 | `employee.deactivated` | `employees` | `accounts` | Dar de baja la cuenta del empleado |
 | `employee.role-changed` | `employees` | `accounts` | Actualizar la copia del rol en la cuenta |
 | `account.deactivated` | `accounts` | `auth` | Revocar las sesiones abiertas de esa cuenta |
+| `customer.deactivated` | `customers` | `accounts` | Dar de baja la cuenta del cliente |
+| `customer.reactivated` | `customers` | `accounts` | Reactivar la cuenta del cliente |
+| `customer.email-changed` | `customers` | `accounts` | Actualizar el email de acceso del cliente |
 
 **Por qué está en una carpeta compartida (`shared/events/`) y no dentro de un
 módulo:** si `accounts` importara el evento desde `employees/domain`, se
@@ -522,9 +525,11 @@ Al escribir una operación que toca más de un módulo:
   línea hay que reescribirla cuando ese repositorio participe.
 - **Los eventos reales todavía no se publican ni se escuchan.** El contrato
   está definido; la implementación es parte del refactor de la rama `users`.
-- **Eventos de clientes:** van a hacer falta `customer.deactivated`,
-  `customer.reactivated` y `customer.document-changed` para las cuentas de
-  clientes. Se agregan al mismo archivo de contratos.
+- **Eventos de clientes:** `customer.deactivated`, `customer.reactivated` y
+  `customer.email-changed` ya están en el contrato. Falta publicarlos desde
+  `customers` y escucharlos desde `accounts`; es parte de la rama de cuentas
+  de clientes. Los clientes inician sesión con email, igual que los
+  empleados, así que no existe un evento de cambio de documento.
 - **Test de la cadena completa por HTTP** (degradar al último administrador
   desde `PATCH /api/empleados/:id` tiene que responder 409 y no cambiar nada).
   Es el test de aceptación del refactor de `users`.
@@ -558,3 +563,4 @@ Al escribir una operación que toca más de un módulo:
 | Fecha | Cambio |
 |---|---|
 | 2026-10-05 | Versión inicial: transacción ambiente, eventos de dominio, contrato de tres eventos, 9 tests |
+| 2026-10-05 | Se agregan los tres eventos de clientes. El login pasa a ser por email para todos los roles |
