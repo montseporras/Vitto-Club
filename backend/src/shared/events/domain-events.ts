@@ -24,3 +24,17 @@ export type EmployeeRoleChangedEvent = {
 // Lo emite accounts cuando da de baja una cuenta. Lo escucha auth para revocar sus sesiones.
 export const ACCOUNT_DEACTIVATED = 'account.deactivated';
 export type AccountDeactivatedEvent = { accountId: number };
+
+// Lo emite customers cuando da de baja un cliente. Lo escucha accounts para dar de baja su cuenta.
+export const CUSTOMER_DEACTIVATED = 'customer.deactivated';
+export type CustomerDeactivatedEvent = { customerId: number };
+
+// Lo emite customers cuando reactiva un cliente. Lo escucha accounts para reactivar su cuenta.
+export const CUSTOMER_REACTIVATED = 'customer.reactivated';
+export type CustomerReactivatedEvent = { customerId: number };
+
+// Lo emite customers cuando cambia el email de un cliente (solo si realmente cambió).
+// Lo escucha accounts para actualizar el email de acceso; si ese email ya tiene cuenta,
+// tira ConflictException y se deshace el cambio.
+export const CUSTOMER_EMAIL_CHANGED = 'customer.email-changed';
+export type CustomerEmailChangedEvent = { customerId: number; email: string };
