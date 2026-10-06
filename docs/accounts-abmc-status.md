@@ -60,9 +60,12 @@ Decisión vigente: **todos los roles autentican con email + password**, sin exce
   contra un hash señuelo generado una sola vez internamente (texto aleatorio vía
   `node:crypto`, memoizado) — mitigación de timing, sin constante fija externa.
 - **`findActiveById(accountId): Promise<AuthAccountInfo | undefined>`** — para refresh.
-- Ambos devuelven `AuthAccountInfo { accountId, role, owner: AccountOwner }`, donde
+- Ambos devuelven `AuthAccountInfo { accountId, role, owner: AccountOwner, email }`, donde
   `AccountOwner = { employeeId } | { customerId }` (el tipo ya admite Customer; en la
-  práctica hoy siempre resuelve `{employeeId}`).
+  práctica hoy siempre resuelve `{employeeId}`). `email` sale directo de `Account.email`
+  (ya normalizado, trim + lowercase, desde que se persistió) — no se vuelve a resolver
+  Employee/Customer solo para esto. Pedido por auth: necesita devolver la misma forma en
+  login y en refresh, y en refresh solo tiene `accountId`.
 - `PasswordHasher` sigue siendo solo el puerto (`hash`/`verify`), sin bcrypt ni ningún
   algoritmo concreto — eso lo provee auth, registrándolo como provider en `AccountsModule`.
 

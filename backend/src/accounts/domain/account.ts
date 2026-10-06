@@ -97,6 +97,17 @@ export class Account {
     this._updatedAt = new Date();
   }
 
+  // SCRUM-27 reversible: reactivar una cuenta dada de baja. Simétrico a deactivate():
+  // nunca crea una cuenta nueva, nunca toca email/role/passwordHash, solo el estado.
+  reactivate(): void {
+    if (this._active) {
+      throw new DomainError('Account is already active');
+    }
+    this._active = true;
+    this._deactivatedAt = null;
+    this._updatedAt = new Date();
+  }
+
   // GETTERS
   getId(): number | null { return this._id ? this._id.getValue() : null; }
   getEmployeeId(): number { return this._employeeId; }

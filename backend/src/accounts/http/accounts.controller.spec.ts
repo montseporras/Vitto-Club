@@ -11,6 +11,7 @@ describe('AccountsController', () => {
     updateRole: jest.Mock;
     resetPassword: jest.Mock;
     deactivate: jest.Mock;
+    reactivate: jest.Mock;
     findProfileByEmployeeId: jest.Mock;
     findProfileById: jest.Mock;
   };
@@ -30,6 +31,7 @@ describe('AccountsController', () => {
       updateRole: jest.fn(),
       resetPassword: jest.fn(),
       deactivate: jest.fn(),
+      reactivate: jest.fn(),
       findProfileByEmployeeId: jest.fn(),
       findProfileById: jest.fn(),
     };
@@ -108,6 +110,15 @@ describe('AccountsController', () => {
       const result = await controller.deactivate(7);
 
       expect(service.deactivate).toHaveBeenCalledWith(7);
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('reactivate() — SCRUM-27 (reversible)', () => {
+    it('delega en el servicio y no devuelve body (204)', async () => {
+      const result = await controller.reactivate(7);
+
+      expect(service.reactivate).toHaveBeenCalledWith(7);
       expect(result).toBeUndefined();
     });
   });

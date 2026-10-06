@@ -611,6 +611,56 @@ describe('AccountsService', () => {
     });
   });
 
+  describe('reactivate (SCRUM-27, reversible)', () => {
+    it('reactiva una cuenta inactiva cuyo Employee está activo', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+      await service.deactivate(account.getId() as number);
+
+      await service.reactivate(account.getId() as number);
+
+      expect(accountRepo.items.get(account.getId() as number)?.isActive()).toBe(true);
+    });
+
+    it('bloquea la reactivación si el Employee asociado está inactivo', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+      await service.deactivate(account.getId() as number);
+      await employeesService.deactivate(2);
+
+      await expect(service.reactivate(account.getId() as number)).rejects.toThrow(ConflictException);
+      expect(accountRepo.items.get(account.getId() as number)?.isActive()).toBe(false);
+    });
+
+    it('404 si la cuenta no existe', async () => {
+      await expect(service.reactivate(999)).rejects.toThrow(NotFoundException);
+    });
+
+    it('rechaza si ya está activa', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+
+      await expect(service.reactivate(account.getId() as number)).rejects.toThrow(ConflictException);
+    });
+
+    it('no crea una cuenta nueva y mantiene email, role y passwordHash', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+      const originalPasswordHash = account.getPasswordHash();
+      await service.deactivate(account.getId() as number);
+
+      await service.reactivate(account.getId() as number);
+
+      const stored = accountRepo.items.get(account.getId() as number);
+      expect(stored?.getId()).toBe(account.getId());
+      expect(stored?.getEmail()).toBe('bruno.perez@vitto.club');
+      expect(stored?.getPasswordHash()).toBe(originalPasswordHash);
+      const profile = await service.findProfileById(account.getId() as number);
+      expect(profile.role).toBe('CASHIER');
+      expect(accountRepo.items.size).toBe(1);
+    });
+  });
+
   describe('handleEmployeeDeactivated (listener de employee.deactivated)', () => {
     it('da de baja la cuenta del empleado si tiene una activa y publica account.deactivated', async () => {
       employeeRepo.seed(CASHIER_EMPLOYEE);

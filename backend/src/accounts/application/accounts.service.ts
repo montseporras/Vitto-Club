@@ -187,6 +187,28 @@ export class AccountsService {
     });
   }
 
+  // --- SCRUM-27 (reversible): REACTIVAR USUARIO ---
+  // Simétrico a deactivate(): nunca crea una Account nueva, nunca toca password/email/role.
+  // Solo puede reactivarse una Account cuyo Employee asociado esté activo; si el Employee
+  // está inactivo, reactivar la Account lo dejaría con credenciales operativas para un
+  // empleado que ya no debería poder loguearse.
+  async reactivate(accountId: number): Promise<void> {
+    const account = await this.findAccountOrFail(accountId);
+    if (account.isActive()) {
+      throw new ConflictException(`Account with ID ${accountId} is already active`);
+    }
+
+    const employee = await this.employeesService.findById(account.getEmployeeId());
+    if (!employee.isActive()) {
+      throw new ConflictException(
+        `Employee with ID ${employee.getId()} is inactive and cannot have its account reactivated`,
+      );
+    }
+
+    account.reactivate();
+    await this.accountsRepository.updateStatus(account);
+  }
+
   // --- Listener de employee.deactivated (ver employee-events.listener.ts) ---
   // El Employee ya fue persistido como inactivo en la MISMA transacción, antes de que este
   // evento llegue acá (lo publica EmployeesService.deactivate() después de escribir). Por

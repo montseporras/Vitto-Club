@@ -74,6 +74,13 @@ export class AccountsController {
     await this.accountsService.deactivate(id);
   }
 
+  // PATCH /api/usuarios/:id/reactivate -> SCRUM-27 (reversible) Reactivar usuario
+  @Patch(':id/reactivate')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async reactivate(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    await this.accountsService.reactivate(id);
+  }
+
   // GET /api/usuarios/empleado/:employeeId -> US-08 Consultar usuario (por empleado)
   @Get('empleado/:employeeId')
   async findByEmployeeId(
