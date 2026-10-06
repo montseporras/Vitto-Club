@@ -1,90 +1,115 @@
 # ABMC de cuentas de empleados (`src/accounts`) — estado interno
 
-Documento de seguimiento interno, no un contrato de API (todavía no hay HTTP para este módulo).
-Cubre **US-05 Registrar**, **US-06 Editar**, **US-07 Dar de Baja** y **US-08 Consultar** usuario
-de empleado. Las cuentas de `Customer` quedan fuera de este documento.
+Documento de seguimiento interno. Cubre **US-05 Registrar**, **US-06 Editar**, **US-07 Dar
+de Baja** y **US-08 Consultar** usuario de empleado, más los dos puntos de integración con
+auth (login y refresh). Las cuentas de `Customer` no están implementadas todavía — el
+dominio ya las admite a nivel de tipo, pero no hay flujo real.
 
-> **Alcance explícito:** `src/accounts/domain` y `src/accounts/application` están completos y
-> testeados. `src/accounts/infrastructure` está completo salvo `save()`. No hay controller, DTOs
-> HTTP, módulo registrado, login, JWT ni guards — ninguno de esos puntos está en alcance todavía.
-
----
-
-## ⚠️ Novedad sin aplicar aún: la corrección de `username` ya llegó al branch
-
-Mientras se redactaba este documento aparecieron dos commits nuevos de auth en `develop`:
-
-- `8bf88ac test(backend): run e2e tests against a separate guarded database`
-- `dcc6367 feat(backend): identify employee accounts by email instead of username`
-
-El segundo es exactamente la corrección que bloqueaba `AccountPrismaRepository.save()`:
-renombra `Account.username` → `Account.identifier` (`VARCHAR(150)`), y para cuentas de empleado
-pasa a guardar ahí una **copia de `Employee.email`** (no editable), igual que `Account.role` es
-copia de `Employee.role`. Para cuentas de cliente sigue siendo el número de documento.
-
-**Esta migración (`20261005213626_account_identifier`) todavía NO se aplicó** en esta base local
-— confirmado con `npx prisma migrate status` (solo lectura, no se ejecutó `migrate dev` ni
-`generate`). Por eso el estado de "pendiente por username" que se detalla abajo sigue siendo el
-correcto *a día de hoy*, pero va a dejar de serlo en cuanto se aplique esa migración y se
-reconcilie `src/accounts` contra el nuevo nombre/semántica de la columna.
+> **Estado general: completo de punta a punta (dominio, aplicación, infraestructura real
+> contra Prisma, HTTP) y probado — pero deliberadamente no expuesto.** `AccountsModule`
+> existe, con su controller y DTOs, pero **no está importado en `AppModule`**: no hay
+> guards todavía, así que no hay ninguna ruta `/api/usuarios/*` alcanzable por un request
+> real hoy. Eso es intencional, no un olvido.
 
 ---
 
-## Estado por historia
+## Historias
 
 ### US-05 — Registrar Usuario
-- ✅ Lógica de negocio completa (`AccountsService.register`): Employee existe y activo, sin
-  cuenta previa, email coincide con el de Employee, unicidad cruzada contra Customer,
-  password 8–64, hash delegado a `PasswordHasher` (puerto).
-- ⛔ Persistencia real pendiente **solo** por la columna `identifier`/auth:
-  `AccountPrismaRepository.save()` sigue lanzando un error explícito documentando el bloqueo.
-  No se inventó ningún valor. Una vez aplicada la migración de arriba, hay que decidir cómo
-  `save()` obtiene el `identifier` (candidato obvio ahora: `Employee.email`, ya que el commit
-  de auth confirma esa semántica) y recién ahí destrabar el método.
+`AccountsService.register()`: Employee existe (404) y activo (409), sin cuenta previa
+(409), el email recibido coincide con `Employee.email` (400), único frente a `Customer`
+(409, dirección `Customers → Employees`, ver más abajo), password 8-64 y distinta del
+email (comparación byte a byte, sin normalizar la password), hash vía `PasswordHasher`
+(puerto, sin implementación concreta). Persistencia real: `AccountPrismaRepository.save()`
+lee `Employee.email`/`Employee.role` y los escribe en `Account.email`/`Account.role`.
 
 ### US-06 — Editar Usuario
-- ✅ Lógica completa: cambio de rol (`Employee.role` como fuente de verdad,
-  `Account.role` sincronizado como copia derivada vía `syncRoleFromEmployee`, sin tratarlo como
-  fuente independiente), reset de password (8–64, vía `PasswordHasher`), email no editable
-  (no existe ninguna vía para tocarlo desde este módulo), protección del último ADMIN disponible
-  antes de aplicar una degradación.
-- Infraestructura real: todos los métodos usados por esta historia
-  (`updatePasswordHash`, `syncRoleFromEmployee`) funcionan contra la base real.
+- **Cambio de rol**: `updateRole()` delega en `EmployeesService.update()`. La sincronización
+  de `Account.role` (copia derivada) y la protección del último ADMIN **ya no las hace
+  `AccountsService` directamente** — las hace el listener del evento `employee.role-changed`
+  (ver sección de eventos).
+- **Reset de password**: `resetPassword()`, mismas reglas que el alta (8-64, distinta del
+  email), vía `PasswordHasher`.
+- Email no editable desde ningún lado de este módulo.
 
 ### US-07 — Dar de Baja Usuario
-- ✅ Lógica completa: baja lógica de `Account` (`isActive=false`), protección del último ADMIN
-  disponible, llamada a `SessionRevoker` (real, marca `Session.revokedAt`), `deactivateByEmployeeId`
-  listo para ser invocado desde la baja de `Employee`.
-- ⏳ **Integración automática desde `EmployeesService.deactivate()` — pendiente de autorización
-  explícita, documentada como requisito funcional:**
-  - Regla acordada: si el `Employee` dado de baja tiene `Account`, la baja de esa `Account` debe
-    intentarse como parte de la misma operación. Si esa `Account` corresponde al **último ADMIN
-    disponible** (`Employee.active && Employee.role === 'ADMIN' && Account.active`), la operación
-    **completa** se bloquea: no se da de baja el `Employee`, no queda la `Account` activa con el
-    `Employee` inactivo, y el error se propaga hacia quien llamó.
-  - Punto de integración exacto: `EmployeesService.deactivate(id)` en
-    `src/employees/application/employees.service.ts`, inmediatamente después de
-    `await this.employeesRepository.updateStatus(employee)`.
-  - Mecanismo para evitar dependencia circular (ya validado con el caso Employees↔Customers):
-    `forwardRef()` en ambos módulos + tipar el parámetro cruzado con una interfaz estructural
-    mínima en vez de la clase concreta (necesario por `emitDecoratorMetadata` + ESM nativo).
-  - **No implementado** — requiere tocar `src/employees/**` y `src/employees/employees.module.ts`,
-    fuera de alcance hasta que se autorice explícitamente.
+- **Vía HTTP directa** (`AccountsService.deactivate()`): baja lógica, protección del
+  último ADMIN evaluada ahí mismo, publica `account.deactivated` (nadie en este
+  repositorio lo escucha todavía — es para auth).
+- **Vía baja de Employee**: `EmployeesService.deactivate()` publica `employee.deactivated`
+  dentro de su propia transacción; el listener de `accounts` (`EmployeeEventsListener`)
+  reacciona dando de baja la `Account` asociada. Si eso dejaría el sistema sin ningún ADMIN
+  disponible, el listener tira y **toda la transacción se deshace** (el `Employee` tampoco
+  queda inactivo). Implementado y probado con rollback real (ver `transacciones-y-eventos.md`).
+- `SessionRevoker` **fue eliminado** (puerto + implementación Prisma + tests). Reemplazado
+  por el evento `account.deactivated`: auth es responsable de escucharlo y revocar sesiones.
 
 ### US-08 — Consultar Usuario
-- ✅ Lógica completa: `AccountsService.findProfileByEmployeeId` y `findProfileById`, ambos
-  devuelven `{ accountId, employeeId, email, role, active }`, nunca `passwordHash`.
-- **Endpoint futuro principal**: `GET /api/usuarios/empleado/:employeeId` (prioriza la consulta
-  por empleado, acorde a la redacción de la historia — "visualizar la cuenta de acceso asociada
-  a un empleado"). 404 si el Employee no existe, o si existe pero no tiene Account.
-  `findProfileById(accountId)` se conserva en el servicio por si otra operación lo necesita
-  internamente, pero no se expone como endpoint de esta historia por ahora.
+`findProfileByEmployeeId`/`findProfileById`, devuelven `{accountId, employeeId, email,
+role, active}`, nunca `passwordHash`. Endpoint HTTP: `GET /api/usuarios/empleado/:employeeId`.
 
 ---
 
-## Qué NO se tocó para llegar a este estado
+## Login y refresh (para que auth los consuma)
 
-Prisma (`schema.prisma`, migraciones, `seed.ts`), `src/auth` (no existe), `src/employees/**`,
-`src/customers/**`, ningún `*.module.ts` fuera de `src/accounts`, `AppModule`. Todo el trabajo
-de esta etapa vive exclusivamente en `src/accounts/domain` y `src/accounts/application`
-(más la infraestructura ya completada en la etapa anterior, sin cambios nuevos aquí).
+Decisión vigente: **todos los roles autentican con email + password**, sin excepción.
+
+- **`verifyCredentials(email, password): Promise<AuthAccountInfo | undefined>`** — normaliza
+  el email (`trim().toLowerCase()`), busca por `Account.email`, descarta cuentas inactivas o
+  sin match de password. Si el email no existe, **igual ejecuta `PasswordHasher.verify()`**
+  contra un hash señuelo generado una sola vez internamente (texto aleatorio vía
+  `node:crypto`, memoizado) — mitigación de timing, sin constante fija externa.
+- **`findActiveById(accountId): Promise<AuthAccountInfo | undefined>`** — para refresh.
+- Ambos devuelven `AuthAccountInfo { accountId, role, owner: AccountOwner }`, donde
+  `AccountOwner = { employeeId } | { customerId }` (el tipo ya admite Customer; en la
+  práctica hoy siempre resuelve `{employeeId}`).
+- `PasswordHasher` sigue siendo solo el puerto (`hash`/`verify`), sin bcrypt ni ningún
+  algoritmo concreto — eso lo provee auth, registrándolo como provider en `AccountsModule`.
+
+---
+
+## Unicidad global de email
+
+Dirección única y vigente: **`Customers → Employees`**. `CustomersService` valida contra
+`EmployeesService.existsByEmail()` tanto al crear un cliente como al editarle el email.
+`EmployeesService` **no** consulta a `Customers` (se eliminó esa dirección, con su
+`forwardRef` correspondiente).
+
+**Riesgo aceptado explícitamente**: si se crea un `Employee` con el email de un `Customer`
+ya existente, `EmployeesService.create()` no lo detecta. El conflicto aparece recién al
+intentar crear la `Account` de ese empleado, por `Account.email @unique` (constraint real
+en Prisma desde la migración `account_email`).
+
+---
+
+## Integración entre módulos: eventos, no llamadas directas
+
+`Employees` no importa ni conoce a `Accounts`, ni en código ni en imports — cero
+`forwardRef` entre ambos. La integración es por los eventos de dominio definidos en
+`src/shared/events/domain-events.ts` (contrato compartido, documentado a fondo en
+`docs/transacciones-y-eventos.md`):
+
+| Evento | Publica | Escucha | Efecto |
+|---|---|---|---|
+| `employee.deactivated` | `employees` | `accounts` | Da de baja la `Account` del empleado (con protección del último ADMIN) |
+| `employee.role-changed` | `employees` | `accounts` | Sincroniza `Account.role`; protección del último ADMIN si degrada |
+| `account.deactivated` | `accounts` | *(auth, pendiente)* | Revocar sesiones de esa cuenta |
+
+Todo esto corre dentro de una transacción ambiente (`PrismaTransactionRunner`, puerto
+`TransactionRunner` propio de cada módulo): si el listener tira, se deshacen **ambas**
+escrituras (la del que publicó y la del que escuchó), no solo una.
+
+`Accounts → Employees` y `Accounts → Customers` siguen siendo dependencias directas de
+servicio (sin `forwardRef`, no hay ciclo), porque `AccountsService` necesita leer
+`Employee.role`/`email`/`isActive` y chequear unicidad contra `Customer`.
+
+---
+
+## Qué falta — todo de auth, nada nuestro
+
+- `PasswordHasher` concreto (bcrypt u otro) — puerto listo, sin implementación.
+- El listener de `account.deactivated` que revoque sesiones reales.
+- `JwtAuthGuard`, `RolesGuard`, decorador de rol.
+- Registrar `AccountsModule` en `AppModule` — recién cuando exista lo anterior, porque sin
+  guards esas rutas quedarían abiertas.
+- Cuentas de `Customer` (hoy `AccountRepository`/`toDomain` solo resuelven `employeeId`).

@@ -231,7 +231,9 @@ La pantalla debe mostrar **el valor que devuelve la API**, no el que escribió e
 ## 5. Reglas de negocio
 
 - **El documento identifica al cliente.** El par `documentType` + `documentNumber` es único: repetirlo devuelve **409**.
-- **El email NO es único.** Dos clientes pueden compartir email.
+- **El email NO es único entre clientes.** Dos clientes pueden compartir email entre sí. Sí se
+  valida contra empleados: crear o editar un cliente con el email de un empleado existente
+  responde **409** (ver `docs/accounts-abmc-status.md`, sección "Unicidad global de email").
 - **Baja lógica.** Dar de baja no borra nada: el cliente pasa a `active: false`, se registra `deactivatedAt` y el registro conserva todos sus datos.
 - **Un cliente inactivo sigue ocupando su documento.** Para volver a registrarlo hay que reactivarlo, no crear uno nuevo. El mensaje de error del 409 lo sugiere.
 - **Un cliente inactivo no se puede modificar.** Hay que reactivarlo primero (409 si se intenta).
