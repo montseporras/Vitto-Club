@@ -50,4 +50,9 @@ describe('AuthConfig', () => {
       'SESSION_CUSTOMER_ABSOLUTE_SECONDS',
     );
   });
+
+  it('la cookie exige HTTPS solo en producción', () => {
+    expect(configWith({ JWT_SECRET: SECRET }).cookieSecure).toBe(false);
+    expect(configWith({ JWT_SECRET: SECRET, NODE_ENV: 'production' }).cookieSecure).toBe(true);
+  });
 });

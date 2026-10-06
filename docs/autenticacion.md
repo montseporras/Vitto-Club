@@ -4,11 +4,16 @@ Guía para entender el módulo `auth`: qué problema resuelve, qué piezas tiene
 en qué archivo está cada una y qué prueba cada test. Se va actualizando a
 medida que el módulo avanza.
 
-- **Estado:** están hechos el **dominio**, la **infraestructura** y los
-  **casos de uso** (login, renovación y cierre de sesión), y el módulo está
-  registrado en la aplicación. Todavía **nadie puede iniciar sesión**: faltan
-  los endpoints, y la verificación de credenciales es provisoria (rechaza
-  todo) hasta integrarse con `accounts`. Ver "Qué falta" al final.
+- **Estado:** el módulo `auth` está **completo por dentro**: dominio,
+  infraestructura, casos de uso y capa HTTP (los tres endpoints, la cookie,
+  los guards y los decoradores). Faltan dos cosas para que funcione de verdad,
+  y las dos son parte de la integración con `accounts`:
+  - **Nadie puede iniciar sesión todavía**: la verificación de credenciales es
+    provisoria y rechaza todo.
+  - **Los guards todavía no protegen nada**: existen y están probados, pero no
+    se registraron para toda la aplicación (ver 8.6).
+
+  Ver "Qué falta" al final.
 - **Importante:** desde que el módulo está registrado, **la aplicación no
   arranca sin `JWT_SECRET`** en el `.env` (ver 6.1).
 - **Rama:** `feature/auth-login`.
@@ -134,8 +139,7 @@ sesión venció a las 12:50 por inactividad y tiene que volver a entrar.
 
 ## 4. Las capas y los archivos
 
-El módulo sigue la arquitectura del proyecto. Hoy existen tres de las cuatro
-capas:
+El módulo sigue la arquitectura del proyecto, con sus cuatro capas:
 
 ```
 backend/src/auth/
@@ -165,8 +169,26 @@ backend/src/auth/
   application/                    HECHO  casos de uso
     auth.service.ts
     auth.service.spec.ts
+  http/                           HECHO  adaptador de entrada: REST
+    auth.controller.ts
+    refresh-cookie.ts
+    refresh-cookie.spec.ts
+    dto/
+      login.dto.ts
+      auth-response.dto.ts
+    filters/
+      auth-exception.filter.ts
+    guards/
+      jwt-auth.guard.ts
+      roles.guard.ts
+      guards.spec.ts
   auth.module.ts                  HECHO  liga cada puerto con su implementación
-  http/                           FALTA  endpoints, cookie y guards
+
+backend/src/shared/security/      HECHO  lo que usan los controllers de cualquier módulo
+  current-user-data.ts
+  public.decorator.ts
+  roles.decorator.ts
+  current-user.decorator.ts
 ```
 
 Fuera del módulo:
@@ -175,6 +197,7 @@ Fuera del módulo:
 |---|---|
 | `backend/src/app.module.ts` | Registra `AuthModule` |
 | `backend/test/auth-sessions.e2e-spec.ts` | Tests del repositorio y del armado del módulo, contra la base |
+| `backend/test/auth-http.e2e-spec.ts` | Tests de los endpoints, la cookie y los guards, por HTTP |
 | `backend/.env.example` | Seis variables nuevas de autenticación |
 | `backend/package.json` | Dependencia `@nestjs/jwt` |
 
@@ -741,7 +764,266 @@ function invalidCredentials(): UnauthorizedException {
 
 ---
 
-## 8. Los tests
+## 8. La capa HTTP
+
+Es la puerta de entrada: recibe los pedidos, llama a los casos de uso y arma
+las respuestas. No tiene reglas de negocio.
+
+### 8.1 Los tres endpoints
+
+Todos bajo `/api/auth`, todos `POST`, todos **públicos**: al login se llega
+sin sesión, y la renovación y el cierre se identifican por la cookie, no por
+el access token (que justamente puede estar vencido).
+
+| Endpoint | Recibe | Responde |
+|---|---|---|
+| `POST /api/auth/login` | `{ email, password }` en el cuerpo | 200 con `{ accessToken, user }`, y deja la cookie |
+| `POST /api/auth/refresh` | Solo la cookie | 200 con `{ accessToken, user }`, y **reemplaza** la cookie |
+| `POST /api/auth/logout` | Solo la cookie | 204 sin contenido, y borra la cookie |
+
+**Login correcto:**
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{ "email": "ana.gomez@vitto.club", "password": "..." }
+```
+
+```http
+HTTP/1.1 200 OK
+Set-Cookie: refresh_token=...; Path=/api/auth; Expires=...; HttpOnly; SameSite=Lax
+
+{
+  "accessToken": "eyJhbGciOi...",
+  "user": {
+    "accountId": 1,
+    "role": "ADMIN",
+    "employeeId": 1,
+    "email": "ana.gomez@vitto.club"
+  }
+}
+```
+
+Para un cliente, `user` trae `customerId` en lugar de `employeeId`.
+
+**Login incorrecto** (cualquiera sea la causa):
+
+```http
+HTTP/1.1 401 Unauthorized
+
+{
+  "statusCode": 401,
+  "error": "Unauthorized",
+  "message": "Los datos de acceso son incorrectos",
+  "path": "/api/auth/login",
+  "timestamp": "2026-10-06T01:50:01.054Z",
+  "code": "INVALID_CREDENTIALS"
+}
+```
+
+Esta respuesta es real: es la que da hoy la aplicación, porque el verificador
+provisorio rechaza todo.
+
+**Qué valida el login** (`dto/login.dto.ts`):
+
+```ts
+export class LoginDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(150)
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(64)
+  password!: string;
+}
+```
+
+Solo que los dos campos sean texto, no estén vacíos y no superen un largo
+máximo. **A propósito no valida** que el email tenga formato de email ni que
+la contraseña tenga un largo mínimo: un error de formato le diría a quien
+está probando credenciales qué forma tienen las válidas. Si falta un campo o
+viene uno de más, responde 400 y ni siquiera intenta autenticar.
+
+### 8.2 La cookie del refresh token
+
+El refresh token **nunca aparece en el cuerpo de una respuesta**. Viaja solo
+en una cookie, con estas características (`auth.controller.ts`):
+
+```ts
+private cookieOptions(): CookieOptions {
+  return {
+    httpOnly: true,
+    secure: this.config.cookieSecure,
+    sameSite: 'lax',
+    path: REFRESH_COOKIE_PATH,
+  };
+}
+```
+
+| Atributo | Qué hace | Para qué |
+|---|---|---|
+| `HttpOnly` | El JavaScript de la página no puede leer la cookie | Si un script malicioso se cuela en el frontend, no puede robar el refresh token |
+| `Secure` | Solo viaja por HTTPS | Nadie la ve en tránsito. Se activa solo en producción, porque en desarrollo se usa HTTP |
+| `SameSite=Lax` | No viaja en pedidos `POST` originados en otro sitio | Otro sitio web no puede hacer que el navegador renueve o cierre la sesión en nombre del usuario |
+| `Path=/api/auth` | Solo viaja a las rutas de `auth` | No se manda en cada pedido al resto de la API: menos exposición |
+| `Expires` | Vence en el tope máximo de la sesión | El navegador la descarta sola cuando la sesión ya no puede servir |
+
+El **access token**, en cambio, sí va en el cuerpo: el frontend lo guarda en
+memoria (no en `localStorage`) y lo manda en cada pedido en el encabezado
+`Authorization: Bearer <token>`.
+
+**Por qué esta división:** el token de vida larga (el refresh) queda fuera del
+alcance del JavaScript, y el que sí es accesible (el access) dura 15 minutos.
+
+**Un detalle importante de la renovación:** si falla, **no se borra la
+cookie**. Con dos pestañas abiertas puede pasar que las dos renueven a la vez
+con la misma cookie: una gana y deja una cookie nueva; la otra falla. Si esa
+respuesta de error borrara la cookie, se llevaría puesta la nueva que acaba de
+dejar la primera. Por eso el frontend, ante un fallo de renovación, reintenta
+una vez antes de mandar al login.
+
+**La cookie se lee a mano** (`refresh-cookie.ts`), sin la librería
+`cookie-parser`. Es una sola cookie, y evita una dependencia y un problema
+real: `cookie-parser` se configura en `main.ts`, que los tests no ejecutan.
+
+**Supuesto sobre el despliegue:** todo esto asume que el frontend y la API se
+ven bajo el **mismo origen**. En producción están en dominios distintos
+(Vercel y Render), así que hace falta un *rewrite* en Vercel que mande
+`/api/*` a Render. Sin eso la cookie sería "de terceros", y Safari las bloquea.
+En desarrollo, el frontend tiene que usar el proxy de Vite por el mismo
+motivo. **Pendiente de confirmar** con quien maneja Vercel.
+
+### 8.3 Los decoradores: `src/shared/security/`
+
+Son las marcas que cualquier controller, de cualquier módulo, le pone a sus
+endpoints. No deciden nada: solo dejan una etiqueta que después lee un guard.
+
+| Decorador | Qué declara |
+|---|---|
+| `@Public()` | Este endpoint se puede usar sin iniciar sesión |
+| `@Roles('ADMIN', 'CASHIER')` | Solo estos roles pueden usarlo |
+| `@CurrentUser()` | "Dame al usuario que hace este pedido" |
+
+Ejemplo de uso en un controller:
+
+```ts
+@Roles('ADMIN')
+@Get('admin')
+admin(@CurrentUser() user: CurrentUserData) {
+  return user;
+}
+```
+
+`user` trae `accountId`, `role` y `employeeId` o `customerId`. Es lo que va a
+usar auditoría para saber quién hizo cada operación.
+
+**Por qué viven en `shared/` y no en `auth`:** `auth` depende de `accounts`
+para el login. Si el controller de `accounts` importara `@Roles()` desde
+`auth`, los dos módulos se necesitarían mutuamente. Es una de las dos
+excepciones a la regla de que un módulo solo usa de otro su service (ver
+`docs/ARCHITECTURE.md`).
+
+### 8.4 El guard de autenticación: `jwt-auth.guard.ts`
+
+Un **guard** es una pieza de Nest que se ejecuta antes del controller y decide
+si el pedido pasa. Este responde a la pregunta **"¿quién sos?"**.
+
+```ts
+async canActivate(context: ExecutionContext): Promise<boolean> {
+  const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+    context.getHandler(),
+    context.getClass(),
+  ]);
+  if (isPublic) return true;
+
+  const request = context.switchToHttp().getRequest<...>();
+
+  const token = bearerToken(request.headers.authorization);
+  const account = token ? await this.accessTokens.verify(token) : null;
+  if (!account) {
+    throw new UnauthorizedException({ ..., code: UNAUTHENTICATED });
+  }
+
+  request.user = account;
+  return true;
+}
+```
+
+1. Si el endpoint está marcado `@Public()`, pasa sin mirar nada más.
+2. Saca el token del encabezado `Authorization: Bearer <token>`.
+3. Lo verifica con el mismo puerto que lo emitió.
+4. Si no hay token, o es inválido, o venció: **401** con el código
+   `UNAUTHENTICATED`. Ante eso el frontend renueva y reintenta.
+5. Si es válido, **deja al usuario en el pedido** (`request.user`). De ahí lo
+   toman `@CurrentUser()` y el guard de roles.
+
+**No consulta la base de datos**: alcanza con verificar la firma. Por eso es
+barato ejecutarlo en cada pedido, y por eso una baja tarda hasta 15 minutos en
+aplicarse.
+
+### 8.5 El guard de autorización: `roles.guard.ts`
+
+Corre después del anterior y responde a **"¿podés hacer esto?"**.
+
+```ts
+const allowed = this.reflector.getAllAndOverride<UserRole[] | undefined>(ROLES_KEY, targets);
+const user = context.switchToHttp().getRequest<{ user?: CurrentUserData }>().user;
+
+if (!allowed || !user || !allowed.includes(user.role)) {
+  throw new ForbiddenException({ ..., code: FORBIDDEN });
+}
+```
+
+Lee los roles declarados con `@Roles()` y comprueba que el del usuario esté
+entre ellos. Si no: **403** con el código `FORBIDDEN`.
+
+**La regla más importante:** fijate la primera condición, `!allowed`. Un
+endpoint que no tiene `@Roles()` ni `@Public()` **queda cerrado para todos**,
+incluso para un administrador con sesión iniciada. Es a propósito: si alguien
+agrega un endpoint y se olvida de declarar quién puede usarlo, falla cerrado y
+se nota enseguida, en vez de quedar abierto sin que nadie lo advierta.
+
+**401 y 403 no son lo mismo:**
+
+| Código | Significa | Qué hace el frontend |
+|---|---|---|
+| 401 `UNAUTHENTICATED` | No sé quién sos (sin token, o vencido) | Renueva y reintenta; si no puede, manda al login |
+| 403 `FORBIDDEN` | Sé quién sos, y no tenés permiso | Muestra "no tenés permiso"; renovar no sirve de nada |
+
+### 8.6 Por qué los guards todavía no están activos
+
+Los dos guards existen, están registrados en `AuthModule` y probados, pero
+**no se aplican a toda la aplicación**. Hoy `GET /api/empleados` sigue
+respondiendo sin token.
+
+Es deliberado. Si se activaran ahora, todos los endpoints de `customers` y
+`employees` pasarían a exigir un token, y como el verificador de credenciales
+es provisorio, nadie podría obtener uno: **la API entera quedaría bloqueada**
+para el frontend y para el resto del equipo.
+
+Se activan en la integración con `accounts`, en un solo paso junto con:
+
+- el verificador de credenciales real, para que se pueda iniciar sesión;
+- los `@Roles()` de cada endpoint, según la matriz de permisos;
+- los `@Public()` de los que tienen que quedar abiertos (por ejemplo el health
+  check y el registro de clientes).
+
+### 8.7 El filtro de errores: `auth-exception.filter.ts`
+
+Da a los errores de `auth` el mismo formato que usan los demás módulos
+(`statusCode`, `error`, `message`, `path`, `timestamp`), y agrega el campo
+`code` cuando el error lo trae.
+
+Los filtros de `customers` y `employees` todavía no dejan pasar `code` ni
+conocen el 403. Cuando los guards se activen, un "sin permiso" en sus
+endpoints saldría sin código. Hay que ajustarlos en la integración.
+
+---
+
+## 9. Los tests
 
 ### Unitarios
 
@@ -752,7 +1034,7 @@ cd backend
 npm test -- src/auth
 ```
 
-Resultado esperado: 5 archivos, 53 tests.
+Resultado esperado: 7 archivos, 67 tests.
 
 ### `session.spec.ts` — 12 tests
 
@@ -770,7 +1052,7 @@ Varios corresponden directo a criterios de aceptación: inactividad
 (SCRUM-158, criterio 6), duración máxima (criterio 7) y logout repetido
 (SCRUM-36, criterio 4).
 
-### `auth.config.spec.ts` — 6 tests
+### `auth.config.spec.ts` — 7 tests
 
 | Test | Qué prueba |
 |---|---|
@@ -780,6 +1062,7 @@ Varios corresponden directo a criterios de aceptación: inactividad
 | Sin secreto | No arranca |
 | Secreto corto | No arranca |
 | Plazo inválido | No arranca |
+| Cookie segura | Exige HTTPS solo en producción |
 
 ### `crypto-refresh-token-generator.spec.ts` — 4 tests
 
@@ -853,7 +1136,26 @@ expect((error as UnauthorizedException).getResponse()).toEqual({
 Ana fue dada de baja y entra con su contraseña correcta. La respuesta es
 idéntica, campo por campo, a la de una contraseña incorrecta.
 
-### Contra la base: `auth-sessions.e2e-spec.ts` — 13 tests
+### `guards.spec.ts` — 10 tests
+
+Arma una clase de mentira con un método por cada combinación de marcas
+(público, solo administrador, administrador o cajero, y sin declarar) y le
+pasa a cada guard un pedido falso.
+
+| Guard | Qué prueba |
+|---|---|
+| Autenticación (5) | Deja pasar un endpoint público sin token; con token válido pasa y guarda al usuario en el pedido; rechaza sin encabezado; rechaza un encabezado que no es `Bearer`; rechaza un token inválido o vencido |
+| Autorización (5) | Deja pasar un endpoint público; deja pasar un rol permitido; rechaza un rol no permitido con `FORBIDDEN`; un endpoint sin declarar queda cerrado; rechaza si no hay usuario |
+
+### `refresh-cookie.spec.ts` — 3 tests
+
+| Test | Qué prueba |
+|---|---|
+| Entre varias | Encuentra la cookie pedida aunque vengan otras |
+| Ausente | Devuelve vacío si no hay encabezado o no está esa cookie |
+| Con signo igual | No corta un valor que contiene `=` |
+
+### Contra la base
 
 Levantan la aplicación completa y usan la base de tests (`vitto_club_test`).
 
@@ -862,8 +1164,10 @@ cd backend
 npm run test:e2e
 ```
 
-Resultado esperado: 24 tests en total (2 de health, 9 de transacciones y
-eventos, 13 de sesiones).
+Resultado esperado: 40 tests en total (2 de health, 9 de transacciones y
+eventos, 13 de sesiones y 16 por HTTP).
+
+### `auth-sessions.e2e-spec.ts` — 13 tests
 
 | Test | Qué prueba |
 |---|---|
@@ -899,9 +1203,51 @@ expect(second).toBe(false);
 Las dos pestañas leen la misma sesión y las dos intentan renovarla. La primera
 lo logra; la segunda recibe `false` y su token nuevo nunca llega a existir.
 
+### `auth-http.e2e-spec.ts` — 16 tests
+
+Hacen pedidos HTTP reales contra la aplicación, como los haría el frontend.
+Dos particularidades del armado:
+
+- **Reemplazan el verificador provisorio** por uno falso con dos cuentas (un
+  cajero y una administradora), para poder iniciar sesión.
+- **Activan los guards para toda la aplicación** dentro del test, y agregan un
+  controller de prueba con un endpoint por cada combinación de marcas. Así se
+  prueba el comportamiento que va a tener la aplicación después de la
+  integración.
+
+| Grupo | Qué prueba |
+|---|---|
+| Login (4) | Responde el access token y la identidad; el refresh token viaja solo en la cookie, con `HttpOnly`, `Path=/api/auth` y `SameSite=Lax`, y no aparece en el cuerpo; con credenciales incorrectas responde 401 con el código y sin cookie; con campos vacíos o de más responde 400 |
+| Renovación (3) | Con la cookie responde lo mismo que el login y cambia la cookie; la cookie anterior deja de servir y el error **no borra** la cookie; sin cookie responde 401 |
+| Logout (2) | Responde 204, borra la cookie y la sesión ya no se puede renovar; sin cookie también responde 204 |
+| Guards (7) | Sin token, 401; token inválido, 401; con el access token del login se entra y `@CurrentUser()` entrega la identidad; un cajero en un endpoint de administrador, 403; un administrador entra; un endpoint público responde sin token; un endpoint sin declarar queda cerrado aunque haya sesión |
+
+El que recorre **el flujo completo** de un usuario real:
+
+```ts
+const token = await tokenOf('bruno@test.com', 'clave-de-bruno');
+
+const res = await request(app.getHttpServer())
+  .get('/api/guard-probe/admin')
+  .set('Authorization', `Bearer ${token}`)
+  .expect(403);
+
+expect(res.body.code).toBe('FORBIDDEN');
+```
+
+Bruno, cajero, inicia sesión de verdad, recibe un access token real y lo usa
+contra un endpoint solo para administradores. El guard de autenticación lo
+reconoce (por eso no es 401) y el de autorización lo frena (403).
+
+Además de los tests, se probó contra la **aplicación levantada**, sin nada
+falso: las tres rutas quedan registradas, el login responde 401 con el
+formato y el código esperados, el logout sin cookie responde 204, y
+`GET /api/empleados` sigue respondiendo 200 sin token (los guards todavía no
+son globales).
+
 ---
 
-## 9. Decisiones tomadas
+## 10. Decisiones tomadas
 
 | Decisión | Motivo |
 |---|---|
@@ -919,6 +1265,13 @@ lo logra; la segunda recibe `false` y su token nuevo nunca llega a existir.
 | El login y la renovación devuelven lo mismo | Al recargar la página, el frontend reconstruye su estado solo con la renovación |
 | El email va en la respuesta pero no en el access token | Puede cambiar, y el token quedaría con un dato viejo |
 | Los decoradores de seguridad viven en `src/shared/security/` | Para que `accounts` no tenga que importar `auth` (ver `docs/ARCHITECTURE.md`) |
+| El refresh token viaja en una cookie `HttpOnly`, nunca en el cuerpo | El JavaScript de la página no puede leerlo, así que un script malicioso tampoco |
+| El access token va en el cuerpo y el frontend lo guarda en memoria | Es el que dura poco; no se guarda en `localStorage` |
+| Un endpoint sin `@Roles()` ni `@Public()` queda cerrado para todos | Si alguien se olvida de declararlo, falla cerrado y no abierto |
+| El login no valida formato de email ni largo mínimo de contraseña | Un error de formato revelaría qué forma tienen las credenciales válidas |
+| Un fallo de renovación no borra la cookie | Con dos pestañas, borraría la cookie nueva que dejó la otra |
+| La cookie se lee a mano, sin `cookie-parser` | Evita una dependencia y una configuración en `main.ts` que los tests no ejecutan |
+| Los guards se activan para toda la aplicación recién en la integración | Antes de eso nadie puede iniciar sesión: activarlos bloquearía toda la API |
 
 ### Fuera de este sprint (deuda técnica)
 
@@ -953,16 +1306,31 @@ lo logra; la segunda recibe `false` y su token nuevo nunca llega a existir.
 
 ---
 
-## 10. Qué falta
+## 11. Qué falta
+
+`auth` está completo por dentro. Lo que queda es conectarlo con el resto.
 
 | Paso | Qué es | Depende de |
 |---|---|---|
-| D | Endpoints, cookie del refresh token, guards y decoradores (`@Roles`, `@Public`, `@CurrentUser`) | — |
-| E | Integración con `accounts`: hasher de contraseñas, conectar el login con la verificación de credenciales, proteger todos los endpoints | D y la rama `users` |
-| F | Tests de punta a punta, contrato para el frontend y documentación | E |
+| E | Integración con `accounts` (detalle abajo) | La rama `users` |
+| F | Tests de punta a punta con usuarios reales, contrato para el frontend y documentación final | E |
 
-Hasta el paso D el login se prueba con una verificación de credenciales
-falsa. Recién en el E entra el usuario real de la base.
+**El paso E, en detalle:**
+
+1. Adaptador de bcryptjs para las contraseñas, dentro de `accounts`.
+2. Adaptador que conecta `CredentialsVerifier` con `AccountsService`, en
+   reemplazo del provisorio.
+3. Registrar `AccountsModule` en `AppModule`.
+4. Registrar los dos guards para toda la aplicación.
+5. Poner `@Roles()` en cada endpoint de `customers`, `employees` y `usuarios`
+   según la matriz de permisos, y `@Public()` en los que quedan abiertos.
+6. Ajustar los filtros de `customers` y `employees` para el 403 y el campo
+   `code`.
+7. Quitar `PrismaSessionRevoker` de `accounts`: lo reemplaza el listener.
+8. Actualizar los tests e2e existentes para que manden token.
+
+Hasta ese paso, el login se prueba con una verificación de credenciales falsa.
+Recién ahí entra el usuario real de la base.
 
 ### Pendiente con otras personas
 
@@ -973,13 +1341,17 @@ falsa. Recién en el E entra el usuario real de la base.
 | Quien hizo `users` | Dejar el chequeo de email en un solo sentido (`customers` consulta a `employees`) y sacar los `forwardRef` |
 | Frontend | Si necesita el nombre del usuario (ver `/me` en deuda técnica) |
 | Frontend | El contrato: campo `email` en el login, códigos de error, que la renovación devuelve lo mismo que el login, renovar solo ante un 401 real y reintentar una vez |
-| Quien maneja Vercel | El rewrite de `/api/*` hacia Render, para que la cookie sea del mismo origen |
+| Quien maneja Vercel | El rewrite de `/api/*` hacia Render, para que la cookie sea del mismo origen. **Bloquea**: si no se puede, hay que rediseñar cómo viaja el refresh token |
+| Frontend | Que en desarrollo use el proxy de Vite (`/api` hacia `localhost:3000`), para que la cookie funcione igual que en producción |
+| Frontend | Que el access token se guarde en memoria y se mande como `Authorization: Bearer <token>`; que distinga 401 (`UNAUTHENTICATED`: renovar) de 403 (`FORBIDDEN`: sin permiso) |
+| Quienes hicieron `customers` y `employees` | Que sus filtros de error dejen pasar el campo `code` y conozcan el 403 |
+| Bloque de cuentas de clientes | Que su endpoint de registro lleve `@Public()` |
 | Equipo | Avisar que la aplicación no arranca sin `JWT_SECRET` |
 | Equipo | Unificar el idioma de los mensajes de error |
 
 ---
 
-## 11. Glosario
+## 12. Glosario
 
 | Término | Significado |
 |---|---|
@@ -1008,3 +1380,4 @@ falsa. Recién en el E entra el usuario real de la base.
 | 2026-10-05 | Versión inicial: dominio (sesión y puertos) y primera parte de la infraestructura (configuración, refresh token y JWT). 31 tests |
 | 2026-10-05 | Infraestructura completa: repositorio de sesiones, `auth.module.ts` y registro en `AppModule`. 10 tests contra la base. La aplicación ya exige `JWT_SECRET` para arrancar |
 | 2026-10-05 | Casos de uso: login, renovación y cierre de sesión, con códigos de error fijos y el email en la respuesta. Listener de `account.deactivated`. Verificador de credenciales provisorio. 22 tests unitarios y 3 contra la base. Se agregan las limitaciones conocidas y los pendientes con otras personas |
+| 2026-10-05 | Capa HTTP: los tres endpoints, la cookie del refresh token, los dos guards, los decoradores en `src/shared/security/` y el filtro de errores. 14 tests unitarios y 16 por HTTP. Los guards quedan sin activar para toda la aplicación hasta la integración. Se detalla el paso E |

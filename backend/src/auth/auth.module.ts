@@ -9,6 +9,9 @@ import { RefreshTokenGenerator } from './domain/port/refresh-token-generator.js'
 import { SessionPolicies } from './domain/port/session-policies.js';
 import { SessionRepository } from './domain/port/session.repository.js';
 import { TransactionRunner } from './domain/port/transaction-runner.js';
+import { AuthController } from './http/auth.controller.js';
+import { JwtAuthGuard } from './http/guards/jwt-auth.guard.js';
+import { RolesGuard } from './http/guards/roles.guard.js';
 import { AccountDeactivatedListener } from './infrastructure/account-deactivated.listener.js';
 import { AuthConfig } from './infrastructure/auth.config.js';
 import { CryptoRefreshTokenGenerator } from './infrastructure/crypto-refresh-token-generator.js';
@@ -32,6 +35,7 @@ import { UnavailableCredentialsVerifier } from './infrastructure/unavailable-cre
       },
     }),
   ],
+  controllers: [AuthController],
   providers: [
     AuthConfig,
     // Vincular cada puerto con su implementación
@@ -44,7 +48,11 @@ import { UnavailableCredentialsVerifier } from './infrastructure/unavailable-cre
     { provide: CredentialsVerifier, useClass: UnavailableCredentialsVerifier },
     AuthService,
     AccountDeactivatedListener,
+    // Todavía no se registran para toda la aplicación (APP_GUARD): eso es parte de la
+    // integración, junto con los roles de cada endpoint.
+    JwtAuthGuard,
+    RolesGuard,
   ],
-  exports: [AuthService],
+  exports: [AuthService, JwtAuthGuard, RolesGuard],
 })
 export class AuthModule {}

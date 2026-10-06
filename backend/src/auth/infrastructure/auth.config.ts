@@ -29,6 +29,8 @@ function positiveSeconds(config: ConfigService, name: string, fallback: number):
 export class AuthConfig implements SessionPolicies {
   readonly jwtSecret: string;
   readonly accessTokenTtlSeconds: number;
+  // La cookie del refresh token solo viaja por HTTPS en producción
+  readonly cookieSecure: boolean;
   private readonly employeePolicy: SessionPolicy;
   private readonly customerPolicy: SessionPolicy;
 
@@ -42,6 +44,7 @@ export class AuthConfig implements SessionPolicies {
     this.jwtSecret = secret;
 
     this.accessTokenTtlSeconds = positiveSeconds(config, 'JWT_ACCESS_TTL_SECONDS', DEFAULT_ACCESS_TTL_SECONDS);
+    this.cookieSecure = config.get<string>('NODE_ENV') === 'production';
 
     this.employeePolicy = {
       inactivityMs:
