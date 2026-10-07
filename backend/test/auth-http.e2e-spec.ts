@@ -119,7 +119,12 @@ describe('Auth por HTTP (e2e)', () => {
     const cashier = await createAccount('bruno@test.com', 'CASHIER');
     const admin = await createAccount('ana@test.com', 'ADMIN');
     credentials.add(
-      { account: { accountId: cashier.accountId, role: 'CASHIER', employeeId: cashier.employeeId }, email: 'bruno@test.com' },
+      {
+        account: { accountId: cashier.accountId, role: 'CASHIER', employeeId: cashier.employeeId },
+        email: 'bruno@test.com',
+        firstName: 'Bruno',
+        lastName: 'Pérez',
+      },
       'clave-de-bruno',
     );
     credentials.add(
@@ -137,9 +142,24 @@ describe('Auth por HTTP (e2e)', () => {
       const res = await login('bruno@test.com', 'clave-de-bruno').expect(200);
 
       expect(res.body.accessToken).toEqual(expect.any(String));
-      expect(res.body.user).toMatchObject({ role: 'CASHIER', email: 'bruno@test.com' });
+      expect(res.body.user).toMatchObject({
+        role: 'CASHIER',
+        email: 'bruno@test.com',
+        firstName: 'Bruno',
+        lastName: 'Pérez',
+      });
       expect(res.body.user.accountId).toEqual(expect.any(Number));
       expect(res.body.user.employeeId).toEqual(expect.any(Number));
+    });
+
+    it('el nombre viaja en la respuesta pero no dentro del access token', async () => {
+      const res = await login('bruno@test.com', 'clave-de-bruno').expect(200);
+
+      // El contenido de un JWT es legible por cualquiera: se decodifica la parte del medio
+      const payload = JSON.parse(Buffer.from(res.body.accessToken.split('.')[1], 'base64url').toString());
+
+      expect(Object.keys(payload).sort()).toEqual(['employeeId', 'exp', 'iat', 'role', 'sub']);
+      expect(JSON.stringify(payload)).not.toContain('Bruno');
     });
 
     it('el refresh token viaja solo en una cookie httpOnly, acotada a las rutas de auth', async () => {
@@ -187,6 +207,7 @@ describe('Auth por HTTP (e2e)', () => {
         .expect(200);
 
       expect(res.body.user).toEqual(loginRes.body.user);
+      expect(res.body.user).toMatchObject({ firstName: 'Bruno', lastName: 'Pérez' });
       expect(res.body.accessToken).toEqual(expect.any(String));
       expect(cookiePair(res)).not.toBe(cookiePair(loginRes));
     });

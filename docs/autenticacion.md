@@ -640,7 +640,32 @@ mostrarle. Los dos casos de uso arman la respuesta con la misma función
   para la duración de la cookie.
 - El **email** va en la respuesta pero **no dentro del access token**, porque
   puede cambiar. `auth` no lo conoce por sí mismo: se lo da `accounts`.
-- No incluye el **nombre** del usuario (ver deuda técnica, `/me`).
+- **Nombre y apellido** (`firstName`, `lastName`): el frontend los muestra en
+  el encabezado ("Nombre Apellido · Rol"). `accounts` los entrega junto con el
+  resto, tomándolos del empleado que ya carga para leer el rol, así que no
+  cuesta una consulta más. Igual que el email, van en la respuesta y **no
+  dentro del access token**: pueden cambiar. Son **opcionales** en el tipo:
+  para clientes `accounts` todavía no los conoce y la respuesta no los trae
+  (ver la limitación de abajo).
+
+  ```ts
+  user: {
+    ...verified.account,
+    email: verified.email,
+    ...(verified.firstName !== undefined ? { firstName: verified.firstName } : {}),
+    ...(verified.lastName !== undefined ? { lastName: verified.lastName } : {}),
+  },
+  ```
+
+  El `...(condición ? {...} : {})` agrega el campo solo si existe: si no, el
+  cliente recibiría `firstName: undefined`, y la respuesta tendría una clave
+  que no debería estar.
+
+  **Por qué para clientes no vienen:** el nombre del cliente vive en
+  `customers`. Si `accounts` lo leyera, dependería de `customers`, y
+  `customers` va a necesitar a `accounts` para crear la cuenta en el registro:
+  un ciclo. Se resuelve con `GET /api/customers/me` cuando la pantalla del
+  cliente lo requiera (ver deuda técnica).
 
 ### 7.2 Iniciar sesión
 
@@ -1034,7 +1059,7 @@ cd backend
 npm test -- src/auth
 ```
 
-Resultado esperado: 7 archivos, 67 tests.
+Resultado esperado: 7 archivos, 68 tests.
 
 ### `session.spec.ts` — 12 tests
 
@@ -1101,7 +1126,7 @@ Toma el token de un cajero, le reemplaza el contenido por uno que dice
 "administrador" y deja la firma original. El resultado es `null`: no se puede
 ascender uno mismo editando el token.
 
-### `auth.service.spec.ts` — 22 tests
+### `auth.service.spec.ts` — 23 tests
 
 Prueban los casos de uso con **puertos falsos**: un repositorio en memoria, un
 verificador de credenciales con dos cuentas cargadas (Ana, cajera, y Lucía,
@@ -1109,7 +1134,7 @@ clienta) y un emisor de tokens simplificado. No hay base ni JWT real.
 
 | Caso de uso | Qué prueba |
 |---|---|
-| Login (6) | Devuelve tokens, fecha tope e identidad con email; guarda el hash y no el token; plazos de empleado; plazos de cliente; con contraseña incorrecta o email inexistente da el mismo error y no guarda sesión; una cuenta dada de baja recibe exactamente el mismo error |
+| Login (7) | Devuelve tokens, fecha tope e identidad con email y nombre (y el nombre no está en el token); si `accounts` no conoce el nombre (clientes) la respuesta no trae esos campos; guarda el hash y no el token; plazos de empleado; plazos de cliente; con contraseña incorrecta o email inexistente da el mismo error y no guarda sesión; una cuenta dada de baja recibe exactamente el mismo error |
 | Renovación (12) | Devuelve lo mismo que el login; el token anterior deja de servir; no crea otra sesión; corre el vencimiento; usa el rol actual; falla sin token, con token desconocido, sesión vencida, pasada del tope, revocada, cuenta dada de baja y cuando otra pestaña ganó |
 | Logout (3) | Revoca y después no se puede renovar; no da error sin token, con token desconocido ni repetido; cierra solo esa sesión |
 | Revocar todas (1) | Cierra las sesiones de esa cuenta y no las de otra |
@@ -1164,8 +1189,8 @@ cd backend
 npm run test:e2e
 ```
 
-Resultado esperado: 40 tests en total (2 de health, 9 de transacciones y
-eventos, 13 de sesiones y 16 por HTTP).
+Resultado esperado: 41 tests en total (2 de health, 9 de transacciones y
+eventos, 13 de sesiones y 17 por HTTP). Con el e2e de permisos, 55.
 
 ### `auth-sessions.e2e-spec.ts` — 13 tests
 
@@ -1203,7 +1228,7 @@ expect(second).toBe(false);
 Las dos pestañas leen la misma sesión y las dos intentan renovarla. La primera
 lo logra; la segunda recibe `false` y su token nuevo nunca llega a existir.
 
-### `auth-http.e2e-spec.ts` — 16 tests
+### `auth-http.e2e-spec.ts` — 17 tests
 
 Hacen pedidos HTTP reales contra la aplicación, como los haría el frontend.
 Dos particularidades del armado:
@@ -1217,7 +1242,7 @@ Dos particularidades del armado:
 
 | Grupo | Qué prueba |
 |---|---|
-| Login (4) | Responde el access token y la identidad; el refresh token viaja solo en la cookie, con `HttpOnly`, `Path=/api/auth` y `SameSite=Lax`, y no aparece en el cuerpo; con credenciales incorrectas responde 401 con el código y sin cookie; con campos vacíos o de más responde 400 |
+| Login (5) | Responde el access token y la identidad con el nombre; el nombre viaja en la respuesta pero **no dentro del access token** (se decodifica el JWT real y se comprueba que solo tiene `sub`, `role`, `employeeId`, `iat` y `exp`); el refresh token viaja solo en la cookie, con `HttpOnly`, `Path=/api/auth` y `SameSite=Lax`, y no aparece en el cuerpo; con credenciales incorrectas responde 401 con el código y sin cookie; con campos vacíos o de más responde 400 |
 | Renovación (3) | Con la cookie responde lo mismo que el login y cambia la cookie; la cookie anterior deja de servir y el error **no borra** la cookie; sin cookie responde 401 |
 | Logout (2) | Responde 204, borra la cookie y la sesión ya no se puede renovar; sin cookie también responde 204 |
 | Guards (7) | Sin token, 401; token inválido, 401; con el access token del login se entra y `@CurrentUser()` entrega la identidad; un cajero en un endpoint de administrador, 403; un administrador entra; un endpoint público responde sin token; un endpoint sin declarar queda cerrado aunque haya sesión |
@@ -1279,7 +1304,7 @@ los filtros descartaban el campo `code` y mostraban el 403 como
 pasar el `code`, pasaron los 14. Es la prueba de que el test mide lo que debe
 y no pasa de casualidad.
 
-Resultado esperado de `npm run test:e2e`: 54 tests (40 de antes y 14 de
+Resultado esperado de `npm run test:e2e`: 55 tests (41 de antes y 14 de
 este archivo).
 
 ---
@@ -1309,6 +1334,10 @@ este archivo).
 | Un fallo de renovación no borra la cookie | Con dos pestañas, borraría la cookie nueva que dejó la otra |
 | La cookie se lee a mano, sin `cookie-parser` | Evita una dependencia y una configuración en `main.ts` que los tests no ejecutan |
 | Los guards se activan para toda la aplicación recién en la integración | Antes de eso nadie puede iniciar sesión: activarlos bloquearía toda la API |
+| Nombre y apellido van en la respuesta del login y la renovación, no en el token | El frontend los muestra en el encabezado; pueden cambiar. Evita crear endpoints `/me` solo para eso |
+| Para clientes el nombre no viene por ahora | Leerlo desde `accounts` crearía un ciclo con `customers`; se resuelve con `GET /customers/me` cuando haga falta |
+| El rol de un empleado se cambia solo desde `PATCH /empleados/:id` | Decisión del PO (2026-10-06): `Employee.role` es la fuente de verdad. "Editar usuario" queda para los datos de acceso (resetear contraseña) |
+| La lista de usuarios se pide con `GET /api/usuarios`, no dentro de la respuesta de empleado | `employees` no puede conocer a `accounts`: la dependencia va en un solo sentido |
 
 ### Fuera de este sprint (deuda técnica)
 
@@ -1320,13 +1349,19 @@ este archivo).
 - **Cambio de contraseña por el propio usuario.**
 - **Verificación del email al registrarse.**
 - **Limpieza de sesiones vencidas** de la tabla.
-- **Datos del propio usuario (`/me`).** El login devuelve id de cuenta, rol,
-  id de empleado o de cliente y email, pero no el nombre: `auth` no lo conoce.
-  Con la matriz de permisos, ni el cliente ni el cajero pueden consultar sus
-  propios datos (`GET /customers/:id` y `GET /empleados` están cerrados para
-  ellos). Si el frontend necesita el nombre, hacen falta `GET /customers/me` y
-  `GET /empleados/me`, resueltos con `@CurrentUser()`. Pendiente de confirmar
-  con el frontend.
+- **Nombre del Cliente en la sesión (`/me`).** Para empleados el nombre y el
+  apellido ya vienen en el login y la renovación. Para clientes no: con la
+  matriz de permisos el cliente no puede consultar sus propios datos
+  (`GET /customers/:id` está cerrado para él). Si la pantalla del cliente lo
+  necesita, hace falta `GET /customers/me`, resuelto con `@CurrentUser()`
+  (que trae `customerId`). No crea ciclos ni copias de datos. Pendiente: la
+  pantalla del cliente todavía no está definida.
+- **Ciclo `accounts` ↔ `customers` a resolver antes del registro de clientes.**
+  Hoy `AccountsService` depende de `CustomersService` (solo para chequear que
+  el email de un empleado no esté registrado como cliente). Si el registro de
+  clientes llama a `accounts` para crear la cuenta, queda un ciclo. Hay que
+  decidir quién orquesta ese registro antes de que se construya; ver el
+  contexto en `docs/contexto-proximo-chat.md`.
 - **Idioma de los mensajes de error.** El del login está en español; el resto
   del backend, en inglés. A unificar con el equipo.
 
@@ -1356,7 +1391,8 @@ este archivo).
 
 1. Adaptador de bcryptjs para las contraseñas, dentro de `accounts`.
 2. Adaptador que conecta `CredentialsVerifier` con `AccountsService`, en
-   reemplazo del provisorio.
+   reemplazo del provisorio. Traduce `undefined` a `null`, `owner` a
+   `employeeId` o `customerId`, y pasa `email`, `firstName` y `lastName`.
 3. Registrar `AccountsModule` en `AppModule`.
 4. Registrar los dos guards para toda la aplicación.
 5. Poner `@Roles('ADMIN')` en el controller de `usuarios`. (`customers`,
@@ -1372,13 +1408,17 @@ Recién ahí entra el usuario real de la base.
 
 | Con quién | Qué |
 |---|---|
-| Quien hizo `users` | Reactivar cuenta (SCRUM-27 es reversible, solo si el empleado está activo) |
+| Quien hizo `users` | ~~Reactivar cuenta~~: hecho (`reactivate`, con la regla de "solo si el empleado está activo") |
+| Quien hizo `users` | `firstName` y `lastName` en `AuthAccountInfo` (en `verifyCredentials` y en `findActiveById`), tomados del empleado que ya carga |
+| Quien hizo `users` | `code: 'LAST_ADMIN'` en los dos `ConflictException` del último administrador, y que su filtro de errores deje pasar `code` |
+| Quien hizo `users` | Sacar `role` de `PATCH /api/usuarios/:id` (decisión del PO) y agregar `GET /api/usuarios` con `{ id, employeeId, active }` |
 | Quien hizo `users` | E2E de aceptación contra la base y por HTTP, con sus módulos reales: degradar o dar de baja al único administrador responde 409 y no cambia nada; con dos administradores se puede |
 | Quien hizo `users` | Corregir en `docs/accounts-abmc-status.md` que `AuthAccountInfo` sí incluye `email`; revisar que su filtro de errores deje pasar `code` y conozca el 403; abrir el PR de `users` a `develop` |
 | Cuentas de clientes | Que `AccountRole` y `findByEmail` admitan clientes; que su endpoint de registro lleve `@Public()` |
 | Frontend | `VITE_API_URL=/api`, proxy de Vite, y las reglas de la sección 8 de `docs/auth-api.md` |
-| Frontend | Si necesita el nombre del usuario (ver `/me` en deuda técnica) |
-| Quien maneja Vercel | El rewrite de `/api/*` hacia Render, para que la cookie sea del mismo origen. **Bloquea**: si no se puede, hay que rediseñar cómo viaja el refresh token |
+| Frontend | Cerrar con ellos el contrato del nombre para clientes (hoy no viene; ver `/me` en deuda técnica) |
+| Frontend | Subir el timeout de axios (hoy 8 s) por el arranque lento de Render |
+| Quien maneja Vercel / Render | Confirmado por el frontend: el rewrite se puede hacer y el diseño de la cookie se mantiene. Falta crear los proyectos; con la URL de Render se agrega el `vercel.json` |
 | Quien maneja Render | Cargar `NODE_ENV=production` (sin eso la cookie no sale `Secure`) y un `JWT_SECRET` propio de producción |
 | Equipo | Avisar que la aplicación no arranca sin `JWT_SECRET` |
 | Equipo | Unificar el idioma de los mensajes de error |
@@ -1416,3 +1456,4 @@ Recién ahí entra el usuario real de la base.
 | 2026-10-05 | Casos de uso: login, renovación y cierre de sesión, con códigos de error fijos y el email en la respuesta. Listener de `account.deactivated`. Verificador de credenciales provisorio. 22 tests unitarios y 3 contra la base. Se agregan las limitaciones conocidas y los pendientes con otras personas |
 | 2026-10-05 | Capa HTTP: los tres endpoints, la cookie del refresh token, los dos guards, los decoradores en `src/shared/security/` y el filtro de errores. 14 tests unitarios y 16 por HTTP. Los guards quedan sin activar para toda la aplicación hasta la integración. Se detalla el paso E |
 | 2026-10-05 | Roles declarados en `customers`, `employees` y `health`; filtros de error de `customers` y `employees` con 403 y `code`; e2e de la matriz de permisos (14 tests); contrato para el frontend en `docs/auth-api.md`. Se actualizan los pendientes con otras personas |
+| 2026-10-06 | Nombre y apellido en la respuesta del login y la renovación (opcionales; hoy solo empleados), sin ir dentro del token. Decisiones del PO: el rol solo se cambia desde empleados; la lista de usuarios va en `GET /api/usuarios`. Se documenta el posible ciclo `accounts` ↔ `customers` y se actualiza `docs/auth-api.md` (nombre, y sección 11 con lo acordado y pendiente). 68 tests de `auth`, 55 e2e |

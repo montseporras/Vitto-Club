@@ -30,6 +30,8 @@ export interface AuthUser {
   accountId: number;
   role: UserRole;
   email: string;
+  firstName?: string;  // presente para ADMIN y CASHIER; ausente para CUSTOMER (por ahora)
+  lastName?: string;   // ídem
   employeeId?: number; // presente para ADMIN y CASHIER
   customerId?: number; // presente para CUSTOMER
 }
@@ -71,11 +73,23 @@ export interface ApiError {
 ```json
 {
   "accessToken": "eyJhbGciOi...",
-  "user": { "accountId": 1, "role": "ADMIN", "employeeId": 1, "email": "ana.gomez@vitto.club" }
+  "user": {
+    "accountId": 1,
+    "role": "ADMIN",
+    "employeeId": 1,
+    "email": "ana.gomez@vitto.club",
+    "firstName": "Ana",
+    "lastName": "Gómez"
+  }
 }
 ```
 
 Además deja la cookie `refresh_token` (el frontend no la ve ni la maneja).
+
+**Nombre y apellido** (`firstName`, `lastName`): sirven para mostrar "Nombre Apellido · Rol" en el encabezado.
+Vienen **para Administrador y Cajero**. Para el **Cliente no vienen** (los campos no existen en la respuesta):
+tipar como opcionales y no asumir que están. Se leen del empleado en cada login y en cada renovación, así que
+un cambio de nombre se ve en la renovación siguiente (hasta 15 minutos). No están dentro del access token.
 
 ### Errores
 
@@ -176,7 +190,22 @@ Decidir siempre por el campo **`code`**, nunca por el texto del `message`.
 
 ## 10. Todavía no existe
 
-- **Datos del propio usuario** (nombre, apellido): el login devuelve ids, rol y email, pero no el nombre. Si hace
-  falta, se agregan `GET /api/customers/me` y `GET /api/empleados/me`. Avisar si el frontend lo necesita.
+- **Nombre y apellido del Cliente.** Hoy solo vienen para empleados. Si la pantalla del cliente los necesita se
+  agrega `GET /api/customers/me`. Avisar cuando se defina esa pantalla.
 - **Cambio de contraseña por el propio usuario.**
 - **Registro de clientes** por su cuenta: es otro bloque. Su endpoint va a ser público.
+
+---
+
+## 11. Acordado con el frontend, pendiente de implementar
+
+Estos cambios están decididos pero **todavía no existen**. Los implementa el módulo de cuentas (`/api/usuarios`).
+
+- **`GET /api/usuarios`**: listado `[{ id, employeeId, active }]`. Sirve para saber qué empleados tienen usuario,
+  cuáles están dados de baja, y el `id` que piden `PATCH /api/usuarios/:id`, `/deactivate` y `/reactivate`.
+  Se cruza con la lista de empleados por `employeeId`. Un empleado sin usuario simplemente no aparece.
+- **`code: "LAST_ADMIN"`** en el 409 de "esto dejaría al sistema sin administrador", tanto en
+  `PATCH /api/usuarios/:id/deactivate` como en `DELETE /api/empleados/:id` y `PATCH /api/empleados/:id`.
+  Distingue ese 409 del de "ya estaba dado de baja".
+- **El rol se cambia solo desde `PATCH /api/empleados/:id`.** `PATCH /api/usuarios/:id` queda para resetear la
+  contraseña y deja de aceptar `role`.

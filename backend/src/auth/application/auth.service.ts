@@ -11,7 +11,12 @@ import { SessionRepository } from '../domain/port/session.repository.js';
 export const INVALID_CREDENTIALS = 'INVALID_CREDENTIALS';
 export const INVALID_SESSION = 'INVALID_SESSION';
 
-export type AuthenticatedUser = AuthenticatedAccount & { email: string };
+export type AuthenticatedUser = AuthenticatedAccount & {
+  email: string;
+  // Solo si accounts los conoce (hoy, empleados). Nunca van dentro del access token.
+  firstName?: string;
+  lastName?: string;
+};
 
 // Lo que devuelven el login y la renovación: exactamente lo mismo, para que el front
 // pueda reconstruir su estado al recargar la página.
@@ -136,7 +141,12 @@ export class AuthService {
       accessToken: await this.accessTokens.issue(verified.account),
       refreshToken,
       refreshTokenExpiresAt: session.getAbsoluteExpiresAt(),
-      user: { ...verified.account, email: verified.email },
+      user: {
+        ...verified.account,
+        email: verified.email,
+        ...(verified.firstName !== undefined ? { firstName: verified.firstName } : {}),
+        ...(verified.lastName !== undefined ? { lastName: verified.lastName } : {}),
+      },
     };
   }
 }

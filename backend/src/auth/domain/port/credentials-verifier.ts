@@ -7,6 +7,10 @@ export type VerifiedAccount = {
   // Email de acceso de la cuenta, ya normalizado. Se le devuelve al front pero no va en
   // el token, porque puede cambiar.
   email: string;
+  // Nombre para mostrar en el encabezado. Tampoco va en el token. Es opcional a propósito:
+  // hoy accounts solo lo conoce para empleados; para clientes no viene (ver docs/auth-api.md).
+  firstName?: string;
+  lastName?: string;
 };
 
 // Puerto hacia el módulo dueño de las cuentas y las contraseñas (accounts). auth nunca ve

@@ -81,8 +81,13 @@ class InMemorySessions extends SessionRepository {
 class FakeCredentials extends CredentialsVerifier {
   private readonly accounts = new Map<number, { verified: VerifiedAccount; password: string; active: boolean }>();
 
-  add(account: AuthenticatedAccount, email: string, password: string): void {
-    this.accounts.set(account.accountId, { verified: { account, email }, password, active: true });
+  add(
+    account: AuthenticatedAccount,
+    email: string,
+    password: string,
+    names?: { firstName: string; lastName: string },
+  ): void {
+    this.accounts.set(account.accountId, { verified: { account, email, ...names }, password, active: true });
   }
 
   deactivate(accountId: number): void {
@@ -150,18 +155,33 @@ describe('AuthService', () => {
     refreshTokens = new CryptoRefreshTokenGenerator();
     service = new AuthService(credentials, sessions, new FakeAccessTokens(), refreshTokens, new FixedPolicies());
 
-    credentials.add(ANA, 'ana.gomez@vitto.club', 'secreta-de-ana');
+    // Ana es empleada: accounts conoce su nombre. Lucía es clienta: hoy no viene.
+    credentials.add(ANA, 'ana.gomez@vitto.club', 'secreta-de-ana', { firstName: 'Ana', lastName: 'Gómez' });
     credentials.add(LUCIA, 'lucia@example.com', 'secreta-de-lucia');
   });
 
   describe('login', () => {
-    it('devuelve los dos tokens, la fecha tope y la identidad con el email', async () => {
+    it('devuelve los dos tokens, la fecha tope y la identidad con el email y el nombre', async () => {
       const result = await service.login('ana.gomez@vitto.club', 'secreta-de-ana');
 
+      // El nombre NO va dentro del access token: solo la identidad
       expect(JSON.parse(result.accessToken)).toEqual(ANA);
       expect(result.refreshToken).toEqual(expect.any(String));
-      expect(result.user).toEqual({ ...ANA, email: 'ana.gomez@vitto.club' });
+      expect(result.user).toEqual({
+        ...ANA,
+        email: 'ana.gomez@vitto.club',
+        firstName: 'Ana',
+        lastName: 'Gómez',
+      });
       expect(result.refreshTokenExpiresAt).toEqual(sessions.rows[0].getAbsoluteExpiresAt());
+    });
+
+    it('si accounts no conoce el nombre (clientes), la respuesta no lo trae', async () => {
+      const result = await service.login('lucia@example.com', 'secreta-de-lucia');
+
+      expect(result.user).toEqual({ ...LUCIA, email: 'lucia@example.com' });
+      expect(result.user).not.toHaveProperty('firstName');
+      expect(result.user).not.toHaveProperty('lastName');
     });
 
     it('guarda el hash del refresh token, nunca el token', async () => {
@@ -220,6 +240,8 @@ describe('AuthService', () => {
       const refreshed = await service.refresh(login.refreshToken);
 
       expect(refreshed.user).toEqual(login.user);
+      // Al recargar la página el front solo tiene la renovación: tiene que traer el nombre
+      expect(refreshed.user).toMatchObject({ firstName: 'Ana', lastName: 'Gómez' });
       expect(refreshed.refreshTokenExpiresAt).toEqual(login.refreshTokenExpiresAt);
       expect(JSON.parse(refreshed.accessToken)).toEqual(ANA);
       expect(refreshed.refreshToken).not.toBe(login.refreshToken);

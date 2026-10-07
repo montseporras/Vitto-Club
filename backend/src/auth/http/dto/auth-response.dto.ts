@@ -8,6 +8,9 @@ export class AuthResponseDto {
     accountId: number;
     role: 'ADMIN' | 'CASHIER' | 'CUSTOMER';
     email: string;
+    // Para mostrar "Nombre Apellido · Rol" en el encabezado. Solo para empleados por ahora.
+    firstName?: string;
+    lastName?: string;
     employeeId?: number;
     customerId?: number;
   };
