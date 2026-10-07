@@ -216,8 +216,9 @@ describe('Sesiones de auth (e2e)', () => {
       expect(policies.forRole('CUSTOMER').absoluteMs).toBeGreaterThan(policies.forRole('ADMIN').absoluteMs);
     });
 
-    it('con el verificador provisorio nadie puede iniciar sesión', async () => {
-      await expect(app.get(AuthService).login('a@test.com', 'x')).rejects.toBeInstanceOf(UnauthorizedException);
+    it('con el verificador real, una contraseña que no coincide no inicia sesión', async () => {
+      // La cuenta de prueba tiene un hash inválido ("x"): no hay contraseña que le sirva
+      await expect(app.get(AuthService).login('a@test.com', 'cualquiera1')).rejects.toBeInstanceOf(UnauthorizedException);
     });
   });
 });

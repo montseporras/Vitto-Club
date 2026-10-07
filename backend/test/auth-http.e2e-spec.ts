@@ -5,8 +5,6 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { CredentialsVerifier, VerifiedAccount } from '../src/auth/domain/port/credentials-verifier.js';
-import { JwtAuthGuard } from '../src/auth/http/guards/jwt-auth.guard.js';
-import { RolesGuard } from '../src/auth/http/guards/roles.guard.js';
 import { CurrentUser } from '../src/shared/security/current-user.decorator.js';
 import type { CurrentUserData } from '../src/shared/security/current-user-data.js';
 import { Public } from '../src/shared/security/public.decorator.js';
@@ -103,8 +101,7 @@ describe('Auth por HTTP (e2e)', () => {
     // Igual que main.ts
     app.setGlobalPrefix('api');
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
-    // En la aplicación real los guards se registran globalmente en la integración
-    app.useGlobalGuards(app.get(JwtAuthGuard), app.get(RolesGuard));
+    // Los guards ya son globales: los registra AuthModule (APP_GUARD)
     await app.init();
 
     prisma = app.get(PrismaService);

@@ -5,8 +5,6 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { CredentialsVerifier, VerifiedAccount } from '../src/auth/domain/port/credentials-verifier.js';
-import { JwtAuthGuard } from '../src/auth/http/guards/jwt-auth.guard.js';
-import { RolesGuard } from '../src/auth/http/guards/roles.guard.js';
 
 type Actor = 'admin' | 'cashier' | 'customer';
 type Endpoint = { method: 'get' | 'post' | 'patch' | 'delete'; path: string };
@@ -35,10 +33,19 @@ const EMPLOYEE_ENDPOINTS: Endpoint[] = [
   { method: 'delete', path: '/api/empleados/999999' },
 ];
 
+const ACCOUNT_ENDPOINTS: Endpoint[] = [
+  { method: 'get', path: '/api/usuarios/empleado/999999' },
+  { method: 'post', path: '/api/usuarios' },
+  { method: 'patch', path: '/api/usuarios/999999' },
+  { method: 'patch', path: '/api/usuarios/999999/deactivate' },
+  { method: 'patch', path: '/api/usuarios/999999/reactivate' },
+];
+
 // La matriz de permisos: quién puede usar cada grupo de endpoints
 const GROUPS: { name: string; endpoints: Endpoint[]; allowed: Actor[] }[] = [
   { name: 'customers', endpoints: CUSTOMER_ENDPOINTS, allowed: ['admin', 'cashier'] },
   { name: 'empleados', endpoints: EMPLOYEE_ENDPOINTS, allowed: ['admin'] },
+  { name: 'usuarios', endpoints: ACCOUNT_ENDPOINTS, allowed: ['admin'] },
 ];
 
 // Reemplaza al verificador provisorio: acá sí hay cuentas con las que entrar
@@ -104,8 +111,7 @@ describe('Permisos por rol de los endpoints (e2e)', () => {
     // Igual que main.ts
     app.setGlobalPrefix('api');
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
-    // En la aplicación real los guards se registran globalmente en la integración
-    app.useGlobalGuards(app.get(JwtAuthGuard), app.get(RolesGuard));
+    // Los guards ya son globales: los registra AuthModule (APP_GUARD)
     await app.init();
 
     prisma = app.get(PrismaService);
