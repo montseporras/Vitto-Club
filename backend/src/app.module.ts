@@ -9,6 +9,7 @@ import { PrismaService } from './prisma/prisma.service.js';
 import { HealthModule } from './health/health.module.js';
 import { CustomersModule } from './customers/customers.module.js';
 import { EmployeesModule } from './employees/employees.module.js';
+import { AccountsModule } from './accounts/accounts.module.js';
 import { AuthModule } from './auth/auth.module.js';
 
 @Module({
@@ -33,6 +34,7 @@ import { AuthModule } from './auth/auth.module.js';
     HealthModule,
     CustomersModule,
     EmployeesModule,
+    AccountsModule,
     AuthModule,
   ],
 })
