@@ -3,10 +3,15 @@
 Documento para quien integra el frontend con el backend de La Vitto. Describe cómo iniciar sesión,
 mantener la sesión, cerrarla y cómo reaccionar a cada error.
 
-> **Estado:** los tres endpoints están implementados y probados, pero el inicio de sesión real todavía
-> no está habilitado: se habilita al integrar el módulo con las cuentas de usuario. Mientras tanto el
-> login responde siempre 401. Los endpoints de clientes y empleados **todavía no exigen token**, pero
-> lo van a exigir apenas se active esa integración: conviene dejar el frontend listo antes.
+> **Estado:** los tres endpoints están implementados, integrados con las cuentas de usuario y probados
+> con la aplicación levantada.
+>
+> - **Los empleados (Administrador y Cajero) ya pueden iniciar sesión.**
+> - **Los clientes todavía no**: su login responde 401 hasta que exista el registro de clientes (otro bloque).
+> - **Todos los endpoints exigen token**, salvo `/api/auth/*` y `/api/health`. Un pedido sin token responde
+>   401 `UNAUTHENTICATED`, y uno con un rol sin permiso responde 403 `FORBIDDEN`. Esto rige desde que
+>   esta rama llega a `develop`: **el frontend tiene que mandar el `Authorization` antes de actualizar**,
+>   o las pantallas de clientes y empleados van a recibir 401.
 
 ---
 
@@ -190,10 +195,22 @@ Decidir siempre por el campo **`code`**, nunca por el texto del `message`.
 
 ## 10. Todavía no existe
 
+- **Login de clientes.** El endpoint es el mismo y recibe el email del cliente, pero hoy responde 401 siempre:
+  la cuenta de un cliente todavía no se resuelve. Depende del registro de clientes.
 - **Nombre y apellido del Cliente.** Hoy solo vienen para empleados. Si la pantalla del cliente los necesita se
   agrega `GET /api/customers/me`. Avisar cuando se defina esa pantalla.
 - **Cambio de contraseña por el propio usuario.**
 - **Registro de clientes** por su cuenta: es otro bloque. Su endpoint va a ser público.
+
+### Reglas de la contraseña (para los formularios de alta y de cambio)
+
+Las aplica el backend al crear una cuenta (`POST /api/usuarios`) y al cambiarla (`PATCH /api/usuarios/:id`):
+
+- De **8 a 64 caracteres**.
+- **Máximo 72 bytes.** Las letras con tilde, la eñe y similares ocupan 2 bytes, así que una contraseña con
+  muchas tildes puede ser más corta que 64 caracteres. Solo ASCII: hasta 64. Si se pasa, responde 400.
+- **Distinta del email.** Se compara tal cual, sin ignorar mayúsculas ni espacios.
+- La contraseña **no se normaliza**: los espacios cuentan y las mayúsculas importan.
 
 ---
 

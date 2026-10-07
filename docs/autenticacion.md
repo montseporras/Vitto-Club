@@ -4,14 +4,15 @@ Guía para entender el módulo `auth`: qué problema resuelve, qué piezas tiene
 en qué archivo está cada una y qué prueba cada test. Se va actualizando a
 medida que el módulo avanza.
 
-- **Estado:** el módulo `auth` está **completo por dentro**: dominio,
-  infraestructura, casos de uso y capa HTTP (los tres endpoints, la cookie,
-  los guards y los decoradores). Faltan dos cosas para que funcione de verdad,
-  y las dos son parte de la integración con `accounts`:
-  - **Nadie puede iniciar sesión todavía**: la verificación de credenciales es
-    provisoria y rechaza todo.
-  - **Los guards todavía no protegen nada**: existen y están probados, pero no
-    se registraron para toda la aplicación (ver 8.6).
+- **Estado:** el módulo `auth` está **completo e integrado con `accounts`**:
+  dominio, infraestructura, casos de uso, capa HTTP y la conexión con las
+  cuentas reales. Se probó con la aplicación levantada y el seed de desarrollo:
+  el login del Administrador funciona con el hash que generó el seed.
+  - **Los empleados (Administrador y Cajero) ya pueden iniciar sesión.**
+  - **Los clientes todavía no**: `accounts` hoy solo resuelve cuentas de
+    empleado. Depende del bloque de registro de clientes (ver 11).
+  - **Los guards ya protegen toda la aplicación** (ver 8.6): un pedido sin token
+    recibe 401, y cada endpoint exige el rol que declara.
 
   Ver "Qué falta" al final.
 - **Importante:** desde que el módulo está registrado, **la aplicación no
@@ -165,7 +166,8 @@ backend/src/auth/
     jwt-access-token-issuer.spec.ts
     sessions.repository.ts
     account-deactivated.listener.ts
-    unavailable-credentials-verifier.ts     PROVISORIO
+    accounts-credentials-verifier.ts
+    accounts-credentials-verifier.spec.ts
   application/                    HECHO  casos de uso
     auth.service.ts
     auth.service.spec.ts
@@ -195,9 +197,16 @@ Fuera del módulo:
 
 | Archivo | Cambio |
 |---|---|
-| `backend/src/app.module.ts` | Registra `AuthModule` |
+| `backend/src/app.module.ts` | Registra `AccountsModule` y `AuthModule` |
+| `backend/src/accounts/infrastructure/bcrypt-password-hasher.ts` (y su spec) | El adaptador de bcryptjs: hashea y verifica contraseñas. Vive en `accounts` (ver 6.8) |
+| `backend/src/accounts/accounts.module.ts` | Registra el hasher |
+| `backend/src/accounts/domain/password.ts` (y su spec) | Límite de 72 bytes en la contraseña (ver 6.8) |
+| `backend/src/accounts/http/accounts.controller.ts` | `@Roles('ADMIN')`: solo el Administrador gestiona cuentas |
+| `backend/src/accounts/http/filters/accounts-exception.filter.ts` | Conoce el 403 y deja pasar el campo `code` |
+| `backend/test/setup-e2e-env.ts` | Costo mínimo de bcrypt en los e2e |
 | `backend/test/auth-sessions.e2e-spec.ts` | Tests del repositorio y del armado del módulo, contra la base |
 | `backend/test/auth-http.e2e-spec.ts` | Tests de los endpoints, la cookie y los guards, por HTTP |
+| `backend/test/auth-integration.e2e-spec.ts` | Login real de punta a punta, sin nada falso (ver 9) |
 | `backend/.env.example` | Seis variables nuevas de autenticación |
 | `backend/package.json` | Dependencia `@nestjs/jwt` |
 
@@ -310,7 +319,7 @@ pero no el contenido.
 | `AccessTokenIssuer` | Emitir y verificar el access token | `JwtAccessTokenIssuer` |
 | `RefreshTokenGenerator` | Generar el refresh token y calcular su hash | `CryptoRefreshTokenGenerator` |
 | `SessionPolicies` | Saber los plazos de sesión según el rol | `AuthConfig` |
-| `CredentialsVerifier` | Preguntar si email y contraseña son válidos | Provisorio: `UnavailableCredentialsVerifier`, que rechaza todo. El real llega con la integración |
+| `CredentialsVerifier` | Preguntar si email y contraseña son válidos | `AccountsCredentialsVerifier`, que le pregunta a `accounts` |
 | `TransactionRunner` | Abrir una transacción | `PrismaTransactionRunner` |
 
 **¿Para qué sirve esta separación?** El caso de uso del login va a usar estos
@@ -534,16 +543,23 @@ providers: [
   { provide: AccessTokenIssuer, useClass: JwtAccessTokenIssuer },
   { provide: RefreshTokenGenerator, useClass: CryptoRefreshTokenGenerator },
   { provide: TransactionRunner, useExisting: PrismaTransactionRunner },
-  // PROVISORIO: rechaza todo. Se cambia por el adaptador hacia accounts en la integración.
-  { provide: CredentialsVerifier, useClass: UnavailableCredentialsVerifier },
+  { provide: CredentialsVerifier, useClass: AccountsCredentialsVerifier },
   AuthService,
   AccountDeactivatedListener,
+  { provide: APP_GUARD, useClass: JwtAuthGuard },
+  { provide: APP_GUARD, useClass: RolesGuard },
 ],
 exports: [AuthService],
 ```
 
-La línea de `CredentialsVerifier` es provisoria: en la integración con
-`accounts` se reemplaza por el adaptador real (ver 6.8).
+Dos líneas merecen explicación:
+
+- **`CredentialsVerifier`** se resuelve con el adaptador que conecta con
+  `accounts` (ver 6.8). Para eso `AuthModule` importa `AccountsModule`: `auth`
+  depende de `accounts`, y `accounts` no importa nada de `auth`.
+- **`APP_GUARD`** es la forma que tiene Nest de registrar un guard para **toda**
+  la aplicación. Se declaran dos, y **el orden importa**: primero
+  `JwtAuthGuard` (¿quién sos?) y después `RolesGuard` (¿podés hacerlo?). Ver 8.6.
 
 También configura el JWT en un solo lugar:
 
@@ -587,28 +603,103 @@ eventos.
 dio de baja la cuenta y se deshaga toda la operación (ver
 `docs/transacciones-y-eventos.md`).
 
-### 6.8 `unavailable-credentials-verifier.ts` — provisorio
+### 6.8 La conexión con `accounts`
+
+Son tres piezas, dos de las cuales viven en `accounts` (el módulo dueño de las
+contraseñas) y una en `auth`.
+
+#### El adaptador de `auth`: `accounts-credentials-verifier.ts`
 
 ```ts
-export class UnavailableCredentialsVerifier implements CredentialsVerifier {
-  async verify(): Promise<null> {
-    return null;
+@Injectable()
+export class AccountsCredentialsVerifier implements CredentialsVerifier {
+  constructor(private readonly accounts: AccountsService) {}
+
+  async verify(email: string, password: string): Promise<VerifiedAccount | null> {
+    return toVerifiedAccount(await this.accounts.verifyCredentials(email, password));
   }
 
-  async findActiveById(): Promise<null> {
-    return null;
+  async findActiveById(accountId: number): Promise<VerifiedAccount | null> {
+    return toVerifiedAccount(await this.accounts.findActiveById(accountId));
   }
 }
 ```
 
-Responde "no" a todo. Existe por un motivo práctico: el caso de uso del login
-necesita un verificador de credenciales para que la aplicación arranque, y el
-real depende de `accounts`, que todavía no está integrado.
+Es un **traductor** entre dos formas de decir lo mismo. `accounts` responde
+`{ accountId, role, owner: { employeeId }, email }` o `undefined`; el puerto de
+`auth` espera `{ account: { accountId, role, employeeId }, email }` o `null`.
+La función `toVerifiedAccount` hace esa traducción:
 
-Mientras esté registrado **nadie puede iniciar sesión**, que es el
-comportamiento seguro. Los tests lo reemplazan por uno falso. En la
-integración se cambia por un adaptador que llama a
-`AccountsService.verifyCredentials` y `AccountsService.findActiveById`.
+```ts
+...('employeeId' in info.owner
+  ? { employeeId: info.owner.employeeId }
+  : { customerId: info.owner.customerId }),
+```
+
+`owner` puede ser de un empleado o de un cliente, y de ahí sale cuál de los dos
+ids viaja en el access token. Si `accounts` entrega `firstName` y `lastName`,
+pasan solos a la respuesta; si no, no aparecen.
+
+**`auth` no ve ningún hash ni ninguna contraseña guardada.** Le pasa a
+`accounts` lo que tipeó el usuario, tal cual, y recibe "es esta cuenta" o
+"nadie". Tampoco normaliza el email: lo hace `accounts` (recorta espacios y
+pasa a minúsculas).
+
+#### El hasher: `bcrypt-password-hasher.ts` (en `accounts`)
+
+```ts
+async hash(plainPassword: string): Promise<string> {
+  return await bcrypt.hash(plainPassword, this.cost);
+}
+
+async verify(plainPassword: string, passwordHash: string): Promise<boolean> {
+  return await bcrypt.compare(plainPassword, passwordHash);
+}
+```
+
+Implementa el puerto `PasswordHasher` de `accounts` con la librería
+`bcryptjs`. Vive en `accounts` y **no en `auth`** por una razón de dependencias:
+si estuviera en `auth`, `accounts` tendría que importar `auth` para obtenerlo, y
+`auth` ya importa `accounts` para el login. Sería un ciclo.
+
+- **bcrypt** es un algoritmo hecho para guardar contraseñas: es **lento a
+  propósito**, así que probar millones de contraseñas contra un hash robado
+  cuesta mucho. Cada hash lleva su propia "sal" (un valor aleatorio), por eso la
+  misma contraseña da hashes distintos y no se pueden comparar a simple vista.
+- **El costo** (`BCRYPT_COST`, de 4 a 15, por defecto 10) es cuántas veces se
+  repite el trabajo. Cada punto más duplica el tiempo. En los tests se baja a 4.
+  Se valida al arrancar: un valor inválido corta la aplicación.
+- **`bcryptjs` y no `bcrypt`**: es JavaScript puro, no compila nada nativo, así
+  que instala igual en Windows, en GitHub Actions y en Render.
+- Un hash guardado que no tiene forma de bcrypt (dato corrupto) **devuelve
+  `false`**, no un error.
+- Para cambiar de algoritmo (por ejemplo argon2) se escribe otro adaptador del
+  mismo puerto y se cambia **una línea** en `accounts.module.ts`.
+
+El seed genera los hashes con la misma librería, así que **el login verifica las
+contraseñas del seed sin ningún cambio**. Hay un test que lo comprueba.
+
+#### El límite de 72 bytes: `password.ts` (en `accounts`)
+
+```ts
+if (Buffer.byteLength(value, 'utf8') > MAX_PASSWORD_BYTES) {
+  throw new DomainError(
+    `Password cannot exceed ${MAX_PASSWORD_BYTES} bytes (accented characters count as 2)`,
+    'password',
+  );
+}
+```
+
+Esto salió de una prueba y no estaba previsto: **bcrypt solo mira los primeros
+72 bytes de la contraseña y descarta el resto sin avisar.** Una letra con tilde
+ocupa 2 bytes, así que 64 letras con tilde son 128 bytes. Se probó: esa
+contraseña verifica igual que sus **primeras 36 letras**. Dos contraseñas
+distintas serían la misma.
+
+El límite de 64 caracteres no alcanzaba para evitarlo, así que se agregó el
+límite en bytes. Se aplica al crear una cuenta y al cambiar la contraseña. Para
+el frontend: una contraseña de solo ASCII puede tener hasta 64 caracteres; con
+tildes o eñes, menos.
 
 ---
 
@@ -847,8 +938,8 @@ HTTP/1.1 401 Unauthorized
 }
 ```
 
-Esta respuesta es real: es la que da hoy la aplicación, porque el verificador
-provisorio rechaza todo.
+Es la respuesta real de la aplicación ante una contraseña incorrecta, un email
+inexistente o una cuenta dada de baja: las tres dan exactamente lo mismo.
 
 **Qué valida el login** (`dto/login.dto.ts`):
 
@@ -1018,23 +1109,36 @@ se nota enseguida, en vez de quedar abierto sin que nadie lo advierta.
 | 401 `UNAUTHENTICATED` | No sé quién sos (sin token, o vencido) | Renueva y reintenta; si no puede, manda al login |
 | 403 `FORBIDDEN` | Sé quién sos, y no tenés permiso | Muestra "no tenés permiso"; renovar no sirve de nada |
 
-### 8.6 Por qué los guards todavía no están activos
+### 8.6 Los guards protegen toda la aplicación
 
-Los dos guards existen, están registrados en `AuthModule` y probados, pero
-**no se aplican a toda la aplicación**. Hoy `GET /api/empleados` sigue
-respondiendo sin token.
+Los dos guards están registrados como `APP_GUARD` en `AuthModule`: **se aplican
+a todos los endpoints de todos los módulos**, sin que cada controller tenga que
+pedirlo. Antes de la integración no estaban activos a propósito (sin login real
+nadie hubiera podido obtener un token y la API entera habría quedado
+bloqueada); se activaron en el mismo paso en que el login pasó a ser real.
 
-Es deliberado. Si se activaran ahora, todos los endpoints de `customers` y
-`employees` pasarían a exigir un token, y como el verificador de credenciales
-es provisorio, nadie podría obtener uno: **la API entera quedaría bloqueada**
-para el frontend y para el resto del equipo.
+El resultado, probado contra la aplicación levantada:
 
-Se activan en la integración con `accounts`, en un solo paso junto con:
+| Pedido | Antes de la integración | Ahora |
+|---|---|---|
+| `GET /api/empleados` sin token | 200 | **401** `UNAUTHENTICATED` |
+| `GET /api/empleados` con el token de un Cajero | 200 | **403** `FORBIDDEN` |
+| `GET /api/customers` con el token de un Cajero | 200 | 200 |
+| `GET /api/health` sin token | 200 | 200 (es público) |
 
-- el verificador de credenciales real, para que se pueda iniciar sesión;
-- los `@Roles()` de cada endpoint, según la matriz de permisos;
-- los `@Public()` de los que tienen que quedar abiertos (por ejemplo el health
-  check y el registro de clientes).
+Cada endpoint declara qué necesita con los decoradores de `src/shared/security/`:
+
+| Controller | Marca |
+|---|---|
+| `health` | `@Public()` |
+| `auth` | `@Public()` (los tres endpoints) |
+| `customers` | `@Roles('ADMIN', 'CASHIER')` |
+| `employees` | `@Roles('ADMIN')` |
+| `usuarios` (cuentas) | `@Roles('ADMIN')` |
+
+**Consecuencia para quien agregue un endpoint:** si no lo marca con `@Public()`
+ni con `@Roles()`, responde 403 incluso con sesión. Es la regla "falla cerrado":
+mejor que se note enseguida a que quede abierto sin querer.
 
 ### 8.7 El filtro de errores: `auth-exception.filter.ts`
 
@@ -1042,9 +1146,11 @@ Da a los errores de `auth` el mismo formato que usan los demás módulos
 (`statusCode`, `error`, `message`, `path`, `timestamp`), y agrega el campo
 `code` cuando el error lo trae.
 
-Los filtros de `customers` y `employees` todavía no dejan pasar `code` ni
-conocen el 403. Cuando los guards se activen, un "sin permiso" en sus
-endpoints saldría sin código. Hay que ajustarlos en la integración.
+Como los guards son globales, un 401 o un 403 puede aparecer en endpoints de
+cualquier módulo, y cada módulo tiene su propio filtro de errores. Los de
+`customers`, `employees` y `accounts` conocen el 403 y **dejan pasar el campo
+`code`**; si no, el 403 saldría como `"error": "Error"` y sin código. El e2e de
+permisos comprueba que eso se cumple en los tres.
 
 ---
 
@@ -1059,7 +1165,31 @@ cd backend
 npm test -- src/auth
 ```
 
-Resultado esperado: 7 archivos, 68 tests.
+Resultado esperado: 8 archivos, 75 tests. Con todo el backend, 457 tests
+unitarios (incluidos los de `accounts`, `employees` y `customers`).
+
+Además de los de `auth`, esta integración agregó tests unitarios en `accounts`:
+
+- `bcrypt-password-hasher.spec.ts` (8): hash que no contiene la contraseña,
+  verificación correcta e incorrecta, distingue mayúsculas, la misma contraseña
+  da hashes distintos, verifica hashes hechos por otra instancia (como los del
+  seed), un hash inválido devuelve `false`, costo por defecto y costo inválido.
+- `password.spec.ts` (+2): acepta 72 bytes aunque sean menos de 64 caracteres, y
+  rechaza más de 72 bytes aunque no llegue a 64 caracteres.
+
+### `accounts-credentials-verifier.spec.ts` — 7 tests
+
+Prueban el traductor con un `AccountsService` de mentira:
+
+| Test | Qué prueba |
+|---|---|
+| Empleado | `owner: { employeeId }` pasa a `employeeId` |
+| Cliente | `owner: { customerId }` pasa a `customerId` y no aparece `employeeId` |
+| Nombre y apellido | Si `accounts` los entrega pasan; si no, no aparecen |
+| Sin resultado | `undefined` pasa a `null` |
+| Sin tocar lo recibido | El email y la contraseña llegan a `accounts` tal como los tipeó el usuario, con espacios y mayúsculas |
+| `findActiveById` | Traduce igual |
+| Cuenta inexistente o inactiva | `undefined` pasa a `null` |
 
 ### `session.spec.ts` — 12 tests
 
@@ -1189,8 +1319,17 @@ cd backend
 npm run test:e2e
 ```
 
-Resultado esperado: 41 tests en total (2 de health, 9 de transacciones y
-eventos, 13 de sesiones y 17 por HTTP). Con el e2e de permisos, 55.
+Resultado esperado: 73 tests en total:
+
+| Archivo | Tests |
+|---|---|
+| `app.e2e-spec.ts` (health) | 2 |
+| `transactions.e2e-spec.ts` (transacciones y eventos) | 9 |
+| `auth-sessions.e2e-spec.ts` | 13 |
+| `auth-http.e2e-spec.ts` | 17 |
+| `endpoint-permissions.e2e-spec.ts` | 19 |
+| `accounts-abmc.e2e-spec.ts` (de la rama `users`) | 4 |
+| `auth-integration.e2e-spec.ts` | 9 |
 
 ### `auth-sessions.e2e-spec.ts` — 13 tests
 
@@ -1208,7 +1347,7 @@ eventos, 13 de sesiones y 17 por HTTP). Con el e2e de permisos, 55.
 | Baja que falla | Si la operación de quien publica el evento falla, las sesiones **no** quedan revocadas: el listener corre dentro de la transacción |
 | Emisor de tokens | Funciona con el secreto y la duración reales de la configuración |
 | Plazos | Salen de la configuración según el rol |
-| Verificador provisorio | Con la aplicación real, nadie puede iniciar sesión todavía |
+| Verificador real | Con una cuenta cuyo hash no es válido, ninguna contraseña inicia sesión |
 
 El de las **dos pestañas** muestra la protección de `saveRotation`:
 
@@ -1233,12 +1372,13 @@ lo logra; la segunda recibe `false` y su token nuevo nunca llega a existir.
 Hacen pedidos HTTP reales contra la aplicación, como los haría el frontend.
 Dos particularidades del armado:
 
-- **Reemplazan el verificador provisorio** por uno falso con dos cuentas (un
-  cajero y una administradora), para poder iniciar sesión.
-- **Activan los guards para toda la aplicación** dentro del test, y agregan un
-  controller de prueba con un endpoint por cada combinación de marcas. Así se
-  prueba el comportamiento que va a tener la aplicación después de la
-  integración.
+- **Reemplazan el verificador de credenciales** por uno falso con dos cuentas
+  (un cajero y una administradora): así se prueba la capa HTTP sin depender de
+  `accounts`. El login real con contraseñas de verdad se prueba en
+  `auth-integration.e2e-spec.ts`.
+- **Agregan un controller de prueba** con un endpoint por cada combinación de
+  marcas (público, solo administrador, administrador o cajero, y sin declarar).
+  Los guards ya son globales, así que no hace falta activarlos en el test.
 
 | Grupo | Qué prueba |
 |---|---|
@@ -1264,16 +1404,10 @@ Bruno, cajero, inicia sesión de verdad, recibe un access token real y lo usa
 contra un endpoint solo para administradores. El guard de autenticación lo
 reconoce (por eso no es 401) y el de autorización lo frena (403).
 
-Además de los tests, se probó contra la **aplicación levantada**, sin nada
-falso: las tres rutas quedan registradas, el login responde 401 con el
-formato y el código esperados, el logout sin cookie responde 204, y
-`GET /api/empleados` sigue respondiendo 200 sin token (los guards todavía no
-son globales).
+### `endpoint-permissions.e2e-spec.ts` — 19 tests
 
-### `endpoint-permissions.e2e-spec.ts` — 14 tests
-
-Prueba la **matriz de permisos** con los controllers reales de `customers` y
-`employees`, credenciales falsas y los guards activados solo dentro del test
+Prueba la **matriz de permisos** con los controllers reales de `customers`,
+`employees` y `usuarios`, con credenciales falsas y los guards globales reales
 (igual que `auth-http.e2e-spec.ts`).
 
 Por cada endpoint comprueba dos cosas:
@@ -1291,6 +1425,7 @@ La tabla de endpoints que recorre:
 |---|---|---|
 | `customers` (8) | listar, buscar por documento, ver uno, historial, crear, editar, dar de baja, reactivar | Administrador y Cajero |
 | `empleados` (5) | listar, ver uno, crear, editar, dar de baja | Administrador |
+| `usuarios` (5) | consultar por empleado, registrar, editar, dar de baja, reactivar | Administrador |
 
 Los ids de los pedidos no existen a propósito: si el guard deja pasar, el
 endpoint responde 400 o 404, y eso alcanza para saber que el pedido llegó al
@@ -1302,10 +1437,59 @@ arreglar los filtros de `customers` y `employees`, y fallaron 13 de los 14:
 los filtros descartaban el campo `code` y mostraban el 403 como
 `"error": "Error"`. Después de agregar el 403 a su tabla de nombres y dejar
 pasar el `code`, pasaron los 14. Es la prueba de que el test mide lo que debe
-y no pasa de casualidad.
+y no pasa de casualidad. El grupo `usuarios` se sumó después, al integrar
+`accounts`.
 
-Resultado esperado de `npm run test:e2e`: 55 tests (41 de antes y 14 de
-este archivo).
+### `auth-integration.e2e-spec.ts` — 9 tests
+
+Es **el test de la integración completa y no usa nada falso**: la aplicación
+entera (`AppModule`), el verificador real, `bcryptjs` real, los guards globales
+y la base de tests. Las cuentas se crean con un hash de `bcryptjs` hecho
+directamente en el test (igual que el seed), lo que prueba que el adaptador de
+`accounts` verifica hashes hechos por otra instancia.
+
+| Grupo | Qué prueba |
+|---|---|
+| Iniciar sesión (3) | Un empleado entra con su contraseña real y recibe su identidad; el email no distingue mayúsculas ni espacios en los extremos; contraseña incorrecta, email inexistente y cuenta dada de baja responden **exactamente lo mismo** |
+| Permisos por rol (1) | Sin token, 401; el Administrador entra a empleados y usuarios; el Cajero entra a clientes y recibe 403 en empleados y usuarios |
+| Cuentas creadas desde la aplicación (2) | El Administrador crea la cuenta de un empleado y ese empleado inicia sesión (recorre registrar, hashear, guardar, verificar y entrar); una contraseña de más de 72 bytes se rechaza con 400 |
+| Sesiones (3) | Un cajero ascendido ve su rol nuevo al renovar, sin volver a iniciar sesión; **dar de baja la cuenta cierra las sesiones abiertas** de ese usuario; dar de baja al empleado también cierra su sesión |
+
+Los dos últimos recorren la cadena entre tres módulos:
+
+```
+admin da de baja la cuenta (accounts) → publica account.deactivated
+  → el listener de auth revoca las sesiones → el refresh del usuario falla con 401
+```
+
+y, para la baja del empleado:
+
+```
+admin da de baja al empleado (employees) → publica employee.deactivated
+  → accounts da de baja la cuenta → publica account.deactivated
+  → auth revoca las sesiones
+```
+
+Tres módulos que no se importan entre sí, coordinados por eventos dentro de una
+sola transacción.
+
+Resultado esperado de `npm run test:e2e`: 73 tests.
+
+### Prueba contra la aplicación levantada
+
+Además de los tests, se probó la aplicación real con la base de desarrollo y el
+seed (hashes de `bcryptjs` con costo 10):
+
+| Prueba | Resultado |
+|---|---|
+| `GET /api/health` | 200 |
+| `GET /api/empleados` sin token | **401** `UNAUTHENTICATED` (antes de la integración respondía 200) |
+| Login de la administradora del seed | 200, con la cookie `HttpOnly`, `Path=/api/auth` y una duración de 12 horas |
+| Con su token: empleados, usuarios, clientes | 200, 200, 200 |
+| Login del cajero de prueba | 200 |
+| Con su token: empleados, usuarios, clientes | **403**, **403**, 200 |
+| Login de la clienta de prueba | 401 (la cuenta de cliente todavía no se resuelve en `accounts`) |
+| Login con contraseña incorrecta | 401 |
 
 ---
 
@@ -1333,7 +1517,11 @@ este archivo).
 | El login no valida formato de email ni largo mínimo de contraseña | Un error de formato revelaría qué forma tienen las credenciales válidas |
 | Un fallo de renovación no borra la cookie | Con dos pestañas, borraría la cookie nueva que dejó la otra |
 | La cookie se lee a mano, sin `cookie-parser` | Evita una dependencia y una configuración en `main.ts` que los tests no ejecutan |
-| Los guards se activan para toda la aplicación recién en la integración | Antes de eso nadie puede iniciar sesión: activarlos bloquearía toda la API |
+| Los guards se activaron para toda la aplicación recién al integrar con `accounts` | Antes de eso nadie podía iniciar sesión: activarlos habría bloqueado toda la API |
+| Los guards se registran con `APP_GUARD` en `AuthModule`, primero autenticación y después roles | Cubre todos los módulos sin que cada controller lo pida, y el orden garantiza que el usuario ya esté identificado cuando se mira su rol |
+| El hasher de contraseñas (`bcryptjs`) vive en `accounts` | Si estuviera en `auth`, `accounts` tendría que importar `auth`, que ya importa `accounts`: ciclo |
+| La contraseña se limita a 72 bytes además de 64 caracteres | bcrypt descarta en silencio lo que pase de 72 bytes; con tildes, 64 caracteres pueden ser 128 bytes |
+| `auth` traduce lo que devuelve `accounts` con un adaptador propio | Cada módulo conserva su forma de los datos; el puerto de `auth` no cambia si `accounts` cambia |
 | Nombre y apellido van en la respuesta del login y la renovación, no en el token | El frontend los muestra en el encabezado; pueden cambiar. Evita crear endpoints `/me` solo para eso |
 | Para clientes el nombre no viene por ahora | Leerlo desde `accounts` crearía un ciclo con `customers`; se resuelve con `GET /customers/me` cuando haga falta |
 | El rol de un empleado se cambia solo desde `PATCH /empleados/:id` | Decisión del PO (2026-10-06): `Employee.role` es la fuente de verdad. "Editar usuario" queda para los datos de acceso (resetear contraseña) |
@@ -1356,12 +1544,13 @@ este archivo).
   necesita, hace falta `GET /customers/me`, resuelto con `@CurrentUser()`
   (que trae `customerId`). No crea ciclos ni copias de datos. Pendiente: la
   pantalla del cliente todavía no está definida.
-- **Ciclo `accounts` ↔ `customers` a resolver antes del registro de clientes.**
-  Hoy `AccountsService` depende de `CustomersService` (solo para chequear que
-  el email de un empleado no esté registrado como cliente). Si el registro de
-  clientes llama a `accounts` para crear la cuenta, queda un ciclo. Hay que
-  decidir quién orquesta ese registro antes de que se construya; ver el
-  contexto en `docs/contexto-proximo-chat.md`.
+- **Ciclo `accounts` ↔ `customers`: decidido cómo evitarlo.** `AccountsService`
+  ya depende de `CustomersService` (para chequear que el email de un empleado
+  no esté registrado como cliente). Si el registro de clientes llamara a
+  `accounts` desde `customers`, quedaría un ciclo. **Decisión:** el registro lo
+  orquesta `accounts` (método `registerCustomer`, que crea el cliente y su
+  cuenta en una sola transacción) y `customers` nunca importa `accounts`: se
+  entera por eventos. Falta que lo implemente quien tiene SCRUM-160.
 - **Idioma de los mensajes de error.** El del login está en español; el resto
   del backend, en inglés. A unificar con el equipo.
 
@@ -1380,29 +1569,24 @@ este archivo).
 
 ## 11. Qué falta
 
-`auth` está completo por dentro. Lo que queda es conectarlo con el resto.
+**El paso E (la integración con `accounts`) está hecho.** Quedó así:
+
+1. Adaptador de bcryptjs para las contraseñas, dentro de `accounts` (6.8).
+2. Adaptador que conecta `CredentialsVerifier` con `AccountsService` (6.8).
+3. `AccountsModule` registrado en `AppModule`, e importado por `AuthModule`.
+4. Los dos guards registrados para toda la aplicación (8.6).
+5. `@Roles('ADMIN')` en el controller de `usuarios`, y el filtro de errores de
+   `accounts` con el 403 y el campo `code`.
+6. `PrismaSessionRevoker` ya no existe: lo reemplazó el listener de
+   `account.deactivated` (la rama `users` lo había eliminado).
+7. Los e2e existentes actualizados, y el nuevo `auth-integration.e2e-spec.ts`.
+
+**Lo que falta:**
 
 | Paso | Qué es | Depende de |
 |---|---|---|
-| E | Integración con `accounts` (detalle abajo) | La rama `users` |
-| F | Tests de punta a punta con usuarios reales, contrato para el frontend y documentación final | E |
-
-**El paso E, en detalle:**
-
-1. Adaptador de bcryptjs para las contraseñas, dentro de `accounts`.
-2. Adaptador que conecta `CredentialsVerifier` con `AccountsService`, en
-   reemplazo del provisorio. Traduce `undefined` a `null`, `owner` a
-   `employeeId` o `customerId`, y pasa `email`, `firstName` y `lastName`.
-3. Registrar `AccountsModule` en `AppModule`.
-4. Registrar los dos guards para toda la aplicación.
-5. Poner `@Roles('ADMIN')` en el controller de `usuarios`. (`customers`,
-   `employees` y `health` ya tienen sus marcas, y sus filtros de error ya
-   conocen el 403 y el campo `code`.)
-6. Quitar `PrismaSessionRevoker` de `accounts`: lo reemplaza el listener.
-7. Actualizar los tests e2e existentes para que manden token.
-
-Hasta ese paso, el login se prueba con una verificación de credenciales falsa.
-Recién ahí entra el usuario real de la base.
+| F | Cierre: contrato final para el frontend, criterios de aceptación en Jira, demo de la Review (bajar los plazos de sesión por variables de entorno), seed en Neon, CORS por variable de entorno, PR a `develop` | — |
+| Clientes | Login de clientes: ampliar `accounts` para cuentas de cliente, y el registro (SCRUM-160) | Quien tiene SCRUM-160 |
 
 ### Pendiente con otras personas
 
@@ -1412,15 +1596,16 @@ Recién ahí entra el usuario real de la base.
 | Quien hizo `users` | `firstName` y `lastName` en `AuthAccountInfo` (en `verifyCredentials` y en `findActiveById`), tomados del empleado que ya carga |
 | Quien hizo `users` | `code: 'LAST_ADMIN'` en los dos `ConflictException` del último administrador, y que su filtro de errores deje pasar `code` |
 | Quien hizo `users` | Sacar `role` de `PATCH /api/usuarios/:id` (decisión del PO) y agregar `GET /api/usuarios` con `{ id, employeeId, active }` |
-| Quien hizo `users` | E2E de aceptación contra la base y por HTTP, con sus módulos reales: degradar o dar de baja al único administrador responde 409 y no cambia nada; con dos administradores se puede |
-| Quien hizo `users` | Corregir en `docs/accounts-abmc-status.md` que `AuthAccountInfo` sí incluye `email`; revisar que su filtro de errores deje pasar `code` y conozca el 403; abrir el PR de `users` a `develop` |
-| Cuentas de clientes | Que `AccountRole` y `findByEmail` admitan clientes; que su endpoint de registro lleve `@Public()` |
+| Quien hizo `users` | ~~E2E de aceptación~~: hecho (`accounts-abmc.e2e-spec.ts`, los cuatro casos del último administrador) |
+| Quien hizo `users` | Corregir en `docs/accounts-abmc-status.md` que `AuthAccountInfo` sí incluye `email`, y que `PasswordHasher` ya tiene implementación; abrir el PR de `users` a `develop`. **Aviso:** esta integración tocó cinco archivos suyos (`password.ts`, el filtro de errores, el controller, el módulo y sus specs) |
+| Quien tiene SCRUM-160 | Registro de clientes con la opción X: lo orquesta `accounts` en una sola transacción, endpoint con `@Public()`, y ampliar `accounts` (rol `CUSTOMER`, `customerId`, `findByEmail`, `verifyCredentials`, `findActiveById`) para que un cliente pueda iniciar sesión |
 | Frontend | `VITE_API_URL=/api`, proxy de Vite, y las reglas de la sección 8 de `docs/auth-api.md` |
 | Frontend | Cerrar con ellos el contrato del nombre para clientes (hoy no viene; ver `/me` en deuda técnica) |
 | Frontend | Subir el timeout de axios (hoy 8 s) por el arranque lento de Render |
 | Quien maneja Vercel / Render | Confirmado por el frontend: el rewrite se puede hacer y el diseño de la cookie se mantiene. Falta crear los proyectos; con la URL de Render se agrega el `vercel.json` |
 | Quien maneja Render | Cargar `NODE_ENV=production` (sin eso la cookie no sale `Secure`) y un `JWT_SECRET` propio de producción |
 | Equipo | Avisar que la aplicación no arranca sin `JWT_SECRET` |
+| Equipo | **Cuando esto llegue a `develop`, todos los endpoints exigen token** (antes respondían sin él). Sin el login funcionando en el frontend, las pantallas de clientes y empleados van a recibir 401 |
 | Equipo | Unificar el idioma de los mensajes de error |
 
 ---
@@ -1457,3 +1642,4 @@ Recién ahí entra el usuario real de la base.
 | 2026-10-05 | Capa HTTP: los tres endpoints, la cookie del refresh token, los dos guards, los decoradores en `src/shared/security/` y el filtro de errores. 14 tests unitarios y 16 por HTTP. Los guards quedan sin activar para toda la aplicación hasta la integración. Se detalla el paso E |
 | 2026-10-05 | Roles declarados en `customers`, `employees` y `health`; filtros de error de `customers` y `employees` con 403 y `code`; e2e de la matriz de permisos (14 tests); contrato para el frontend en `docs/auth-api.md`. Se actualizan los pendientes con otras personas |
 | 2026-10-06 | Nombre y apellido en la respuesta del login y la renovación (opcionales; hoy solo empleados), sin ir dentro del token. Decisiones del PO: el rol solo se cambia desde empleados; la lista de usuarios va en `GET /api/usuarios`. Se documenta el posible ciclo `accounts` ↔ `customers` y se actualiza `docs/auth-api.md` (nombre, y sección 11 con lo acordado y pendiente). 68 tests de `auth`, 55 e2e |
+| 2026-10-06 | **Integración con `accounts` (paso E).** Hasher de bcryptjs en `accounts`, adaptador `AccountsCredentialsVerifier` en `auth` (reemplaza al provisorio), `AccountsModule` en `AppModule`, guards globales con `APP_GUARD`, `@Roles('ADMIN')` en `usuarios`, filtro de `accounts` con 403 y `code`. Límite de 72 bytes en la contraseña (bcrypt descarta el resto en silencio). Los empleados ya pueden iniciar sesión; probado con la aplicación levantada y el seed. Se decide la opción X para el registro de clientes. 457 tests unitarios y 73 e2e |

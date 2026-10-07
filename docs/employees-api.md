@@ -15,7 +15,7 @@ de empleados, qué se puede enviar, qué devuelve la API y qué reglas aplica.
 | **URL base** | `http://localhost:3000/api` (el puerto sale de `PORT` en `backend/.env`) |
 | **Formato** | JSON. En `POST` y `PATCH` enviar `Content-Type: application/json` |
 | **CORS** | Solo acepta el origen `http://localhost:5173` (Vite) |
-| **Autenticación** | **No hay** todavía |
+| **Autenticación** | **Obligatoria**: `Authorization: Bearer <accessToken>`. Solo el **Administrador** puede usar este módulo; el Cajero y el Cliente reciben 403. Sin token, 401. Ver `docs/auth-api.md` |
 
 La ruta es **`/api/empleados`** (en español) para respetar el contrato que ya usa el frontend
 (`features/employees/api/employees.api.ts` y los handlers de MSW).

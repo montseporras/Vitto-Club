@@ -5,9 +5,30 @@ mandarle a cada persona y cómo venimos trabajando. Está pensado para pegarlo
 (o hacerlo leer) al empezar un chat nuevo, y para que yo misma lo use de lista
 de control.
 
-- **Fecha de corte:** 2026-10-05, 23:20.
-- **Rama de trabajo:** `feature/auth-login` (limpia, todo commiteado).
-- **Estado verificado al corte:** 296 tests unitarios y 54 e2e en verde, build
+> ## ACTUALIZACIÓN 2026-10-06 (leer primero)
+>
+> Este documento es una foto del 05/10 a las 23:20. **Después de esa foto cambió esto:**
+>
+> - **El paso E está hecho** (integración con `accounts`, guards globales, login real). Las secciones 6 ("Lo
+>   que falta", paso E) y 4 ("dos cosas que hoy NO funcionan") están **superadas**: los empleados ya
+>   inician sesión y los guards ya protegen toda la aplicación. Detalle en `docs/autenticacion.md`.
+> - **`users` ya tiene la reactivación de cuenta y el e2e de aceptación.** Tachar esos dos pendientes de 7.1.
+> - **`feature/auth-login` ya está en GitHub.** Y ya incluye `users` (merge `efeb3b2`).
+> - **Decisiones nuevas:** el rol solo se cambia desde empleados (sale de `PATCH /usuarios/:id`); la lista de
+>   usuarios va en `GET /api/usuarios` (no dentro de la respuesta de empleado); nombre y apellido van en el
+>   login y la renovación (solo empleados por ahora); el registro de clientes lo orquesta `accounts` (opción
+>   X, para evitar el ciclo `accounts` ↔ `customers`); la contraseña tiene un límite de 72 bytes.
+> - **Pendiente de `users`:** `firstName`/`lastName` en `AuthAccountInfo`, `code: 'LAST_ADMIN'`, sacar `role`
+>   de `PATCH /usuarios/:id`, `GET /api/usuarios`.
+> - **Pendiente de otros:** el registro de clientes (SCRUM-160, sin rama visible en GitHub), Vercel/Render
+>   (el frontend confirmó que el rewrite se puede hacer; falta crear los proyectos).
+> - **Estado verificado:** 457 tests unitarios y 73 e2e en verde.
+> - **Qué sigue para mí:** paso F (cierre), subir `spike/transacciones` y `users` a `develop` por PR, y el PR de
+>   `feature/auth-login`.
+
+- **Fecha de corte original:** 2026-10-05, 23:20.
+- **Rama de trabajo:** `feature/auth-login`.
+- **Estado verificado al corte original:** 296 tests unitarios y 54 e2e en verde, build
   y lint sin errores.
 
 > **Cómo usarlo en el próximo chat.** Decirle al asistente: *"Leé

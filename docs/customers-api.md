@@ -16,7 +16,7 @@ endpoints existen, qué se puede enviar, qué devuelve la API y qué reglas hay 
 | **URL base** | `http://localhost:3000/api` (el puerto sale de `PORT` en `backend/.env`) |
 | **Formato** | JSON. En `POST` y `PATCH` enviar `Content-Type: application/json` |
 | **CORS** | Solo acepta el origen `http://localhost:5173` (Vite), con credenciales |
-| **Autenticación** | **No hay.** Hoy cualquier request se acepta (ver sección 9) |
+| **Autenticación** | **Obligatoria**: `Authorization: Bearer <accessToken>`. Pueden usar este módulo el **Administrador** y el **Cajero**; el Cliente recibe 403. Sin token, 401. Ver `docs/auth-api.md` |
 
 **Todas las rutas de este documento cuelgan de `/api`.** Ejemplo: `GET http://localhost:3000/api/customers`.
 
@@ -325,7 +325,8 @@ export function fieldErrors(e: ApiError): Record<string, string> {
 
 ## 9. Limitaciones actuales
 
-- **Sin autenticación ni roles:** no se identifica quién hace cada operación.
+- **Todavía no se registra quién hizo cada operación** (eso es la auditoría, otro bloque). El usuario autenticado
+  está disponible en el controller con `@CurrentUser()`.
 - **Sin borrado físico:** solo baja lógica.
 - **CORS** solo permite `http://localhost:5173`. Para otro origen (por ejemplo, un deploy) hay que cambiarlo en el backend.
 - **Sin documentación interactiva** (Swagger): este documento es la referencia.
