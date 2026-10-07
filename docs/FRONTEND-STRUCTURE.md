@@ -274,7 +274,7 @@ Las pantallas y sus nombres corresponden a las validadas en el prototipo interac
 | Sección | Contenido |
 |---|---|
 | Empleados y usuarios | ABM de Cajeros y Administradores (nombre, usuario, contraseña, rol) |
-| Equivalencia de puntos | Puntos por cada $1000, vigencia en meses, bonificación 1ª compra |
+| Puntos | Puntos por cada $1000, vigencia en meses, bonificación 1ª compra |
 | Niveles de fidelización | Bronce / Plata / Oro — puntaje mínimo y beneficio |
 | Notificaciones | 4 tipos (vencimiento, cumpleaños, promociones, misiones) — activar/desactivar y editar mensaje |
 
