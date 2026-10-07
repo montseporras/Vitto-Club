@@ -16,8 +16,6 @@ export type CustomerListResult = {
 export abstract class CustomerRepository {
   abstract findAll(): Promise<Customer[]>;
   abstract findById(id: number): Promise<Customer | null>;
-  // Puede haber varios clientes con el mismo documento (uno activo y bajas anteriores):
-  // devuelve el activo y, si no hay, la baja más reciente.
   abstract findByDocument(
     documentType: DocumentType,
     documentNumber: string,
@@ -29,13 +27,16 @@ export abstract class CustomerRepository {
   abstract updateStatus(customer: Customer, action: CustomerStatusAction): Promise<void>;
   abstract findStatusHistory(customerId: number): Promise<CustomerStatusChange[]>;
 
-  // Documento y email son únicos solo entre clientes activos: los inactivos no cuentan
-  abstract existsActiveByDocument(
+  abstract existsByDocument(
     documentType: DocumentType,
     documentNumber: string,
     excludeId?: number,
   ): Promise<boolean>;
-  abstract existsActiveByEmail(email: string, excludeId?: number): Promise<boolean>;
+
+  // El email se compara sin distinguir mayúsculas (mismo criterio que
+  // EmployeeRepository.existsByEmail). Usado para la unicidad global de email entre
+  // customers y employees (ver accounts.service.ts).
+  abstract existsByEmail(email: string): Promise<boolean>;
 
   abstract list(params: CustomerListParams): Promise<CustomerListResult>;
 }

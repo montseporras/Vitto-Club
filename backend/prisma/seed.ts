@@ -117,15 +117,14 @@ async function seedDemoData(cost: number): Promise<void> {
       await tx.employee.upsert({ where: { email: data.email }, update: {}, create: data });
     }
 
-    // El documento es único solo entre activos (índice parcial), así que no hay upsert por
-    // documento: se crea solo si no existe un activo con ese documento.
     for (const data of customers) {
-      const existing = await tx.customer.findFirst({
-        where: { documentType: data.documentType, documentNumber: data.documentNumber, isActive: true },
+      await tx.customer.upsert({
+        where: {
+          unique_document: { documentType: data.documentType, documentNumber: data.documentNumber },
+        },
+        update: {},
+        create: data,
       });
-      if (!existing) {
-        await tx.customer.create({ data });
-      }
     }
 
     // Cuentas de prueba para el login por rol: un cajero y un cliente.
@@ -133,8 +132,8 @@ async function seedDemoData(cost: number): Promise<void> {
     const bruno = await tx.employee.findUniqueOrThrow({ where: { email: 'bruno.perez@vitto.club' } });
     await ensureAccount(tx, { employeeId: bruno.id }, { email: bruno.email, passwordHash, role: bruno.role });
 
-    const lucia = await tx.customer.findFirstOrThrow({
-      where: { documentType: DocumentType.DNI, documentNumber: '40123456', isActive: true },
+    const lucia = await tx.customer.findUniqueOrThrow({
+      where: { unique_document: { documentType: DocumentType.DNI, documentNumber: '40123456' } },
     });
     await ensureAccount(tx, { customerId: lucia.id }, { email: lucia.email, passwordHash, role: AccountRole.CUSTOMER });
   });

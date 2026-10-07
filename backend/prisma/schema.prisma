@@ -1,7 +1,5 @@
 generator client {
-  provider        = "prisma-client-js"
-  // Unique indexes with a WHERE clause (customers: unique only among active ones)
-  previewFeatures = ["partialIndexes"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -40,14 +38,15 @@ model Employee {
   @@map("employees")
 }
 
-/// Customers: document, email (required), phone (optional), first name, last name.
+/// Customers: document, email (required, unique), phone (optional), first name, last name.
 model Customer {
   id             Int          @id @default(autoincrement())
   firstName      String       @map("first_name") @db.VarChar(80)
   lastName       String       @map("last_name") @db.VarChar(80)
   documentType   DocumentType @map("document_type")
   documentNumber String       @map("document_number") @db.VarChar(20)
-  email          String       @db.VarChar(150)
+  // Unique among ALL customers, active or not: a deactivated customer is reactivated, never re-created
+  email          String       @unique @db.VarChar(150)
   phone          String?      @db.VarChar(30)
 
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
@@ -62,12 +61,8 @@ model Customer {
   statusChanges CustomerStatusChange[]
   account       Account?
 
-  // Document and email identify the customer: they must not repeat among ACTIVE customers.
-  // A deactivated customer frees both, so the same person can sign up again as a new customer.
-  @@unique([documentType, documentNumber], map: "customers_active_document_key", where: { isActive: true })
-  @@unique([email], map: "customers_active_email_key", where: { isActive: true })
-  // Lookup by document also has to find inactive customers (checkout identification)
-  @@index([documentType, documentNumber])
+  // The document identifies the customer at checkout: must not repeat
+  @@unique([documentType, documentNumber], name: "unique_document")
   @@index([lastName, firstName])
   @@index([isActive])
   @@map("customers")

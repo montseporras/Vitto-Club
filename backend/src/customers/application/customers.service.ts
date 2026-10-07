@@ -26,7 +26,7 @@ export class CustomersService {
       dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
     });
 
-    // 2. Verificar que ningún cliente activo use el documento ni el email
+    // 2. Verificar que el documento y el email no estén ya registrados (por un cliente activo o no)
     await this.assertDocumentAvailable(
       customer.getDocumentType(),
       customer.getDocumentNumber(),
@@ -95,9 +95,12 @@ export class CustomersService {
       await this.assertDocumentAvailable(documentType, documentNumber, customer.getId() ?? undefined);
     }
 
-    // 2b. Lo mismo con el email (se normaliza igual que al guardar)
+    // 2b. Si cambia el email (normalizado igual que al guardar), tampoco puede estar registrado
     if (dto.email !== undefined) {
-      await this.assertEmailAvailable(Mail.create(dto.email).getValue(), customer.getId() ?? undefined);
+      const email = Mail.create(dto.email).getValue();
+      if (email !== customer.getEmail()) {
+        await this.assertEmailAvailable(email);
+      }
     }
 
     // 3. Aplicar los cambios sobre la entidad recuperada
@@ -153,14 +156,14 @@ export class CustomersService {
     documentNumber: string,
     excludeId?: number,
   ): Promise<void> {
-    const taken = await this.customersRepository.existsActiveByDocument(documentType, documentNumber, excludeId);
+    const taken = await this.customersRepository.existsByDocument(documentType, documentNumber, excludeId);
     if (taken) {
       throw new ConflictException(CustomerAlreadyExists.withDocument(documentType, documentNumber).message);
     }
   }
 
-  private async assertEmailAvailable(email: string, excludeId?: number): Promise<void> {
-    if (await this.customersRepository.existsActiveByEmail(email, excludeId)) {
+  private async assertEmailAvailable(email: string): Promise<void> {
+    if (await this.customersRepository.existsByEmail(email)) {
       throw new ConflictException(CustomerAlreadyExists.withEmail(email).message);
     }
   }
