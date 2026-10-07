@@ -23,4 +23,15 @@ describe('Password', () => {
     expect(() => Password.create('a'.repeat(65))).toThrow(DomainError);
     expect(() => Password.create('a'.repeat(65))).toThrow(/exceed 64/);
   });
+
+  it('acepta 72 bytes, aunque sean menos de 64 caracteres', () => {
+    // 36 letras con tilde = 72 bytes
+    expect(Password.create('á'.repeat(36)).getValue()).toBe('á'.repeat(36));
+  });
+
+  it('rechaza más de 72 bytes aunque no llegue a 64 caracteres: bcrypt descartaría el resto', () => {
+    // 37 letras con tilde = 74 bytes, y solo 37 caracteres
+    expect(() => Password.create('á'.repeat(37))).toThrow(DomainError);
+    expect(() => Password.create('á'.repeat(37))).toThrow(/72 bytes/);
+  });
 });

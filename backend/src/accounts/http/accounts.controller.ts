@@ -16,16 +16,17 @@ import { RegisterAccountDto } from './dto/register-account.dto.js';
 import { UpdateAccountDto } from './dto/update-account.dto.js';
 import { AccountResponseDto } from './dto/account-response.dto.js';
 import { AccountsExceptionFilter } from './filters/accounts-exception.filter.js';
+import { Roles } from '../../shared/security/roles.decorator.js';
 
 // Ruta en español ("usuarios"), consistente con el contrato HTTP ya diseñado para el ABMC
 // de cuentas de empleados. La validación del body la hace el ValidationPipe global de
 // main.ts (whitelist + forbidNonWhitelisted): no hay @UsePipes propio acá, igual que
 // EmployeesController.
 //
-// IMPORTANTE: este controller se registra en AccountsModule, pero AccountsModule NO está
-// importado en AppModule todavía (ver accounts.module.ts) — estas rutas no son alcanzables
-// por ningún request real hasta que existan guards de autorización.
+// Solo el Administrador gestiona las cuentas de usuario. Los guards (autenticación y roles)
+// son globales: los registra AuthModule para toda la aplicación.
 @Controller('usuarios')
+@Roles('ADMIN')
 @UseFilters(AccountsExceptionFilter)
 export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}

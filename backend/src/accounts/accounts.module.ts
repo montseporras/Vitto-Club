@@ -3,19 +3,17 @@ import { AccountsService } from './application/accounts.service.js';
 import { EmployeeEventsListener } from './application/employee-events.listener.js';
 import { AccountRepository } from './domain/port/account.repository.js';
 import { TransactionRunner } from './domain/port/transaction-runner.js';
+import { PasswordHasher } from './domain/port/password-hasher.js';
 import { AccountPrismaRepository } from './infrastructure/accounts.repository.js';
+import { BcryptPasswordHasher } from './infrastructure/bcrypt-password-hasher.js';
 import { AccountsController } from './http/accounts.controller.js';
 import { EmployeesModule } from '../employees/employees.module.js';
 import { CustomersModule } from '../customers/customers.module.js';
 import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
 
-// IMPORTANTE: este módulo todavía NO se importa en AppModule (ver app.module.ts). Que
-// AccountsController esté registrado acá no lo expone a ningún request real: Nest solo
-// monta las rutas de los controllers que pertenecen a módulos alcanzables desde AppModule.
-// Mientras eso siga así, es seguro tener el controller sin JwtAuthGuard/RolesGuard.
-// Tampoco se provee PasswordHasher: ese puerto sigue sin implementación concreta
-// (pendiente de auth) — si este módulo se registrara en AppModule antes de que exista una,
-// Nest fallaría al resolver AccountsService. Deliberado: no se inventa un hasher falso.
+// accounts es dueño de la tabla Account y de las contraseñas: el adaptador de bcryptjs vive
+// acá (no en auth) porque si estuviera en auth, accounts tendría que importar auth, y auth ya
+// importa accounts para el login.
 //
 // Sin forwardRef: Accounts -> Employees y Accounts -> Customers son dependencias en un
 // solo sentido (ninguno de los dos importa a Accounts). La integración Employee -> Account
@@ -29,6 +27,11 @@ import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js'
     {
       provide: AccountRepository,
       useClass: AccountPrismaRepository,
+    },
+    // Algoritmo de hash de contraseñas. Para cambiarlo se escribe otro adaptador del puerto.
+    {
+      provide: PasswordHasher,
+      useClass: BcryptPasswordHasher,
     },
     // Vincular el puerto de transacción ambiente con la implementación real (PrismaModule
     // es @Global(), así que PrismaTransactionRunner ya está disponible para ligarlo acá).
