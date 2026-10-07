@@ -33,5 +33,10 @@ export abstract class CustomerRepository {
     excludeId?: number,
   ): Promise<boolean>;
 
+  // El email se compara sin distinguir mayúsculas (mismo criterio que
+  // EmployeeRepository.existsByEmail). Usado para la unicidad global de email entre
+  // customers y employees (ver accounts.service.ts).
+  abstract existsByEmail(email: string): Promise<boolean>;
+
   abstract list(params: CustomerListParams): Promise<CustomerListResult>;
 }

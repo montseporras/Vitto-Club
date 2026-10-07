@@ -517,22 +517,26 @@ Al escribir una operación que toca más de un módulo:
 
 ## 10. Qué falta
 
-- **Ningún repositorio existente usa `client` todavía.** Los de `customers` y
-  `employees` siguen con `PrismaService`. Se adaptan cuando su flujo lo
-  necesite.
-- **`customers.repository.ts` usa `prisma.$transaction([...])`** (la forma de
-  lista). El cliente de una transacción no tiene `$transaction`, así que esa
-  línea hay que reescribirla cuando ese repositorio participe.
-- **Los eventos reales todavía no se publican ni se escuchan.** El contrato
-  está definido; la implementación es parte del refactor de la rama `users`.
+- **`employees` y `accounts` ya usan `client`** (`EmployeePrismaRepository`,
+  `AccountPrismaRepository`). **`customers.repository.ts` sigue con
+  `PrismaService` directo** — todavía no participa de ninguna transacción
+  ambiente, y sigue usando `prisma.$transaction([...])` (la forma de lista;
+  el cliente de una transacción ambiente no tiene `$transaction`, así que esa
+  línea hay que reescribirla el día que ese repositorio participe).
+- **`employee.deactivated` y `employee.role-changed` ya se publican y se
+  escuchan**, con rollback probado (`accounts` escucha ambos desde
+  `EmployeeEventsListener`, protección del último ADMIN incluida). Es el
+  refactor de la rama `users`, ya integrado.
 - **Eventos de clientes:** `customer.deactivated`, `customer.reactivated` y
-  `customer.email-changed` ya están en el contrato. Falta publicarlos desde
-  `customers` y escucharlos desde `accounts`; es parte de la rama de cuentas
-  de clientes. Los clientes inician sesión con email, igual que los
-  empleados, así que no existe un evento de cambio de documento.
+  `customer.email-changed` siguen solo en el contrato. Falta publicarlos desde
+  `customers` y escucharlos desde `accounts`; sigue siendo parte de la rama de
+  cuentas de clientes, todavía no implementada.
 - **Test de la cadena completa por HTTP** (degradar al último administrador
-  desde `PATCH /api/empleados/:id` tiene que responder 409 y no cambiar nada).
-  Es el test de aceptación del refactor de `users`.
+  desde `PATCH /api/empleados/:id` tiene que responder 409 y no cambiar nada):
+  sigue sin existir — lo que hay es el equivalente a nivel de servicio (con
+  `EventEmitter2` real y rollback simulado), no un test e2e contra el endpoint
+  HTTP real. Pendiente porque `AccountsModule` todavía no se registra en
+  `AppModule` (sin guards, esas rutas quedarían sin proteger).
 - **No se probó contra Neon**, solo contra el Postgres local.
 
 ---
@@ -564,3 +568,4 @@ Al escribir una operación que toca más de un módulo:
 |---|---|
 | 2026-10-05 | Versión inicial: transacción ambiente, eventos de dominio, contrato de tres eventos, 9 tests |
 | 2026-10-05 | Se agregan los tres eventos de clientes. El login pasa a ser por email para todos los roles |
+| 2026-10-06 | Sección 10 actualizada: `employee.deactivated`/`employee.role-changed` ya están implementados y probados (rollback incluido) en `employees`/`accounts`, con `client` en ambos repositorios. Sigue pendiente el test e2e por HTTP y los eventos de clientes |
