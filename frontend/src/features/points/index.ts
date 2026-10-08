@@ -6,3 +6,7 @@ export type {
   FirstPurchaseBonus,
   UpdateFirstPurchaseBonusDto,
 } from './types/first-purchase-bonus';
+export type {
+  PointsEquivalence,
+  UpdatePointsEquivalenceDto,
+} from './types/points-equivalence';

@@ -1,18 +1,54 @@
 // Este archivo es la pantalla de la sección "Puntos" de la configuración.
-// Trae la bonificación guardada y le muestra al Administrador el formulario para cambiarla.
+// Trae cada configuración guardada y le muestra al Administrador el formulario para cambiarla.
 import { StatusText } from '@/shared/components/feedback/StatusText';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Card, CardTitle } from '@/shared/components/ui/Card';
-import { useFirstPurchaseBonus } from '../api/points.queries';
+import {
+  useFirstPurchaseBonus,
+  usePointsEquivalence,
+} from '../api/points.queries';
 import { FirstPurchaseBonusForm } from '../components/FirstPurchaseBonusForm';
+import { PointsEquivalenceForm } from '../components/PointsEquivalenceForm';
 
 // El título de la sección lo muestra el encabezado del modal de Configuración.
 export function PointsSettingsPage() {
+  const equivalence = usePointsEquivalence();
   const { data: bonus, isLoading, isError, refetch } = useFirstPurchaseBonus();
 
   return (
     <div className="space-y-6">
-      {/* RF-011. Las demás configuraciones de puntos suman su propia Card. */}
+      {/* RF-09. Cada configuración de puntos tiene su propia Card. */}
+      <Card>
+        <CardTitle>Equivalencia de puntos</CardTitle>
+        <StatusText className="mt-1 mb-6">
+          Cantidad de puntos que suma el cliente según el monto de cada compra.
+        </StatusText>
+
+        {equivalence.isLoading && (
+          <StatusText>Cargando equivalencia…</StatusText>
+        )}
+
+        {equivalence.isError && (
+          <Alert variant="error">
+            <p>
+              No se pudo cargar la equivalencia.{' '}
+              <button
+                type="button"
+                onClick={() => void equivalence.refetch()}
+                className="cursor-pointer font-semibold underline underline-offset-2"
+              >
+                Reintentar
+              </button>
+            </p>
+          </Alert>
+        )}
+
+        {equivalence.data && !equivalence.isError && (
+          <PointsEquivalenceForm equivalence={equivalence.data} />
+        )}
+      </Card>
+
+      {/* RF-011. */}
       <Card>
         <CardTitle>Bonificación por primera compra</CardTitle>
         <StatusText className="mt-1 mb-6">
