@@ -37,8 +37,8 @@ Solo el Cliente puede darse de alta por su cuenta. Los otros dos roles son cread
 | Rol | Cómo se crea la cuenta | Pantalla |
 |---|---|---|
 | **Cliente** | Se autoregistra desde la aplicación (nombre, documento, contacto, contraseña). | `/registro` |
-| **Cajero** | Lo da de alta un Administrador autenticado. | `/admin` → Empleados y usuarios |
-| **Administrador** | El primero se crea mediante la semilla de base de datos (seed script de Prisma, que se ejecuta una sola vez al desplegar). Los siguientes los crea otro Administrador desde la misma pantalla que los Cajeros. | `/admin` → Empleados y usuarios |
+| **Cajero** | Lo da de alta un Administrador autenticado. | `/admin` → Empleados |
+| **Administrador** | El primero se crea mediante la semilla de base de datos (seed script de Prisma, que se ejecuta una sola vez al desplegar). Los siguientes los crea otro Administrador desde la misma pantalla que los Cajeros. | `/admin` → Empleados |
 
 > **Sobre el campo "rol"**
 >
@@ -273,7 +273,7 @@ Las pantallas y sus nombres corresponden a las validadas en el prototipo interac
 
 | Sección | Contenido |
 |---|---|
-| Empleados y usuarios | ABM de Cajeros y Administradores (nombre, usuario, contraseña, rol) |
+| Empleados | ABM de Cajeros y Administradores (nombre, usuario, contraseña, rol) |
 | Puntos | Puntos por cada $1000, vigencia en meses, bonificación 1ª compra |
 | Niveles de fidelización | Bronce / Plata / Oro — puntaje mínimo y beneficio |
 | Notificaciones | 4 tipos (vencimiento, cumpleaños, promociones, misiones) — activar/desactivar y editar mensaje |

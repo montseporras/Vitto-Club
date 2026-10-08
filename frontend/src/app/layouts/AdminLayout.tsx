@@ -3,7 +3,7 @@
 //
 // El fondo (catálogo, misiones, clientes, etc.) queda como placeholder: pertenece
 // a otros RF. Acá se cablean las secciones de Configuración ya implementadas:
-// Empleados y usuarios (RF-01) y Puntos (RF-011).
+// Empleados (RF-01) y Puntos (RF-011).
 import { useState } from 'react';
 import { EmployeesPage } from '@/features/employees';
 // NUEVO (cambio 1): la pantalla de puntos, importada desde la API pública del
@@ -21,7 +21,7 @@ import { appHeaderStyles } from '@/styles/ui';
 const SECTIONS = [
   {
     id: 'employees',
-    label: 'Empleados y usuarios',
+    label: 'Empleados',
     icon: ICONS.users,
     description: 'Cada empleado ingresa al sistema con su mail, según su rol.',
   },
