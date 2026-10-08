@@ -20,6 +20,12 @@ export function PointsSettingsPage() {
 
   return (
     <div className="space-y-6">
+      {/* RF-014. Guardar no recalcula los movimientos ya registrados. */}
+      <StatusText>
+        Los cambios se aplican a las operaciones futuras. Los movimientos ya
+        registrados no se modifican.
+      </StatusText>
+
       {/* RF-09. Cada configuración de puntos tiene su propia Card. */}
       <Card>
         <CardTitle>Equivalencia de puntos</CardTitle>

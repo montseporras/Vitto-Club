@@ -68,7 +68,7 @@ export function PointsExpirationForm({ expiration }: PointsExpirationFormProps) 
 
       {showSuccess && (
         <Alert variant="success" className="mb-6">
-          Vigencia de los puntos guardada.
+          Vigencia de los puntos guardada. Aplica a las operaciones futuras.
         </Alert>
       )}
 

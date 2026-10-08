@@ -75,7 +75,7 @@ export function PointsEquivalenceForm({
 
       {showSuccess && (
         <Alert variant="success" className="mb-6">
-          Equivalencia de puntos guardada.
+          Equivalencia de puntos guardada. Aplica a las operaciones futuras.
         </Alert>
       )}
 

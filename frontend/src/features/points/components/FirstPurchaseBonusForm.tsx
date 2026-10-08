@@ -91,7 +91,8 @@ export function FirstPurchaseBonusForm({ bonus }: FirstPurchaseBonusFormProps) {
 
       {showSuccess && (
         <Alert variant="success" className="mb-6">
-          Bonificación por primera compra guardada.
+          Bonificación por primera compra guardada. Aplica a las operaciones
+          futuras.
         </Alert>
       )}
 
