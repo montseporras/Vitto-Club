@@ -1,3 +1,4 @@
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { Customer, DocumentType, normalizeDocumentNumber } from '../domain/customer.js';
 import { CustomerStatusChange } from '../domain/customer-status-change.js';
@@ -7,6 +8,8 @@ import { UpdateCustomerDto } from '../http/dto/update-customer.dto.js';
 import { CustomerAlreadyExists } from '../domain/errors/customer-already-exists.error.js';
 import { Mail } from '../domain/mail.js';
 import { EmployeesService } from '../../employees/application/employees.service.js';
+import { TransactionRunner } from '../domain/port/transaction-runner.js';
+import { CUSTOMER_EMAIL_CHANGED, type CustomerEmailChangedEvent } from '../../shared/events/domain-events.js';
 
 // Dirección única de la unicidad global de email: Customers -> Employees. Employees ya NO
 // consulta a Customers (ver employees.service.ts) — por eso esta dependencia ya no forma
@@ -20,6 +23,8 @@ export class CustomersService {
   constructor(
     private readonly customersRepository: CustomerRepository,
     private readonly employeesService: EmployeesService,
+    private readonly transactionRunner: TransactionRunner,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // --- CREAR ---
@@ -92,58 +97,72 @@ export class CustomersService {
       throw new BadRequestException('At least one field must be provided');
     }
 
-    // 1. Buscar si el cliente existe
-    const customer = await this.findById(id);
+    // La lectura, la escritura y el evento van en una sola transacción: si accounts rechaza el
+    // email nuevo (ya lo usa otra cuenta), se deshace también el cambio en Customer.
+    return await this.transactionRunner.run(async () => {
+      // 1. Buscar si el cliente existe
+      const customer = await this.findById(id);
+      const previousEmail = customer.getEmail();
 
-    // Un cliente dado de baja no se modifica: primero hay que reactivarlo
-    if (!customer.isActive()) {
-      throw new ConflictException(`Customer with ID ${id} is inactive: reactivate it before modifying`);
-    }
-
-    // 2. Si cambia el documento, verificar que no esté en uso (antes de mutar la entidad)
-    if (dto.documentType !== undefined || dto.documentNumber !== undefined) {
-      const documentType = dto.documentType ?? customer.getDocumentType();
-      const documentNumber =
-        dto.documentNumber !== undefined
-          ? normalizeDocumentNumber(dto.documentNumber)
-          : customer.getDocumentNumber();
-
-      await this.assertDocumentAvailable(documentType, documentNumber, customer.getId() ?? undefined);
-    }
-
-    // 2b. Si cambia el email (normalizado igual que al guardar), tampoco puede estar registrado
-    // por otro cliente. Además debe ser único frente a employees (misma regla que al crear;
-    // Customers -> Employees es la única dirección de este chequeo).
-    if (dto.email !== undefined) {
-      const normalizedEmail = Mail.create(dto.email).getValue();
-      if (normalizedEmail !== customer.getEmail()) {
-        await this.assertEmailAvailable(normalizedEmail);
+      // Un cliente dado de baja no se modifica: primero hay que reactivarlo
+      if (!customer.isActive()) {
+        throw new ConflictException(`Customer with ID ${id} is inactive: reactivate it before modifying`);
       }
-      if (await this.employeesService.existsByEmail(normalizedEmail)) {
-        throw new ConflictException(`Email "${normalizedEmail}" is already registered as an employee`);
-      }
-    }
 
-    // 3. Aplicar los cambios sobre la entidad recuperada
-    customer.update({
-      firstName: dto.firstName,
-      lastName: dto.lastName,
-      documentType: dto.documentType,
-      documentNumber: dto.documentNumber,
-      email: dto.email,
-      phone: dto.phone,
-      dateOfBirth:
-        dto.dateOfBirth === undefined
-          ? undefined
-          : dto.dateOfBirth === null
-            ? null
-            : new Date(dto.dateOfBirth),
+      // 2. Si cambia el documento, verificar que no esté en uso (antes de mutar la entidad)
+      if (dto.documentType !== undefined || dto.documentNumber !== undefined) {
+        const documentType = dto.documentType ?? customer.getDocumentType();
+        const documentNumber =
+          dto.documentNumber !== undefined
+            ? normalizeDocumentNumber(dto.documentNumber)
+            : customer.getDocumentNumber();
+
+        await this.assertDocumentAvailable(documentType, documentNumber, customer.getId() ?? undefined);
+      }
+
+      // 2b. Si cambia el email (normalizado igual que al guardar), tampoco puede estar registrado
+      // por otro cliente. Además debe ser único frente a employees (misma regla que al crear;
+      // Customers -> Employees es la única dirección de este chequeo).
+      if (dto.email !== undefined) {
+        const normalizedEmail = Mail.create(dto.email).getValue();
+        if (normalizedEmail !== customer.getEmail()) {
+          await this.assertEmailAvailable(normalizedEmail);
+        }
+        if (await this.employeesService.existsByEmail(normalizedEmail)) {
+          throw new ConflictException(`Email "${normalizedEmail}" is already registered as an employee`);
+        }
+      }
+
+      // 3. Aplicar los cambios sobre la entidad recuperada
+      customer.update({
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        documentType: dto.documentType,
+        documentNumber: dto.documentNumber,
+        email: dto.email,
+        phone: dto.phone,
+        dateOfBirth:
+          dto.dateOfBirth === undefined
+            ? undefined
+            : dto.dateOfBirth === null
+              ? null
+              : new Date(dto.dateOfBirth),
+      });
+
+      // 4. Re-persistir los cambios en el repositorio
+      await this.customersRepository.update(customer);
+
+      // 5. Si el email realmente cambió, avisar DESPUÉS de persistir y dentro de la misma
+      // transacción: accounts actualiza el email de acceso de la cuenta del cliente.
+      if (customer.getEmail() !== previousEmail) {
+        await this.eventEmitter.emitAsync(CUSTOMER_EMAIL_CHANGED, {
+          customerId: id,
+          email: customer.getEmail(),
+        } satisfies CustomerEmailChangedEvent);
+      }
+
+      return customer;
     });
-
-    // 4. Re-persistir los cambios en el repositorio
-    await this.customersRepository.update(customer);
-
-    return customer;
   }
 
   // --- DESACTIVAR (BAJA LÓGICA) ---

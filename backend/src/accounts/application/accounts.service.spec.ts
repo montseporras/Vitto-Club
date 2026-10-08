@@ -223,7 +223,12 @@ describe('AccountsService', () => {
       new PassthroughEmployeeTransactionRunner(),
       eventEmitter as unknown as import('@nestjs/event-emitter').EventEmitter2,
     );
-    customersService = new CustomersService(customerRepo, employeesService);
+    customersService = new CustomersService(
+      customerRepo,
+      employeesService,
+      new PassthroughTransactionRunner(),
+      eventEmitter as unknown as import('@nestjs/event-emitter').EventEmitter2,
+    );
     service = new AccountsService(
       accountRepo,
       employeesService,

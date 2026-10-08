@@ -202,6 +202,9 @@ Se envía **solo lo que cambia** (cualquier subconjunto de los campos del alta):
 - Responde **200** con el cliente ya actualizado.
 - Si el cliente está **inactivo** devuelve **409**: primero hay que reactivarlo.
 - Si el nuevo documento o el nuevo email ya los tiene otro cliente **activo**, devuelve **409**.
+- Si el cliente tiene cuenta, cambiar su email cambia también **su email de acceso** (inicia sesión con
+  el nuevo). Si ese email ya lo usa otra cuenta (de un empleado o de otro cliente), devuelve **409** y
+  no se modifica nada.
   Reenviar el propio email, aunque cambien mayúsculas o espacios, no es un cambio.
 
 ### 3.6 `PATCH /customers/:id/deactivate` y `/activate`

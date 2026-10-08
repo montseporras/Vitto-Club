@@ -1,6 +1,9 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { CustomersService } from './customers.service.js';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EmployeesService } from '../../employees/application/employees.service.js';
+import { TransactionRunner } from '../domain/port/transaction-runner.js';
+import { CUSTOMER_EMAIL_CHANGED } from '../../shared/events/domain-events.js';
 import { Customer, DocumentType } from '../domain/customer.js';
 import { CustomerStatusAction, CustomerStatusChange } from '../domain/customer-status-change.js';
 import {
@@ -97,9 +100,17 @@ class FakeCustomerRepository implements CustomerRepository {
   }
 }
 
+// Ejecuta la función tal cual: los tests no necesitan una transacción real
+class PassthroughTransactionRunner implements TransactionRunner {
+  async run<T>(fn: () => Promise<T>): Promise<T> {
+    return await fn();
+  }
+}
+
 describe('CustomersService', () => {
   let repo: FakeCustomerRepository;
   let employeesService: FakeEmployeesService;
+  let emitAsync: jest.Mock;
   let service: CustomersService;
   let id: number;
 
@@ -117,7 +128,13 @@ describe('CustomersService', () => {
   beforeEach(async () => {
     repo = new FakeCustomerRepository();
     employeesService = new FakeEmployeesService();
-    service = new CustomersService(repo, employeesService as unknown as EmployeesService);
+    emitAsync = jest.fn().mockResolvedValue([]);
+    service = new CustomersService(
+      repo,
+      employeesService as unknown as EmployeesService,
+      new PassthroughTransactionRunner(),
+      { emitAsync } as unknown as EventEmitter2,
+    );
     const created = await service.create({
       firstName: 'Juan',
       lastName: 'Pérez',
@@ -244,6 +261,52 @@ describe('CustomersService', () => {
       const customer = await service.findByDocument('DNI', '12345678');
       expect(customer.getId()).toBe(current.getId());
       expect(customer.isActive()).toBe(true);
+    });
+  });
+
+  describe('update(): evento customer.email-changed', () => {
+    it('lo publica con el email nuevo normalizado, después de guardar', async () => {
+      const order: string[] = [];
+      repo.update_.mockImplementation(() => order.push('update'));
+      emitAsync.mockImplementation(async () => {
+        order.push('emit');
+        return [];
+      });
+
+      await service.update(id, { email: ' Nuevo@Example.com ' });
+
+      expect(emitAsync).toHaveBeenCalledWith(CUSTOMER_EMAIL_CHANGED, {
+        customerId: id,
+        email: 'nuevo@example.com',
+      });
+      expect(order).toEqual(['update', 'emit']);
+    });
+
+    it('no lo publica si el email no cambia (aunque cambien mayúsculas o espacios)', async () => {
+      await service.update(id, { email: ' JUAN@example.com', firstName: 'Juan Carlos' });
+
+      expect(emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('no lo publica si se modifican otros datos', async () => {
+      await service.update(id, { phone: '1144444444' });
+
+      expect(emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('no lo publica si la modificación se rechaza (email de otro cliente activo)', async () => {
+      await otherCustomer();
+
+      await expect(service.update(id, { email: 'otro@example.com' })).rejects.toThrow(ConflictException);
+      expect(emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('si accounts rechaza el email (ya lo usa otra cuenta), el error llega a quien llamó', async () => {
+      emitAsync.mockRejectedValueOnce(new ConflictException('Email "x" is already used by another account'));
+
+      await expect(service.update(id, { email: 'nuevo@example.com' })).rejects.toThrow(
+        'already used by another account',
+      );
     });
   });
 
