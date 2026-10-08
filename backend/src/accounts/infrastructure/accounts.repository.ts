@@ -3,6 +3,7 @@ import type { Account as PrismaAccountRecord } from '@prisma/client';
 import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import { Account } from '../domain/account.js';
 import { AccountRepository } from '../domain/port/account.repository.js';
+import type { CustomerLoginRecord } from '../domain/port/account.repository.js';
 import type { AccountRole } from '../domain/account-role.js';
 
 // Esta tabla también guarda cuentas de Customer (role CUSTOMER, employeeId null); nuestro
@@ -25,6 +26,19 @@ export function toDomain(record: PrismaAccountRecord): Account {
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   });
+}
+
+// Una fila de la tabla vista como cuenta de cliente. null si no es de un cliente.
+function toCustomerLogin(record: PrismaAccountRecord): CustomerLoginRecord | null {
+  if (record.customerId === null) return null;
+
+  return {
+    accountId: record.id,
+    customerId: record.customerId,
+    email: record.email,
+    passwordHash: record.passwordHash,
+    active: record.isActive,
+  };
 }
 
 @Injectable()
@@ -130,6 +144,28 @@ export class AccountPrismaRepository implements AccountRepository {
   async countActiveByEmployeeIds(employeeIds: number[]): Promise<number> {
     return await this.prisma.account.count({
       where: { employeeId: { in: employeeIds }, isActive: true },
+    });
+  }
+
+  // --- Cuentas de CLIENTE (login) ---
+
+  async findCustomerLoginByEmail(email: string): Promise<CustomerLoginRecord | null> {
+    const record = await this.prisma.account.findUnique({ where: { email } });
+    return record ? toCustomerLogin(record) : null;
+  }
+
+  async findCustomerLoginById(accountId: number): Promise<CustomerLoginRecord | null> {
+    const record = await this.prisma.account.findUnique({ where: { id: accountId } });
+    return record ? toCustomerLogin(record) : null;
+  }
+
+  // updateMany (y no update): si el cliente no tiene cuenta no hay nada que actualizar y no
+  // es un error. Si el email ya lo usa otra cuenta, la base lo rechaza (Account.email es
+  // UNIQUE); el service lo chequea antes para responder con un mensaje claro.
+  async updateEmailByCustomerId(customerId: number, email: string): Promise<void> {
+    await this.prisma.account.updateMany({
+      where: { customerId },
+      data: { email },
     });
   }
 }

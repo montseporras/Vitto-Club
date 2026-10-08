@@ -14,6 +14,7 @@ function fakePrisma() {
       findFirst: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       count: jest.fn(),
     },
     employee: {
@@ -327,6 +328,78 @@ describe('AccountPrismaRepository', () => {
       expect(count).toBe(2);
       expect(prisma.account.count).toHaveBeenCalledWith({
         where: { employeeId: { in: [1, 2, 3] }, isActive: true },
+      });
+    });
+  });
+
+  // Cuentas de CLIENTE: una fila con customerId (y role CUSTOMER, employeeId nulo)
+  describe('cuentas de cliente (login)', () => {
+    const CUSTOMER_RECORD = {
+      id: 9,
+      email: 'lucia@example.com',
+      passwordHash: 'hashed:clave-de-lucia',
+      role: 'CUSTOMER' as const,
+      isActive: true,
+      employeeId: null,
+      customerId: 20,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    };
+
+    it('findCustomerLoginByEmail busca por email y mapea la fila a una cuenta de cliente', async () => {
+      const prisma = fakePrisma();
+      (prisma.account.findUnique as jest.Mock).mockResolvedValue(CUSTOMER_RECORD);
+      const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
+
+      const result = await repo.findCustomerLoginByEmail('lucia@example.com');
+
+      expect(prisma.account.findUnique).toHaveBeenCalledWith({ where: { email: 'lucia@example.com' } });
+      expect(result).toEqual({
+        accountId: 9,
+        customerId: 20,
+        email: 'lucia@example.com',
+        passwordHash: 'hashed:clave-de-lucia',
+        active: true,
+      });
+    });
+
+    it('findCustomerLoginByEmail devuelve null si el email no existe', async () => {
+      const prisma = fakePrisma();
+      (prisma.account.findUnique as jest.Mock).mockResolvedValue(null);
+      const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
+
+      expect(await repo.findCustomerLoginByEmail('nadie@example.com')).toBeNull();
+    });
+
+    it('findCustomerLoginByEmail devuelve null si la fila es de un empleado, no de un cliente', async () => {
+      const prisma = fakePrisma();
+      (prisma.account.findUnique as jest.Mock).mockResolvedValue(BASE_RECORD);
+      const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
+
+      expect(await repo.findCustomerLoginByEmail('bruno.perez@vitto.club')).toBeNull();
+    });
+
+    it('findCustomerLoginById busca por id y devuelve null si es de un empleado', async () => {
+      const prisma = fakePrisma();
+      const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
+
+      (prisma.account.findUnique as jest.Mock).mockResolvedValue(CUSTOMER_RECORD);
+      expect((await repo.findCustomerLoginById(9))?.customerId).toBe(20);
+      expect(prisma.account.findUnique).toHaveBeenCalledWith({ where: { id: 9 } });
+
+      (prisma.account.findUnique as jest.Mock).mockResolvedValue(BASE_RECORD);
+      expect(await repo.findCustomerLoginById(7)).toBeNull();
+    });
+
+    it('updateEmailByCustomerId escribe solo el email, con updateMany (sin cuenta no es un error)', async () => {
+      const prisma = fakePrisma();
+      const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
+
+      await repo.updateEmailByCustomerId(20, 'lucia.nueva@example.com');
+
+      expect(prisma.account.updateMany).toHaveBeenCalledWith({
+        where: { customerId: 20 },
+        data: { email: 'lucia.nueva@example.com' },
       });
     });
   });

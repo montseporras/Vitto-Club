@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { AccountsService, type AccountOwner } from './accounts.service.js';
 import { Account } from '../domain/account.js';
-import { AccountRepository } from '../domain/port/account.repository.js';
+import { AccountRepository, type CustomerLoginRecord } from '../domain/port/account.repository.js';
 import { PasswordHasher } from '../domain/port/password-hasher.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import { DomainError } from '../domain/errors/domain.error.js';
@@ -75,13 +75,17 @@ class FakeEmployeeRepository implements EmployeeRepository {
 
 class FakeCustomerRepository implements CustomerRepository {
   readonly emails = new Set<string>();
+  // Clientes "persistidos", para el login de clientes (CustomersService.findById)
+  readonly items = new Map<number, Customer>();
 
   async existsByEmail(email: string): Promise<boolean> {
     return this.emails.has(email.toLowerCase());
   }
-  // No usados por estos tests: AccountsService solo llama a CustomersService.existsByEmail
+  async findById(id: number): Promise<Customer | null> {
+    return this.items.get(id) ?? null;
+  }
+  // No usados por estos tests: AccountsService solo llama a CustomersService.existsByEmail y findById
   async findAll(): Promise<Customer[]> { throw new Error('not implemented'); }
-  async findById(): Promise<Customer | null> { throw new Error('not implemented'); }
   async findByDocument(): Promise<Customer | null> { throw new Error('not implemented'); }
   async save(): Promise<Customer> { throw new Error('not implemented'); }
   async update(): Promise<void> { throw new Error('not implemented'); }
@@ -143,6 +147,25 @@ class FakeAccountRepository implements AccountRepository {
     return [...this.items.values()].filter(
       (a) => a.isActive() && employeeIds.includes(a.getEmployeeId()),
     ).length;
+  }
+
+  // --- Cuentas de cliente (login). La entidad Account solo modela empleados, así que estas
+  // viven aparte, igual que en el repositorio real. ---
+  readonly customerLogins = new Map<number, CustomerLoginRecord>();
+  // Registro de llamadas a updateEmailByCustomerId
+  readonly emailUpdates: { customerId: number; email: string }[] = [];
+
+  async findCustomerLoginByEmail(email: string): Promise<CustomerLoginRecord | null> {
+    return [...this.customerLogins.values()].find((r) => r.email === email) ?? null;
+  }
+  async findCustomerLoginById(accountId: number): Promise<CustomerLoginRecord | null> {
+    return this.customerLogins.get(accountId) ?? null;
+  }
+  async updateEmailByCustomerId(customerId: number, email: string): Promise<void> {
+    this.emailUpdates.push({ customerId, email });
+    for (const [id, record] of this.customerLogins) {
+      if (record.customerId === customerId) this.customerLogins.set(id, { ...record, email });
+    }
   }
 }
 
@@ -785,6 +808,8 @@ describe('AccountsService', () => {
         role: 'CASHIER',
         owner: { employeeId: 2 },
         email: 'bruno.perez@vitto.club',
+        firstName: 'Bruno',
+        lastName: 'Pérez',
       });
     });
 
@@ -900,6 +925,8 @@ describe('AccountsService', () => {
         role: 'CASHIER',
         owner: { employeeId: 2 },
         email: 'bruno.perez@vitto.club',
+        firstName: 'Bruno',
+        lastName: 'Pérez',
       });
     });
 
@@ -924,17 +951,233 @@ describe('AccountsService', () => {
       expect(result).not.toHaveProperty('passwordHash');
     });
 
-    // Prueba de tipo, no de comportamiento: AuthAccountInfo/AccountOwner ya admiten un
-    // owner de Customer, aunque este módulo todavía no resuelve cuentas de Customer en
-    // tiempo de ejecución (AccountRepository.findByIdentifier/findById siguen limitados a
-    // employeeId, ver accounts.repository.ts). Si esto dejara de compilar, significaría
-    // que alguien angostó el tipo de vuelta a solo employeeId.
+    // Prueba de tipo, no de comportamiento: AccountOwner admite un owner de Customer. Si esto
+    // dejara de compilar, significaría que alguien angostó el tipo de vuelta a solo employeeId.
     it('AuthAccountInfo admite un owner de Customer a nivel de tipo', () => {
-      // AccountRole hoy solo modela ADMIN/CASHIER (roles de empleado); ampliarlo a
-      // 'CUSTOMER' es una decisión aparte, no pedida acá. Esta prueba se limita a
-      // confirmar que AccountOwner (la otra mitad de AuthAccountInfo) ya acepta customerId.
       const owner: AccountOwner = { customerId: 9 };
       expect(owner).toEqual({ customerId: 9 });
+    });
+  });
+
+  // --- SCRUM-159: login de clientes ---
+  // El cliente entra con email + password igual que un empleado. Su cuenta es una fila de
+  // Account con customerId; el rol es siempre CUSTOMER; y su estado (activo o dado de baja)
+  // se lee de Customer, no se copia en la cuenta.
+  describe('login de clientes (SCRUM-159)', () => {
+    const LUCIA = {
+      id: 20,
+      firstName: 'Lucía',
+      lastName: 'Fernández',
+      documentType: 'DNI' as const,
+      documentNumber: '40123456',
+      email: 'lucia@example.com',
+    };
+
+    // Un cliente ya persistido, con su cuenta (la contraseña es "clave-de-lucia")
+    function seedCustomerWithAccount(opts: { active?: boolean; accountActive?: boolean } = {}) {
+      const customer = Customer.reconstruct({ ...LUCIA, active: opts.active ?? true });
+      customerRepo.items.set(LUCIA.id, customer);
+      accountRepo.customerLogins.set(7, {
+        accountId: 7,
+        customerId: LUCIA.id,
+        email: LUCIA.email,
+        passwordHash: 'hashed:clave-de-lucia',
+        active: opts.accountActive ?? true,
+      });
+      return customer;
+    }
+
+    // Ningún empleado tiene ese email: la búsqueda de empleados no encuentra nada
+    beforeEach(() => {
+      accountRepo.findByEmail = async () => null;
+    });
+
+    describe('verifyCredentials', () => {
+      it('devuelve rol CUSTOMER, owner con customerId, email y nombre', async () => {
+        seedCustomerWithAccount();
+
+        const result = await service.verifyCredentials('lucia@example.com', 'clave-de-lucia');
+
+        expect(result).toEqual({
+          accountId: 7,
+          role: 'CUSTOMER',
+          owner: { customerId: 20 },
+          email: 'lucia@example.com',
+          firstName: 'Lucía',
+          lastName: 'Fernández',
+        });
+      });
+
+      it('normaliza el email: mayúsculas y espacios no impiden entrar', async () => {
+        seedCustomerWithAccount();
+
+        const result = await service.verifyCredentials('  Lucia@Example.COM ', 'clave-de-lucia');
+
+        expect(result?.accountId).toBe(7);
+      });
+
+      it('rechaza una contraseña incorrecta', async () => {
+        seedCustomerWithAccount();
+
+        expect(await service.verifyCredentials('lucia@example.com', 'otra-clave')).toBeUndefined();
+      });
+
+      it('nunca devuelve el passwordHash', async () => {
+        seedCustomerWithAccount();
+
+        const result = await service.verifyCredentials('lucia@example.com', 'clave-de-lucia');
+
+        expect(result).not.toHaveProperty('passwordHash');
+      });
+
+      it('un cliente dado de baja no entra, aunque la contraseña sea correcta', async () => {
+        seedCustomerWithAccount({ active: false });
+
+        expect(await service.verifyCredentials('lucia@example.com', 'clave-de-lucia')).toBeUndefined();
+      });
+
+      it('un cliente reactivado vuelve a entrar con la misma contraseña, sin tocar su cuenta', async () => {
+        const customer = seedCustomerWithAccount();
+        customer.deactivate();
+        expect(await service.verifyCredentials('lucia@example.com', 'clave-de-lucia')).toBeUndefined();
+
+        customer.activate();
+
+        const result = await service.verifyCredentials('lucia@example.com', 'clave-de-lucia');
+        expect(result?.role).toBe('CUSTOMER');
+      });
+
+      it('una cuenta de cliente inactiva no entra', async () => {
+        seedCustomerWithAccount({ accountActive: false });
+
+        expect(await service.verifyCredentials('lucia@example.com', 'clave-de-lucia')).toBeUndefined();
+      });
+
+      it('un email sin cuenta de empleado ni de cliente igual ejecuta la verificación señuelo (timing)', async () => {
+        const verifySpy = jest.spyOn(passwordHasher, 'verify');
+
+        const result = await service.verifyCredentials('nadie@example.com', 'cualquiera');
+
+        expect(result).toBeUndefined();
+        expect(verifySpy).toHaveBeenCalledWith('cualquiera', expect.any(String));
+      });
+
+      it('una cuenta de cliente inactiva también ejecuta la verificación señuelo', async () => {
+        seedCustomerWithAccount({ accountActive: false });
+        const verifySpy = jest.spyOn(passwordHasher, 'verify');
+
+        await service.verifyCredentials('lucia@example.com', 'clave-de-lucia');
+
+        expect(verifySpy).toHaveBeenCalledTimes(1);
+        expect(verifySpy).not.toHaveBeenCalledWith('clave-de-lucia', 'hashed:clave-de-lucia');
+      });
+
+      it('si el email es de un empleado, se resuelve como empleado y no se mira a los clientes', async () => {
+        employeeRepo.seed(CASHIER_EMPLOYEE);
+        const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+        accountRepo.findByEmail = async () => accountRepo.items.get(account.getId() as number) ?? null;
+        const customerLookup = jest.spyOn(accountRepo, 'findCustomerLoginByEmail');
+
+        const result = await service.verifyCredentials('bruno.perez@vitto.club', 'secreta123');
+
+        expect(result?.role).toBe('CASHIER');
+        expect(customerLookup).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('findActiveById (renovación de la sesión)', () => {
+      it('devuelve la misma forma que el login', async () => {
+        seedCustomerWithAccount();
+
+        expect(await service.findActiveById(7)).toEqual({
+          accountId: 7,
+          role: 'CUSTOMER',
+          owner: { customerId: 20 },
+          email: 'lucia@example.com',
+          firstName: 'Lucía',
+          lastName: 'Fernández',
+        });
+      });
+
+      it('si dan de baja al cliente, la sesión deja de renovarse', async () => {
+        const customer = seedCustomerWithAccount();
+        customer.deactivate();
+
+        expect(await service.findActiveById(7)).toBeUndefined();
+      });
+
+      it('una cuenta de cliente inactiva no se renueva', async () => {
+        seedCustomerWithAccount({ accountActive: false });
+
+        expect(await service.findActiveById(7)).toBeUndefined();
+      });
+
+      it('un id que no es de ninguna cuenta devuelve undefined', async () => {
+        expect(await service.findActiveById(999)).toBeUndefined();
+      });
+    });
+
+    describe('handleCustomerEmailChanged (listener de customer.email-changed)', () => {
+      it('actualiza el email de la cuenta del cliente', async () => {
+        seedCustomerWithAccount();
+
+        await service.handleCustomerEmailChanged({ customerId: 20, email: 'lucia.nueva@example.com' });
+
+        expect(accountRepo.emailUpdates).toEqual([{ customerId: 20, email: 'lucia.nueva@example.com' }]);
+        expect(await service.verifyCredentials('lucia.nueva@example.com', 'clave-de-lucia')).toBeDefined();
+        expect(await service.verifyCredentials('lucia@example.com', 'clave-de-lucia')).toBeUndefined();
+      });
+
+      it('normaliza el email recibido', async () => {
+        seedCustomerWithAccount();
+
+        await service.handleCustomerEmailChanged({ customerId: 20, email: '  Lucia.Nueva@Example.COM ' });
+
+        expect(accountRepo.emailUpdates[0].email).toBe('lucia.nueva@example.com');
+      });
+
+      it('rechaza con 409 un email que ya usa la cuenta de un empleado', async () => {
+        seedCustomerWithAccount();
+        employeeRepo.seed(CASHIER_EMPLOYEE);
+        const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+        accountRepo.findByEmail = async (email: string) =>
+          email === 'bruno.perez@vitto.club' ? (accountRepo.items.get(account.getId() as number) ?? null) : null;
+
+        await expect(
+          service.handleCustomerEmailChanged({ customerId: 20, email: 'bruno.perez@vitto.club' }),
+        ).rejects.toThrow(ConflictException);
+        expect(accountRepo.emailUpdates).toHaveLength(0);
+      });
+
+      it('rechaza con 409 un email que ya usa la cuenta de otro cliente', async () => {
+        seedCustomerWithAccount();
+        accountRepo.customerLogins.set(8, {
+          accountId: 8,
+          customerId: 21,
+          email: 'martin@example.com',
+          passwordHash: 'hashed:otra',
+          active: true,
+        });
+
+        await expect(
+          service.handleCustomerEmailChanged({ customerId: 20, email: 'martin@example.com' }),
+        ).rejects.toThrow(ConflictException);
+        expect(accountRepo.emailUpdates).toHaveLength(0);
+      });
+
+      it('acepta el email que ya es el de su propia cuenta (sin conflicto consigo mismo)', async () => {
+        seedCustomerWithAccount();
+
+        await expect(
+          service.handleCustomerEmailChanged({ customerId: 20, email: 'lucia@example.com' }),
+        ).resolves.toBeUndefined();
+      });
+
+      it('si el cliente no tiene cuenta, no es un error', async () => {
+        await expect(
+          service.handleCustomerEmailChanged({ customerId: 99, email: 'sin.cuenta@example.com' }),
+        ).resolves.toBeUndefined();
+      });
     });
   });
 });

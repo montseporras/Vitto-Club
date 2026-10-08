@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AccountsService } from './application/accounts.service.js';
+import { CustomerEventsListener } from './application/customer-events.listener.js';
 import { EmployeeEventsListener } from './application/employee-events.listener.js';
 import { AccountRepository } from './domain/port/account.repository.js';
 import { TransactionRunner } from './domain/port/transaction-runner.js';
@@ -24,6 +25,7 @@ import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js'
   providers: [
     AccountsService,
     EmployeeEventsListener,
+    CustomerEventsListener,
     {
       provide: AccountRepository,
       useClass: AccountPrismaRepository,

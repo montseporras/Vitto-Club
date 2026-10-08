@@ -8,7 +8,7 @@ import { DomainError } from '../domain/errors/domain.error.js';
 import { AccountsService } from '../../accounts/application/accounts.service.js';
 import { EmployeeEventsListener } from '../../accounts/application/employee-events.listener.js';
 import { Account } from '../../accounts/domain/account.js';
-import { AccountRepository } from '../../accounts/domain/port/account.repository.js';
+import { AccountRepository, type CustomerLoginRecord } from '../../accounts/domain/port/account.repository.js';
 import { PasswordHasher } from '../../accounts/domain/port/password-hasher.js';
 import { TransactionRunner as AccountTransactionRunnerPort } from '../../accounts/domain/port/transaction-runner.js';
 import { EMPLOYEE_DEACTIVATED, EMPLOYEE_ROLE_CHANGED } from '../../shared/events/domain-events.js';
@@ -516,6 +516,14 @@ describe('EmployeesService', () => {
           (a) => a.isActive() && employeeIds.includes(a.getEmployeeId()),
         ).length;
       }
+      // Cuentas de cliente: no se usan en esta suite (solo prueba empleados)
+      async findCustomerLoginByEmail(): Promise<CustomerLoginRecord | null> {
+        return null;
+      }
+      async findCustomerLoginById(): Promise<CustomerLoginRecord | null> {
+        return null;
+      }
+      async updateEmailByCustomerId(): Promise<void> {}
     }
 
     class FakePasswordHasher implements PasswordHasher {

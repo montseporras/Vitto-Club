@@ -1,6 +1,17 @@
 import type { AccountRole } from '../account-role.js';
 import { Account } from '../account.js';
 
+// Una cuenta de CLIENTE, vista solo para el login. No es la entidad Account (esa modela
+// únicamente cuentas de empleado): acá hace falta apenas lo que verifyCredentials y
+// findActiveById necesitan. El estado "activo" del cliente no se copia: se lee de Customer.
+export type CustomerLoginRecord = {
+  accountId: number;
+  customerId: number;
+  email: string;
+  passwordHash: string;
+  active: boolean;
+};
+
 export abstract class AccountRepository {
   abstract save(account: Account): Promise<Account>;
   abstract findById(id: number): Promise<Account | null>;
@@ -28,4 +39,15 @@ export abstract class AccountRepository {
   // Employee.role === 'ADMIN' && Account.active), que no se puede resolver contando
   // solo Employees.
   abstract countActiveByEmployeeIds(employeeIds: number[]): Promise<number>;
+
+  // --- Cuentas de CLIENTE (login). Las de empleado siguen yendo por findByEmail/findById ---
+
+  // null si no existe o si la fila no es una cuenta de cliente (customerId nulo)
+  abstract findCustomerLoginByEmail(email: string): Promise<CustomerLoginRecord | null>;
+  abstract findCustomerLoginById(accountId: number): Promise<CustomerLoginRecord | null>;
+
+  // Copia el email del cliente en su cuenta (el email de acceso es una copia de
+  // Customer.email, igual que el de un empleado lo es de Employee.email). Sin cuenta, no
+  // hace nada: un cliente puede existir sin cuenta.
+  abstract updateEmailByCustomerId(customerId: number, email: string): Promise<void>;
 }

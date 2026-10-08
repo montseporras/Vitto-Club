@@ -14,6 +14,7 @@ import { AccountAlreadyExists } from '../domain/errors/account-already-exists.er
 import {
   ACCOUNT_DEACTIVATED,
   type AccountDeactivatedEvent,
+  type CustomerEmailChangedEvent,
   type EmployeeRoleChangedEvent,
 } from '../../shared/events/domain-events.js';
 
@@ -41,16 +42,24 @@ export type AccountProfile = {
 // login sin dos formas de resultado distintas según el tipo de cuenta.
 export type AccountOwner = { employeeId: number } | { customerId: number };
 
+// Rol que ve el login. AccountRole (ADMIN/CASHIER) sigue siendo el de las cuentas de
+// empleado y el que validan los DTOs del ABMC; CUSTOMER existe solo para el login de clientes.
+export type LoginRole = AccountRole | 'CUSTOMER';
+
 // Resultado de verifyCredentials/findActiveById (consumido por auth para construir la
 // sesión/JWT, y para que el refresh devuelva la misma forma que el login). Nunca incluye
 // passwordHash, password, token ni session. email sale directo de Account.email, ya
 // normalizado (trim + lowercase) desde que se persistió — no hace falta volver a resolver
 // Employee/Customer solo para esto.
+// firstName/lastName: para mostrar "Nombre Apellido · Rol" en el encabezado del frontend. Se
+// leen de Employee o de Customer en cada login y renovación (no van dentro del access token).
 export type AuthAccountInfo = {
   accountId: number;
-  role: AccountRole;
+  role: LoginRole;
   owner: AccountOwner;
   email: string;
+  firstName: string;
+  lastName: string;
 };
 
 @Injectable()
@@ -252,16 +261,44 @@ export class AccountsService {
     });
   }
 
+  // --- Listener de customer.email-changed (ver customer-events.listener.ts) ---
+  // El email de acceso de un cliente es una copia de Customer.email: si el cliente lo cambia,
+  // hay que cambiarlo también en su cuenta, o seguiría entrando con el email viejo. Si el
+  // email nuevo ya lo usa OTRA cuenta (de un empleado o de otro cliente), se rechaza con 409
+  // y, como corre en la transacción de quien publicó, se deshace también el cambio en Customer.
+  async handleCustomerEmailChanged(event: CustomerEmailChangedEvent): Promise<void> {
+    return await this.transactionRunner.run(async () => {
+      const email = event.email.trim().toLowerCase();
+
+      const employeeAccount = await this.accountsRepository.findByEmail(email);
+      const customerAccount = await this.accountsRepository.findCustomerLoginByEmail(email);
+      const usedByAnother =
+        employeeAccount !== null ||
+        (customerAccount !== null && customerAccount.customerId !== event.customerId);
+
+      if (usedByAnother) {
+        throw new ConflictException(`Email "${email}" is already used by another account`);
+      }
+
+      await this.accountsRepository.updateEmailByCustomerId(event.customerId, email);
+    });
+  }
+
   // --- Login (consumido por auth; sin endpoint HTTP propio) ---
   // Decisión definitiva: TODOS los usuarios (empleados y clientes) se autentican con
   // email + password. El DNI queda solo para búsquedas operativas de clientes en caja,
-  // nunca como credencial. Hoy este método solo resuelve cuentas de Employee (ver
-  // AccountRepository.findByEmail), pero el tipo de retorno ya admite Customer.
+  // nunca como credencial. Primero se busca una cuenta de empleado (AccountRepository.
+  // findByEmail); si no hay, una de cliente (findCustomerLoginByEmail).
   async verifyCredentials(email: string, password: string): Promise<AuthAccountInfo | undefined> {
     const normalizedEmail = email.trim().toLowerCase();
     const account = await this.accountsRepository.findByEmail(normalizedEmail);
 
-    if (!account || !account.isActive()) {
+    // No es una cuenta de empleado: puede ser de un cliente (o no existir)
+    if (!account) {
+      return await this.verifyCustomerCredentials(normalizedEmail, password);
+    }
+
+    if (!account.isActive()) {
       // Mitigación de timing: igual se ejecuta una verificación de hash (y se descarta el
       // resultado), para que responder "no existe"/"no está activa" tarde parecido a una
       // verificación real y no permita enumerar emails registrados midiendo el tiempo de
@@ -279,6 +316,49 @@ export class AccountsService {
       role: employee.getRole() as AccountRole,
       owner: { employeeId: employee.getId() as number },
       email: account.getEmail() as string,
+      firstName: employee.getFirstName(),
+      lastName: employee.getLastName(),
+    };
+  }
+
+  // Login de un cliente. Misma mitigación de timing que el de empleados: si no hay cuenta (o
+  // está inactiva) igual se ejecuta una verificación de hash contra el señuelo.
+  private async verifyCustomerCredentials(
+    email: string,
+    password: string,
+  ): Promise<AuthAccountInfo | undefined> {
+    const record = await this.accountsRepository.findCustomerLoginByEmail(email);
+
+    if (!record || !record.active) {
+      await this.passwordHasher.verify(password, await this.getDummyPasswordHash());
+      return undefined;
+    }
+
+    const matches = await this.passwordHasher.verify(password, record.passwordHash);
+    if (!matches) return undefined;
+
+    return await this.toCustomerAuthInfo(record);
+  }
+
+  // El estado del cliente (activo o dado de baja) se lee de Customer en cada login y en cada
+  // renovación; no se copia en la cuenta. Por eso dar de baja a un cliente corta su acceso al
+  // instante, y reactivarlo lo devuelve sin sincronizar nada: es la misma idea que "el rol
+  // de un empleado sale de Employee".
+  private async toCustomerAuthInfo(record: {
+    accountId: number;
+    customerId: number;
+    email: string;
+  }): Promise<AuthAccountInfo | undefined> {
+    const customer = await this.customersService.findById(record.customerId);
+    if (!customer.isActive()) return undefined;
+
+    return {
+      accountId: record.accountId,
+      role: 'CUSTOMER',
+      owner: { customerId: record.customerId },
+      email: record.email,
+      firstName: customer.getFirstName(),
+      lastName: customer.getLastName(),
     };
   }
 
@@ -305,7 +385,15 @@ export class AccountsService {
   // de resultado que verifyCredentials: nunca passwordHash. No reemplaza el login inicial.
   async findActiveById(accountId: number): Promise<AuthAccountInfo | undefined> {
     const account = await this.accountsRepository.findById(accountId);
-    if (!account || !account.isActive()) return undefined;
+
+    // No es una cuenta de empleado: puede ser de un cliente (o no existir)
+    if (!account) {
+      const record = await this.accountsRepository.findCustomerLoginById(accountId);
+      if (!record || !record.active) return undefined;
+      return await this.toCustomerAuthInfo(record);
+    }
+
+    if (!account.isActive()) return undefined;
 
     const employee = await this.employeesService.findById(account.getEmployeeId());
     return {
@@ -313,6 +401,8 @@ export class AccountsService {
       role: employee.getRole() as AccountRole,
       owner: { employeeId: employee.getId() as number },
       email: account.getEmail() as string,
+      firstName: employee.getFirstName(),
+      lastName: employee.getLastName(),
     };
   }
 
