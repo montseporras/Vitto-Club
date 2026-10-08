@@ -191,6 +191,15 @@ export class CustomersService {
     return await this.customersRepository.findStatusHistory(id);
   }
 
+  // Expuesto para el registro de clientes (accounts): ¿hay un cliente ACTIVO con ese
+  // documento? El número se normaliza igual que al guardar.
+  async existsByDocument(documentType: DocumentType, documentNumber: string): Promise<boolean> {
+    return await this.customersRepository.existsByDocument(
+      documentType,
+      normalizeDocumentNumber(documentNumber),
+    );
+  }
+
   // Expuesto para que otros módulos (ej. accounts) validen unicidad de email cruzada
   // entre customers y employees sin acceder al repositorio directamente.
   async existsByEmail(email: string): Promise<boolean> {

@@ -8,6 +8,7 @@ import { PasswordHasher } from './domain/port/password-hasher.js';
 import { AccountPrismaRepository } from './infrastructure/accounts.repository.js';
 import { BcryptPasswordHasher } from './infrastructure/bcrypt-password-hasher.js';
 import { AccountsController } from './http/accounts.controller.js';
+import { CustomerRegistrationController } from './http/customer-registration.controller.js';
 import { EmployeesModule } from '../employees/employees.module.js';
 import { CustomersModule } from '../customers/customers.module.js';
 import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
@@ -21,7 +22,7 @@ import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js'
 // es por eventos (EmployeeEventsListener), no por import circular.
 @Module({
   imports: [EmployeesModule, CustomersModule],
-  controllers: [AccountsController],
+  controllers: [AccountsController, CustomerRegistrationController],
   providers: [
     AccountsService,
     EmployeeEventsListener,

@@ -162,6 +162,30 @@ export class AccountPrismaRepository implements AccountRepository {
   // updateMany (y no update): si el cliente no tiene cuenta no hay nada que actualizar y no
   // es un error. Si el email ya lo usa otra cuenta, la base lo rechaza (Account.email es
   // UNIQUE); el service lo chequea antes para responder con un mensaje claro.
+  async createCustomerAccount(data: {
+    customerId: number;
+    email: string;
+    passwordHash: string;
+  }): Promise<CustomerLoginRecord> {
+    const created = await this.prisma.account.create({
+      data: {
+        customerId: data.customerId,
+        email: data.email,
+        passwordHash: data.passwordHash,
+        role: 'CUSTOMER',
+        isActive: true,
+      },
+    });
+    return toCustomerLogin(created) as CustomerLoginRecord;
+  }
+
+  async deactivateCustomerAccount(accountId: number): Promise<void> {
+    await this.prisma.account.updateMany({
+      where: { id: accountId, customerId: { not: null } },
+      data: { isActive: false },
+    });
+  }
+
   async updateEmailByCustomerId(customerId: number, email: string): Promise<void> {
     await this.prisma.account.updateMany({
       where: { customerId },
