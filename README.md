@@ -14,27 +14,38 @@ que se despliegan por separado:
   de punta a punta el 2026-09-08.
 - **Sprint 1, ABMC de empleados** (`/api/empleados`): alta, edición, búsqueda
   por nombre y baja lógica, en el backend y en el frontend (Configuración →
-  *Empleados y usuarios*).
+  _Empleados y usuarios_).
 - **Sprint 1, ABMC de clientes** (`/api/customers`): alta, búsqueda por
   documento, edición, baja y reactivación, historial de estados y validación
   del formato del documento según el tipo (DNI / pasaporte). En el frontend
   está en la pantalla de caja (`features/cashier`). El listado paginado y el
   historial de estados todavía no tienen pantalla (ver
   [`docs/frontend-customers-pendientes.md`](./docs/frontend-customers-pendientes.md)).
+- **Configuración de puntos** (`/api/loyalty/configuration/*`): equivalencia de
+  monto/puntos, vigencia en meses (default RF-010: 12) y bonificación de
+  primera compra (porcentaje o puntos fijos), con endpoints GET/PUT y
+  configuración completa versionada para cumplir RF-014 sin sobrescribir
+  reglas anteriores. Las rutas seccionales también crean versiones, y la
+  configuración vigente se consulta en `/api/loyalty/configuration/current`.
+  La autorización exige un principal
+  `request.user.role = 'ADMIN'`; responderá 401 hasta que se integre la
+  historia de autenticación backend. Ver
+  [`docs/loyalty-api.md`](./docs/loyalty-api.md).
 - El resto de los módulos del frontend (`auth`, `recompensas`, `misiones`,
   etc.) existen solo como carpetas vacías.
 
 ## Documentación
 
-| Documento | Contenido |
-|---|---|
-| [`docs/CONTRIBUTING.MD`](./docs/CONTRIBUTING.MD) | Forma de trabajo: ramas, commits, Pull Requests y revisión |
-| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | Arquitectura del backend (hexagonal por módulo) y del frontend |
-| [`docs/FRONTEND-STRUCTURE.md`](./docs/FRONTEND-STRUCTURE.md) | Estructura del frontend: capas, carpetas, pantallas y estilos |
-| [`docs/customers-api.md`](./docs/customers-api.md) | Contrato de la API de clientes |
-| [`docs/employees-api.md`](./docs/employees-api.md) | Contrato de la API de empleados |
-| [`docs/frontend-customers-pendientes.md`](./docs/frontend-customers-pendientes.md) | Pendientes de frontend del módulo de clientes |
-| [`backend/PRISMA.md`](./backend/PRISMA.md) | Cómo quedó configurado Prisma y comandos de uso diario |
+| Documento                                                                          | Contenido                                                      |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| [`docs/CONTRIBUTING.MD`](./docs/CONTRIBUTING.MD)                                   | Forma de trabajo: ramas, commits, Pull Requests y revisión     |
+| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)                                   | Arquitectura del backend (hexagonal por módulo) y del frontend |
+| [`docs/FRONTEND-STRUCTURE.md`](./docs/FRONTEND-STRUCTURE.md)                       | Estructura del frontend: capas, carpetas, pantallas y estilos  |
+| [`docs/customers-api.md`](./docs/customers-api.md)                                 | Contrato de la API de clientes                                 |
+| [`docs/employees-api.md`](./docs/employees-api.md)                                 | Contrato de la API de empleados                                |
+| [`docs/loyalty-api.md`](./docs/loyalty-api.md)                                     | Contrato de la API de configuración de puntos                  |
+| [`docs/frontend-customers-pendientes.md`](./docs/frontend-customers-pendientes.md) | Pendientes de frontend del módulo de clientes                  |
+| [`backend/PRISMA.md`](./backend/PRISMA.md)                                         | Cómo quedó configurado Prisma y comandos de uso diario         |
 
 ## Estructura del repositorio
 
@@ -45,14 +56,15 @@ Vitto-Club/
 ├─ docs/                # Documentación del proyecto (ver tabla de arriba)
 ├─ backend/             # API NestJS
 │  ├─ src/
-│  │  ├─ app.module.ts       # Módulo raíz: Config, Prisma, Health, Customers, Employees
+│  │  ├─ app.module.ts       # Módulo raíz: Config, Prisma, Health, Customers, Employees, Loyalty
 │  │  ├─ main.ts             # Bootstrap: prefijo /api, ValidationPipe, CORS
 │  │  ├─ customers/          # Módulo de clientes (domain / application / infrastructure / http)
 │  │  ├─ employees/          # Módulo de empleados (misma estructura)
+│  │  ├─ loyalty/            # Equivalencia vigente monto de compra / puntos
 │  │  ├─ prisma/             # PrismaService + PrismaModule (@Global)
 │  │  └─ health/             # GET /api/health -> hace SELECT 1 contra la DB
 │  ├─ prisma/
-│  │  ├─ schema.prisma        # Modelos Employee, Customer y su historial de estados
+│  │  ├─ schema.prisma        # Modelos de negocio y configuración de puntos
 │  │  ├─ migrations/          # Migraciones SQL versionadas
 │  │  └─ seed.ts              # Datos de prueba (3 employees, 2 customers)
 │  ├─ test/                  # Tests e2e
@@ -114,7 +126,7 @@ funciona. Durante la revisión se corrigieron estos problemas:
    los valores reales, de forma que cualquiera que clone el repo pueda copiar
    `.env.example` a `.env` y conectar sin adivinar credenciales.
 3. **Tests rotos (unitarios y e2e) por un error de TypeScript** (`TS5011: The
-   common source directory... 'rootDir' must be explicitly set`), causado por
+common source directory... 'rootDir' must be explicitly set`), causado por
    `declaration: true` en `tsconfig.json` sin un `rootDir` explícito cuando
    `src/` y `test/` conviven bajo el mismo tsconfig. Se agregó
    `"rootDir": "."` a `backend/tsconfig.json`, que es compatible con

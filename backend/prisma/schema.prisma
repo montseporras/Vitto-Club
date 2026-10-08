@@ -30,7 +30,7 @@ model Employee {
   deactivatedAt DateTime? @map("deactivated_at")
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt      @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   account Account?
 
@@ -55,7 +55,7 @@ model Customer {
   deactivatedAt DateTime? @map("deactivated_at")
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt      @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   statusChanges CustomerStatusChange[]
   account       Account?
@@ -91,6 +91,11 @@ enum AccountRole {
   CUSTOMER
 }
 
+enum FirstPurchaseBonusType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
 /// Login credentials. Everyone logs in with an email, employees and customers alike.
 /// Exactly one owner, matching the role: CUSTOMER -> customerId; ADMIN/CASHIER -> employeeId.
 /// Enforced by the CHECK constraint "accounts_owner_matches_role_check", written by hand in the
@@ -110,7 +115,7 @@ model Account {
   customerId Int? @unique @map("customer_id")
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt      @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   employee Employee? @relation(fields: [employeeId], references: [id], onDelete: Restrict)
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
@@ -138,4 +143,55 @@ model Session {
 
   @@index([accountId])
   @@map("sessions")
+}
+
+/// Current global rule for converting purchase amounts into loyalty points.
+/// The primary key is constrained to 1 so the table stores exactly one active configuration.
+model LoyaltyPointsConfiguration {
+  id            Int      @id @default(1)
+  baseAmount    Decimal  @map("base_amount") @db.Decimal(12, 2)
+  pointsAwarded Int      @map("points_awarded")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("loyalty_points_configuration")
+}
+
+/// Current global points expiration period, measured from the point accreditation date.
+model LoyaltyPointsValidityConfiguration {
+  id                     Int      @id @default(1)
+  pointsExpirationMonths Int      @default(12) @map("points_expiration_months")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("loyalty_points_validity_configuration")
+}
+
+/// Current global bonus granted in addition to the normal points for a customer's first purchase.
+model FirstPurchaseBonusConfiguration {
+  id         Int                    @id @default(1)
+  bonusType  FirstPurchaseBonusType @map("bonus_type")
+  bonusValue Decimal                @map("bonus_value") @db.Decimal(12, 2)
+  createdAt  DateTime               @default(now()) @map("created_at")
+  updatedAt  DateTime               @updatedAt @map("updated_at")
+
+  @@map("first_purchase_bonus_configuration")
+}
+
+/// Immutable version of all loyalty program settings. Exactly one version is active at a time.
+model LoyaltyProgramConfiguration {
+  id                     Int                     @id @default(autoincrement())
+  version                Int                     @unique
+  baseAmount             Decimal?                @map("base_amount") @db.Decimal(12, 2)
+  pointsAwarded          Int?                    @map("points_awarded")
+  pointsExpirationMonths Int                     @default(12) @map("points_expiration_months")
+  bonusType              FirstPurchaseBonusType? @map("bonus_type")
+  bonusValue             Decimal?                @map("bonus_value") @db.Decimal(12, 2)
+  isActive               Boolean                 @default(true) @map("is_active")
+  validFrom              DateTime                @default(now()) @map("valid_from")
+  validTo                DateTime?               @map("valid_to")
+  createdAt              DateTime                @default(now()) @map("created_at")
+
+  @@index([isActive, version])
+  @@map("loyalty_program_configurations")
 }
