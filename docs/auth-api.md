@@ -7,7 +7,8 @@ mantener la sesión, cerrarla y cómo reaccionar a cada error.
 > con la aplicación levantada.
 >
 > - **Los empleados (Administrador y Cajero) ya pueden iniciar sesión.**
-> - **Los clientes todavía no**: su login responde 401 hasta que exista el registro de clientes (otro bloque).
+> - **Los clientes también**: se registran con `POST /api/registro` (ver `docs/registro-api.md`) y después
+>   inician sesión acá, con su email y su contraseña.
 > - **Todos los endpoints exigen token**, salvo `/api/auth/*` y `/api/health`. Un pedido sin token responde
 >   401 `UNAUTHENTICATED`, y uno con un rol sin permiso responde 403 `FORBIDDEN`. Esto rige desde que
 >   esta rama llega a `develop`: **el frontend tiene que mandar el `Authorization` antes de actualizar**,
@@ -195,16 +196,14 @@ Decidir siempre por el campo **`code`**, nunca por el texto del `message`.
 
 ## 10. Todavía no existe
 
-- **Login de clientes.** El endpoint es el mismo y recibe el email del cliente, pero hoy responde 401 siempre:
-  la cuenta de un cliente todavía no se resuelve. Depende del registro de clientes.
 - **Nombre y apellido del Cliente.** Hoy solo vienen para empleados. Si la pantalla del cliente los necesita se
   agrega `GET /api/customers/me`. Avisar cuando se defina esa pantalla.
 - **Cambio de contraseña por el propio usuario.**
-- **Registro de clientes** por su cuenta: es otro bloque. Su endpoint va a ser público.
 
 ### Reglas de la contraseña (para los formularios de alta y de cambio)
 
-Las aplica el backend al crear una cuenta (`POST /api/usuarios`) y al cambiarla (`PATCH /api/usuarios/:id`):
+Las aplica el backend al crear una cuenta (`POST /api/usuarios` y `POST /api/registro`) y al cambiarla
+(`PATCH /api/usuarios/:id`):
 
 - De **8 a 64 caracteres**.
 - **Máximo 72 bytes.** Las letras con tilde, la eñe y similares ocupan 2 bytes, así que una contraseña con
