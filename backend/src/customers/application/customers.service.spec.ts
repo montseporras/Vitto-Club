@@ -51,12 +51,12 @@ class FakeCustomerRepository implements CustomerRepository {
   async findById(id: number): Promise<Customer | null> {
     return this.items.get(id) ?? null;
   }
+  // Igual que el repositorio real: el activo primero y, si no hay, el inactivo más reciente
   async findByDocument(type: DocumentType, number: string): Promise<Customer | null> {
-    return (
-      [...this.items.values()].find(
-        (c) => c.getDocumentType() === type && c.getDocumentNumber() === number,
-      ) ?? null
-    );
+    const matches = [...this.items.values()]
+      .filter((c) => c.getDocumentType() === type && c.getDocumentNumber() === number)
+      .sort((a, b) => Number(b.isActive()) - Number(a.isActive()) || (b.getId() as number) - (a.getId() as number));
+    return matches[0] ?? null;
   }
   async findAll(): Promise<Customer[]> {
     return [...this.items.values()];
@@ -82,12 +82,13 @@ class FakeCustomerRepository implements CustomerRepository {
   }
   async existsByDocument(type: DocumentType, number: string, excludeId?: number): Promise<boolean> {
     return [...this.items.values()].some(
-      (c) => c.getDocumentType() === type && c.getDocumentNumber() === number && c.getId() !== excludeId,
+      (c) =>
+        c.isActive() && c.getDocumentType() === type && c.getDocumentNumber() === number && c.getId() !== excludeId,
     );
   }
   async existsByEmail(email: string): Promise<boolean> {
     return [...this.items.values()].some(
-      (c) => c.getEmail().toLowerCase() === email.toLowerCase(),
+      (c) => c.isActive() && c.getEmail().toLowerCase() === email.toLowerCase(),
     );
   }
   async list(params: CustomerListParams): Promise<CustomerListResult> {
@@ -235,6 +236,15 @@ describe('CustomersService', () => {
       const customer = await service.findByDocument('DNI', '12345678');
       expect(customer.isActive()).toBe(false);
     });
+
+    it('si hay una baja anterior y un cliente activo con el mismo documento, devuelve el activo', async () => {
+      await service.deactivate(id);
+      const current = await otherCustomer({ documentNumber: '12345678' });
+
+      const customer = await service.findByDocument('DNI', '12345678');
+      expect(customer.getId()).toBe(current.getId());
+      expect(customer.isActive()).toBe(true);
+    });
   });
 
   describe('update()', () => {
@@ -269,11 +279,20 @@ describe('CustomersService', () => {
       await expect(service.update(id, { email: '  OTRO@Example.com ' })).rejects.toThrow(ConflictException);
     });
 
-    it('lanza 409 si el nuevo email es de un cliente dado de baja y sugiere reactivarlo', async () => {
+    it('permite usar el email de un cliente dado de baja', async () => {
       const other = await otherCustomer();
       await service.deactivate(other.getId() as number);
 
-      await expect(service.update(id, { email: 'otro@example.com' })).rejects.toThrow(/reactivate it/);
+      const customer = await service.update(id, { email: 'otro@example.com' });
+      expect(customer.getEmail()).toBe('otro@example.com');
+    });
+
+    it('permite usar el documento de un cliente dado de baja', async () => {
+      const other = await otherCustomer();
+      await service.deactivate(other.getId() as number);
+
+      const customer = await service.update(id, { documentNumber: '87654321' });
+      expect(customer.getDocumentNumber()).toBe('87654321');
     });
 
     it('permite reenviar su propio email, aunque cambien mayúsculas o espacios', async () => {
@@ -318,18 +337,22 @@ describe('CustomersService', () => {
   });
 
   describe('create()', () => {
-    it('no permite dar de alta otro cliente con el documento de uno inactivo y sugiere reactivarlo', async () => {
+    it('lanza 409 si otro cliente activo ya tiene el documento', async () => {
+      await expect(otherCustomer({ documentNumber: '12.345.678' })).rejects.toThrow(ConflictException);
+      await expect(otherCustomer({ documentNumber: '12.345.678' })).rejects.toThrow(/DNI "12345678"/);
+    });
+
+    it('un cliente dado de baja libera su documento y su email: se crea un cliente nuevo', async () => {
       await service.deactivate(id);
 
-      await expect(
-        service.create({
-          firstName: 'Otro',
-          lastName: 'Cliente',
-          documentType: 'DNI',
-          documentNumber: '12.345.678',
-          email: 'otro@example.com',
-        }),
-      ).rejects.toThrow(/reactivate it/);
+      const customer = await otherCustomer({ documentNumber: '12.345.678', email: 'juan@example.com' });
+
+      expect(customer.getId()).not.toBe(id);
+      expect(customer.isActive()).toBe(true);
+      // El registro dado de baja se conserva tal cual
+      const old = await service.findById(id);
+      expect(old.isActive()).toBe(false);
+      expect(old.getDocumentNumber()).toBe('12345678');
     });
 
     it('lanza 409 si otro cliente ya tiene el email (normalizado)', async () => {
@@ -337,10 +360,11 @@ describe('CustomersService', () => {
       await expect(otherCustomer({ email: ' JUAN@example.com' })).rejects.toThrow(/email "juan@example.com"/);
     });
 
-    it('no permite dar de alta otro cliente con el email de uno inactivo y sugiere reactivarlo', async () => {
+    it('permite dar de alta otro cliente con el email de uno dado de baja', async () => {
       await service.deactivate(id);
 
-      await expect(otherCustomer({ email: 'juan@example.com' })).rejects.toThrow(/reactivate it/);
+      const customer = await otherCustomer({ email: 'juan@example.com' });
+      expect(customer.getEmail()).toBe('juan@example.com');
     });
 
     it('el mismo número con otro tipo de documento no es un duplicado', async () => {

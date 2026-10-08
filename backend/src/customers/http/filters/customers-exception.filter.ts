@@ -58,7 +58,7 @@ export class CustomerExceptionFilter implements ExceptionFilter {
     } else if (hasErrorCode(exception, PRISMA_UNIQUE_VIOLATION)) {
       // Dos operaciones simultáneas con el mismo documento o email: la base rechaza la segunda
       statusCode = HttpStatus.CONFLICT;
-      message = 'A customer with that document or email already exists';
+      message = 'An active customer with that document or email already exists';
     } else if (hasErrorCode(exception, PRISMA_RECORD_NOT_FOUND)) {
       statusCode = HttpStatus.NOT_FOUND;
       message = 'Customer not found';

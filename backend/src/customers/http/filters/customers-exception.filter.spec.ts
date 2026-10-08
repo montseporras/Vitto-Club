@@ -71,7 +71,7 @@ describe('CustomerExceptionFilter', () => {
     filter.catch(Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }), host);
 
     expect(status).toHaveBeenCalledWith(409);
-    expect(body().message).toBe('A customer with that document or email already exists');
+    expect(body().message).toBe('An active customer with that document or email already exists');
   });
 
   it('un registro inexistente de Prisma (P2025) responde 404', () => {

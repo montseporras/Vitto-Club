@@ -65,8 +65,10 @@ export class CustomerPrismaRepository implements CustomerRepository {
     documentType: DocumentType,
     documentNumber: string,
   ): Promise<Customer | null> {
-    const record = await this.prisma.customer.findUnique({
-      where: { unique_document: { documentType, documentNumber } },
+    // El activo primero; si no hay, el inactivo más reciente
+    const record = await this.prisma.customer.findFirst({
+      where: { documentType, documentNumber },
+      orderBy: [{ isActive: 'desc' }, { id: 'desc' }],
     });
     return record ? toDomain(record) : null;
   }
@@ -146,6 +148,7 @@ export class CustomerPrismaRepository implements CustomerRepository {
       where: {
         documentType,
         documentNumber,
+        isActive: true,
         ...(excludeId !== undefined ? { id: { not: excludeId } } : {}),
       },
       select: { id: true },
@@ -156,7 +159,7 @@ export class CustomerPrismaRepository implements CustomerRepository {
 
   async existsByEmail(email: string): Promise<boolean> {
     const match = await this.prisma.customer.findFirst({
-      where: { email: { equals: email, mode: 'insensitive' } },
+      where: { email: { equals: email, mode: 'insensitive' }, isActive: true },
       select: { id: true },
     });
 
