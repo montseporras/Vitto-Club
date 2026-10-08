@@ -10,3 +10,7 @@ export type {
   PointsEquivalence,
   UpdatePointsEquivalenceDto,
 } from './types/points-equivalence';
+export type {
+  PointsExpiration,
+  UpdatePointsExpirationDto,
+} from './types/points-expiration';

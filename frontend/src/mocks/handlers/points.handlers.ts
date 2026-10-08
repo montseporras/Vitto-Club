@@ -2,12 +2,18 @@
 // reales no existen. Permite probar la pantalla completa sin levantar la API.
 import { http, HttpResponse } from 'msw';
 import { API_URL } from '@/shared/api/http';
-import type { FirstPurchaseBonus, PointsEquivalence } from '@/features/points';
+import { DEFAULT_POINTS_EXPIRATION_MONTHS } from '@/domain/expiration';
+import type {
+  FirstPurchaseBonus,
+  PointsEquivalence,
+  PointsExpiration,
+} from '@/features/points';
 
 type BonusType = FirstPurchaseBonus['type'];
 
 const FIRST_PURCHASE_BONUS_URL = `${API_URL}/settings/first-purchase-bonus`;
 const POINTS_EQUIVALENCE_URL = `${API_URL}/settings/points-equivalence`;
+const POINTS_EXPIRATION_URL = `${API_URL}/settings/points-expiration`;
 
 // Estado en memoria. Arranca con el ejemplo del glosario: 30 puntos adicionales.
 let firstPurchaseBonus: FirstPurchaseBonus = { type: 'FIXED', value: 30 };
@@ -15,9 +21,17 @@ let firstPurchaseBonus: FirstPurchaseBonus = { type: 'FIXED', value: 30 };
 // Estado en memoria. Arranca con el ejemplo del prototipo: 10 puntos cada $ 1000.
 let pointsEquivalence: PointsEquivalence = { baseAmount: 1000, points: 10 };
 
+// Estado en memoria. Arranca con la vigencia por defecto: doce meses (RF-010).
+let pointsExpiration: PointsExpiration = {
+  months: DEFAULT_POINTS_EXPIRATION_MONTHS,
+};
+
 // Mismos topes que el schema de Zod del formulario de equivalencia.
 const MAX_BASE_AMOUNT = 1_000_000;
 const MAX_POINTS = 10_000;
+
+// Mismo tope que el schema de Zod del formulario de vigencia.
+const MAX_EXPIRATION_MONTHS = 120;
 
 // Mismos topes que el schema de Zod del formulario.
 const MAX_VALUE: Record<BonusType, number> = {
@@ -96,6 +110,25 @@ function validatePointsEquivalenceBody(body: Record<string, unknown>): string[] 
   return errors;
 }
 
+// Lo mismo para el body de la vigencia de los puntos.
+function validatePointsExpirationBody(body: Record<string, unknown>): string[] {
+  const errors = Object.keys(body)
+    .filter((key) => key !== 'months')
+    .map((key) => `property ${key} should not exist`);
+
+  const { months } = body;
+
+  if (typeof months !== 'number' || !Number.isInteger(months)) {
+    errors.push('months must be an integer number');
+  } else if (months < 1) {
+    errors.push('months must not be less than 1');
+  } else if (months > MAX_EXPIRATION_MONTHS) {
+    errors.push(`months must not be greater than ${MAX_EXPIRATION_MONTHS}`);
+  }
+
+  return errors;
+}
+
 export const pointsHandlers = [
   // RF-011: GET /api/settings/first-purchase-bonus
   http.get(FIRST_PURCHASE_BONUS_URL, () =>
@@ -131,5 +164,19 @@ export const pointsHandlers = [
       points: body.points as number,
     };
     return HttpResponse.json(pointsEquivalence);
+  }),
+
+  // RF-010: GET /api/settings/points-expiration
+  http.get(POINTS_EXPIRATION_URL, () => HttpResponse.json(pointsExpiration)),
+
+  // RF-010: PUT /api/settings/points-expiration responde 200 / 400.
+  http.put(POINTS_EXPIRATION_URL, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+
+    const errors = validatePointsExpirationBody(body);
+    if (errors.length) return badRequest(errors, request);
+
+    pointsExpiration = { months: body.months as number };
+    return HttpResponse.json(pointsExpiration);
   }),
 ];

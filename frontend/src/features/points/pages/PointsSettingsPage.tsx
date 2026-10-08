@@ -6,13 +6,16 @@ import { Card, CardTitle } from '@/shared/components/ui/Card';
 import {
   useFirstPurchaseBonus,
   usePointsEquivalence,
+  usePointsExpiration,
 } from '../api/points.queries';
 import { FirstPurchaseBonusForm } from '../components/FirstPurchaseBonusForm';
 import { PointsEquivalenceForm } from '../components/PointsEquivalenceForm';
+import { PointsExpirationForm } from '../components/PointsExpirationForm';
 
 // El título de la sección lo muestra el encabezado del modal de Configuración.
 export function PointsSettingsPage() {
   const equivalence = usePointsEquivalence();
+  const expiration = usePointsExpiration();
   const { data: bonus, isLoading, isError, refetch } = useFirstPurchaseBonus();
 
   return (
@@ -45,6 +48,35 @@ export function PointsSettingsPage() {
 
         {equivalence.data && !equivalence.isError && (
           <PointsEquivalenceForm equivalence={equivalence.data} />
+        )}
+      </Card>
+
+      {/* RF-010. */}
+      <Card>
+        <CardTitle>Vigencia de los puntos</CardTitle>
+        <StatusText className="mt-1 mb-6">
+          Meses que los puntos permanecen disponibles desde que se acreditan.
+        </StatusText>
+
+        {expiration.isLoading && <StatusText>Cargando vigencia…</StatusText>}
+
+        {expiration.isError && (
+          <Alert variant="error">
+            <p>
+              No se pudo cargar la vigencia.{' '}
+              <button
+                type="button"
+                onClick={() => void expiration.refetch()}
+                className="cursor-pointer font-semibold underline underline-offset-2"
+              >
+                Reintentar
+              </button>
+            </p>
+          </Alert>
+        )}
+
+        {expiration.data && !expiration.isError && (
+          <PointsExpirationForm expiration={expiration.data} />
         )}
       </Card>
 

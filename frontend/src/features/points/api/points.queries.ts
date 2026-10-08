@@ -3,13 +3,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FirstPurchaseBonusFormValues } from '../schemas/first-purchase-bonus.schema';
 import type { PointsEquivalenceFormValues } from '../schemas/points-equivalence.schema';
+import type { PointsExpirationFormValues } from '../schemas/points-expiration.schema';
 import {
   formToUpdateFirstPurchaseBonusDto,
   formToUpdatePointsEquivalenceDto,
+  formToUpdatePointsExpirationDto,
   getFirstPurchaseBonus,
   getPointsEquivalence,
+  getPointsExpiration,
   updateFirstPurchaseBonus,
   updatePointsEquivalence,
+  updatePointsExpiration,
 } from './points.api';
 import { pointsKeys } from './points.keys';
 
@@ -49,6 +53,26 @@ export const useUpdatePointsEquivalence = () => {
       updatePointsEquivalence(formToUpdatePointsEquivalenceDto(form)),
     onSuccess: (saved) => {
       qc.setQueryData(pointsKeys.equivalence(), saved);
+    },
+  });
+};
+
+// Vigencia de los puntos configurada actualmente (RF-010).
+export const usePointsExpiration = () =>
+  useQuery({
+    queryKey: pointsKeys.expiration(),
+    queryFn: getPointsExpiration,
+  });
+
+// Guarda la vigencia (RF-010). Recibe el formulario y lo traduce al DTO del backend.
+// La respuesta ya es la configuración guardada: se escribe directo en la caché.
+export const useUpdatePointsExpiration = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (form: PointsExpirationFormValues) =>
+      updatePointsExpiration(formToUpdatePointsExpirationDto(form)),
+    onSuccess: (saved) => {
+      qc.setQueryData(pointsKeys.expiration(), saved);
     },
   });
 };

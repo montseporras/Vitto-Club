@@ -5,4 +5,5 @@ export const pointsKeys = {
   firstPurchaseBonus: () =>
     [...pointsKeys.all, 'first-purchase-bonus'] as const,
   equivalence: () => [...pointsKeys.all, 'equivalence'] as const,
+  expiration: () => [...pointsKeys.all, 'expiration'] as const,
 };
