@@ -1,6 +1,6 @@
 import { Reflector } from '@nestjs/core';
 import { CustomerRegistrationController } from './customer-registration.controller.js';
-import { AccountsService } from '../application/accounts.service.js';
+import { CustomerRegistrationService } from '../application/customer-registration.service.js';
 import { IS_PUBLIC_KEY } from '../../shared/security/public.decorator.js';
 
 describe('CustomerRegistrationController', () => {
@@ -9,13 +9,13 @@ describe('CustomerRegistrationController', () => {
   });
 
   it('pasa los datos al servicio y responde sin tokens', async () => {
-    const registerCustomer = jest.fn().mockResolvedValue({
+    const register = jest.fn().mockResolvedValue({
       customerId: 3,
       email: 'lucia@example.com',
       firstName: 'Lucía',
       lastName: 'Fernández',
     });
-    const controller = new CustomerRegistrationController({ registerCustomer } as unknown as AccountsService);
+    const controller = new CustomerRegistrationController({ register } as unknown as CustomerRegistrationService);
 
     const response = await controller.register({
       firstName: 'Lucía',
@@ -26,7 +26,7 @@ describe('CustomerRegistrationController', () => {
       password: 'secreta123',
     });
 
-    expect(registerCustomer).toHaveBeenCalledWith({
+    expect(register).toHaveBeenCalledWith({
       firstName: 'Lucía',
       lastName: 'Fernández',
       documentType: 'DNI',

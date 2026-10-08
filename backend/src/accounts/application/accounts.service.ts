@@ -53,36 +53,6 @@ export type LoginRole = AccountRole | 'CUSTOMER';
 // Employee/Customer solo para esto.
 // firstName/lastName: para mostrar "Nombre Apellido · Rol" en el encabezado del frontend. Se
 // leen de Employee o de Customer en cada login y renovación (no van dentro del access token).
-// SCRUM-160: datos del autorregistro de un cliente (los de RF-015 más la contraseña).
-export type RegisterCustomerInput = {
-  firstName: string;
-  lastName: string;
-  documentType: 'DNI' | 'PASSPORT';
-  documentNumber: string;
-  email: string;
-  phone?: string | null;
-  dateOfBirth?: string | null;
-  password: string;
-};
-
-export type RegisteredCustomer = {
-  customerId: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-};
-
-// Mensajes del registro (decisión del PO, 2026-10-08): dicen qué dato está repetido y
-// sugieren comunicarse con el restaurante. Van en español porque los muestra el frontend.
-const CONTACT_HINT = 'Ante cualquier duda, comunicate con el restaurante.';
-export const REGISTRATION_DOCUMENT_TAKEN = `Ya hay un cliente registrado con ese documento. ${CONTACT_HINT}`;
-export const REGISTRATION_EMAIL_TAKEN = `Ya hay una cuenta registrada con ese email. ${CONTACT_HINT}`;
-export const REGISTRATION_DATA_TAKEN = `El documento o el email ya están registrados. ${CONTACT_HINT}`;
-
-function registrationConflict(field: 'documentNumber' | 'email', message: string): ConflictException {
-  return new ConflictException({ message, details: [{ field, message }] });
-}
-
 export type AuthAccountInfo = {
   accountId: number;
   role: LoginRole;
@@ -136,7 +106,7 @@ export class AccountsService {
 
     // 5. Password: longitud 8-64, y nunca igual al email (mismo criterio en reset).
     const password = Password.create(input.password);
-    this.assertPasswordIsNotEmail(password, employee.getEmail());
+    this.assertPasswordIsNotEmail(password, employee);
     const passwordHash = await this.passwordHasher.hash(password.getValue());
 
     // 6. Crear y persistir
@@ -194,7 +164,7 @@ export class AccountsService {
 
     const employee = await this.employeesService.findById(account.getEmployeeId());
     const password = Password.create(newPassword);
-    this.assertPasswordIsNotEmail(password, employee.getEmail());
+    this.assertPasswordIsNotEmail(password, employee);
 
     const passwordHash = await this.passwordHasher.hash(password.getValue());
     account.changePasswordHash(passwordHash);
@@ -312,78 +282,6 @@ export class AccountsService {
 
       await this.accountsRepository.updateEmailByCustomerId(event.customerId, email);
     });
-  }
-
-  // --- SCRUM-160: AUTORREGISTRO DE CLIENTE ---
-  // Lo orquesta accounts (no customers) para no crear un ciclo entre los dos módulos: crea el
-  // cliente y su cuenta CUSTOMER en una sola transacción. No inicia sesión: después el cliente
-  // entra por /api/auth/login con su email y contraseña.
-  async registerCustomer(input: RegisterCustomerInput): Promise<RegisteredCustomer> {
-    const email = input.email.trim().toLowerCase();
-
-    // 1. Contraseña: 8 a 64 caracteres, hasta 72 bytes y distinta del email
-    const password = Password.create(input.password);
-    this.assertPasswordIsNotEmail(password, email);
-
-    // 2. Documento y email libres. Solo cuentan los clientes activos: uno dado de baja perdió
-    //    sus puntos y su cuenta, así que puede volver a registrarse (decisión del PO).
-    if (await this.customersService.existsByDocument(input.documentType, input.documentNumber)) {
-      throw registrationConflict('documentNumber', REGISTRATION_DOCUMENT_TAKEN);
-    }
-    const emailTaken =
-      (await this.customersService.existsByEmail(email)) ||
-      (await this.employeesService.existsByEmail(email)) ||
-      (await this.accountsRepository.findByEmail(email)) !== null;
-    if (emailTaken) {
-      throw registrationConflict('email', REGISTRATION_EMAIL_TAKEN);
-    }
-
-    // Si el email todavía figura en la cuenta de un cliente dado de baja, esa cuenta se libera
-    // (se desactiva) dentro de la misma transacción del registro.
-    const previousAccount = await this.accountsRepository.findCustomerLoginByEmail(email);
-
-    // 3. Hash ANTES de abrir la transacción: bcrypt es lento y no conviene tenerla abierta
-    const passwordHash = await this.passwordHasher.hash(password.getValue());
-
-    // 4. Cliente + cuenta, todo o nada: si falla la cuenta no queda el cliente, y viceversa
-    try {
-      return await this.transactionRunner.run(async () => {
-        if (previousAccount) {
-          await this.accountsRepository.deactivateCustomerAccount(previousAccount.accountId);
-        }
-
-        const customer = await this.customersService.create({
-          firstName: input.firstName,
-          lastName: input.lastName,
-          documentType: input.documentType,
-          documentNumber: input.documentNumber,
-          email,
-          phone: input.phone,
-          dateOfBirth: input.dateOfBirth,
-        });
-        const customerId = customer.getId() as number;
-
-        await this.accountsRepository.createCustomerAccount({
-          customerId,
-          email: customer.getEmail(),
-          passwordHash,
-        });
-
-        return {
-          customerId,
-          email: customer.getEmail(),
-          firstName: customer.getFirstName(),
-          lastName: customer.getLastName(),
-        };
-      });
-    } catch (error) {
-      // Otro registro con los mismos datos ganó la carrera entre el chequeo y la escritura:
-      // customers responde 409 con su propio mensaje; se reemplaza por el del registro.
-      if (error instanceof ConflictException) {
-        throw new ConflictException(REGISTRATION_DATA_TAKEN);
-      }
-      throw error;
-    }
   }
 
   // --- Login (consumido por auth; sin endpoint HTTP propio) ---
@@ -563,8 +461,8 @@ export class AccountsService {
   // transformación. Por diseño: "Password123" y "password123" (o el email con espacios)
   // NO se consideran la misma password a los efectos de esta regla, aunque coincidan tras
   // alguna normalización. Solo se rechaza la igualdad literal, byte a byte.
-  private assertPasswordIsNotEmail(password: Password, email: string): void {
-    if (password.getValue() === email) {
+  private assertPasswordIsNotEmail(password: Password, employee: Employee): void {
+    if (password.getValue() === employee.getEmail()) {
       throw new BadRequestException('Password cannot be the same as the email');
     }
   }

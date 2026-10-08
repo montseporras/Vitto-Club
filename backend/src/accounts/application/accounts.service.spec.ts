@@ -161,20 +161,6 @@ class FakeAccountRepository implements AccountRepository {
   async findCustomerLoginById(accountId: number): Promise<CustomerLoginRecord | null> {
     return this.customerLogins.get(accountId) ?? null;
   }
-  private nextCustomerAccountId = 1000;
-  async createCustomerAccount(data: {
-    customerId: number;
-    email: string;
-    passwordHash: string;
-  }): Promise<CustomerLoginRecord> {
-    const record = { accountId: this.nextCustomerAccountId++, ...data, active: true };
-    this.customerLogins.set(record.accountId, record);
-    return record;
-  }
-  async deactivateCustomerAccount(accountId: number): Promise<void> {
-    const record = this.customerLogins.get(accountId);
-    if (record) this.customerLogins.set(accountId, { ...record, active: false });
-  }
   async updateEmailByCustomerId(customerId: number, email: string): Promise<void> {
     this.emailUpdates.push({ customerId, email });
     for (const [id, record] of this.customerLogins) {

@@ -157,9 +157,12 @@ export class CustomerPrismaRepository implements CustomerRepository {
     return match !== null;
   }
 
-  async existsByEmail(email: string): Promise<boolean> {
+  async existsByEmail(email: string, options: { onlyActive?: boolean } = {}): Promise<boolean> {
     const match = await this.prisma.customer.findFirst({
-      where: { email: { equals: email, mode: 'insensitive' }, isActive: true },
+      where: {
+        email: { equals: email, mode: 'insensitive' },
+        ...(options.onlyActive ? { isActive: true } : {}),
+      },
       select: { id: true },
     });
 

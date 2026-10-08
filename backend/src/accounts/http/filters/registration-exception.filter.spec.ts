@@ -1,6 +1,6 @@
 import { ArgumentsHost, ConflictException } from '@nestjs/common';
 import { RegistrationExceptionFilter } from './registration-exception.filter.js';
-import { REGISTRATION_DATA_TAKEN, REGISTRATION_EMAIL_TAKEN } from '../../application/accounts.service.js';
+import { REGISTRATION_DATA_TAKEN, REGISTRATION_EMAIL_TAKEN } from '../../application/customer-registration.service.js';
 
 // Un DomainError de otro módulo (customers): misma forma, otra clase
 class CustomersDomainError extends Error {

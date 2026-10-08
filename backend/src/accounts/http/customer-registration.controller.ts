@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, UseFilters } from '@nestjs/common';
-import { AccountsService } from '../application/accounts.service.js';
+import { CustomerRegistrationService } from '../application/customer-registration.service.js';
 import { RegisterCustomerDto } from './dto/register-customer.dto.js';
 import { RegisteredCustomerResponseDto } from './dto/registered-customer-response.dto.js';
 import { RegistrationExceptionFilter } from './filters/registration-exception.filter.js';
@@ -11,14 +11,14 @@ import { Public } from '../../shared/security/public.decorator.js';
 @Public()
 @UseFilters(RegistrationExceptionFilter)
 export class CustomerRegistrationController {
-  constructor(private readonly accountsService: AccountsService) {}
+  constructor(private readonly registrationService: CustomerRegistrationService) {}
 
   // POST /api/registro -> crea el cliente y su cuenta. 201 sin tokens: después el cliente
   // inicia sesión por /api/auth/login con su email y contraseña.
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() dto: RegisterCustomerDto): Promise<RegisteredCustomerResponseDto> {
-    const registered = await this.accountsService.registerCustomer({
+    const registered = await this.registrationService.register({
       firstName: dto.firstName,
       lastName: dto.lastName,
       documentType: dto.documentType,

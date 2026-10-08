@@ -38,9 +38,11 @@ export abstract class CustomerRepository {
   ): Promise<boolean>;
 
   // El email se compara sin distinguir mayúsculas (mismo criterio que
-  // EmployeeRepository.existsByEmail), solo entre clientes activos. Usado para la unicidad
-  // de email entre clientes y para la unicidad global con employees (ver accounts.service.ts).
-  abstract existsByEmail(email: string): Promise<boolean>;
+  // EmployeeRepository.existsByEmail). Usado para la unicidad global de email entre
+  // customers y employees (ver accounts.service.ts).
+  // Con onlyActive solo cuentan los clientes activos: es la unicidad entre clientes, porque
+  // un cliente dado de baja no ocupa su email (decisión del PO, 2026-10-08).
+  abstract existsByEmail(email: string, options?: { onlyActive?: boolean }): Promise<boolean>;
 
   abstract list(params: CustomerListParams): Promise<CustomerListResult>;
 }

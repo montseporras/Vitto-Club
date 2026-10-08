@@ -206,6 +206,11 @@ export class CustomersService {
     return await this.customersRepository.existsByEmail(email);
   }
 
+  // Expuesto para el registro de clientes (accounts): ¿hay un cliente ACTIVO con ese email?
+  async existsActiveByEmail(email: string): Promise<boolean> {
+    return await this.customersRepository.existsByEmail(email, { onlyActive: true });
+  }
+
   private async assertDocumentAvailable(
     documentType: DocumentType,
     documentNumber: string,
@@ -218,7 +223,7 @@ export class CustomersService {
   }
 
   private async assertEmailAvailable(email: string): Promise<void> {
-    if (await this.customersRepository.existsByEmail(email)) {
+    if (await this.customersRepository.existsByEmail(email, { onlyActive: true })) {
       throw new ConflictException(CustomerAlreadyExists.withEmail(email).message);
     }
   }

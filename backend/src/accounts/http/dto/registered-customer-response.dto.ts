@@ -1,4 +1,4 @@
-import type { RegisteredCustomer } from '../../application/accounts.service.js';
+import type { RegisteredCustomer } from '../../application/customer-registration.service.js';
 
 // SCRUM-160. Respuesta del registro: sin tokens (no inicia sesión) ni nada de la cuenta.
 export class RegisteredCustomerResponseDto {

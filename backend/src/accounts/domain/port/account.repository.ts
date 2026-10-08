@@ -50,16 +50,4 @@ export abstract class AccountRepository {
   // Customer.email, igual que el de un empleado lo es de Employee.email). Sin cuenta, no
   // hace nada: un cliente puede existir sin cuenta.
   abstract updateEmailByCustomerId(customerId: number, email: string): Promise<void>;
-
-  // SCRUM-160: crea la cuenta de un cliente (rol CUSTOMER) con el email ya normalizado y el
-  // hash ya calculado. Corre dentro de la transacción del registro.
-  abstract createCustomerAccount(data: {
-    customerId: number;
-    email: string;
-    passwordHash: string;
-  }): Promise<CustomerLoginRecord>;
-
-  // SCRUM-160: un cliente dado de baja perdió su cuenta (decisión del PO). Si vuelve a
-  // registrarse con el mismo email, su cuenta vieja se desactiva para liberar ese email.
-  abstract deactivateCustomerAccount(accountId: number): Promise<void>;
 }

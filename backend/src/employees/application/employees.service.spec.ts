@@ -524,10 +524,6 @@ describe('EmployeesService', () => {
         return null;
       }
       async updateEmailByCustomerId(): Promise<void> {}
-      async createCustomerAccount(): Promise<CustomerLoginRecord> {
-        throw new Error('not implemented');
-      }
-      async deactivateCustomerAccount(): Promise<void> {}
     }
 
     class FakePasswordHasher implements PasswordHasher {

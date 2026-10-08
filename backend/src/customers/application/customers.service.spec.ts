@@ -89,9 +89,9 @@ class FakeCustomerRepository implements CustomerRepository {
         c.isActive() && c.getDocumentType() === type && c.getDocumentNumber() === number && c.getId() !== excludeId,
     );
   }
-  async existsByEmail(email: string): Promise<boolean> {
+  async existsByEmail(email: string, options: { onlyActive?: boolean } = {}): Promise<boolean> {
     return [...this.items.values()].some(
-      (c) => c.isActive() && c.getEmail().toLowerCase() === email.toLowerCase(),
+      (c) => (!options.onlyActive || c.isActive()) && c.getEmail().toLowerCase() === email.toLowerCase(),
     );
   }
   async list(params: CustomerListParams): Promise<CustomerListResult> {

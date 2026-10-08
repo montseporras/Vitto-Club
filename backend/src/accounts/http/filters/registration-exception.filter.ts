@@ -6,7 +6,7 @@ import {
   ExceptionFilter,
 } from '@nestjs/common';
 import { AccountsExceptionFilter } from './accounts-exception.filter.js';
-import { REGISTRATION_DATA_TAKEN } from '../../application/accounts.service.js';
+import { REGISTRATION_DATA_TAKEN } from '../../application/customer-registration.service.js';
 
 const PRISMA_UNIQUE_VIOLATION = 'P2002';
 

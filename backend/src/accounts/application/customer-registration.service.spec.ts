@@ -1,14 +1,13 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
-  AccountsService,
+  CustomerRegistrationService,
   REGISTRATION_DATA_TAKEN,
   REGISTRATION_DOCUMENT_TAKEN,
   REGISTRATION_EMAIL_TAKEN,
-} from './accounts.service.js';
-import type { RegisterCustomerInput } from './accounts.service.js';
-import { Account } from '../domain/account.js';
-import { AccountRepository, type CustomerLoginRecord } from '../domain/port/account.repository.js';
+} from './customer-registration.service.js';
+import type { RegisterCustomerInput } from './customer-registration.service.js';
+import { CustomerAccountRepository, type AccountByEmail } from '../domain/port/customer-account.repository.js';
 import { PasswordHasher } from '../domain/port/password-hasher.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import { DomainError } from '../domain/errors/domain.error.js';
@@ -51,8 +50,10 @@ class FakeCustomerRepository implements CustomerRepository {
       (c) => c.isActive() && c.getDocumentType() === type && c.getDocumentNumber() === number,
     );
   }
-  async existsByEmail(email: string): Promise<boolean> {
-    return [...this.items.values()].some((c) => c.isActive() && c.getEmail() === email.toLowerCase());
+  async existsByEmail(email: string, options: { onlyActive?: boolean } = {}): Promise<boolean> {
+    return [...this.items.values()].some(
+      (c) => (!options.onlyActive || c.isActive()) && c.getEmail() === email.toLowerCase(),
+    );
   }
   async findAll(): Promise<Customer[]> { return [...this.items.values()]; }
   async findByDocument(): Promise<Customer | null> { throw new Error('not implemented'); }
@@ -79,52 +80,41 @@ class FakeCustomerRepository implements CustomerRepository {
   }
 }
 
-class FakeAccountRepository implements AccountRepository {
-  customerLogins = new Map<number, CustomerLoginRecord>();
-  // Emails de cuentas de empleado (lo único que mira el registro de ellas)
-  readonly employeeAccountEmails = new Set<string>();
-  readonly createCustomerAccount = jest.fn(
-    async (data: { customerId: number; email: string; passwordHash: string }) => {
-      const record = { accountId: this.nextId++, ...data, active: true };
-      this.customerLogins.set(record.accountId, record);
-      return record;
-    },
-  );
+type AccountRow = AccountByEmail & { email: string; passwordHash: string };
+
+class FakeCustomerAccountRepository implements CustomerAccountRepository {
+  rows = new Map<number, AccountRow>();
   private nextId = 1;
+  readonly create = jest.fn(async (data: { customerId: number; email: string; passwordHash: string }) => {
+    const accountId = this.nextId++;
+    this.rows.set(accountId, { accountId, employeeId: null, active: true, ...data });
+    return { accountId };
+  });
 
-  async findByEmail(email: string): Promise<Account | null> {
-    return this.employeeAccountEmails.has(email) ? ({} as Account) : null;
+  async findByEmail(email: string): Promise<AccountByEmail | null> {
+    const row = [...this.rows.values()]
+      .filter((r) => r.email === email)
+      .sort((a, b) => Number(b.active) - Number(a.active))[0];
+    return row
+      ? { accountId: row.accountId, customerId: row.customerId, employeeId: row.employeeId, active: row.active }
+      : null;
   }
-  async findCustomerLoginByEmail(email: string): Promise<CustomerLoginRecord | null> {
-    return [...this.customerLogins.values()].find((r) => r.email === email && r.active) ?? null;
+  async deactivate(accountId: number): Promise<void> {
+    const row = this.rows.get(accountId);
+    if (row) this.rows.set(accountId, { ...row, active: false });
   }
-  async deactivateCustomerAccount(accountId: number): Promise<void> {
-    const record = this.customerLogins.get(accountId);
-    if (record) this.customerLogins.set(accountId, { ...record, active: false });
-  }
-  async findCustomerLoginById(accountId: number): Promise<CustomerLoginRecord | null> {
-    return this.customerLogins.get(accountId) ?? null;
-  }
-  async save(): Promise<Account> { throw new Error('not implemented'); }
-  async findById(): Promise<Account | null> { throw new Error('not implemented'); }
-  async findByEmployeeId(): Promise<Account | null> { throw new Error('not implemented'); }
-  async existsByEmployeeId(): Promise<boolean> { throw new Error('not implemented'); }
-  async updatePasswordHash(): Promise<void> { throw new Error('not implemented'); }
-  async updateStatus(): Promise<void> { throw new Error('not implemented'); }
-  async syncRoleFromEmployee(): Promise<void> { throw new Error('not implemented'); }
-  async countActiveByEmployeeIds(): Promise<number> { throw new Error('not implemented'); }
-  async updateEmailByCustomerId(): Promise<void> { throw new Error('not implemented'); }
 
-  seedCustomerAccount(record: CustomerLoginRecord): void {
-    this.customerLogins.set(record.accountId, record);
-    if (record.accountId >= this.nextId) this.nextId = record.accountId + 1;
+  seed(row: AccountRow): void {
+    this.rows.set(row.accountId, row);
+    if (row.accountId >= this.nextId) this.nextId = row.accountId + 1;
+  }
+  customerAccounts(): AccountRow[] {
+    return [...this.rows.values()].filter((r) => r.customerId !== null);
   }
 }
 
 class FakePasswordHasher implements PasswordHasher {
-  readonly calls: string[] = [];
   async hash(plainPassword: string): Promise<string> {
-    this.calls.push('hash');
     return `hashed:${plainPassword}`;
   }
   async verify(plainPassword: string, passwordHash: string): Promise<boolean> {
@@ -135,26 +125,24 @@ class FakePasswordHasher implements PasswordHasher {
 // Transacción en memoria: guarda una copia de los dos repositorios y la restaura si fn tira,
 // igual que un rollback. Anidada (customers abre la suya dentro) se suma a la de afuera.
 class RollbackTransactionRunner implements TransactionRunner, CustomerTransactionRunner {
-  readonly calls: string[] = [];
   private depth = 0;
 
   constructor(
     private readonly customers: FakeCustomerRepository,
-    private readonly accounts: FakeAccountRepository,
+    private readonly accounts: FakeCustomerAccountRepository,
   ) {}
 
   async run<T>(fn: () => Promise<T>): Promise<T> {
     if (this.depth > 0) return await fn();
 
-    this.calls.push('run');
     const customers = new Map(this.customers.items);
-    const logins = new Map(this.accounts.customerLogins);
+    const rows = new Map(this.accounts.rows);
     this.depth++;
     try {
       return await fn();
     } catch (error) {
       this.customers.items = customers;
-      this.accounts.customerLogins = logins;
+      this.accounts.rows = rows;
       throw error;
     } finally {
       this.depth--;
@@ -172,20 +160,20 @@ const input = (overrides: Partial<RegisterCustomerInput> = {}): RegisterCustomer
   ...overrides,
 });
 
-describe('AccountsService.registerCustomer (SCRUM-160)', () => {
+describe('CustomerRegistrationService (SCRUM-160)', () => {
   let customerRepo: FakeCustomerRepository;
-  let accountRepo: FakeAccountRepository;
+  let accounts: FakeCustomerAccountRepository;
   let employeeEmails: Set<string>;
   let hasher: FakePasswordHasher;
   let runner: RollbackTransactionRunner;
-  let service: AccountsService;
+  let service: CustomerRegistrationService;
 
   beforeEach(() => {
     customerRepo = new FakeCustomerRepository();
-    accountRepo = new FakeAccountRepository();
+    accounts = new FakeCustomerAccountRepository();
     employeeEmails = new Set<string>();
     hasher = new FakePasswordHasher();
-    runner = new RollbackTransactionRunner(customerRepo, accountRepo);
+    runner = new RollbackTransactionRunner(customerRepo, accounts);
 
     const employeesService = {
       existsByEmail: async (email: string) => employeeEmails.has(email.toLowerCase()),
@@ -193,16 +181,16 @@ describe('AccountsService.registerCustomer (SCRUM-160)', () => {
     const eventEmitter = { emitAsync: jest.fn().mockResolvedValue([]) } as unknown as EventEmitter2;
     const customersService = new CustomersService(customerRepo, employeesService, runner, eventEmitter);
 
-    service = new AccountsService(accountRepo, employeesService, customersService, hasher, runner, eventEmitter);
+    service = new CustomerRegistrationService(accounts, customersService, employeesService, hasher, runner);
   });
 
   const expectNothingCreated = () => {
     expect(customerRepo.items.size).toBe(0);
-    expect(accountRepo.customerLogins.size).toBe(0);
+    expect(accounts.customerAccounts()).toHaveLength(0);
   };
 
   it('crea el cliente y su cuenta CUSTOMER con el email normalizado y la contraseña hasheada', async () => {
-    const result = await service.registerCustomer(input());
+    const result = await service.register(input());
 
     expect(result).toEqual({
       customerId: 1,
@@ -213,7 +201,7 @@ describe('AccountsService.registerCustomer (SCRUM-160)', () => {
     const customer = customerRepo.items.get(1) as Customer;
     expect(customer.getDocumentNumber()).toBe('40123456');
     expect(customer.isActive()).toBe(true);
-    expect(accountRepo.createCustomerAccount).toHaveBeenCalledWith({
+    expect(accounts.create).toHaveBeenCalledWith({
       customerId: 1,
       email: 'lucia@example.com',
       passwordHash: 'hashed:secreta123',
@@ -232,14 +220,14 @@ describe('AccountsService.registerCustomer (SCRUM-160)', () => {
       return await run(fn);
     };
 
-    await service.registerCustomer(input());
+    await service.register(input());
 
     expect(order[0]).toBe('hash');
     expect(order).toContain('run');
   });
 
   it('acepta teléfono y fecha de nacimiento opcionales', async () => {
-    await service.registerCustomer(input({ phone: '1155555555', dateOfBirth: '1998-05-14' }));
+    await service.register(input({ phone: '1155555555', dateOfBirth: '1998-05-14' }));
 
     const customer = customerRepo.items.get(1) as Customer;
     expect(customer.getPhone()).toBe('1155555555');
@@ -248,18 +236,18 @@ describe('AccountsService.registerCustomer (SCRUM-160)', () => {
 
   describe('contraseña', () => {
     it('rechaza una contraseña de menos de 8 caracteres y no crea nada', async () => {
-      await expect(service.registerCustomer(input({ password: 'corta12' }))).rejects.toThrow(DomainError);
+      await expect(service.register(input({ password: 'corta12' }))).rejects.toThrow(DomainError);
       expectNothingCreated();
     });
 
     it('rechaza una contraseña de más de 72 bytes (letras con tilde cuentan 2)', async () => {
-      await expect(service.registerCustomer(input({ password: 'á'.repeat(40) }))).rejects.toThrow(DomainError);
+      await expect(service.register(input({ password: 'á'.repeat(40) }))).rejects.toThrow(DomainError);
       expectNothingCreated();
     });
 
     it('rechaza una contraseña igual al email (normalizado) y no crea nada', async () => {
       await expect(
-        service.registerCustomer(input({ email: 'lucia@example.com', password: 'lucia@example.com' })),
+        service.register(input({ email: 'lucia@example.com', password: 'lucia@example.com' })),
       ).rejects.toThrow(BadRequestException);
       expectNothingCreated();
     });
@@ -269,7 +257,7 @@ describe('AccountsService.registerCustomer (SCRUM-160)', () => {
     it('documento de un cliente activo: dice que el repetido es el documento', async () => {
       customerRepo.seed({ id: 9, documentNumber: '40123456', email: 'otra@example.com', active: true });
 
-      const error = await service.registerCustomer(input()).catch((e: unknown) => e);
+      const error = await service.register(input()).catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(ConflictException);
       expect((error as ConflictException).getResponse()).toMatchObject({
@@ -277,33 +265,40 @@ describe('AccountsService.registerCustomer (SCRUM-160)', () => {
         details: [{ field: 'documentNumber', message: REGISTRATION_DOCUMENT_TAKEN }],
       });
       expect(customerRepo.items.size).toBe(1);
-      expect(accountRepo.customerLogins.size).toBe(0);
+      expect(accounts.customerAccounts()).toHaveLength(0);
     });
 
     it('email de un cliente activo: dice que el repetido es el email', async () => {
       customerRepo.seed({ id: 9, documentNumber: '30111222', email: 'lucia@example.com', active: true });
 
-      const error = await service.registerCustomer(input()).catch((e: unknown) => e);
+      const error = await service.register(input()).catch((e: unknown) => e);
 
       expect((error as ConflictException).getResponse()).toMatchObject({
         message: REGISTRATION_EMAIL_TAKEN,
         details: [{ field: 'email', message: REGISTRATION_EMAIL_TAKEN }],
       });
-      expect(accountRepo.customerLogins.size).toBe(0);
+      expect(accounts.customerAccounts()).toHaveLength(0);
     });
 
     it('email de un empleado: 409 por el email', async () => {
       employeeEmails.add('lucia@example.com');
 
-      await expect(service.registerCustomer(input())).rejects.toThrow(REGISTRATION_EMAIL_TAKEN);
+      await expect(service.register(input())).rejects.toThrow(REGISTRATION_EMAIL_TAKEN);
       expectNothingCreated();
     });
 
     it('email de una cuenta de empleado: 409 por el email', async () => {
-      accountRepo.employeeAccountEmails.add('lucia@example.com');
+      accounts.seed({
+        accountId: 70,
+        customerId: null,
+        employeeId: 3,
+        active: true,
+        email: 'lucia@example.com',
+        passwordHash: 'hashed:x',
+      });
 
-      await expect(service.registerCustomer(input())).rejects.toThrow(REGISTRATION_EMAIL_TAKEN);
-      expectNothingCreated();
+      await expect(service.register(input())).rejects.toThrow(REGISTRATION_EMAIL_TAKEN);
+      expect(customerRepo.items.size).toBe(0);
     });
 
     it('los mensajes sugieren comunicarse con el restaurante', () => {
@@ -316,17 +311,18 @@ describe('AccountsService.registerCustomer (SCRUM-160)', () => {
   describe('cliente dado de baja que vuelve (decisión del PO)', () => {
     beforeEach(() => {
       customerRepo.seed({ id: 9, documentNumber: '40123456', email: 'lucia@example.com', active: false });
-      accountRepo.seedCustomerAccount({
+      accounts.seed({
         accountId: 50,
         customerId: 9,
+        employeeId: null,
+        active: true,
         email: 'lucia@example.com',
         passwordHash: 'hashed:vieja1234',
-        active: true,
       });
     });
 
     it('se registra como un cliente nuevo y conserva el registro anterior', async () => {
-      const result = await service.registerCustomer(input());
+      const result = await service.register(input());
 
       expect(result.customerId).not.toBe(9);
       expect((customerRepo.items.get(9) as Customer).isActive()).toBe(false);
@@ -334,26 +330,26 @@ describe('AccountsService.registerCustomer (SCRUM-160)', () => {
     });
 
     it('desactiva la cuenta vieja para liberar el email', async () => {
-      const result = await service.registerCustomer(input());
+      const result = await service.register(input());
 
-      expect(accountRepo.customerLogins.get(50)?.active).toBe(false);
-      const fresh = [...accountRepo.customerLogins.values()].find((r) => r.customerId === result.customerId);
+      expect(accounts.rows.get(50)?.active).toBe(false);
+      const fresh = accounts.customerAccounts().find((r) => r.customerId === result.customerId);
       expect(fresh).toMatchObject({ email: 'lucia@example.com', active: true });
     });
 
     it('si el registro falla, la cuenta vieja no queda desactivada', async () => {
-      accountRepo.createCustomerAccount.mockRejectedValueOnce(new Error('db down'));
+      accounts.create.mockRejectedValueOnce(new Error('db down'));
 
-      await expect(service.registerCustomer(input())).rejects.toThrow('db down');
-      expect(accountRepo.customerLogins.get(50)?.active).toBe(true);
+      await expect(service.register(input())).rejects.toThrow('db down');
+      expect(accounts.rows.get(50)?.active).toBe(true);
     });
   });
 
   describe('todo o nada (transacción)', () => {
     it('si falla la creación de la cuenta, no queda el cliente', async () => {
-      accountRepo.createCustomerAccount.mockRejectedValueOnce(new Error('db down'));
+      accounts.create.mockRejectedValueOnce(new Error('db down'));
 
-      await expect(service.registerCustomer(input())).rejects.toThrow('db down');
+      await expect(service.register(input())).rejects.toThrow('db down');
       expectNothingCreated();
     });
 
@@ -366,8 +362,8 @@ describe('AccountsService.registerCustomer (SCRUM-160)', () => {
         throw new ConflictException('An active customer with DNI "40123456" already exists');
       };
 
-      await expect(service.registerCustomer(input())).rejects.toThrow(REGISTRATION_DATA_TAKEN);
-      expect(accountRepo.customerLogins.size).toBe(0);
+      await expect(service.register(input())).rejects.toThrow(REGISTRATION_DATA_TAKEN);
+      expect(accounts.customerAccounts()).toHaveLength(0);
     });
   });
 });
