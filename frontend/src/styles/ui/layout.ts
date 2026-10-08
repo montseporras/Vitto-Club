@@ -10,6 +10,7 @@ export const pageCardLogoStyles =
   'pointer-events-none absolute right-6 bottom-8 hidden h-48 w-auto opacity-20 xl:block'
 export const pageCardEyebrowStyles = 'text-xs font-bold uppercase tracking-[0.18em]'
 export const pageCardTitleStyles = 'mt-2 text-3xl leading-tight sm:text-4xl'
+export const pageCardDescriptionStyles = 'relative mt-3 text-sm text-white/90'
 export const pageCardBodyStyles = 'px-5 py-6 sm:px-8 sm:py-8'
 
 /** Bloque separado del anterior por una línea. */

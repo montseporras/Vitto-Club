@@ -7,7 +7,8 @@ import type {
 import { API_URL } from '@/shared/api/http'
 
 // Mismos clientes que backend/prisma/seed.ts, para probar el documento duplicado.
-const customers: Customer[] = [
+// Se exporta para que el autorregistro (auth.handlers.ts) vea y sume a la misma lista.
+export const customers: Customer[] = [
   {
     id: 1,
     firstName: 'Lucía',
@@ -53,7 +54,7 @@ const customers: Customer[] = [
 const STATUS_NAMES = { 400: 'Bad Request', 404: 'Not Found', 409: 'Conflict' }
 
 // Mismo formato que CustomerExceptionFilter del backend.
-const errorResponse = (
+export const errorResponse = (
   statusCode: 400 | 404 | 409,
   message: string | string[],
   path: string,

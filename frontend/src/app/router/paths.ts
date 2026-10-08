@@ -1,4 +1,8 @@
 export const PATHS = {
+  auth: {
+    login: '/login',
+    register: '/registro',
+  },
   cashier: {
     root: '/caja',
     customer: '/caja/cliente',

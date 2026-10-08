@@ -9,6 +9,29 @@ export const router = createBrowserRouter([
     element: <Navigate to={PATHS.cashier.root} replace />,
   },
   {
+    // Pantallas públicas: no piden sesión.
+    lazy: async () => {
+      const { AuthLayout } = await import('@/app/layouts/AuthLayout')
+      return { Component: AuthLayout }
+    },
+    children: [
+      {
+        path: PATHS.auth.login,
+        lazy: async () => {
+          const { LoginPage } = await import('@/features/auth')
+          return { Component: LoginPage }
+        },
+      },
+      {
+        path: PATHS.auth.register,
+        lazy: async () => {
+          const { RegisterPage } = await import('@/features/auth')
+          return { Component: RegisterPage }
+        },
+      },
+    ],
+  },
+  {
     path: PATHS.cashier.root,
     element: <CashierLayout />,
     children: [

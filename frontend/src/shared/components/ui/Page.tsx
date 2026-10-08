@@ -3,6 +3,7 @@ import logoIso from '@/assets/logo-vitto-iso-white.png'
 import { cn } from '@/shared/lib/utils'
 import {
   pageCardBodyStyles,
+  pageCardDescriptionStyles,
   pageCardEyebrowStyles,
   pageCardHeaderStyles,
   pageCardLogoStyles,
@@ -19,12 +20,20 @@ export function Page({ className, ...props }: ComponentProps<'section'>) {
 type PageCardProps = {
   eyebrow: string
   title: string
+  /** Texto corto debajo del título. */
+  description?: string
   children: ReactNode
   className?: string
 }
 
 /** Tarjeta principal de una pantalla: encabezado naranja con el isologo y cuerpo. */
-export function PageCard({ eyebrow, title, children, className }: PageCardProps) {
+export function PageCard({
+  eyebrow,
+  title,
+  description,
+  children,
+  className,
+}: PageCardProps) {
   return (
     <div className={cn(pageCardStyles, className)}>
       <header className={pageCardHeaderStyles}>
@@ -36,6 +45,9 @@ export function PageCard({ eyebrow, title, children, className }: PageCardProps)
         />
         <p className={pageCardEyebrowStyles}>{eyebrow}</p>
         <h2 className={pageCardTitleStyles}>{title}</h2>
+        {description && (
+          <p className={pageCardDescriptionStyles}>{description}</p>
+        )}
       </header>
 
       <div className={pageCardBodyStyles}>{children}</div>

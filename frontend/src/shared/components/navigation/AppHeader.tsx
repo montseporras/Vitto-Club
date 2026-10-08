@@ -9,20 +9,26 @@ type AppHeaderProps = {
   area: string
   /** Acciones a la derecha (usuario, configuración, etc.). */
   children?: ReactNode
+  /** En las pantallas de acceso no hay a dónde volver. */
+  showBack?: boolean
 }
 
 /** Barra superior naranja con volver, isologo y nombre del área. */
-export function AppHeader({ area, children }: AppHeaderProps) {
+export function AppHeader({ area, children, showBack = true }: AppHeaderProps) {
   return (
     <header className={appHeaderStyles.root}>
       <div className={appHeaderStyles.inner}>
-        {/* TODO: volver a la home cuando exista */}
-        <button type="button" className={appHeaderStyles.back}>
-          <Icon d={ICONS.arrowLeft} className="size-4" />
-          Volver
-        </button>
+        {showBack && (
+          <>
+            {/* TODO: volver a la home cuando exista */}
+            <button type="button" className={appHeaderStyles.back}>
+              <Icon d={ICONS.arrowLeft} className="size-4" />
+              Volver
+            </button>
 
-        <span aria-hidden="true" className={appHeaderStyles.divider} />
+            <span aria-hidden="true" className={appHeaderStyles.divider} />
+          </>
+        )}
 
         <div className={appHeaderStyles.brand}>
           <img
