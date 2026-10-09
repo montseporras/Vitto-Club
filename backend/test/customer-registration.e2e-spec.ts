@@ -24,7 +24,7 @@ describe('Autorregistro de clientes (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
-  const register = (body: object) => request(app.getHttpServer()).post('/api/registro').send(body);
+  const register = (body: object) => request(app.getHttpServer()).post('/api/auth/register').send(body);
   const login = (email: string, password: string) =>
     request(app.getHttpServer()).post('/api/auth/login').send({ email, password });
   const as = (token: string) => ({ Authorization: `Bearer ${token}` });
@@ -133,7 +133,7 @@ describe('Autorregistro de clientes (e2e)', () => {
 
       const res = await register({ ...LUCIA, email: 'otra@test.com' }).expect(409);
 
-      expect(res.body.message).toContain('documento');
+      expect(res.body.message).toContain('documento (DNI)');
       expect(res.body.details).toEqual([{ field: 'documentNumber', message: res.body.message }]);
       expect(await prisma.customer.count()).toBe(1);
     });

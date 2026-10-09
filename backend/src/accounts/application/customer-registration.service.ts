@@ -27,10 +27,14 @@ export type RegisteredCustomer = {
 
 // Mensajes del registro (decisión del PO, 2026-10-08): dicen qué dato está repetido y
 // sugieren comunicarse con el restaurante. Van en español porque los muestra el frontend.
+// La pantalla de registro reconoce el campo repetido por el texto del 409: la palabra
+// "email" marca el email, y el tipo de documento ("DNI" o "PASSPORT") marca el documento.
+// Por eso el del documento lleva el tipo, y el de la carrera no nombra ninguno de los dos.
 const CONTACT_HINT = 'Ante cualquier duda, comunicate con el restaurante.';
-export const REGISTRATION_DOCUMENT_TAKEN = `Ya hay un cliente registrado con ese documento. ${CONTACT_HINT}`;
+export const registrationDocumentTaken = (documentType: 'DNI' | 'PASSPORT') =>
+  `Ya hay un cliente registrado con ese documento (${documentType}). ${CONTACT_HINT}`;
 export const REGISTRATION_EMAIL_TAKEN = `Ya hay una cuenta registrada con ese email. ${CONTACT_HINT}`;
-export const REGISTRATION_DATA_TAKEN = `El documento o el email ya están registrados. ${CONTACT_HINT}`;
+export const REGISTRATION_DATA_TAKEN = `Esos datos ya están registrados. ${CONTACT_HINT}`;
 
 function registrationConflict(field: 'documentNumber' | 'email', message: string): ConflictException {
   return new ConflictException({ message, details: [{ field, message }] });
@@ -65,7 +69,7 @@ export class CustomerRegistrationService {
     // 2. Documento y email libres. Solo cuentan los clientes activos: uno dado de baja perdió
     //    sus puntos y su cuenta, así que puede volver a registrarse (decisión del PO).
     if (await this.customersService.existsByDocument(input.documentType, input.documentNumber)) {
-      throw registrationConflict('documentNumber', REGISTRATION_DOCUMENT_TAKEN);
+      throw registrationConflict('documentNumber', registrationDocumentTaken(input.documentType));
     }
     const account = await this.customerAccounts.findByEmail(email);
     const emailTaken =

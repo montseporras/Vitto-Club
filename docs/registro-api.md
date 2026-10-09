@@ -12,7 +12,7 @@ devuelve la API y cómo mostrar cada error.
 
 | | |
 |---|---|
-| **Ruta** | `POST /api/registro` |
+| **Ruta** | `POST /api/auth/register` |
 | **Autenticación** | **No hace falta**: es público (la persona todavía no tiene cuenta) |
 | **Éxito** | `201 Created` |
 | **Después** | **No inicia sesión.** El frontend llama a `POST /api/auth/login` con el email y la contraseña que la persona acaba de cargar (ver `docs/auth-api.md`) |
@@ -88,9 +88,14 @@ veces, `details` (`[{ field, message }]`) para marcar el campo en el formulario.
 
 **Mensajes del 409** (en español, para mostrarlos tal cual, decisión del PO):
 
-- *"Ya hay un cliente registrado con ese documento. Ante cualquier duda, comunicate con el restaurante."*
+- *"Ya hay un cliente registrado con ese documento (DNI). Ante cualquier duda, comunicate con el restaurante."*
+  (con `PASSPORT` si el documento es un pasaporte)
 - *"Ya hay una cuenta registrada con ese email. Ante cualquier duda, comunicate con el restaurante."*
-- *"El documento o el email ya están registrados. Ante cualquier duda, comunicate con el restaurante."*
+- *"Esos datos ya están registrados. Ante cualquier duda, comunicate con el restaurante."*
+
+Para saber qué campo marcar alcanza con el texto: el del email contiene la palabra `email`, y el del
+documento el tipo (`DNI` o `PASSPORT`). El de dos registros simultáneos no nombra ninguno de los dos: va
+como error general. También se puede usar `details[0].field`.
 
 ---
 

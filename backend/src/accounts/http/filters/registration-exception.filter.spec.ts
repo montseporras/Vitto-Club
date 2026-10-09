@@ -26,7 +26,7 @@ describe('RegistrationExceptionFilter', () => {
     host = {
       switchToHttp: () => ({
         getResponse: () => ({ status }),
-        getRequest: () => ({ url: '/api/registro' }),
+        getRequest: () => ({ url: '/api/auth/register' }),
       }),
     } as unknown as ArgumentsHost;
   });

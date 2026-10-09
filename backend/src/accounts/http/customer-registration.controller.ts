@@ -7,15 +7,17 @@ import { Public } from '../../shared/security/public.decorator.js';
 
 // SCRUM-160: autorregistro de clientes. Es público (una persona sin cuenta todavía no puede
 // iniciar sesión) y vive aparte de AccountsController, que está cerrado con @Roles('ADMIN').
-@Controller('registro')
+// La ruta es /api/auth/register, la que usa la pantalla de registro del frontend; el resto de
+// /api/auth (login, refresh, logout) es de AuthController.
+@Controller('auth')
 @Public()
 @UseFilters(RegistrationExceptionFilter)
 export class CustomerRegistrationController {
   constructor(private readonly registrationService: CustomerRegistrationService) {}
 
-  // POST /api/registro -> crea el cliente y su cuenta. 201 sin tokens: después el cliente
-  // inicia sesión por /api/auth/login con su email y contraseña.
-  @Post()
+  // POST /api/auth/register -> crea el cliente y su cuenta. 201 sin tokens: después el
+  // cliente inicia sesión por /api/auth/login con su email y contraseña.
+  @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() dto: RegisterCustomerDto): Promise<RegisteredCustomerResponseDto> {
     const registered = await this.registrationService.register({

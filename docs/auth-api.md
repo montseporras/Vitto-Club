@@ -7,7 +7,7 @@ mantener la sesión, cerrarla y cómo reaccionar a cada error.
 > con la aplicación levantada.
 >
 > - **Los empleados (Administrador y Cajero) ya pueden iniciar sesión.**
-> - **Los clientes también**: se registran con `POST /api/registro` (ver `docs/registro-api.md`) y después
+> - **Los clientes también**: se registran con `POST /api/auth/register` (ver `docs/registro-api.md`) y después
 >   inician sesión acá, con su email y su contraseña.
 > - **Todos los endpoints exigen token**, salvo `/api/auth/*` y `/api/health`. Un pedido sin token responde
 >   401 `UNAUTHENTICATED`, y uno con un rol sin permiso responde 403 `FORBIDDEN`. Esto rige desde que
@@ -202,7 +202,7 @@ Decidir siempre por el campo **`code`**, nunca por el texto del `message`.
 
 ### Reglas de la contraseña (para los formularios de alta y de cambio)
 
-Las aplica el backend al crear una cuenta (`POST /api/usuarios` y `POST /api/registro`) y al cambiarla
+Las aplica el backend al crear una cuenta (`POST /api/usuarios` y `POST /api/auth/register`) y al cambiarla
 (`PATCH /api/usuarios/:id`):
 
 - De **8 a 64 caracteres**.

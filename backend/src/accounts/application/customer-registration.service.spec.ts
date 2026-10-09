@@ -3,8 +3,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   CustomerRegistrationService,
   REGISTRATION_DATA_TAKEN,
-  REGISTRATION_DOCUMENT_TAKEN,
   REGISTRATION_EMAIL_TAKEN,
+  registrationDocumentTaken,
 } from './customer-registration.service.js';
 import type { RegisterCustomerInput } from './customer-registration.service.js';
 import { CustomerAccountRepository, type AccountByEmail } from '../domain/port/customer-account.repository.js';
@@ -261,8 +261,8 @@ describe('CustomerRegistrationService (SCRUM-160)', () => {
 
       expect(error).toBeInstanceOf(ConflictException);
       expect((error as ConflictException).getResponse()).toMatchObject({
-        message: REGISTRATION_DOCUMENT_TAKEN,
-        details: [{ field: 'documentNumber', message: REGISTRATION_DOCUMENT_TAKEN }],
+        message: registrationDocumentTaken('DNI'),
+        details: [{ field: 'documentNumber', message: registrationDocumentTaken('DNI') }],
       });
       expect(customerRepo.items.size).toBe(1);
       expect(accounts.customerAccounts()).toHaveLength(0);
@@ -302,9 +302,22 @@ describe('CustomerRegistrationService (SCRUM-160)', () => {
     });
 
     it('los mensajes sugieren comunicarse con el restaurante', () => {
-      for (const message of [REGISTRATION_DOCUMENT_TAKEN, REGISTRATION_EMAIL_TAKEN, REGISTRATION_DATA_TAKEN]) {
+      for (const message of [registrationDocumentTaken('DNI'), REGISTRATION_EMAIL_TAKEN, REGISTRATION_DATA_TAKEN]) {
         expect(message).toContain('comunicate con el restaurante');
       }
+    });
+
+    // La pantalla de registro deduce el campo repetido del texto del 409 (RegisterPage.tsx,
+    // conflictField): /\bemail\b/i marca el email y /\b(DNI|PASSPORT)\b/i el documento.
+    it('cada mensaje lo reconoce la pantalla de registro como su campo', () => {
+      const field = (message: string) =>
+        /\bemail\b/i.test(message) ? 'email' : /\b(DNI|PASSPORT)\b/i.test(message) ? 'documentNumber' : undefined;
+
+      expect(field(registrationDocumentTaken('DNI'))).toBe('documentNumber');
+      expect(field(registrationDocumentTaken('PASSPORT'))).toBe('documentNumber');
+      expect(field(REGISTRATION_EMAIL_TAKEN)).toBe('email');
+      // La carrera no sabe cuál de los dos fue: la pantalla lo muestra como error general
+      expect(field(REGISTRATION_DATA_TAKEN)).toBeUndefined();
     });
   });
 
