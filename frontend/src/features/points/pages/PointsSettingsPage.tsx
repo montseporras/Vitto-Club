@@ -52,7 +52,8 @@ export function PointsSettingsPage() {
           </Alert>
         )}
 
-        {equivalence.data && !equivalence.isError && (
+        {/* data es null si todavía no se configuró: el formulario arranca vacío. */}
+        {equivalence.data !== undefined && !equivalence.isError && (
           <PointsEquivalenceForm equivalence={equivalence.data} />
         )}
       </Card>
@@ -111,7 +112,10 @@ export function PointsSettingsPage() {
           </Alert>
         )}
 
-        {bonus && !isError && <FirstPurchaseBonusForm bonus={bonus} />}
+        {/* bonus es null si todavía no se configuró: el formulario arranca sin valor. */}
+        {bonus !== undefined && !isError && (
+          <FirstPurchaseBonusForm bonus={bonus} />
+        )}
       </Card>
     </div>
   );

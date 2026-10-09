@@ -19,7 +19,8 @@ import {
 import type { PointsEquivalence } from '../types/points-equivalence';
 
 interface PointsEquivalenceFormProps {
-  equivalence: PointsEquivalence;
+  // null: todavía no hay una equivalencia guardada y el formulario arranca vacío.
+  equivalence: PointsEquivalence | null;
 }
 
 const HINT = `Monto de hasta $ ${MAX_BASE_AMOUNT.toLocaleString('es-AR')} (con centavos si hace falta) y entre 1 y ${MAX_POINTS.toLocaleString('es-AR')} puntos, sin decimales.`;
@@ -32,6 +33,10 @@ function errorMessage(error: unknown): string {
       return apiError.message;
     case 400:
       return 'Hay datos inválidos. Revisá el formulario e intentá nuevamente.';
+    case 401:
+      return 'Tu sesión no está activa. Iniciá sesión e intentá nuevamente.';
+    case 403:
+      return 'Solo un Administrador puede cambiar esta configuración.';
     default:
       return 'No se pudo guardar la equivalencia. Intentá nuevamente.';
   }
@@ -48,22 +53,27 @@ export function PointsEquivalenceForm({
   } = useForm<PointsEquivalenceFormValues>({
     resolver: zodResolver(pointsEquivalenceSchema),
     defaultValues: {
-      baseAmount: equivalence.baseAmount,
-      points: equivalence.points,
+      baseAmount: equivalence?.baseAmount,
+      pointsAwarded: equivalence?.pointsAwarded,
     },
   });
 
   const updateEquivalence = useUpdatePointsEquivalence();
 
   // Al guardar se recarga el formulario con lo guardado: deja de estar "modificado".
+  // Se copian solo los campos del formulario: la respuesta trae además updatedAt.
   const onSubmit = handleSubmit((form) => {
     updateEquivalence.mutate(form, {
-      onSuccess: (saved) => reset(saved),
+      onSuccess: (saved) =>
+        reset({
+          baseAmount: saved.baseAmount,
+          pointsAwarded: saved.pointsAwarded,
+        }),
     });
   });
 
   const showSuccess = updateEquivalence.isSuccess && !isDirty;
-  const hasErrors = Boolean(errors.baseAmount || errors.points);
+  const hasErrors = Boolean(errors.baseAmount || errors.pointsAwarded);
 
   return (
     <form onSubmit={onSubmit} noValidate>
@@ -97,20 +107,22 @@ export function PointsEquivalenceForm({
           {...register('baseAmount', { valueAsNumber: true })}
         />
 
-        <Label htmlFor="points">se otorgan</Label>
+        <Label htmlFor="pointsAwarded">se otorgan</Label>
         <Input
-          id="points"
+          id="pointsAwarded"
           type="number"
           inputMode="numeric"
           min={1}
           step={1}
           autoComplete="off"
           className="w-28"
-          aria-invalid={errors.points ? true : undefined}
+          aria-invalid={errors.pointsAwarded ? true : undefined}
           aria-describedby={
-            errors.points ? 'points-error' : 'points-equivalence-hint'
+            errors.pointsAwarded
+              ? 'pointsAwarded-error'
+              : 'points-equivalence-hint'
           }
-          {...register('points', { valueAsNumber: true })}
+          {...register('pointsAwarded', { valueAsNumber: true })}
         />
         <span className={labelStyles}>puntos</span>
       </div>
@@ -122,9 +134,9 @@ export function PointsEquivalenceForm({
             {errors.baseAmount.message}
           </p>
         )}
-        {errors.points && (
-          <p id="points-error" className={formFieldStyles.error}>
-            {errors.points.message}
+        {errors.pointsAwarded && (
+          <p id="pointsAwarded-error" className={formFieldStyles.error}>
+            {errors.pointsAwarded.message}
           </p>
         )}
         {!hasErrors && (

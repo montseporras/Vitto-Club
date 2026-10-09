@@ -23,22 +23,29 @@ import {
 } from '../types/first-purchase-bonus';
 
 interface FirstPurchaseBonusFormProps {
-  bonus: FirstPurchaseBonus;
+  // null: todavía no hay una bonificación guardada y el formulario arranca sin valor.
+  bonus: FirstPurchaseBonus | null;
 }
 
 const BONUS_TYPE_OPTIONS = Object.entries(BONUS_TYPES).map(
   ([value, label]) => ({ value, label }),
 );
 
-// Etiqueta y ayuda del campo "valor" según el tipo elegido.
-const VALUE_FIELD: Record<BonusType, { label: string; hint: string }> = {
+// Etiqueta, ayuda y paso del campo "valor" según el tipo elegido. El porcentaje
+// admite hasta 2 decimales; los puntos fijos son enteros.
+const VALUE_FIELD: Record<
+  BonusType,
+  { label: string; hint: string; step: number }
+> = {
   PERCENTAGE: {
     label: 'Porcentaje adicional (%)',
-    hint: `Entre 1 y ${MAX_PERCENTAGE}. Se calcula sobre los puntos de la primera compra.`,
+    hint: `Entre 1 y ${MAX_PERCENTAGE}, con hasta 2 decimales. Se calcula sobre los puntos de la primera compra.`,
+    step: 0.01,
   },
-  FIXED: {
+  FIXED_AMOUNT: {
     label: 'Puntos adicionales',
-    hint: `Entre 1 y ${MAX_FIXED_POINTS.toLocaleString('es-AR')}. Se suman a los puntos de la primera compra.`,
+    hint: `Entre 1 y ${MAX_FIXED_POINTS.toLocaleString('es-AR')}, sin decimales. Se suman a los puntos de la primera compra.`,
+    step: 1,
   },
 };
 
@@ -50,6 +57,10 @@ function errorMessage(error: unknown): string {
       return apiError.message;
     case 400:
       return 'Hay datos inválidos. Revisá el formulario e intentá nuevamente.';
+    case 401:
+      return 'Tu sesión no está activa. Iniciá sesión e intentá nuevamente.';
+    case 403:
+      return 'Solo un Administrador puede cambiar esta configuración.';
     default:
       return 'No se pudo guardar la bonificación. Intentá nuevamente.';
   }
@@ -64,18 +75,23 @@ export function FirstPurchaseBonusForm({ bonus }: FirstPurchaseBonusFormProps) {
     formState: { errors, isDirty },
   } = useForm<FirstPurchaseBonusFormValues>({
     resolver: zodResolver(firstPurchaseBonusSchema),
-    defaultValues: { type: bonus.type, value: bonus.value },
+    defaultValues: {
+      bonusType: bonus?.bonusType ?? 'PERCENTAGE',
+      bonusValue: bonus?.bonusValue,
+    },
   });
 
   const updateBonus = useUpdateFirstPurchaseBonus();
 
-  const type = useWatch({ control, name: 'type' });
-  const valueField = VALUE_FIELD[type];
+  const bonusType = useWatch({ control, name: 'bonusType' });
+  const valueField = VALUE_FIELD[bonusType];
 
   // Al guardar se recarga el formulario con lo guardado: deja de estar "modificado".
+  // Se copian solo los campos del formulario: la respuesta trae además updatedAt.
   const onSubmit = handleSubmit((form) => {
     updateBonus.mutate(form, {
-      onSuccess: (saved) => reset(saved),
+      onSuccess: (saved) =>
+        reset({ bonusType: saved.bonusType, bonusValue: saved.bonusValue }),
     });
   });
 
@@ -101,25 +117,27 @@ export function FirstPurchaseBonusForm({ bonus }: FirstPurchaseBonusFormProps) {
         <SegmentedRadio
           legend="Tipo de bonificación"
           options={BONUS_TYPE_OPTIONS}
-          field={register('type', { deps: ['value'] })}
+          field={register('bonusType', { deps: ['bonusValue'] })}
         />
 
         <FormField
-          id="value"
+          id="bonusValue"
           label={valueField.label}
-          error={errors.value?.message}
+          error={errors.bonusValue?.message}
           hint={valueField.hint}
         >
           <Input
-            id="value"
+            id="bonusValue"
             type="number"
-            inputMode="numeric"
+            inputMode="decimal"
             min={1}
-            step={1}
+            step={valueField.step}
             autoComplete="off"
-            aria-invalid={errors.value ? true : undefined}
-            aria-describedby={errors.value ? 'value-error' : 'value-hint'}
-            {...register('value', { valueAsNumber: true })}
+            aria-invalid={errors.bonusValue ? true : undefined}
+            aria-describedby={
+              errors.bonusValue ? 'bonusValue-error' : 'bonusValue-hint'
+            }
+            {...register('bonusValue', { valueAsNumber: true })}
           />
         </FormField>
       </div>

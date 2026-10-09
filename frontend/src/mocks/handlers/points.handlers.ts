@@ -1,5 +1,5 @@
-// Este archivo simula el backend de la configuración de puntos mientras los endpoints
-// reales no existen. Permite probar la pantalla completa sin levantar la API.
+// Este archivo simula el backend de la configuración de puntos para probar la pantalla
+// completa sin levantar la API. Usa los mismos campos y validaciones que el backend.
 import { http, HttpResponse } from 'msw';
 import { API_URL } from '@/shared/api/http';
 import { DEFAULT_POINTS_EXPIRATION_MONTHS } from '@/domain/expiration';
@@ -9,21 +9,33 @@ import type {
   PointsExpiration,
 } from '@/features/points';
 
-type BonusType = FirstPurchaseBonus['type'];
+type BonusType = FirstPurchaseBonus['bonusType'];
 
 const FIRST_PURCHASE_BONUS_URL = `${API_URL}/settings/first-purchase-bonus`;
 const POINTS_EQUIVALENCE_URL = `${API_URL}/settings/points-equivalence`;
 const POINTS_EXPIRATION_URL = `${API_URL}/settings/points-expiration`;
 
+// Fecha de la versión guardada, como la devuelve el backend en updatedAt.
+const now = () => new Date().toISOString();
+
 // Estado en memoria. Arranca con el ejemplo del glosario: 30 puntos adicionales.
-let firstPurchaseBonus: FirstPurchaseBonus = { type: 'FIXED', value: 30 };
+let firstPurchaseBonus: FirstPurchaseBonus = {
+  bonusType: 'FIXED_AMOUNT',
+  bonusValue: 30,
+  updatedAt: now(),
+};
 
 // Estado en memoria. Arranca con el ejemplo del prototipo: 10 puntos cada $ 1000.
-let pointsEquivalence: PointsEquivalence = { baseAmount: 1000, points: 10 };
+let pointsEquivalence: PointsEquivalence = {
+  baseAmount: 1000,
+  pointsAwarded: 10,
+  updatedAt: now(),
+};
 
 // Estado en memoria. Arranca con la vigencia por defecto: doce meses (RF-010).
 let pointsExpiration: PointsExpiration = {
-  months: DEFAULT_POINTS_EXPIRATION_MONTHS,
+  pointsExpirationMonths: DEFAULT_POINTS_EXPIRATION_MONTHS,
+  updatedAt: now(),
 };
 
 // Mismos topes que el schema de Zod del formulario de equivalencia.
@@ -36,11 +48,14 @@ const MAX_EXPIRATION_MONTHS = 120;
 // Mismos topes que el schema de Zod del formulario.
 const MAX_VALUE: Record<BonusType, number> = {
   PERCENTAGE: 100,
-  FIXED: 10_000,
+  FIXED_AMOUNT: 10_000,
 };
 
 const isBonusType = (value: unknown): value is BonusType =>
-  value === 'PERCENTAGE' || value === 'FIXED';
+  value === 'PERCENTAGE' || value === 'FIXED_AMOUNT';
+
+const hasAtMostTwoDecimals = (value: number) =>
+  Math.abs(value * 100 - Math.round(value * 100)) < 1e-6;
 
 // Mismo formato de error que los filtros de excepción del backend.
 const badRequest = (message: string[], request: Request) => {
@@ -61,21 +76,28 @@ const badRequest = (message: string[], request: Request) => {
 // mensajes; vacía si el body es válido.
 function validateBody(body: Record<string, unknown>): string[] {
   const errors = Object.keys(body)
-    .filter((key) => key !== 'type' && key !== 'value')
+    .filter((key) => key !== 'bonusType' && key !== 'bonusValue')
     .map((key) => `property ${key} should not exist`);
 
-  const { type, value } = body;
+  const { bonusType, bonusValue } = body;
 
-  if (!isBonusType(type)) {
-    errors.push('type must be one of the following values: PERCENTAGE, FIXED');
+  if (!isBonusType(bonusType)) {
+    errors.push(
+      'bonusType must be one of the following values: PERCENTAGE, FIXED_AMOUNT',
+    );
   }
 
-  if (typeof value !== 'number' || !Number.isInteger(value)) {
-    errors.push('value must be an integer number');
-  } else if (value < 1) {
-    errors.push('value must not be less than 1');
-  } else if (isBonusType(type) && value > MAX_VALUE[type]) {
-    errors.push(`value must not be greater than ${MAX_VALUE[type]}`);
+  if (typeof bonusValue !== 'number' || !Number.isFinite(bonusValue)) {
+    errors.push('bonusValue must be a number');
+  } else if (bonusValue < 1) {
+    errors.push('bonusValue must not be less than 1');
+  } else if (isBonusType(bonusType) && bonusValue > MAX_VALUE[bonusType]) {
+    errors.push(`bonusValue must not be greater than ${MAX_VALUE[bonusType]}`);
+  } else if (bonusType === 'FIXED_AMOUNT' && !Number.isInteger(bonusValue)) {
+    // Los puntos fijos son enteros; el porcentaje admite hasta 2 decimales.
+    errors.push('bonusValue must be an integer number');
+  } else if (bonusType === 'PERCENTAGE' && !hasAtMostTwoDecimals(bonusValue)) {
+    errors.push('bonusValue must have at most 2 decimal places');
   }
 
   return errors;
@@ -84,10 +106,10 @@ function validateBody(body: Record<string, unknown>): string[] {
 // Lo mismo para el body de la equivalencia de puntos.
 function validatePointsEquivalenceBody(body: Record<string, unknown>): string[] {
   const errors = Object.keys(body)
-    .filter((key) => key !== 'baseAmount' && key !== 'points')
+    .filter((key) => key !== 'baseAmount' && key !== 'pointsAwarded')
     .map((key) => `property ${key} should not exist`);
 
-  const { baseAmount, points } = body;
+  const { baseAmount, pointsAwarded } = body;
 
   if (typeof baseAmount !== 'number' || !Number.isFinite(baseAmount)) {
     errors.push('baseAmount must be a number');
@@ -95,16 +117,16 @@ function validatePointsEquivalenceBody(body: Record<string, unknown>): string[] 
     errors.push('baseAmount must be a positive number');
   } else if (baseAmount > MAX_BASE_AMOUNT) {
     errors.push(`baseAmount must not be greater than ${MAX_BASE_AMOUNT}`);
-  } else if (Math.abs(baseAmount * 100 - Math.round(baseAmount * 100)) >= 1e-6) {
+  } else if (!hasAtMostTwoDecimals(baseAmount)) {
     errors.push('baseAmount must have at most 2 decimal places');
   }
 
-  if (typeof points !== 'number' || !Number.isInteger(points)) {
-    errors.push('points must be an integer number');
-  } else if (points < 1) {
-    errors.push('points must not be less than 1');
-  } else if (points > MAX_POINTS) {
-    errors.push(`points must not be greater than ${MAX_POINTS}`);
+  if (typeof pointsAwarded !== 'number' || !Number.isInteger(pointsAwarded)) {
+    errors.push('pointsAwarded must be an integer number');
+  } else if (pointsAwarded < 1) {
+    errors.push('pointsAwarded must not be less than 1');
+  } else if (pointsAwarded > MAX_POINTS) {
+    errors.push(`pointsAwarded must not be greater than ${MAX_POINTS}`);
   }
 
   return errors;
@@ -113,17 +135,19 @@ function validatePointsEquivalenceBody(body: Record<string, unknown>): string[] 
 // Lo mismo para el body de la vigencia de los puntos.
 function validatePointsExpirationBody(body: Record<string, unknown>): string[] {
   const errors = Object.keys(body)
-    .filter((key) => key !== 'months')
+    .filter((key) => key !== 'pointsExpirationMonths')
     .map((key) => `property ${key} should not exist`);
 
-  const { months } = body;
+  const { pointsExpirationMonths: months } = body;
 
   if (typeof months !== 'number' || !Number.isInteger(months)) {
-    errors.push('months must be an integer number');
+    errors.push('pointsExpirationMonths must be an integer number');
   } else if (months < 1) {
-    errors.push('months must not be less than 1');
+    errors.push('pointsExpirationMonths must not be less than 1');
   } else if (months > MAX_EXPIRATION_MONTHS) {
-    errors.push(`months must not be greater than ${MAX_EXPIRATION_MONTHS}`);
+    errors.push(
+      `pointsExpirationMonths must not be greater than ${MAX_EXPIRATION_MONTHS}`,
+    );
   }
 
   return errors;
@@ -143,8 +167,9 @@ export const pointsHandlers = [
     if (errors.length) return badRequest(errors, request);
 
     firstPurchaseBonus = {
-      type: body.type as BonusType,
-      value: body.value as number,
+      bonusType: body.bonusType as BonusType,
+      bonusValue: body.bonusValue as number,
+      updatedAt: now(),
     };
     return HttpResponse.json(firstPurchaseBonus);
   }),
@@ -161,7 +186,8 @@ export const pointsHandlers = [
 
     pointsEquivalence = {
       baseAmount: body.baseAmount as number,
-      points: body.points as number,
+      pointsAwarded: body.pointsAwarded as number,
+      updatedAt: now(),
     };
     return HttpResponse.json(pointsEquivalence);
   }),
@@ -176,7 +202,10 @@ export const pointsHandlers = [
     const errors = validatePointsExpirationBody(body);
     if (errors.length) return badRequest(errors, request);
 
-    pointsExpiration = { months: body.months as number };
+    pointsExpiration = {
+      pointsExpirationMonths: body.pointsExpirationMonths as number,
+      updatedAt: now(),
+    };
     return HttpResponse.json(pointsExpiration);
   }),
 ];

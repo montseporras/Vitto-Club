@@ -31,6 +31,10 @@ function errorMessage(error: unknown): string {
       return apiError.message;
     case 400:
       return 'Hay datos inválidos. Revisá el formulario e intentá nuevamente.';
+    case 401:
+      return 'Tu sesión no está activa. Iniciá sesión e intentá nuevamente.';
+    case 403:
+      return 'Solo un Administrador puede cambiar esta configuración.';
     default:
       return 'No se pudo guardar la vigencia. Intentá nuevamente.';
   }
@@ -44,15 +48,19 @@ export function PointsExpirationForm({ expiration }: PointsExpirationFormProps) 
     formState: { errors, isDirty },
   } = useForm<PointsExpirationFormValues>({
     resolver: zodResolver(pointsExpirationSchema),
-    defaultValues: { months: expiration.months },
+    defaultValues: {
+      pointsExpirationMonths: expiration.pointsExpirationMonths,
+    },
   });
 
   const updateExpiration = useUpdatePointsExpiration();
 
   // Al guardar se recarga el formulario con lo guardado: deja de estar "modificado".
+  // Se copian solo los campos del formulario: la respuesta trae además updatedAt.
   const onSubmit = handleSubmit((form) => {
     updateExpiration.mutate(form, {
-      onSuccess: (saved) => reset(saved),
+      onSuccess: (saved) =>
+        reset({ pointsExpirationMonths: saved.pointsExpirationMonths }),
     });
   });
 
@@ -73,22 +81,26 @@ export function PointsExpirationForm({ expiration }: PointsExpirationFormProps) 
       )}
 
       <FormField
-        id="months"
+        id="pointsExpirationMonths"
         label="Meses"
-        error={errors.months?.message}
+        error={errors.pointsExpirationMonths?.message}
         hint={HINT}
       >
         <Input
-          id="months"
+          id="pointsExpirationMonths"
           type="number"
           inputMode="numeric"
           min={1}
           step={1}
           autoComplete="off"
           className="w-40"
-          aria-invalid={errors.months ? true : undefined}
-          aria-describedby={errors.months ? 'months-error' : 'months-hint'}
-          {...register('months', { valueAsNumber: true })}
+          aria-invalid={errors.pointsExpirationMonths ? true : undefined}
+          aria-describedby={
+            errors.pointsExpirationMonths
+              ? 'pointsExpirationMonths-error'
+              : 'pointsExpirationMonths-hint'
+          }
+          {...register('pointsExpirationMonths', { valueAsNumber: true })}
         />
       </FormField>
 

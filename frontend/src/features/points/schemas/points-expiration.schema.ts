@@ -2,11 +2,11 @@
 // puntos. Lo usa el formulario para avisar los errores antes de llamar a la API.
 import { z } from 'zod';
 
-// Tope máximo de la vigencia: 10 años (a confirmar con backend).
+// Tope máximo de la vigencia: 10 años. El backend admite más; este es el de la pantalla.
 export const MAX_EXPIRATION_MONTHS = 120;
 
 export const pointsExpirationSchema = z.object({
-  months: z
+  pointsExpirationMonths: z
     .number({ message: 'Ingresá una cantidad de meses' })
     .int('Tiene que ser un número entero, sin decimales')
     .min(1, 'La vigencia tiene que ser de al menos 1 mes')
