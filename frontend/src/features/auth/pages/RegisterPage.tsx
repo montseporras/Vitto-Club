@@ -1,8 +1,13 @@
 // Pestaña "Registrarme" (US-59 · RF-064): el formulario con el que una persona crea su propia cuenta de Cliente.
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, useWatch } from 'react-hook-form'
+import { Navigate } from 'react-router'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
-import type { ApiError } from '@/shared/api/ApiError'
+import {
+  customerConflict,
+  rejectedFields,
+  REJECTED_FIELD_MESSAGE,
+} from '@/features/cashier'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { FormActions } from '@/shared/components/forms/FormActions'
 import { FormField } from '@/shared/components/forms/FormField'
@@ -14,13 +19,14 @@ import { DateInput } from '@/shared/components/ui/DateInput'
 import { Input } from '@/shared/components/ui/Input'
 import { Page, PageCard } from '@/shared/components/ui/Page'
 import { PasswordInput } from '@/shared/components/ui/PasswordInput'
-import { useRegisterCustomer } from '../api/auth.queries'
+import { useLogin, useRegisterCustomer } from '../api/auth.queries'
 import { AuthTabs } from '../components/AuthTabs'
 import {
   registerSchema,
   type RegisterFormInput,
   type RegisterFormOutput,
 } from '../schemas/register.schema'
+import { useSession } from '../session'
 
 const INITIAL_VALUES: RegisterFormInput = {
   firstName: '',
@@ -38,19 +44,15 @@ const DOCUMENT_OPTIONS = DOCUMENT_TYPE_VALUES.map((type) => ({
   label: DOCUMENT_TYPES[type].label,
 }))
 
-// El 409 no trae un código: el dato repetido se deduce del mensaje del backend
-// ('Customer with email "…" already exists' / 'Customer with DNI "…" already exists').
-function conflictField(error: ApiError) {
-  if (error.status !== 409) return undefined
-  if (/\bemail\b/i.test(error.message)) return 'email'
-  if (/\b(DNI|PASSPORT)\b/i.test(error.message)) return 'documentNumber'
-  return undefined
-}
-
-const CONFLICT_MESSAGES = {
-  email: 'Ya existe una cuenta con este mail',
-  documentNumber: 'Ya existe una cuenta con este documento',
-}
+const FIELDS = [
+  'firstName',
+  'lastName',
+  'documentNumber',
+  'email',
+  'phone',
+  'dateOfBirth',
+  'password',
+] as const
 
 export function RegisterPage() {
   const {
@@ -67,19 +69,29 @@ export function RegisterPage() {
     defaultValues: INITIAL_VALUES,
     mode: 'onTouched',
   })
+  const session = useSession()
   const registerCustomer = useRegisterCustomer()
+  const login = useLogin()
 
   const onSubmit = (data: RegisterFormOutput) => {
     registerCustomer.mutate(data, {
-      onSuccess: () => reset(INITIAL_VALUES),
+      // El registro no inicia sesión: se entra con los datos recién cargados (docs/registro-api.md)
+      onSuccess: () => {
+        login.mutate({ email: data.email, password: data.password })
+        reset(INITIAL_VALUES)
+      },
       onError: (error) => {
-        const field = conflictField(error)
-        if (field) {
+        // El 409 del registro trae el campo y el mensaje a mostrar (docs/registro-api.md)
+        const conflict = customerConflict(error)
+        if (conflict?.field) {
           setError(
-            field,
-            { message: CONFLICT_MESSAGES[field] },
+            conflict.field,
+            { message: conflict.message },
             { shouldFocus: true },
           )
+        }
+        for (const field of rejectedFields(error, FIELDS)) {
+          setError(field, { message: REJECTED_FIELD_MESSAGE })
         }
       },
     })
@@ -93,11 +105,20 @@ export function RegisterPage() {
   })
 
   // El documento o mail repetido se marca en su campo; el resto de los errores, arriba.
+  const conflict = registerCustomer.isError
+    ? customerConflict(registerCustomer.error)
+    : undefined
   const generalError =
-    registerCustomer.isError && !conflictField(registerCustomer.error)
+    registerCustomer.isError && !conflict?.field
       ? registerCustomer.error
       : undefined
   const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
+  const submitting = registerCustomer.isPending || login.isPending
+
+  // Con sesión (recién creada o ya abierta) va a la pantalla de su rol ("/")
+  if (session.status === 'authenticated') {
+    return <Navigate to="/" replace />
+  }
 
   return (
     <Page className="max-w-5xl">
@@ -113,6 +134,8 @@ export function RegisterPage() {
             <Alert variant="success" className="mb-6">
               ¡Listo! Tu cuenta quedó creada con el mail{' '}
               <strong>{registerCustomer.variables.email}</strong>.
+              {login.isError &&
+                ' No pudimos iniciar tu sesión: entrá desde "Ingresar" con tu mail y contraseña.'}
             </Alert>
           )}
 
@@ -120,8 +143,8 @@ export function RegisterPage() {
             <Alert variant="error" className="mb-6">
               {generalError.status === undefined
                 ? generalError.message
-                : generalError.status === 409
-                  ? 'El documento o el mail ya pertenecen a una cuenta.'
+                : conflict
+                  ? generalError.message
                   : generalError.status === 400
                     ? 'Revisá los datos: no pudimos crear la cuenta.'
                     : 'No pudimos crear la cuenta. Intentá de nuevo.'}
@@ -246,10 +269,14 @@ export function RegisterPage() {
             <Button
               type="submit"
               size="lg"
-              disabled={registerCustomer.isPending}
+              disabled={submitting}
               className="w-full sm:w-auto"
             >
-              {registerCustomer.isPending ? 'Creando cuenta…' : 'Crear cuenta'}
+              {registerCustomer.isPending
+                ? 'Creando cuenta…'
+                : login.isPending
+                  ? 'Ingresando…'
+                  : 'Crear cuenta'}
             </Button>
           </FormActions>
         </form>

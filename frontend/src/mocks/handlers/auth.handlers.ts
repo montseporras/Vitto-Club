@@ -16,6 +16,9 @@ const accounts: AuthUser[] = [
   { accountId: 4, role: 'CASHIER', email: 'diego.sosa@vitto.club', employeeId: 4, firstName: 'Diego', lastName: 'Sosa' },
 ]
 
+// Contraseñas de las cuentas creadas por el autorregistro (el resto usa PASSWORD)
+const registeredPasswords = new Map<number, string>()
+
 // Cuentas dadas de baja: responden igual que un mail inexistente
 const inactiveAccountIds = new Set([4])
 
@@ -77,7 +80,8 @@ export const authHandlers = [
     const email = String(body.email).trim().toLowerCase()
     const account = accounts.find((item) => item.email === email)
     // Mismo mensaje para cualquier causa, a propósito
-    if (!account || inactiveAccountIds.has(account.accountId) || body.password !== PASSWORD) {
+    const password = account && (registeredPasswords.get(account.accountId) ?? PASSWORD)
+    if (!account || inactiveAccountIds.has(account.accountId) || body.password !== password) {
       return errorResponse(401, 'Los datos de acceso son incorrectos', request, 'INVALID_CREDENTIALS')
     }
 
@@ -127,27 +131,37 @@ export const authHandlers = [
         )
       }
 
-      // Mismos mensajes que CustomerAlreadyExists del backend.
+      // Mismos mensajes y `details` que el backend (docs/registro-api.md, sección 4).
+      const conflict = (field: 'documentNumber' | 'email', message: string) =>
+        HttpResponse.json(
+          {
+            statusCode: 409,
+            error: 'Conflict',
+            message,
+            path,
+            timestamp: new Date().toISOString(),
+            details: [{ field, message }],
+          },
+          { status: 409 },
+        )
+      const contactHint = 'Ante cualquier duda, comunicate con el restaurante.'
+
       const documentTaken = customers.some(
         (customer) =>
           customer.documentType === data.documentType &&
           customer.documentNumber === data.documentNumber,
       )
       if (documentTaken) {
-        return customerErrorResponse(
-          409,
-          `Customer with ${data.documentType} "${data.documentNumber}" already exists. ` +
-            'If that customer is inactive, reactivate it instead of creating a new one',
-          path,
+        return conflict(
+          'documentNumber',
+          `Ya hay un cliente registrado con ese documento (${data.documentType}). ${contactHint}`,
         )
       }
       const email = data.email.toLowerCase()
       if (customers.some((customer) => customer.email.toLowerCase() === email)) {
-        return customerErrorResponse(
-          409,
-          `Customer with email "${email}" already exists. ` +
-            'If that customer is inactive, reactivate it instead of creating a new one',
-          path,
+        return conflict(
+          'email',
+          `Ya hay una cuenta registrada con ese email. ${contactHint}`,
         )
       }
 
@@ -163,7 +177,26 @@ export const authHandlers = [
         createdAt: new Date().toISOString(),
       }
       customers.push(created)
-      return HttpResponse.json(created, { status: 201 })
+      const accountId = accounts.length + 1
+      accounts.push({
+        accountId,
+        role: 'CUSTOMER',
+        email,
+        customerId: created.id,
+        firstName: created.firstName,
+        lastName: created.lastName,
+      })
+      registeredPasswords.set(accountId, password)
+      // Misma respuesta que el backend: sin tokens (docs/registro-api.md, sección 3)
+      return HttpResponse.json(
+        {
+          customerId: created.id,
+          email,
+          firstName: created.firstName,
+          lastName: created.lastName,
+        },
+        { status: 201 },
+      )
     },
   ),
 ]

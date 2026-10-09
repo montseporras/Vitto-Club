@@ -108,8 +108,19 @@ export const cashierHandlers = [
       if (exists) {
         return errorResponse(
           409,
-          `Customer with ${body.documentType} "${body.documentNumber}" already exists. ` +
-            'If that customer is inactive, reactivate it instead of creating a new one',
+          `An active customer with ${body.documentType} "${body.documentNumber}" already exists`,
+          path,
+        )
+      }
+      const emailTaken = customers.some(
+        (customer) =>
+          customer.active &&
+          customer.email.toLowerCase() === body.email.toLowerCase(),
+      )
+      if (emailTaken) {
+        return errorResponse(
+          409,
+          `An active customer with email "${body.email.toLowerCase()}" already exists`,
           path,
         )
       }
@@ -206,8 +217,7 @@ export const cashierHandlers = [
       if (taken) {
         return errorResponse(
           409,
-          `Customer with ${documentType} "${documentNumber}" already exists. ` +
-            'If that customer is inactive, reactivate it instead of creating a new one',
+          `An active customer with ${documentType} "${documentNumber}" already exists`,
           path,
         )
       }
