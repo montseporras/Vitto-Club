@@ -5,11 +5,20 @@ import { CustomerRepository, CustomerListParams, CustomerListResult } from '../d
 import { CreateCustomerDto } from '../http/dto/create-customer.dto.js';
 import { UpdateCustomerDto } from '../http/dto/update-customer.dto.js';
 import { CustomerAlreadyExists } from '../domain/errors/customer-already-exists.error.js';
+import { EmployeesService } from '../../employees/application/employees.service.js';
 
+// Dirección única de la unicidad global de email: Customers -> Employees. Employees ya NO
+// consulta a Customers (ver employees.service.ts) — por eso esta dependencia ya no forma
+// un ciclo y puede tipar la clase concreta de EmployeesService sin forwardRef.
+//
+// Riesgo aceptado: si se crea un Employee con el email de un Customer ya existente,
+// EmployeesService.create() no lo detecta (esa dirección se eliminó). El conflicto recién
+// aparece al intentar crear la Account de ese Employee, por Account.email @unique.
 @Injectable()
 export class CustomersService {
   constructor(
     private readonly customersRepository: CustomerRepository,
+    private readonly employeesService: EmployeesService,
   ) {}
 
   // --- CREAR ---
@@ -31,7 +40,14 @@ export class CustomersService {
       customer.getDocumentNumber(),
     );
 
-    // 3. Persistir
+    // 3. El email debe ser único en todo el sistema, no solo entre customers.
+    if (await this.employeesService.existsByEmail(customer.getEmail())) {
+      throw new ConflictException(
+        `Email "${customer.getEmail()}" is already registered as an employee`,
+      );
+    }
+
+    // 4. Persistir
     return await this.customersRepository.save(customer);
   }
 
@@ -93,6 +109,15 @@ export class CustomersService {
       await this.assertDocumentAvailable(documentType, documentNumber, customer.getId() ?? undefined);
     }
 
+    // 2b. Si cambia el email, también debe ser único frente a employees (misma regla que
+    // al crear; Customers -> Employees es la única dirección de este chequeo).
+    if (dto.email !== undefined) {
+      const normalizedEmail = dto.email.trim().toLowerCase();
+      if (await this.employeesService.existsByEmail(normalizedEmail)) {
+        throw new ConflictException(`Email "${normalizedEmail}" is already registered as an employee`);
+      }
+    }
+
     // 3. Aplicar los cambios sobre la entidad recuperada
     customer.update({
       firstName: dto.firstName,
@@ -139,6 +164,12 @@ export class CustomersService {
   async getStatusHistory(id: number): Promise<CustomerStatusChange[]> {
     await this.findById(id);
     return await this.customersRepository.findStatusHistory(id);
+  }
+
+  // Expuesto para que otros módulos (ej. accounts) validen unicidad de email cruzada
+  // entre customers y employees sin acceder al repositorio directamente.
+  async existsByEmail(email: string): Promise<boolean> {
+    return await this.customersRepository.existsByEmail(email);
   }
 
   private async assertDocumentAvailable(

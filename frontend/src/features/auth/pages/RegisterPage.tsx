@@ -12,8 +12,10 @@ import { Alert } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { DateInput } from '@/shared/components/ui/DateInput'
 import { Input } from '@/shared/components/ui/Input'
+import { Page, PageCard } from '@/shared/components/ui/Page'
 import { PasswordInput } from '@/shared/components/ui/PasswordInput'
 import { useRegisterCustomer } from '../api/auth.queries'
+import { AuthTabs } from '../components/AuthTabs'
 import {
   registerSchema,
   type RegisterFormInput,
@@ -98,150 +100,160 @@ export function RegisterPage() {
   const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
 
   return (
-    <form noValidate onSubmit={handleSubmit(onSubmit)}>
-      {registerCustomer.isSuccess && (
-        <Alert variant="success" className="mb-6">
-          ¡Listo! Tu cuenta quedó creada con el mail{' '}
-          <strong>{registerCustomer.variables.email}</strong>.
-        </Alert>
-      )}
+    <Page className="max-w-5xl">
+      <PageCard
+        eyebrow="Vitto Club"
+        title="Registrarme"
+        description="Creá tu cuenta para sumarte al programa y canjear puntos por recompensas"
+      >
+        <AuthTabs />
 
-      {generalError && (
-        <Alert variant="error" className="mb-6">
-          {generalError.status === undefined
-            ? generalError.message
-            : generalError.status === 409
-              ? 'El documento o el mail ya pertenecen a una cuenta.'
-              : generalError.status === 400
-                ? 'Revisá los datos: no pudimos crear la cuenta.'
-                : 'No pudimos crear la cuenta. Intentá de nuevo.'}
-        </Alert>
-      )}
+        <form noValidate onSubmit={handleSubmit(onSubmit)}>
+          {registerCustomer.isSuccess && (
+            <Alert variant="success" className="mb-6">
+              ¡Listo! Tu cuenta quedó creada con el mail{' '}
+              <strong>{registerCustomer.variables.email}</strong>.
+            </Alert>
+          )}
 
-      <FormSection step={1} title="Datos personales">
-        <FormField
-          id="firstName"
-          label="Nombre"
-          error={errors.firstName?.message}
-        >
-          <Input
-            autoFocus
-            autoComplete="given-name"
-            {...a11y('firstName')}
-            {...register('firstName')}
-          />
-        </FormField>
+          {generalError && (
+            <Alert variant="error" className="mb-6">
+              {generalError.status === undefined
+                ? generalError.message
+                : generalError.status === 409
+                  ? 'El documento o el mail ya pertenecen a una cuenta.'
+                  : generalError.status === 400
+                    ? 'Revisá los datos: no pudimos crear la cuenta.'
+                    : 'No pudimos crear la cuenta. Intentá de nuevo.'}
+            </Alert>
+          )}
 
-        <FormField
-          id="lastName"
-          label="Apellido"
-          error={errors.lastName?.message}
-        >
-          <Input
-            autoComplete="family-name"
-            {...a11y('lastName')}
-            {...register('lastName')}
-          />
-        </FormField>
+          <FormSection step={1} title="Datos personales">
+            <FormField
+              id="firstName"
+              label="Nombre"
+              error={errors.firstName?.message}
+            >
+              <Input
+                autoFocus
+                autoComplete="given-name"
+                {...a11y('firstName')}
+                {...register('firstName')}
+              />
+            </FormField>
 
-        <FormField
-          id="dateOfBirth"
-          label="Fecha de nacimiento"
-          optional
-          error={errors.dateOfBirth?.message}
-        >
-          <DateInput {...a11y('dateOfBirth')} {...register('dateOfBirth')} />
-        </FormField>
-      </FormSection>
+            <FormField
+              id="lastName"
+              label="Apellido"
+              error={errors.lastName?.message}
+            >
+              <Input
+                autoComplete="family-name"
+                {...a11y('lastName')}
+                {...register('lastName')}
+              />
+            </FormField>
 
-      <FormSection step={2} title="Documento">
-        <SegmentedRadio
-          legend="Tipo de documento"
-          options={DOCUMENT_OPTIONS}
-          field={register('documentType', {
-            // El formato válido depende del tipo: revalida el número ya escrito
-            onChange: () => {
-              if (getValues('documentNumber')) trigger('documentNumber')
-            },
-          })}
-        />
+            <FormField
+              id="dateOfBirth"
+              label="Fecha de nacimiento"
+              optional
+              error={errors.dateOfBirth?.message}
+            >
+              <DateInput {...a11y('dateOfBirth')} {...register('dateOfBirth')} />
+            </FormField>
+          </FormSection>
 
-        <FormField
-          id="documentNumber"
-          label="Número de documento"
-          error={errors.documentNumber?.message}
-        >
-          <Input
-            inputMode={isDni ? 'numeric' : 'text'}
-            placeholder="30111222"
-            autoComplete="off"
-            {...a11y('documentNumber')}
-            {...register('documentNumber')}
-          />
-        </FormField>
-      </FormSection>
-
-      <FormSection step={3} title="Contacto">
-        <FormField id="email" label="Mail" error={errors.email?.message}>
-          <Input
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            {...a11y('email')}
-            {...register('email')}
-          />
-        </FormField>
-
-        <FormField
-          id="phone"
-          label="Teléfono"
-          optional
-          error={errors.phone?.message}
-        >
-          <Input
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            {...a11y('phone')}
-            {...register('phone')}
-          />
-        </FormField>
-      </FormSection>
-
-      <FormSection step={4} title="Acceso">
-        <div className="sm:col-span-2">
-          <FormField
-            id="password"
-            label="Contraseña"
-            hint="Entre 8 y 64 caracteres."
-            error={errors.password?.message}
-          >
-            <PasswordInput
-              autoComplete="new-password"
-              {...a11y('password')}
-              aria-describedby={
-                errors.password ? 'password-error' : 'password-hint'
-              }
-              {...register('password')}
+          <FormSection step={2} title="Documento">
+            <SegmentedRadio
+              legend="Tipo de documento"
+              options={DOCUMENT_OPTIONS}
+              field={register('documentType', {
+                // El formato válido depende del tipo: revalida el número ya escrito
+                onChange: () => {
+                  if (getValues('documentNumber')) trigger('documentNumber')
+                },
+              })}
             />
-          </FormField>
-        </div>
-      </FormSection>
 
-      <StatusText className="mt-6 text-sm">
-        Ante cualquier duda o inconveniente, comunicate con el restaurante
-      </StatusText>
+            <FormField
+              id="documentNumber"
+              label="Número de documento"
+              error={errors.documentNumber?.message}
+            >
+              <Input
+                inputMode={isDni ? 'numeric' : 'text'}
+                placeholder="30111222"
+                autoComplete="off"
+                {...a11y('documentNumber')}
+                {...register('documentNumber')}
+              />
+            </FormField>
+          </FormSection>
 
-      <FormActions>
-        <Button
-          type="submit"
-          size="lg"
-          disabled={registerCustomer.isPending}
-          className="w-full sm:w-auto"
-        >
-          {registerCustomer.isPending ? 'Creando cuenta…' : 'Crear cuenta'}
-        </Button>
-      </FormActions>
-    </form>
+          <FormSection step={3} title="Contacto">
+            <FormField id="email" label="Mail" error={errors.email?.message}>
+              <Input
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                {...a11y('email')}
+                {...register('email')}
+              />
+            </FormField>
+
+            <FormField
+              id="phone"
+              label="Teléfono"
+              optional
+              error={errors.phone?.message}
+            >
+              <Input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                {...a11y('phone')}
+                {...register('phone')}
+              />
+            </FormField>
+          </FormSection>
+
+          <FormSection step={4} title="Acceso">
+            <div className="sm:col-span-2">
+              <FormField
+                id="password"
+                label="Contraseña"
+                hint="Entre 8 y 64 caracteres."
+                error={errors.password?.message}
+              >
+                <PasswordInput
+                  autoComplete="new-password"
+                  {...a11y('password')}
+                  aria-describedby={
+                    errors.password ? 'password-error' : 'password-hint'
+                  }
+                  {...register('password')}
+                />
+              </FormField>
+            </div>
+          </FormSection>
+
+          <StatusText className="mt-6 text-sm">
+            Ante cualquier duda o inconveniente, comunicate con el restaurante
+          </StatusText>
+
+          <FormActions>
+            <Button
+              type="submit"
+              size="lg"
+              disabled={registerCustomer.isPending}
+              className="w-full sm:w-auto"
+            >
+              {registerCustomer.isPending ? 'Creando cuenta…' : 'Crear cuenta'}
+            </Button>
+          </FormActions>
+        </form>
+      </PageCard>
+    </Page>
   )
 }

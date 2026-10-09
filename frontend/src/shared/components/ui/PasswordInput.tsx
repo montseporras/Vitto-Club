@@ -1,4 +1,3 @@
-// Campo de contraseña con un botón para mostrar u ocultar lo que se escribió.
 import { useState, type ComponentProps } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { passwordInputStyles } from '@/styles/ui'
@@ -6,6 +5,7 @@ import { Icon } from './Icon'
 import { ICONS } from './icons'
 import { Input } from './Input'
 
+/** Campo de contraseña con un botón para ver lo que se escribió. */
 export function PasswordInput({
   className,
   ...props

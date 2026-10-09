@@ -20,7 +20,7 @@ export function Page({ className, ...props }: ComponentProps<'section'>) {
 type PageCardProps = {
   eyebrow: string
   title: string
-  /** Texto corto debajo del título. */
+  /** Texto corto debajo del título, en el encabezado naranja. */
   description?: string
   children: ReactNode
   className?: string

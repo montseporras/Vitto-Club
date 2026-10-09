@@ -28,6 +28,7 @@ que se despliegan por separado:
 
 | Documento | Contenido |
 |---|---|
+| [`docs/levantar-el-proyecto.md`](./docs/levantar-el-proyecto.md) | Cómo levantar base de datos, backend y frontend en local, variables de entorno y problemas frecuentes |
 | [`docs/CONTRIBUTING.MD`](./docs/CONTRIBUTING.MD) | Forma de trabajo: ramas, commits, Pull Requests y revisión |
 | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | Arquitectura del backend (hexagonal por módulo) y del frontend |
 | [`docs/FRONTEND-STRUCTURE.md`](./docs/FRONTEND-STRUCTURE.md) | Estructura del frontend: capas, carpetas, pantallas y estilos |

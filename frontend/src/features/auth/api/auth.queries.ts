@@ -1,8 +1,22 @@
-// Hooks de React Query del feature de acceso: las pantallas los usan en vez de llamar a la API directo.
 import { useMutation } from '@tanstack/react-query'
 import type { ApiError } from '@/shared/api/ApiError'
+import { endSession, startSession } from '../session'
+import type { AuthResponse, LoginBody } from '../types/auth'
 import type { RegisterCustomerBody } from '../types/register'
-import { registerCustomer } from './auth.api'
+import { login, logout, registerCustomer } from './auth.api'
+
+export const useLogin = () =>
+  useMutation<AuthResponse, ApiError, LoginBody>({
+    mutationFn: login,
+    onSuccess: startSession,
+  })
+
+/** Si la llamada falla, la sesión se cierra igual en el front. */
+export const useLogout = () =>
+  useMutation<void, ApiError>({
+    mutationFn: logout,
+    onSettled: endSession,
+  })
 
 export const useRegisterCustomer = () =>
   useMutation<void, ApiError, RegisterCustomerBody>({

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useLocation, useNavigate } from 'react-router'
 import logoIso from '@/assets/logo-vitto-iso-white.png'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
@@ -7,21 +8,34 @@ import { appFooterStyles, appHeaderStyles } from '@/styles/ui'
 type AppHeaderProps = {
   /** Área de la app, al lado de la marca (ej. "Mostrador"). */
   area: string
+  /** Botón "Volver" a la izquierda (no va en el login). */
+  showBack?: boolean
   /** Acciones a la derecha (usuario, configuración, etc.). */
   children?: ReactNode
-  /** En las pantallas de acceso no hay a dónde volver. */
-  showBack?: boolean
 }
 
 /** Barra superior naranja con volver, isologo y nombre del área. */
-export function AppHeader({ area, children, showBack = true }: AppHeaderProps) {
+export function AppHeader({ area, showBack = true, children }: AppHeaderProps) {
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  // Vuelve a la página anterior; si se entró directo (sin historial en la app),
+  // va a "/", que redirige al inicio del rol.
+  const goBack = () => {
+    if (location.key === 'default') navigate('/')
+    else navigate(-1)
+  }
+
   return (
     <header className={appHeaderStyles.root}>
       <div className={appHeaderStyles.inner}>
         {showBack && (
           <>
-            {/* TODO: volver a la home cuando exista */}
-            <button type="button" className={appHeaderStyles.back}>
+            <button
+              type="button"
+              onClick={goBack}
+              className={appHeaderStyles.back}
+            >
               <Icon d={ICONS.arrowLeft} className="size-4" />
               Volver
             </button>
