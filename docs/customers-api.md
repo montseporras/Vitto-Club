@@ -151,6 +151,8 @@ GET /api/customers/by-document?documentType=DNI&documentNumber=40.123.456
 ```
 
 - **200:** devuelve el cliente. **También devuelve clientes inactivos**: hay que revisar `active`.
+  Si hay varios clientes con ese documento (como mucho uno activo, ver sección 5), devuelve
+  **el activo**; si ninguno está activo, el inactivo más reciente.
 - **404:** no existe un cliente con ese documento (la pantalla puede ofrecer dar de alta).
 
 ### 3.3 `GET /customers/:id/status-history`
@@ -183,6 +185,9 @@ Un cliente que nunca cambió de estado devuelve `[]`. Al reactivar, `deactivated
 
 `phone` y `dateOfBirth` se pueden omitir. Responde **201** con el cliente creado (con su `id`).
 
+Responde **409** si otro cliente **activo** ya tiene ese documento o ese email. Los clientes dados de
+baja no cuentan: si el documento o el email eran de un cliente inactivo, se crea un cliente nuevo.
+
 ### 3.5 `PATCH /customers/:id` — modificar
 
 Se envía **solo lo que cambia** (cualquier subconjunto de los campos del alta):
@@ -196,6 +201,11 @@ Se envía **solo lo que cambia** (cualquier subconjunto de los campos del alta):
 - `null` en un campo obligatorio (`firstName`, `lastName`, `documentType`, `documentNumber`, `email`) devuelve 400.
 - Responde **200** con el cliente ya actualizado.
 - Si el cliente está **inactivo** devuelve **409**: primero hay que reactivarlo.
+- Si el nuevo documento o el nuevo email ya los tiene otro cliente **activo**, devuelve **409**.
+- Si el cliente tiene cuenta, cambiar su email cambia también **su email de acceso** (inicia sesión con
+  el nuevo). Si ese email ya lo usa otra cuenta (de un empleado o de otro cliente), devuelve **409** y
+  no se modifica nada.
+  Reenviar el propio email, aunque cambien mayúsculas o espacios, no es un cambio.
 
 ### 3.6 `PATCH /customers/:id/deactivate` y `/activate`
 
@@ -230,12 +240,15 @@ La pantalla debe mostrar **el valor que devuelve la API**, no el que escribió e
 
 ## 5. Reglas de negocio
 
-- **El documento identifica al cliente.** El par `documentType` + `documentNumber` es único: repetirlo devuelve **409**.
-- **El email NO es único entre clientes.** Dos clientes pueden compartir email entre sí. Sí se
-  valida contra empleados: crear o editar un cliente con el email de un empleado existente
-  responde **409** (ver `docs/accounts-abmc-status.md`, sección "Unicidad global de email").
+- **El documento identifica al cliente.** El par `documentType` + `documentNumber` es único entre los clientes **activos**: repetirlo devuelve **409**.
+- **El email también es único entre los clientes activos**, sin distinguir mayúsculas (se guarda en
+  minúsculas). Repetirlo devuelve **409**. Además se valida contra empleados: crear o editar un
+  cliente con el email de un empleado existente también responde **409** (ver
+  `docs/accounts-abmc-status.md`, sección "Unicidad global de email").
 - **Baja lógica.** Dar de baja no borra nada: el cliente pasa a `active: false`, se registra `deactivatedAt` y el registro conserva todos sus datos.
-- **Un cliente inactivo sigue ocupando su documento.** Para volver a registrarlo hay que reactivarlo, no crear uno nuevo. El mensaje de error del 409 lo sugiere.
+- **Los clientes inactivos no cuentan para la unicidad.** Un cliente dado de baja perdió sus puntos y
+  su cuenta anterior, así que su documento y su email quedan libres: si vuelve a inscribirse, se crea un
+  **cliente nuevo**. Por eso puede haber varios clientes con el mismo documento, pero como mucho uno activo.
 - **Un cliente inactivo no se puede modificar.** Hay que reactivarlo primero (409 si se intenta).
 - **Listado.** Por defecto incluye activos e inactivos. Para el listado "del programa activo" el frontend debe pedir `?active=true`.
 
@@ -283,7 +296,7 @@ ser un string o un arreglo de strings** según el origen, así que el frontend d
 |---|---|
 | **400** | Datos inválidos (formato, largo, teléfono, email, fecha futura), body vacío en un PATCH, campo desconocido, `id` no numérico, parámetro de la URL inválido |
 | **404** | El cliente no existe (por `id` o por documento) |
-| **409** | Documento repetido; modificar un cliente inactivo; baja de un inactivo; reactivar un activo |
+| **409** | Documento o email en uso por otro cliente activo (alta o modificación); modificar un cliente inactivo; baja de un inactivo; reactivar un activo |
 | **500** | Error inesperado del servidor (por ejemplo, la base de datos no responde) |
 
 Ejemplo de helper para mostrar errores en pantalla:
@@ -316,7 +329,7 @@ export function fieldErrors(e: ApiError): Record<string, string> {
 
 1. **Listado por defecto:** hoy, sin parámetros, devuelve activos e inactivos. ¿El frontend pide siempre `?active=true` o el backend debería filtrar por defecto?
 2. **Cajero o cliente:** la historia de modificar dice "cajero o cliente". ¿El cliente edita sus propios datos? Si es así, hace falta autenticación y limitarlo a su propio registro.
-3. **Documento de un cliente inactivo:** hoy impide crear otro cliente con ese documento (hay que reactivar). ¿Es lo que quieren?
+3. ~~**Documento de un cliente inactivo**~~ — decidido por el PO (2026-10-08): un cliente dado de baja no ocupa su documento ni su email; si vuelve, se inscribe como un cliente nuevo.
 4. **Modificar un inactivo:** hoy se bloquea (409). ¿Es el comportamiento esperado?
 5. **Formato de teléfono:** se implementó 8 a 15 dígitos (con `+`, espacios, guiones y paréntesis). ¿Coincide con lo que usa el negocio?
 6. **Búsqueda por nombre:** hoy no ignora tildes. ¿Hace falta que `lucia` encuentre a `Lucía`?

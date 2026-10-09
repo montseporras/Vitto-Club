@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Customer as PrismaCustomerRecord } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import { Customer, DocumentType } from '../domain/customer.js';
 import { CustomerStatusAction, CustomerStatusChange } from '../domain/customer-status-change.js';
 import {
@@ -28,7 +28,15 @@ function toDomain(record: PrismaCustomerRecord): Customer {
 
 @Injectable()
 export class CustomerPrismaRepository implements CustomerRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  // Inyecta PrismaTransactionRunner (no PrismaService) y usa .client en cada query: así
+  // participa de la transacción ambiente abierta por quien lo llame (por ejemplo el registro
+  // de clientes en accounts) sin que este repositorio sepa nada de transacciones — .client es
+  // el cliente normal si no hay ninguna abierta (ver docs/ARCHITECTURE.md).
+  constructor(private readonly transactionRunner: PrismaTransactionRunner) {}
+
+  private get prisma() {
+    return this.transactionRunner.client;
+  }
 
   async save(customer: Customer): Promise<Customer> {
     const created = await this.prisma.customer.create({
@@ -57,8 +65,10 @@ export class CustomerPrismaRepository implements CustomerRepository {
     documentType: DocumentType,
     documentNumber: string,
   ): Promise<Customer | null> {
-    const record = await this.prisma.customer.findUnique({
-      where: { unique_document: { documentType, documentNumber } },
+    // El activo primero; si no hay, el inactivo más reciente
+    const record = await this.prisma.customer.findFirst({
+      where: { documentType, documentNumber },
+      orderBy: [{ isActive: 'desc' }, { id: 'desc' }],
     });
     return record ? toDomain(record) : null;
   }
@@ -101,18 +111,20 @@ export class CustomerPrismaRepository implements CustomerRepository {
       throw new NotFoundException('Customer id is required to update');
     }
 
-    await this.prisma.$transaction([
-      this.prisma.customer.update({
+    // El cliente de una transacción no tiene $transaction: se usa la transacción ambiente.
+    // Si ya hay una abierta, se suma a ella; si no, abre una propia.
+    await this.transactionRunner.run(async () => {
+      await this.prisma.customer.update({
         where: { id },
         data: {
           isActive: customer.isActive(),
           deactivatedAt: customer.getDeactivatedAt(),
         },
-      }),
-      this.prisma.customerStatusChange.create({
+      });
+      await this.prisma.customerStatusChange.create({
         data: { customerId: id, action },
-      }),
-    ]);
+      });
+    });
   }
 
   async findStatusHistory(customerId: number): Promise<CustomerStatusChange[]> {
@@ -136,6 +148,7 @@ export class CustomerPrismaRepository implements CustomerRepository {
       where: {
         documentType,
         documentNumber,
+        isActive: true,
         ...(excludeId !== undefined ? { id: { not: excludeId } } : {}),
       },
       select: { id: true },
@@ -144,9 +157,12 @@ export class CustomerPrismaRepository implements CustomerRepository {
     return match !== null;
   }
 
-  async existsByEmail(email: string): Promise<boolean> {
+  async existsByEmail(email: string, options: { onlyActive?: boolean } = {}): Promise<boolean> {
     const match = await this.prisma.customer.findFirst({
-      where: { email: { equals: email, mode: 'insensitive' } },
+      where: {
+        email: { equals: email, mode: 'insensitive' },
+        ...(options.onlyActive ? { isActive: true } : {}),
+      },
       select: { id: true },
     });
 

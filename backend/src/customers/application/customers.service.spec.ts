@@ -1,6 +1,9 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { CustomersService } from './customers.service.js';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EmployeesService } from '../../employees/application/employees.service.js';
+import { TransactionRunner } from '../domain/port/transaction-runner.js';
+import { CUSTOMER_EMAIL_CHANGED } from '../../shared/events/domain-events.js';
 import { Customer, DocumentType } from '../domain/customer.js';
 import { CustomerStatusAction, CustomerStatusChange } from '../domain/customer-status-change.js';
 import {
@@ -51,12 +54,12 @@ class FakeCustomerRepository implements CustomerRepository {
   async findById(id: number): Promise<Customer | null> {
     return this.items.get(id) ?? null;
   }
+  // Igual que el repositorio real: el activo primero y, si no hay, el inactivo más reciente
   async findByDocument(type: DocumentType, number: string): Promise<Customer | null> {
-    return (
-      [...this.items.values()].find(
-        (c) => c.getDocumentType() === type && c.getDocumentNumber() === number,
-      ) ?? null
-    );
+    const matches = [...this.items.values()]
+      .filter((c) => c.getDocumentType() === type && c.getDocumentNumber() === number)
+      .sort((a, b) => Number(b.isActive()) - Number(a.isActive()) || (b.getId() as number) - (a.getId() as number));
+    return matches[0] ?? null;
   }
   async findAll(): Promise<Customer[]> {
     return [...this.items.values()];
@@ -82,12 +85,13 @@ class FakeCustomerRepository implements CustomerRepository {
   }
   async existsByDocument(type: DocumentType, number: string, excludeId?: number): Promise<boolean> {
     return [...this.items.values()].some(
-      (c) => c.getDocumentType() === type && c.getDocumentNumber() === number && c.getId() !== excludeId,
+      (c) =>
+        c.isActive() && c.getDocumentType() === type && c.getDocumentNumber() === number && c.getId() !== excludeId,
     );
   }
-  async existsByEmail(email: string): Promise<boolean> {
+  async existsByEmail(email: string, options: { onlyActive?: boolean } = {}): Promise<boolean> {
     return [...this.items.values()].some(
-      (c) => c.getEmail().toLowerCase() === email.toLowerCase(),
+      (c) => (!options.onlyActive || c.isActive()) && c.getEmail().toLowerCase() === email.toLowerCase(),
     );
   }
   async list(params: CustomerListParams): Promise<CustomerListResult> {
@@ -96,16 +100,41 @@ class FakeCustomerRepository implements CustomerRepository {
   }
 }
 
+// Ejecuta la función tal cual: los tests no necesitan una transacción real
+class PassthroughTransactionRunner implements TransactionRunner {
+  async run<T>(fn: () => Promise<T>): Promise<T> {
+    return await fn();
+  }
+}
+
 describe('CustomersService', () => {
   let repo: FakeCustomerRepository;
   let employeesService: FakeEmployeesService;
+  let emitAsync: jest.Mock;
   let service: CustomersService;
   let id: number;
+
+  // Otro cliente, con datos propios salvo lo que se pise
+  const otherCustomer = (overrides: Partial<Parameters<CustomersService['create']>[0]> = {}) =>
+    service.create({
+      firstName: 'Otro',
+      lastName: 'Cliente',
+      documentType: 'DNI',
+      documentNumber: '87654321',
+      email: 'otro@example.com',
+      ...overrides,
+    });
 
   beforeEach(async () => {
     repo = new FakeCustomerRepository();
     employeesService = new FakeEmployeesService();
-    service = new CustomersService(repo, employeesService as unknown as EmployeesService);
+    emitAsync = jest.fn().mockResolvedValue([]);
+    service = new CustomersService(
+      repo,
+      employeesService as unknown as EmployeesService,
+      new PassthroughTransactionRunner(),
+      { emitAsync } as unknown as EventEmitter2,
+    );
     const created = await service.create({
       firstName: 'Juan',
       lastName: 'Pérez',
@@ -224,6 +253,61 @@ describe('CustomersService', () => {
       const customer = await service.findByDocument('DNI', '12345678');
       expect(customer.isActive()).toBe(false);
     });
+
+    it('si hay una baja anterior y un cliente activo con el mismo documento, devuelve el activo', async () => {
+      await service.deactivate(id);
+      const current = await otherCustomer({ documentNumber: '12345678' });
+
+      const customer = await service.findByDocument('DNI', '12345678');
+      expect(customer.getId()).toBe(current.getId());
+      expect(customer.isActive()).toBe(true);
+    });
+  });
+
+  describe('update(): evento customer.email-changed', () => {
+    it('lo publica con el email nuevo normalizado, después de guardar', async () => {
+      const order: string[] = [];
+      repo.update_.mockImplementation(() => order.push('update'));
+      emitAsync.mockImplementation(async () => {
+        order.push('emit');
+        return [];
+      });
+
+      await service.update(id, { email: ' Nuevo@Example.com ' });
+
+      expect(emitAsync).toHaveBeenCalledWith(CUSTOMER_EMAIL_CHANGED, {
+        customerId: id,
+        email: 'nuevo@example.com',
+      });
+      expect(order).toEqual(['update', 'emit']);
+    });
+
+    it('no lo publica si el email no cambia (aunque cambien mayúsculas o espacios)', async () => {
+      await service.update(id, { email: ' JUAN@example.com', firstName: 'Juan Carlos' });
+
+      expect(emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('no lo publica si se modifican otros datos', async () => {
+      await service.update(id, { phone: '1144444444' });
+
+      expect(emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('no lo publica si la modificación se rechaza (email de otro cliente activo)', async () => {
+      await otherCustomer();
+
+      await expect(service.update(id, { email: 'otro@example.com' })).rejects.toThrow(ConflictException);
+      expect(emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('si accounts rechaza el email (ya lo usa otra cuenta), el error llega a quien llamó', async () => {
+      emitAsync.mockRejectedValueOnce(new ConflictException('Email "x" is already used by another account'));
+
+      await expect(service.update(id, { email: 'nuevo@example.com' })).rejects.toThrow(
+        'already used by another account',
+      );
+    });
   });
 
   describe('update()', () => {
@@ -243,6 +327,47 @@ describe('CustomersService', () => {
     it('permite borrar el teléfono con null', async () => {
       const customer = await service.update(id, { phone: null });
       expect(customer.getPhone()).toBeNull();
+    });
+
+    it('lanza 409 si el nuevo email ya lo usa otro cliente', async () => {
+      await otherCustomer();
+
+      await expect(service.update(id, { email: 'otro@example.com' })).rejects.toThrow(ConflictException);
+      expect((await service.findById(id)).getEmail()).toBe('juan@example.com');
+    });
+
+    it('compara el email normalizado (mayúsculas y espacios)', async () => {
+      await otherCustomer();
+
+      await expect(service.update(id, { email: '  OTRO@Example.com ' })).rejects.toThrow(ConflictException);
+    });
+
+    it('permite usar el email de un cliente dado de baja', async () => {
+      const other = await otherCustomer();
+      await service.deactivate(other.getId() as number);
+
+      const customer = await service.update(id, { email: 'otro@example.com' });
+      expect(customer.getEmail()).toBe('otro@example.com');
+    });
+
+    it('permite usar el documento de un cliente dado de baja', async () => {
+      const other = await otherCustomer();
+      await service.deactivate(other.getId() as number);
+
+      const customer = await service.update(id, { documentNumber: '87654321' });
+      expect(customer.getDocumentNumber()).toBe('87654321');
+    });
+
+    it('permite reenviar su propio email, aunque cambien mayúsculas o espacios', async () => {
+      const customer = await service.update(id, { email: ' JUAN@example.com', firstName: 'Juan Carlos' });
+      expect(customer.getFirstName()).toBe('Juan Carlos');
+      expect(customer.getEmail()).toBe('juan@example.com');
+    });
+
+    it('lanza 409 si el nuevo documento ya lo usa otro cliente', async () => {
+      await otherCustomer();
+
+      await expect(service.update(id, { documentNumber: '87654321' })).rejects.toThrow(ConflictException);
     });
 
     // Nuevo (Customers -> Employees también al editar, no solo al crear): cambiar el
@@ -275,18 +400,39 @@ describe('CustomersService', () => {
   });
 
   describe('create()', () => {
-    it('no permite dar de alta otro cliente con el documento de uno inactivo y sugiere reactivarlo', async () => {
+    it('lanza 409 si otro cliente activo ya tiene el documento', async () => {
+      await expect(otherCustomer({ documentNumber: '12.345.678' })).rejects.toThrow(ConflictException);
+      await expect(otherCustomer({ documentNumber: '12.345.678' })).rejects.toThrow(/DNI "12345678"/);
+    });
+
+    it('un cliente dado de baja libera su documento y su email: se crea un cliente nuevo', async () => {
       await service.deactivate(id);
 
-      await expect(
-        service.create({
-          firstName: 'Otro',
-          lastName: 'Cliente',
-          documentType: 'DNI',
-          documentNumber: '12.345.678',
-          email: 'otro@example.com',
-        }),
-      ).rejects.toThrow(/reactivate it/);
+      const customer = await otherCustomer({ documentNumber: '12.345.678', email: 'juan@example.com' });
+
+      expect(customer.getId()).not.toBe(id);
+      expect(customer.isActive()).toBe(true);
+      // El registro dado de baja se conserva tal cual
+      const old = await service.findById(id);
+      expect(old.isActive()).toBe(false);
+      expect(old.getDocumentNumber()).toBe('12345678');
+    });
+
+    it('lanza 409 si otro cliente ya tiene el email (normalizado)', async () => {
+      await expect(otherCustomer({ email: ' JUAN@example.com' })).rejects.toThrow(ConflictException);
+      await expect(otherCustomer({ email: ' JUAN@example.com' })).rejects.toThrow(/email "juan@example.com"/);
+    });
+
+    it('permite dar de alta otro cliente con el email de uno dado de baja', async () => {
+      await service.deactivate(id);
+
+      const customer = await otherCustomer({ email: 'juan@example.com' });
+      expect(customer.getEmail()).toBe('juan@example.com');
+    });
+
+    it('el mismo número con otro tipo de documento no es un duplicado', async () => {
+      const customer = await otherCustomer({ documentType: 'PASSPORT', documentNumber: '12345678' });
+      expect(customer.getId()).not.toBeNull();
     });
 
     // Escenario B (unicidad global de email): existe un Employee con ese email -> se
