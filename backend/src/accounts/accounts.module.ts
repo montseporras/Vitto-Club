@@ -15,6 +15,7 @@ import { CustomerAccountPrismaRepository } from './infrastructure/customer-accou
 import { EmployeesModule } from '../employees/employees.module.js';
 import { CustomersModule } from '../customers/customers.module.js';
 import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
+import { AuditModule } from '../audit/audit.module.js';
 
 // accounts es dueño de la tabla Account y de las contraseñas: el adaptador de bcryptjs vive
 // acá (no en auth) porque si estuviera en auth, accounts tendría que importar auth, y auth ya
@@ -24,13 +25,16 @@ import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js'
 // solo sentido (ninguno de los dos importa a Accounts). La integración Employee -> Account
 // es por eventos (EmployeeEventsListener), no por import circular.
 @Module({
-  imports: [EmployeesModule, CustomersModule],
+  imports: [EmployeesModule, CustomersModule, AuditModule],
   controllers: [AccountsController, CustomerRegistrationController],
   providers: [
     AccountsService,
     // SCRUM-160: registro de clientes (servicio y repositorio propios, aparte del ABMC de usuarios)
     CustomerRegistrationService,
-    { provide: CustomerAccountRepository, useClass: CustomerAccountPrismaRepository },
+    {
+      provide: CustomerAccountRepository,
+      useClass: CustomerAccountPrismaRepository,
+    },
     EmployeeEventsListener,
     CustomerEventsListener,
     {

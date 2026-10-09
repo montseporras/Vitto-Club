@@ -8,13 +8,24 @@ describe('LoyaltyController', () => {
     getCurrentPointsEquivalence: jest.Mock;
   };
   let controller: LoyaltyController;
+  const actor = { accountId: 1, role: 'ADMIN' as const, employeeId: 1 };
+  const audit = {
+    capture: jest.fn().mockImplementation(async (operation, createEntry) => {
+      const result = await operation();
+      createEntry(result);
+      return result;
+    }),
+  };
 
   beforeEach(() => {
     service = {
       setPointsEquivalence: jest.fn(),
       getCurrentPointsEquivalence: jest.fn(),
     };
-    controller = new LoyaltyController(service as unknown as LoyaltyService);
+    controller = new LoyaltyController(
+      service as unknown as LoyaltyService,
+      audit as never,
+    );
   });
 
   it('saves and returns the points equivalence contract', async () => {
@@ -24,7 +35,10 @@ describe('LoyaltyController', () => {
     });
     service.setPointsEquivalence.mockResolvedValue(configuration);
 
-    const result = await controller.set({ baseAmount: 996, pointsAwarded: 10 });
+    const result = await controller.set(
+      { baseAmount: 996, pointsAwarded: 10 },
+      actor,
+    );
 
     expect(service.setPointsEquivalence).toHaveBeenCalledWith({
       baseAmount: 996,

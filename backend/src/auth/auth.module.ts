@@ -20,12 +20,14 @@ import { AuthConfig } from './infrastructure/auth.config.js';
 import { CryptoRefreshTokenGenerator } from './infrastructure/crypto-refresh-token-generator.js';
 import { JwtAccessTokenIssuer } from './infrastructure/jwt-access-token-issuer.js';
 import { SessionPrismaRepository } from './infrastructure/sessions.repository.js';
+import { AuditModule } from '../audit/audit.module.js';
 
 // auth depende de accounts (para preguntar "¿estas credenciales son válidas?") y nunca al
 // revés: accounts no importa nada de auth.
 @Module({
   imports: [
     AccountsModule,
+    AuditModule,
     // El secreto, el algoritmo y la duración del access token se fijan acá, una sola vez.
     // Se declara HS256 al firmar y al verificar para no aceptar tokens con otro algoritmo.
     JwtModule.registerAsync({

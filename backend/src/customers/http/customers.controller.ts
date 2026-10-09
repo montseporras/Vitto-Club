@@ -12,19 +12,19 @@ import {
   ValidationPipe,
   UseFilters,
   Query,
-} from "@nestjs/common";
-import { CreateCustomerDto } from "./dto/create-customer.dto.js";
-import { UpdateCustomerDto } from "./dto/update-customer.dto.js";
-import { ListCustomersQueryDto } from "./dto/list-customers-query.dto.js";
-import { FindCustomerByDocumentQueryDto } from "./dto/find-customer-by-document-query.dto.js";
-import { CustomersService } from "../application/customers.service.js";
-import { CustomerResponseDto } from "./dto/customer-response.dto.js";
-import { CustomerExceptionFilter } from "./filters/customers-exception.filter.js";
-import { Roles } from "../../shared/security/roles.decorator.js";
-
-
-
-
+} from '@nestjs/common';
+import { CreateCustomerDto } from './dto/create-customer.dto.js';
+import { UpdateCustomerDto } from './dto/update-customer.dto.js';
+import { ListCustomersQueryDto } from './dto/list-customers-query.dto.js';
+import { FindCustomerByDocumentQueryDto } from './dto/find-customer-by-document-query.dto.js';
+import { CustomersService } from '../application/customers.service.js';
+import { CustomerResponseDto } from './dto/customer-response.dto.js';
+import { CustomerExceptionFilter } from './filters/customers-exception.filter.js';
+import { Roles } from '../../shared/security/roles.decorator.js';
+import { CurrentUser } from '../../shared/security/current-user.decorator.js';
+import type { CurrentUserData } from '../../shared/security/current-user-data.js';
+import { AuditService } from '../../audit/application/audit.service.js';
+import { AuditCategory } from '../../audit/domain/audit.repository.js';
 
 @Controller('customers')
 @Roles('ADMIN', 'CASHIER') // el Cajero gestiona clientes, incluida la baja, la reactivación y el historial
@@ -35,90 +35,141 @@ import { Roles } from "../../shared/security/roles.decorator.js";
     whitelist: true,
   }),
 )
-export class CustomersController{
+export class CustomersController {
+  constructor(
+    private readonly customersService: CustomersService,
+    private readonly auditService: AuditService,
+  ) {}
 
-        constructor(
-            private readonly customersService: CustomersService
-        ){}
+  // GET /customers?page=1&limit=20&active=true&name=juan
+  @Get()
+  async findAll(@Query() query: ListCustomersQueryDto) {
+    const { items, total } = await this.customersService.list({
+      page: query.page,
+      limit: query.limit,
+      nameContains: query.name?.trim() || undefined,
+      active: query.active === undefined ? undefined : query.active === 'true',
+    });
+    return {
+      items: items.map((customer) => CustomerResponseDto.fromDomain(customer)),
+      total,
+      page: query.page,
+      limit: query.limit,
+    };
+  }
 
+  // GET /customers/by-document?documentType=DNI&documentNumber=40123456
+  // Tiene que ir ANTES que @Get(':id'), si no "by-document" se interpretaría como un id.
+  @Get('by-document')
+  async findByDocument(@Query() query: FindCustomerByDocumentQueryDto) {
+    const customer = await this.customersService.findByDocument(
+      query.documentType,
+      query.documentNumber,
+    );
+    return CustomerResponseDto.fromDomain(customer);
+  }
 
-    // GET /customers?page=1&limit=20&active=true&name=juan
-    @Get()
-        async findAll(@Query() query: ListCustomersQueryDto){
-            const { items, total } = await this.customersService.list({
-                page: query.page,
-                limit: query.limit,
-                nameContains: query.name?.trim() || undefined,
-                active: query.active === undefined ? undefined : query.active === 'true',
-            });
-            return {
-                items: items.map((customer) => CustomerResponseDto.fromDomain(customer)),
-                total,
-                page: query.page,
-                limit: query.limit,
-            };
-        }
+  @Get(':id')
+  async findById(@Param('id', ParseIntPipe) id: number) {
+    const customer = await this.customersService.findById(id);
+    return CustomerResponseDto.fromDomain(customer);
+  }
 
+  // GET /customers/:id/status-history -> bajas y reactivaciones, la más reciente primero
+  @Get(':id/status-history')
+  async statusHistory(@Param('id', ParseIntPipe) id: number) {
+    const history = await this.customersService.getStatusHistory(id);
+    return history.map((change) => ({
+      id: change.id,
+      action: change.action,
+      createdAt: change.createdAt.toISOString(),
+    }));
+  }
 
-    // GET /customers/by-document?documentType=DNI&documentNumber=40123456
-    // Tiene que ir ANTES que @Get(':id'), si no "by-document" se interpretaría como un id.
-    @Get('by-document')
-        async findByDocument(@Query() query: FindCustomerByDocumentQueryDto){
-            const customer = await this.customersService.findByDocument(
-                query.documentType,
-                query.documentNumber,
-            );
-            return CustomerResponseDto.fromDomain(customer);
-        }
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async create(
+    @Body() createDto: CreateCustomerDto,
+    @CurrentUser() actor: CurrentUserData,
+  ) {
+    const customer = await this.auditService.capture(
+      () => this.customersService.create(createDto),
+      (created) => ({
+        actorAccountId: actor.accountId,
+        category: AuditCategory.CUSTOMERS,
+        action: 'Registro de cliente',
+        documentType: created.getDocumentType(),
+        documentNumber: created.getDocumentNumber(),
+        details: {
+          customerId: created.getId()!,
+          fields: Object.keys(createDto),
+        },
+      }),
+    );
+    return CustomerResponseDto.fromDomain(customer);
+  }
 
+  @Patch(':id')
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDto: UpdateCustomerDto,
+    @CurrentUser() actor: CurrentUserData,
+  ) {
+    const customer = await this.auditService.capture(
+      () => this.customersService.update(id, updateDto),
+      (updated) => ({
+        actorAccountId: actor.accountId,
+        category: AuditCategory.CUSTOMERS,
+        action: 'Modificación de cliente',
+        documentType: updated.getDocumentType(),
+        documentNumber: updated.getDocumentNumber(),
+        details: { customerId: id, fields: Object.keys(updateDto) },
+      }),
+    );
+    return CustomerResponseDto.fromDomain(customer);
+  }
 
-    @Get(":id")
-        async findById(@Param('id', ParseIntPipe) id: number){
-            const customer = await this.customersService.findById(id);
-            return CustomerResponseDto.fromDomain(customer);
-        }
-
-
-    // GET /customers/:id/status-history -> bajas y reactivaciones, la más reciente primero
-    @Get(':id/status-history')
-        async statusHistory(@Param('id', ParseIntPipe) id: number){
-            const history = await this.customersService.getStatusHistory(id);
-            return history.map((change) => ({
-                id: change.id,
-                action: change.action,
-                createdAt: change.createdAt.toISOString(),
-            }));
-        }
-
-
-    @Post()
-    @HttpCode(HttpStatus.CREATED)
-    async create(@Body() createDto: CreateCustomerDto){
-        const customer = await this.customersService.create(createDto);
-        return CustomerResponseDto.fromDomain(customer);
-    }
-
-    @Patch(':id')
-    async update(
-        @Param('id', ParseIntPipe) id: number,
-        @Body() updateDto: UpdateCustomerDto,
-    ){
-        const customer = await this.customersService.update(id, updateDto);
-        return CustomerResponseDto.fromDomain(customer);
-    }
-
-
-    @Patch(':id/deactivate')
-    @HttpCode(HttpStatus.NO_CONTENT)
-    async deactivate(@Param('id', ParseIntPipe) id: number) {
+  @Patch(':id/deactivate')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deactivate(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() actor: CurrentUserData,
+  ) {
+    await this.auditService.capture(
+      async () => {
         await this.customersService.deactivate(id);
-        }
+        return await this.customersService.findById(id);
+      },
+      (customer) => ({
+        actorAccountId: actor.accountId,
+        category: AuditCategory.CUSTOMERS,
+        action: 'Baja lógica de cliente',
+        documentType: customer.getDocumentType(),
+        documentNumber: customer.getDocumentNumber(),
+        details: { customerId: id },
+      }),
+    );
+  }
 
-    @Patch(':id/activate')
-        @HttpCode(HttpStatus.NO_CONTENT)
-        async activate(@Param('id', ParseIntPipe) id: number) {
-            await this.customersService.activate(id);
-        }
-
-
+  @Patch(':id/activate')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async activate(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() actor: CurrentUserData,
+  ) {
+    await this.auditService.capture(
+      async () => {
+        await this.customersService.activate(id);
+        return await this.customersService.findById(id);
+      },
+      (customer) => ({
+        actorAccountId: actor.accountId,
+        category: AuditCategory.CUSTOMERS,
+        action: 'Alta lógica de cliente',
+        documentType: customer.getDocumentType(),
+        documentNumber: customer.getDocumentNumber(),
+        details: { customerId: id },
+      }),
+    );
+  }
 }

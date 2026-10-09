@@ -31,6 +31,12 @@ que se despliegan por separado:
   `request.user.role = 'ADMIN'`; responderá 401 hasta que se integre la
   historia de autenticación backend. Ver
   [`docs/loyalty-api.md`](./docs/loyalty-api.md).
+- **Auditoría** (`GET /api/auditoria`): lista de forma paginada los inicios y
+  cierres de sesión y los cambios ya implementados de clientes, empleados y
+  configuración. Solo ADMIN puede consultarla; la tabla append-only se instala
+  exclusivamente en `develop` con el comando descrito en
+  [`backend/README.md`](./backend/README.md). El contrato y la conexión desde el frontend
+  están en [`docs/auditoria-api.md`](./docs/auditoria-api.md).
 - El resto de los módulos del frontend (`auth`, `recompensas`, `misiones`,
   etc.) existen solo como carpetas vacías.
 
@@ -45,6 +51,7 @@ que se despliegan por separado:
 | [`docs/customers-api.md`](./docs/customers-api.md) | Contrato de la API de clientes |
 | [`docs/employees-api.md`](./docs/employees-api.md) | Contrato de la API de empleados |
 | [`docs/loyalty-api.md`](./docs/loyalty-api.md) | Contrato de la API de configuración de puntos |
+| [`docs/auditoria-api.md`](./docs/auditoria-api.md) | Conexión del frontend, permisos, filtros y respuesta del listado de auditoría |
 | [`docs/frontend-customers-pendientes.md`](./docs/frontend-customers-pendientes.md) | Pendientes de frontend del módulo de clientes |
 | [`backend/PRISMA.md`](./backend/PRISMA.md) | Cómo quedó configurado Prisma y comandos de uso diario |
 

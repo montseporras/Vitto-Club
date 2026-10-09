@@ -12,6 +12,10 @@ import { UpdateLoyaltyConfigurationDto } from './dto/update-loyalty-configuratio
 import { LoyaltyExceptionFilter } from './filters/loyalty-exception.filter.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 import { Roles } from '../../shared/security/roles.decorator.js';
+import { CurrentUser } from '../../shared/security/current-user.decorator.js';
+import type { CurrentUserData } from '../../shared/security/current-user-data.js';
+import { AuditService } from '../../audit/application/audit.service.js';
+import { AuditCategory } from '../../audit/domain/audit.repository.js';
 
 @Controller('loyalty/configuration')
 // RolesGuard (global) cierra todo endpoint sin @Roles: solo el Administrador configura el programa
@@ -19,7 +23,10 @@ import { Roles } from '../../shared/security/roles.decorator.js';
 @UseGuards(AdminRoleGuard)
 @UseFilters(LoyaltyExceptionFilter)
 export class LoyaltyProgramConfigurationController {
-  constructor(private readonly loyaltyService: LoyaltyService) {}
+  constructor(
+    private readonly loyaltyService: LoyaltyService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Get('current')
   async getCurrent(): Promise<LoyaltyProgramConfigurationResponseDto> {
@@ -30,14 +37,32 @@ export class LoyaltyProgramConfigurationController {
   @Put()
   async update(
     @Body() dto: UpdateLoyaltyConfigurationDto,
+    @CurrentUser() actor: CurrentUserData,
   ): Promise<LoyaltyProgramConfigurationResponseDto> {
-    const configuration = await this.loyaltyService.updateConfiguration({
-      baseAmount: dto.baseAmount,
-      pointsAwarded: dto.pointsAwarded,
-      pointsExpirationMonths: dto.pointsExpirationMonths,
-      bonusType: dto.bonusType,
-      bonusValue: dto.bonusValue,
-    });
+    const configuration = await this.auditService.capture(
+      () =>
+        this.loyaltyService.updateConfiguration({
+          baseAmount: dto.baseAmount,
+          pointsAwarded: dto.pointsAwarded,
+          pointsExpirationMonths: dto.pointsExpirationMonths,
+          bonusType: dto.bonusType,
+          bonusValue: dto.bonusValue,
+        }),
+      () => ({
+        actorAccountId: actor.accountId,
+        category: AuditCategory.CONFIGURATION,
+        action: 'Modificación de configuración de puntos',
+        details: {
+          newValues: {
+            baseAmount: dto.baseAmount,
+            pointsAwarded: dto.pointsAwarded,
+            pointsExpirationMonths: dto.pointsExpirationMonths,
+            bonusType: dto.bonusType,
+            bonusValue: dto.bonusValue,
+          },
+        },
+      }),
+    );
     return LoyaltyProgramConfigurationResponseDto.fromDomain(configuration);
   }
 }

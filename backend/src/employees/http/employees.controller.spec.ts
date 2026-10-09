@@ -14,6 +14,14 @@ describe('EmployeesController', () => {
     deactivate: jest.Mock;
   };
   let controller: EmployeesController;
+  const actor = { accountId: 1, role: 'ADMIN' as const, employeeId: 1 };
+  const audit = {
+    capture: jest.fn().mockImplementation(async (operation, createEntry) => {
+      const result = await operation();
+      createEntry(result);
+      return result;
+    }),
+  };
 
   beforeEach(() => {
     service = {
@@ -23,7 +31,10 @@ describe('EmployeesController', () => {
       findById: jest.fn(),
       deactivate: jest.fn(),
     };
-    controller = new EmployeesController(service as unknown as EmployeesService);
+    controller = new EmployeesController(
+      service as unknown as EmployeesService,
+      audit as never,
+    );
   });
 
   const dto = (values: Partial<CreateEmployeeDto> = {}): CreateEmployeeDto =>
@@ -49,7 +60,10 @@ describe('EmployeesController', () => {
         }),
       );
 
-      const result = await controller.create(dto({ phone: '3510000002' }));
+      const result = await controller.create(
+        dto({ phone: '3510000002' }),
+        actor,
+      );
 
       expect(service.create).toHaveBeenCalledWith({
         firstName: 'Bruno',
@@ -81,14 +95,16 @@ describe('EmployeesController', () => {
         }),
       );
 
-      const result = await controller.create(dto());
+      const result = await controller.create(dto(), actor);
 
       expect(result.phone).toBeNull();
     });
   });
 
   describe('findAll()', () => {
-    const query = (values: Partial<ListEmployeesQueryDto> = {}): ListEmployeesQueryDto =>
+    const query = (
+      values: Partial<ListEmployeesQueryDto> = {},
+    ): ListEmployeesQueryDto =>
       Object.assign(new ListEmployeesQueryDto(), values);
 
     const ana = Employee.reconstruct({
@@ -106,7 +122,10 @@ describe('EmployeesController', () => {
 
       const result = await controller.findAll(query());
 
-      expect(service.findAll).toHaveBeenCalledWith({ nameContains: undefined, active: undefined });
+      expect(service.findAll).toHaveBeenCalledWith({
+        nameContains: undefined,
+        active: undefined,
+      });
       expect(Array.isArray(result)).toBe(true);
       expect(result.map((r) => ({ ...r }))).toEqual([
         {
@@ -131,10 +150,14 @@ describe('EmployeesController', () => {
       service.findAll.mockResolvedValue([]);
 
       await controller.findAll(query({ active: 'true' }));
-      expect(service.findAll).toHaveBeenLastCalledWith(expect.objectContaining({ active: true }));
+      expect(service.findAll).toHaveBeenLastCalledWith(
+        expect.objectContaining({ active: true }),
+      );
 
       await controller.findAll(query({ active: 'false' }));
-      expect(service.findAll).toHaveBeenLastCalledWith(expect.objectContaining({ active: false }));
+      expect(service.findAll).toHaveBeenLastCalledWith(
+        expect.objectContaining({ active: false }),
+      );
     });
 
     it('recorta el nombre y lo ignora si está vacío', async () => {
@@ -168,7 +191,12 @@ describe('EmployeesController', () => {
       const result = await controller.findById(3);
 
       expect(service.findById).toHaveBeenCalledWith(3);
-      expect(result).toMatchObject({ id: 3, firstName: 'Carla', phone: null, isActive: false });
+      expect(result).toMatchObject({
+        id: 3,
+        firstName: 'Carla',
+        phone: null,
+        isActive: false,
+      });
     });
   });
 
@@ -187,7 +215,7 @@ describe('EmployeesController', () => {
         }),
       );
 
-      const result = await controller.deactivate(3);
+      const result = await controller.deactivate(3, actor);
 
       expect(service.deactivate).toHaveBeenCalledWith(3);
       expect({ ...result }).toEqual({
@@ -220,7 +248,7 @@ describe('EmployeesController', () => {
         role: 'ADMIN',
       });
 
-      const result = await controller.update(2, body);
+      const result = await controller.update(2, body, actor);
 
       expect(service.update).toHaveBeenCalledWith(2, {
         firstName: 'Bruno',

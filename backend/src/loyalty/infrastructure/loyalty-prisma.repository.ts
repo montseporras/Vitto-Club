@@ -3,7 +3,7 @@ import {
   Prisma,
   type LoyaltyProgramConfiguration as PrismaConfig,
 } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import { PointsEquivalence } from '../domain/points-equivalence.js';
 import { PointsValidity } from '../domain/points-validity.js';
 import { DEFAULT_POINTS_EXPIRATION_MONTHS } from '../domain/points-validity.js';
@@ -44,7 +44,11 @@ function toDomain(record: PrismaConfig): LoyaltyProgramConfiguration {
 
 @Injectable()
 export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly transactionRunner: PrismaTransactionRunner) {}
+
+  private get prisma() {
+    return this.transactionRunner.client;
+  }
 
   async savePointsEquivalence(
     configuration: PointsEquivalence,
@@ -145,7 +149,8 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
   async saveNewConfigVersion(
     configuration: LoyaltyProgramConfigurationData,
   ): Promise<LoyaltyProgramConfiguration> {
-    return await this.prisma.$transaction(async (transaction) => {
+    return await this.transactionRunner.run(async () => {
+      const transaction = this.transactionRunner.client;
       const current = await this.lockAndGetActiveConfig(transaction);
       return await this.persistNewVersion(transaction, current, configuration);
     });
@@ -154,7 +159,8 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
   async updateFullConfig(
     configuration: LoyaltyProgramConfigurationInput,
   ): Promise<LoyaltyProgramConfiguration> {
-    return await this.prisma.$transaction(async (transaction) => {
+    return await this.transactionRunner.run(async () => {
+      const transaction = this.transactionRunner.client;
       const current = await this.lockAndGetActiveConfig(transaction);
       const next = LoyaltyProgramConfiguration.createNextVersion(
         current,
@@ -172,7 +178,8 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
   private async updatePartialConfig(
     patch: Partial<LoyaltyProgramConfigurationInput>,
   ): Promise<LoyaltyProgramConfiguration> {
-    return await this.prisma.$transaction(async (transaction) => {
+    return await this.transactionRunner.run(async () => {
+      const transaction = this.transactionRunner.client;
       const current = await this.lockAndGetActiveConfig(transaction);
       const next = LoyaltyProgramConfiguration.createNextVersion(
         current,

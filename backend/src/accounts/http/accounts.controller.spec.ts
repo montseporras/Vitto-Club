@@ -1,6 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
 import { AccountsController } from './accounts.controller.js';
-import { AccountsService, AccountProfile } from '../application/accounts.service.js';
+import {
+  AccountsService,
+  AccountProfile,
+} from '../application/accounts.service.js';
 import { Account } from '../domain/account.js';
 import { RegisterAccountDto } from './dto/register-account.dto.js';
 import { UpdateAccountDto } from './dto/update-account.dto.js';
@@ -16,6 +19,7 @@ describe('AccountsController', () => {
     findProfileById: jest.Mock;
   };
   let controller: AccountsController;
+  const actor = { accountId: 1, role: 'ADMIN' as const, employeeId: 1 };
 
   const profile: AccountProfile = {
     accountId: 7,
@@ -35,10 +39,23 @@ describe('AccountsController', () => {
       findProfileByEmployeeId: jest.fn(),
       findProfileById: jest.fn(),
     };
-    controller = new AccountsController(service as unknown as AccountsService);
+    controller = new AccountsController(
+      service as unknown as AccountsService,
+      {
+        capture: jest
+          .fn()
+          .mockImplementation(async (operation, createEntry) => {
+            const result = await operation();
+            createEntry(result);
+            return result;
+          }),
+      } as never,
+    );
   });
 
-  const registerDto = (values: Partial<RegisterAccountDto> = {}): RegisterAccountDto =>
+  const registerDto = (
+    values: Partial<RegisterAccountDto> = {},
+  ): RegisterAccountDto =>
     Object.assign(new RegisterAccountDto(), {
       employeeId: 2,
       email: 'bruno.perez@vitto.club',
@@ -48,7 +65,9 @@ describe('AccountsController', () => {
 
   describe('register() — US-05', () => {
     it('delega en el servicio y arma la respuesta a partir del profile, sin passwordHash', async () => {
-      service.register.mockResolvedValue({ getId: () => 7 } as unknown as Account);
+      service.register.mockResolvedValue({
+        getId: () => 7,
+      } as unknown as Account);
       service.findProfileById.mockResolvedValue(profile);
 
       const result = await controller.register(registerDto());
@@ -66,9 +85,9 @@ describe('AccountsController', () => {
 
   describe('update() — US-06', () => {
     it('rechaza con 400 si no viene ni role ni password', async () => {
-      await expect(controller.update(7, new UpdateAccountDto())).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        controller.update(7, new UpdateAccountDto(), actor),
+      ).rejects.toThrow(BadRequestException);
       expect(service.updateRole).not.toHaveBeenCalled();
       expect(service.resetPassword).not.toHaveBeenCalled();
     });
@@ -77,7 +96,7 @@ describe('AccountsController', () => {
       service.findProfileById.mockResolvedValue({ ...profile, role: 'ADMIN' });
       const dto = Object.assign(new UpdateAccountDto(), { role: 'ADMIN' });
 
-      const result = await controller.update(7, dto);
+      const result = await controller.update(7, dto, actor);
 
       expect(service.updateRole).toHaveBeenCalledWith(7, 'ADMIN');
       expect(service.resetPassword).not.toHaveBeenCalled();
@@ -86,9 +105,11 @@ describe('AccountsController', () => {
 
     it('con solo password: llama resetPassword y no updateRole', async () => {
       service.findProfileById.mockResolvedValue(profile);
-      const dto = Object.assign(new UpdateAccountDto(), { password: 'nueva456' });
+      const dto = Object.assign(new UpdateAccountDto(), {
+        password: 'nueva456',
+      });
 
-      await controller.update(7, dto);
+      await controller.update(7, dto, actor);
 
       expect(service.resetPassword).toHaveBeenCalledWith(7, 'nueva456');
       expect(service.updateRole).not.toHaveBeenCalled();
@@ -96,9 +117,12 @@ describe('AccountsController', () => {
 
     it('con ambos: llama a los dos', async () => {
       service.findProfileById.mockResolvedValue({ ...profile, role: 'ADMIN' });
-      const dto = Object.assign(new UpdateAccountDto(), { role: 'ADMIN', password: 'nueva456' });
+      const dto = Object.assign(new UpdateAccountDto(), {
+        role: 'ADMIN',
+        password: 'nueva456',
+      });
 
-      await controller.update(7, dto);
+      await controller.update(7, dto, actor);
 
       expect(service.updateRole).toHaveBeenCalledWith(7, 'ADMIN');
       expect(service.resetPassword).toHaveBeenCalledWith(7, 'nueva456');

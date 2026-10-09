@@ -75,13 +75,41 @@ pisar los datos de desarrollo. Necesita:
 3. `DATABASE_URL_TEST` en `backend/.env` (ver `.env.example`).
 
 Las migraciones se aplican solas a la base de tests antes de cada corrida
-(`test/global-setup-e2e.ts`). Los tests **se niegan a correr** si
+(`test/global-setup-e2e.ts`); el setup también crea la tabla de auditoría
+exclusivamente en esa base local protegida por nombre. Los tests **se niegan a correr** si
 `DATABASE_URL_TEST` no apunta a `localhost`/`127.0.0.1` o si el nombre de la
 base no contiene `test` (`test/e2e-database.ts`).
 
 Corren en serie (`--runInBand`) porque comparten la base. Cada spec limpia en
 un `beforeEach` las tablas que usa, en orden de claves foráneas (`sessions`,
 `accounts`, y después `employees` y `customers`).
+
+## Auditoría (solo develop)
+
+`GET /api/auditoria` devuelve un listado paginado, reservado a ADMIN. Acepta
+`performedBy`, `category` (`SESSION`, `CUSTOMERS`, `EMPLOYEES`,
+`CONFIGURATION`), `documentType`, `documentNumber`, `date` o el rango
+`fromDate`/`toDate` (fechas ISO `YYYY-MM-DD`), además de `page` y `limit`
+(máximo 100). No existen endpoints de modificación o eliminación; un trigger
+PostgreSQL también rechaza `UPDATE` y `DELETE`.
+
+La tabla se crea fuera de las migraciones normales de Prisma para evitar que
+un `migrate deploy` en otro entorno la aplique. Solo en la base de desarrollo,
+desde `backend/` en PowerShell:
+
+```powershell
+$env:APP_ENV = 'develop'
+npm run db:audit:migrate:develop
+```
+
+El script requiere `APP_ENV=develop`, rechaza `NODE_ENV=production` y exige
+`DATABASE_URL`; compruebe que la URL apunte a la base de desarrollo antes de
+ejecutarlo. El valor recomendado `APP_ENV=develop` está en `.env.example`.
+
+Para conectar la pantalla del frontend (base URL, autenticación, filtros,
+ejemplo de llamada y forma de la respuesta), consultar
+[docs/auditoria-api.md](../docs/auditoria-api.md). La tabla debe existir en la
+base de desarrollo antes de consultar el endpoint.
 
 ## Resources
 

@@ -2,7 +2,10 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import type { AuthenticatedAccount } from '../domain/authenticated-account.js';
 import { Session } from '../domain/session.js';
 import { AccessTokenIssuer } from '../domain/port/access-token-issuer.js';
-import { CredentialsVerifier, VerifiedAccount } from '../domain/port/credentials-verifier.js';
+import {
+  CredentialsVerifier,
+  VerifiedAccount,
+} from '../domain/port/credentials-verifier.js';
 import { RefreshTokenGenerator } from '../domain/port/refresh-token-generator.js';
 import { SessionPolicies } from '../domain/port/session-policies.js';
 import { SessionRepository } from '../domain/port/session.repository.js';
@@ -100,7 +103,9 @@ export class AuthService {
     }
 
     // 2. La cuenta tiene que seguir existiendo y activa. De acá sale el rol actual.
-    const verified = await this.credentials.findActiveById(session.getAccountId());
+    const verified = await this.credentials.findActiveById(
+      session.getAccountId(),
+    );
     if (!verified) {
       throw invalidSession();
     }
@@ -121,14 +126,17 @@ export class AuthService {
 
   // --- CERRAR SESIÓN (SCRUM-36): nunca falla ---
   // Sin token, con un token desconocido o con la sesión ya cerrada, termina igual.
-  async logout(refreshToken: string | undefined): Promise<void> {
-    if (!refreshToken) return;
+  async logout(refreshToken: string | undefined): Promise<number | undefined> {
+    if (!refreshToken) return undefined;
 
-    const session = await this.sessions.findByTokenHash(this.refreshTokens.hash(refreshToken));
-    if (!session) return;
+    const session = await this.sessions.findByTokenHash(
+      this.refreshTokens.hash(refreshToken),
+    );
+    if (!session || session.getRevokedAt() !== null) return undefined;
 
     session.revoke(new Date());
     await this.sessions.saveRevocation(session);
+    return session.getAccountId();
   }
 
   // --- Baja de una cuenta: se cierran todas sus sesiones (evento account.deactivated) ---
@@ -136,7 +144,11 @@ export class AuthService {
     await this.sessions.revokeAllForAccount(accountId, new Date());
   }
 
-  private async toResult(verified: VerifiedAccount, refreshToken: string, session: Session): Promise<AuthResult> {
+  private async toResult(
+    verified: VerifiedAccount,
+    refreshToken: string,
+    session: Session,
+  ): Promise<AuthResult> {
     return {
       accessToken: await this.accessTokens.issue(verified.account),
       refreshToken,
@@ -144,8 +156,12 @@ export class AuthService {
       user: {
         ...verified.account,
         email: verified.email,
-        ...(verified.firstName !== undefined ? { firstName: verified.firstName } : {}),
-        ...(verified.lastName !== undefined ? { lastName: verified.lastName } : {}),
+        ...(verified.firstName !== undefined
+          ? { firstName: verified.firstName }
+          : {}),
+        ...(verified.lastName !== undefined
+          ? { lastName: verified.lastName }
+          : {}),
       },
     };
   }

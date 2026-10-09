@@ -12,6 +12,7 @@ import { EmployeesModule } from './employees/employees.module.js';
 import { AccountsModule } from './accounts/accounts.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { LoyaltyModule } from './loyalty/loyalty.module.js';
+import { AuditModule } from './audit/audit.module.js';
 
 @Module({
   imports: [
@@ -23,7 +24,9 @@ import { LoyaltyModule } from './loyalty/loyalty.module.js';
       plugins: [
         new ClsPluginTransactional({
           imports: [PrismaModule],
-          adapter: new TransactionalAdapterPrisma({ prismaInjectionToken: PrismaService }),
+          adapter: new TransactionalAdapterPrisma({
+            prismaInjectionToken: PrismaService,
+          }),
         }),
       ],
     }),
@@ -38,6 +41,7 @@ import { LoyaltyModule } from './loyalty/loyalty.module.js';
     AccountsModule,
     AuthModule,
     LoyaltyModule,
+    AuditModule,
   ],
 })
 export class AppModule {}

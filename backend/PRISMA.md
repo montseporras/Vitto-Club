@@ -182,6 +182,12 @@ npx prisma studio         # UI para explorar los datos
 
 ## A tener en cuenta a futuro
 
+- La migración `prisma/develop-only/audit.sql` es intencionalmente independiente
+  de `prisma migrate dev/deploy`. Aplicarla solo en desarrollo mediante
+  `APP_ENV=develop npm run db:audit:migrate:develop` (en PowerShell, establecer
+  primero `$env:APP_ENV = 'develop'`). El script aborta si falta esa variable o
+  `DATABASE_URL`; no debe incluirse en los despliegues.
+
 - **No correr `npx prisma orm init`** en este proyecto: es el instalador de
   "Prisma Next" y vuelve a mezclar los dos sistemas. Si en algún momento se
   quiere migrar de verdad a Prisma Next, hay que reescribir schema, config,

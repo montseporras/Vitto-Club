@@ -6,11 +6,12 @@ import { CustomerPrismaRepository } from './infrastructure/customers.repository.
 import { EmployeesModule } from '../employees/employees.module.js';
 import { TransactionRunner } from './domain/port/transaction-runner.js';
 import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
+import { AuditModule } from '../audit/audit.module.js';
 
 // Sin forwardRef: EmployeesModule ya no importa CustomersModule (Customers -> Employees es
 // la única dirección, ver CustomersService). Import plano.
 @Module({
-  imports: [EmployeesModule],
+  imports: [EmployeesModule, AuditModule],
   controllers: [CustomersController],
   providers: [
     CustomersService,

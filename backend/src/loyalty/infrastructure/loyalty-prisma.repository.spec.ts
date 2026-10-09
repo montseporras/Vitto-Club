@@ -1,4 +1,3 @@
-import { PrismaService } from '../../prisma/prisma.service.js';
 import { PointsEquivalence } from '../domain/points-equivalence.js';
 import { LoyaltyPrismaRepository } from './loyalty-prisma.repository.js';
 
@@ -25,10 +24,7 @@ describe('LoyaltyPrismaRepository', () => {
       create: jest.Mock;
     };
   };
-  let prisma: {
-    $transaction: jest.Mock;
-    loyaltyProgramConfiguration: { findFirst: jest.Mock };
-  };
+  let transactionRunner: { client: typeof transaction; run: jest.Mock };
   let repository: LoyaltyPrismaRepository;
 
   beforeEach(() => {
@@ -55,21 +51,19 @@ describe('LoyaltyPrismaRepository', () => {
         ),
       },
     };
-    prisma = {
-      $transaction: jest.fn((callback) => callback(transaction)),
-      loyaltyProgramConfiguration: {
-        findFirst: jest.fn().mockResolvedValue(activeRecord),
-      },
+    transactionRunner = {
+      client: transaction,
+      run: jest.fn((callback) => callback()),
     };
-    repository = new LoyaltyPrismaRepository(
-      prisma as unknown as PrismaService,
-    );
+    repository = new LoyaltyPrismaRepository(transactionRunner as never);
   });
 
   it('reads the active configuration snapshot', async () => {
     const result = await repository.getActiveConfig();
 
-    expect(prisma.loyaltyProgramConfiguration.findFirst).toHaveBeenCalledWith({
+    expect(
+      transaction.loyaltyProgramConfiguration.findFirst,
+    ).toHaveBeenCalledWith({
       where: { isActive: true },
       orderBy: { version: 'desc' },
     });
@@ -78,7 +72,7 @@ describe('LoyaltyPrismaRepository', () => {
   });
 
   it('retains the points-validity default if no active snapshot exists', async () => {
-    prisma.loyaltyProgramConfiguration.findFirst.mockResolvedValue(null);
+    transaction.loyaltyProgramConfiguration.findFirst.mockResolvedValue(null);
 
     const validity = await repository.findCurrentPointsValidity();
 

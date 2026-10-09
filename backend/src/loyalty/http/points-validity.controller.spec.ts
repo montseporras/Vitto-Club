@@ -8,6 +8,14 @@ describe('PointsValidityController', () => {
     getCurrentPointsValidity: jest.Mock;
   };
   let controller: PointsValidityController;
+  const actor = { accountId: 1, role: 'ADMIN' as const, employeeId: 1 };
+  const audit = {
+    capture: jest.fn().mockImplementation(async (operation, createEntry) => {
+      const result = await operation();
+      createEntry(result);
+      return result;
+    }),
+  };
 
   beforeEach(() => {
     service = {
@@ -16,6 +24,7 @@ describe('PointsValidityController', () => {
     };
     controller = new PointsValidityController(
       service as unknown as LoyaltyService,
+      audit as never,
     );
   });
 
@@ -23,7 +32,7 @@ describe('PointsValidityController', () => {
     const validity = PointsValidity.define({ pointsExpirationMonths: 18 });
     service.setPointsValidity.mockResolvedValue(validity);
 
-    const result = await controller.set({ pointsExpirationMonths: 18 });
+    const result = await controller.set(actor, { pointsExpirationMonths: 18 });
 
     expect(service.setPointsValidity).toHaveBeenCalledWith({
       pointsExpirationMonths: 18,
@@ -38,7 +47,7 @@ describe('PointsValidityController', () => {
     const validity = PointsValidity.define();
     service.setPointsValidity.mockResolvedValue(validity);
 
-    const result = await controller.set({ pointsExpirationMonths: 12 });
+    const result = await controller.set(actor, { pointsExpirationMonths: 12 });
 
     expect(service.setPointsValidity).toHaveBeenCalledWith({
       pointsExpirationMonths: 12,
@@ -50,8 +59,8 @@ describe('PointsValidityController', () => {
     const validity = PointsValidity.define();
     service.setPointsValidity.mockResolvedValue(validity);
 
-    await controller.set(undefined);
-    await controller.set(null);
+    await controller.set(actor, undefined);
+    await controller.set(actor, null as never);
 
     expect(service.setPointsValidity).toHaveBeenNthCalledWith(1, {
       pointsExpirationMonths: 12,

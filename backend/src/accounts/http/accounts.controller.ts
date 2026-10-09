@@ -17,6 +17,10 @@ import { UpdateAccountDto } from './dto/update-account.dto.js';
 import { AccountResponseDto } from './dto/account-response.dto.js';
 import { AccountsExceptionFilter } from './filters/accounts-exception.filter.js';
 import { Roles } from '../../shared/security/roles.decorator.js';
+import { CurrentUser } from '../../shared/security/current-user.decorator.js';
+import type { CurrentUserData } from '../../shared/security/current-user-data.js';
+import { AuditService } from '../../audit/application/audit.service.js';
+import { AuditCategory } from '../../audit/domain/audit.repository.js';
 
 // Ruta en español ("usuarios"), consistente con el contrato HTTP ya diseñado para el ABMC
 // de cuentas de empleados. La validación del body la hace el ValidationPipe global de
@@ -29,7 +33,10 @@ import { Roles } from '../../shared/security/roles.decorator.js';
 @Roles('ADMIN')
 @UseFilters(AccountsExceptionFilter)
 export class AccountsController {
-  constructor(private readonly accountsService: AccountsService) {}
+  constructor(
+    private readonly accountsService: AccountsService,
+    private readonly auditService: AuditService,
+  ) {}
 
   // POST /api/usuarios -> US-05 Registrar usuario
   @Post()
@@ -40,7 +47,9 @@ export class AccountsController {
       email: dto.email,
       password: dto.password,
     });
-    const profile = await this.accountsService.findProfileById(account.getId() as number);
+    const profile = await this.accountsService.findProfileById(
+      account.getId() as number,
+    );
     return AccountResponseDto.fromProfile(profile);
   }
 
@@ -49,22 +58,40 @@ export class AccountsController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateAccountDto,
+    @CurrentUser() actor: CurrentUserData,
   ): Promise<AccountResponseDto> {
     // No es una regla de negocio, es la traducción de "body sin ningún campo" a 400. Qué
     // constituye un cambio inválido (rol permitido, protección del último ADMIN, longitud
     // de password) sigue decidido entero por AccountsService.
     if (dto.role === undefined && dto.password === undefined) {
-      throw new BadRequestException('At least one of role or password must be provided');
+      throw new BadRequestException(
+        'At least one of role or password must be provided',
+      );
     }
 
-    if (dto.role !== undefined) {
-      await this.accountsService.updateRole(id, dto.role);
-    }
-    if (dto.password !== undefined) {
-      await this.accountsService.resetPassword(id, dto.password);
-    }
-
-    const profile = await this.accountsService.findProfileById(id);
+    const profile = await this.auditService.capture(
+      async () => {
+        if (dto.role !== undefined) {
+          await this.accountsService.updateRole(id, dto.role);
+        }
+        if (dto.password !== undefined) {
+          await this.accountsService.resetPassword(id, dto.password);
+        }
+        return await this.accountsService.findProfileById(id);
+      },
+      (updated) =>
+        dto.role === undefined
+          ? null
+          : {
+              actorAccountId: actor.accountId,
+              category: AuditCategory.EMPLOYEES,
+              action: 'Modificación de empleado',
+              details: {
+                employeeId: updated.employeeId,
+                newRole: updated.role,
+              },
+            },
+    );
     return AccountResponseDto.fromProfile(profile);
   }
 
@@ -87,7 +114,8 @@ export class AccountsController {
   async findByEmployeeId(
     @Param('employeeId', ParseIntPipe) employeeId: number,
   ): Promise<AccountResponseDto> {
-    const profile = await this.accountsService.findProfileByEmployeeId(employeeId);
+    const profile =
+      await this.accountsService.findProfileByEmployeeId(employeeId);
     return AccountResponseDto.fromProfile(profile);
   }
 }

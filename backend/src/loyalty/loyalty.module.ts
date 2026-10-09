@@ -8,8 +8,10 @@ import { PointsValidityController } from './http/points-validity.controller.js';
 import { FirstPurchaseBonusController } from './http/first-purchase-bonus.controller.js';
 import { FirstPurchaseBonusValueValidator } from './http/validators/first-purchase-bonus-value.validator.js';
 import { LoyaltyProgramConfigurationController } from './http/loyalty-program-configuration.controller.js';
+import { AuditModule } from '../audit/audit.module.js';
 
 @Module({
+  imports: [AuditModule],
   controllers: [
     LoyaltyController,
     PointsValidityController,

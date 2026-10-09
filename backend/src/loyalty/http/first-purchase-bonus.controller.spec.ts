@@ -8,6 +8,14 @@ describe('FirstPurchaseBonusController', () => {
     getCurrentFirstPurchaseBonus: jest.Mock;
   };
   let controller: FirstPurchaseBonusController;
+  const actor = { accountId: 1, role: 'ADMIN' as const, employeeId: 1 };
+  const audit = {
+    capture: jest.fn().mockImplementation(async (operation, createEntry) => {
+      const result = await operation();
+      createEntry(result);
+      return result;
+    }),
+  };
 
   beforeEach(() => {
     service = {
@@ -16,6 +24,7 @@ describe('FirstPurchaseBonusController', () => {
     };
     controller = new FirstPurchaseBonusController(
       service as unknown as LoyaltyService,
+      audit as never,
     );
   });
 
@@ -26,10 +35,13 @@ describe('FirstPurchaseBonusController', () => {
     });
     service.setFirstPurchaseBonus.mockResolvedValue(bonus);
 
-    const response = await controller.set({
-      bonusType: 'PERCENTAGE',
-      bonusValue: 15,
-    });
+    const response = await controller.set(
+      {
+        bonusType: 'PERCENTAGE',
+        bonusValue: 15,
+      },
+      actor,
+    );
 
     expect(service.setFirstPurchaseBonus).toHaveBeenCalledWith({
       bonusType: 'PERCENTAGE',
