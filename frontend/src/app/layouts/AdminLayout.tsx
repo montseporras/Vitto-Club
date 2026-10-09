@@ -2,6 +2,8 @@
 // El fondo (catálogo, misiones, clientes, etc.) queda como placeholder: pertenece
 // a otros RF. Acá sólo se cablea la entrada a Configuración → Empleados y usuarios (RF-01).
 import { useState } from 'react';
+import { Link } from 'react-router';
+import { PATHS } from '@/app/router/paths';
 import { SessionActions } from '@/features/auth';
 import { EmployeesPage } from '@/features/employees';
 import { StatusText } from '@/shared/components/feedback/StatusText';
@@ -33,6 +35,11 @@ export function AdminLayout() {
   return (
     <div className="flex min-h-svh flex-col">
       <AppHeader area="Administración">
+        {/* El Administrador también opera el mostrador: acceso directo a lo que ve el Cajero */}
+        <Link to={PATHS.cashier.root} className={appHeaderStyles.action}>
+          <Icon d={ICONS.ticket} className="size-4" />
+          Caja
+        </Link>
         <SessionActions />
         <button
           type="button"
