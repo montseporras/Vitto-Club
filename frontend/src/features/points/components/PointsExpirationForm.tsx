@@ -23,7 +23,7 @@ interface PointsExpirationFormProps {
 
 const HINT = `Entre 1 y ${MAX_EXPIRATION_MONTHS} meses, sin decimales. Por defecto, ${DEFAULT_POINTS_EXPIRATION_MONTHS} meses.`;
 
-// Mensaje según la respuesta del backend (PUT /settings/points-expiration).
+// Mensaje según la respuesta del backend (PUT /loyalty/configuration/points-validity).
 function errorMessage(error: unknown): string {
   const apiError = toApiError(error);
   switch (apiError.status) {

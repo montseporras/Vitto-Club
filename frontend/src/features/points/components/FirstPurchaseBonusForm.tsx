@@ -49,7 +49,7 @@ const VALUE_FIELD: Record<
   },
 };
 
-// Mensaje según la respuesta del backend (PUT /settings/first-purchase-bonus).
+// Mensaje según la respuesta del backend (PUT /loyalty/configuration/first-purchase-bonus).
 function errorMessage(error: unknown): string {
   const apiError = toApiError(error);
   switch (apiError.status) {
