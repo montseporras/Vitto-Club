@@ -4,6 +4,8 @@ import { CustomersService } from './application/customers.service.js';
 import { CustomerRepository } from './domain/port/customer.repository.js';
 import { CustomerPrismaRepository } from './infrastructure/customers.repository.js';
 import { EmployeesModule } from '../employees/employees.module.js';
+import { TransactionRunner } from './domain/port/transaction-runner.js';
+import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
 
 // Sin forwardRef: EmployeesModule ya no importa CustomersModule (Customers -> Employees es
 // la única dirección, ver CustomersService). Import plano.
@@ -16,6 +18,11 @@ import { EmployeesModule } from '../employees/employees.module.js';
     {
       provide: CustomerRepository,
       useClass: CustomerPrismaRepository,
+    },
+    // Puerto de transacción ambiente ligado a la implementación real (PrismaModule es @Global())
+    {
+      provide: TransactionRunner,
+      useExisting: PrismaTransactionRunner,
     },
   ],
   exports: [CustomersService],
