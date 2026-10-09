@@ -16,6 +16,17 @@ export const inputStyles = [
 export const inputReadOnlyStyles =
   'read-only:cursor-not-allowed read-only:bg-neutral-100 read-only:text-neutral-600 read-only:hover:border-neutral-300'
 
+/** Contraseña con botón para mostrarla u ocultarla. */
+export const passwordInputStyles = {
+  root: 'relative',
+  input: 'pr-13',
+  toggle: [
+    'absolute top-1/2 right-2 grid size-9 -translate-y-1/2 cursor-pointer place-items-center rounded-lg text-accent-800 transition-colors',
+    'hover:bg-accent-50',
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700',
+  ].join(' '),
+}
+
 /** Lista desplegable: mismo aspecto que un Input, con flecha propia. */
 export const selectStyles = {
   root: 'relative',

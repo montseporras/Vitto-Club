@@ -16,6 +16,12 @@ export const appHeaderStyles = {
   area: 'font-sans text-base font-semibold sm:text-lg',
   actions: 'ml-auto flex items-center gap-3',
   meta: 'hidden text-sm text-white/90 md:inline',
+  // Botón con texto sobre el naranja (ej. cerrar sesión)
+  action: [
+    'inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-white/15 px-4 text-sm font-bold text-white transition-colors',
+    'hover:bg-white/25 disabled:pointer-events-none disabled:opacity-60',
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
+  ].join(' '),
   // Botón redondo sobre el naranja (ej. configuración)
   iconButton: [
     'group inline-flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-colors',

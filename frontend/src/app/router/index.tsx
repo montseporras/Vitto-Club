@@ -1,16 +1,45 @@
 import { createBrowserRouter, Navigate } from 'react-router'
+import { AuthLayout } from '@/app/layouts/AuthLayout'
 import { CashierLayout } from '@/app/layouts/CashierLayout'
-import { PATHS } from './paths'
+import { LoginPage } from '@/features/auth'
+import { PATHS, ROLE_HOME } from './paths'
+import { ProtectedRoute } from './ProtectedRoute'
+import { RoleRoute } from './RoleRoute'
 
 export const router = createBrowserRouter([
   {
-    // TODO: cuando exista login, "/" redirige según el rol de la sesión.
+    // "/" no tiene pantalla propia: manda a cada rol a la suya
     path: '/',
-    element: <Navigate to={PATHS.cashier.root} replace />,
+    element: (
+      <ProtectedRoute>
+        {(user) => <Navigate to={ROLE_HOME[user.role]} replace />}
+      </ProtectedRoute>
+    ),
+  },
+  {
+    element: <AuthLayout />,
+    children: [{ path: PATHS.login, element: <LoginPage /> }],
+  },
+  {
+    path: PATHS.customer.root,
+    lazy: async () => {
+      const { CustomerLayout } = await import('@/app/layouts/CustomerLayout')
+      return {
+        element: (
+          <RoleRoute allowed={['CUSTOMER']}>
+            <CustomerLayout />
+          </RoleRoute>
+        ),
+      }
+    },
   },
   {
     path: PATHS.cashier.root,
-    element: <CashierLayout />,
+    element: (
+      <RoleRoute allowed={['CASHIER', 'ADMIN']}>
+        <CashierLayout />
+      </RoleRoute>
+    ),
     children: [
       { index: true, element: <Navigate to={PATHS.cashier.customer} replace /> },
       {
@@ -37,11 +66,16 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    // TODO: proteger con RoleRoute (ADMIN) cuando exista login.
     path: PATHS.admin.root,
     lazy: async () => {
       const { AdminLayout } = await import('@/app/layouts/AdminLayout')
-      return { Component: AdminLayout }
+      return {
+        element: (
+          <RoleRoute allowed={['ADMIN']}>
+            <AdminLayout />
+          </RoleRoute>
+        ),
+      }
     },
   },
   { path: '*', element: <Navigate to="/" replace /> },

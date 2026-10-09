@@ -2,6 +2,7 @@
 // El fondo (catálogo, misiones, clientes, etc.) queda como placeholder: pertenece
 // a otros RF. Acá sólo se cablea la entrada a Configuración → Empleados y usuarios (RF-01).
 import { useState } from 'react';
+import { SessionActions } from '@/features/auth';
 import { EmployeesPage } from '@/features/employees';
 import { StatusText } from '@/shared/components/feedback/StatusText';
 import { AppFooter, AppHeader } from '@/shared/components/navigation/AppHeader';
@@ -32,9 +33,7 @@ export function AdminLayout() {
   return (
     <div className="flex min-h-svh flex-col">
       <AppHeader area="Administración">
-        <span className={appHeaderStyles.meta}>
-          Denise Nagel · Administrador
-        </span>
+        <SessionActions />
         <button
           type="button"
           onClick={() => setSettingsOpen(true)}

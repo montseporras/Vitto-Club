@@ -1,12 +1,12 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { MOCKS_ENABLED } from '@/shared/lib/env'
 import '@/styles/globals.css'
 import { App } from './App'
 
-// En desarrollo, MSW simula la API salvo que se apague con VITE_API_MOCKS=false.
-// Si el registro falla, la app igual se renderiza y las llamadas van al backend real.
+// Si el registro de MSW falla, la app igual se renderiza y las llamadas van al backend real.
 async function enableMocking() {
-  if (!import.meta.env.DEV || import.meta.env.VITE_API_MOCKS === 'false') return
+  if (!MOCKS_ENABLED) return
   try {
     const { worker } = await import('@/mocks/browser')
     await worker.start({ onUnhandledRequest: 'bypass' })
