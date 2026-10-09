@@ -5,6 +5,9 @@
 // a otros RF. Acá se cablean las secciones de Configuración ya implementadas:
 // Empleados (RF-01) y Puntos (RF-011).
 import { useState } from 'react';
+import { Link } from 'react-router';
+import { PATHS } from '@/app/router/paths';
+import { SessionActions } from '@/features/auth';
 import { EmployeesPage } from '@/features/employees';
 // NUEVO (cambio 1): la pantalla de puntos, importada desde la API pública del
 // feature (su index.ts, archivo 10), nunca desde sus carpetas internas.
@@ -49,9 +52,12 @@ export function AdminLayout() {
   return (
     <div className="flex min-h-svh flex-col">
       <AppHeader area="Administración">
-        <span className={appHeaderStyles.meta}>
-          Denise Nagel · Administrador
-        </span>
+        {/* El Administrador también opera el mostrador: acceso directo a lo que ve el Cajero */}
+        <Link to={PATHS.cashier.root} className={appHeaderStyles.action}>
+          <Icon d={ICONS.ticket} className="size-4" />
+          Caja
+        </Link>
+        <SessionActions />
         {/* El engranaje: abre el modal de Configuración. */}
         <button
           type="button"

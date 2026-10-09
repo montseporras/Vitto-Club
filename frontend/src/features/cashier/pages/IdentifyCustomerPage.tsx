@@ -169,6 +169,8 @@ export function IdentifyCustomerPage() {
                 {/* Relativo a /caja: un feature no importa de app/ (ver docs/FRONTEND-STRUCTURE.md, sección 02). */}
                 <Link
                   to="../alta-cliente"
+                  // El alta arranca con el documento que se buscó
+                  state={search}
                   className="font-semibold underline underline-offset-2"
                 >
                   Darlo de alta

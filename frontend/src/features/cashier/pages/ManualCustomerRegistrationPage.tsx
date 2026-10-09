@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, useWatch } from 'react-hook-form'
+import { useLocation } from 'react-router'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
 import { FormActions } from '@/shared/components/forms/FormActions'
 import { FormField } from '@/shared/components/forms/FormField'
@@ -10,7 +11,12 @@ import { Button } from '@/shared/components/ui/Button'
 import { DateInput } from '@/shared/components/ui/DateInput'
 import { Input } from '@/shared/components/ui/Input'
 import { Page, PageCard } from '@/shared/components/ui/Page'
-import { useCreateCustomer } from '../api/cashier.queries'
+import { useCreateCustomer, type DocumentSearch } from '../api/cashier.queries'
+import {
+  customerConflict,
+  rejectedFields,
+  REJECTED_FIELD_MESSAGE,
+} from '../api/customer-errors'
 import {
   createCustomerSchema,
   type CreateCustomerFormInput,
@@ -32,8 +38,19 @@ const DOCUMENT_OPTIONS = DOCUMENT_TYPE_VALUES.map((type) => ({
   label: DOCUMENT_TYPES[type].label,
 }))
 
+const FIELDS = [
+  'firstName',
+  'lastName',
+  'documentNumber',
+  'email',
+  'phone',
+  'dateOfBirth',
+] as const
+
 /** US-17 · RF-015: el Cajero da de alta a un cliente que no encontró por documento. */
 export function ManualCustomerRegistrationPage() {
+  // Si se llega desde una búsqueda sin resultados, el documento buscado ya viene cargado
+  const searched = useLocation().state as DocumentSearch | null
   const {
     register,
     handleSubmit,
@@ -46,7 +63,7 @@ export function ManualCustomerRegistrationPage() {
     formState: { errors },
   } = useForm<CreateCustomerFormInput, unknown, CreateCustomerFormOutput>({
     resolver: zodResolver(createCustomerSchema),
-    defaultValues: INITIAL_VALUES,
+    defaultValues: { ...INITIAL_VALUES, ...searched },
     mode: 'onTouched',
   })
   const createCustomer = useCreateCustomer()
@@ -58,12 +75,17 @@ export function ManualCustomerRegistrationPage() {
           setFocus('firstName')
         },
         onError: (error) => {
-          if (error.status === 409) {
+          // El dato repetido (documento o mail) se marca en su campo
+          const conflict = customerConflict(error)
+          if (conflict?.field) {
             setError(
-              'documentNumber',
-              { message: 'Ya existe un cliente registrado con este documento' },
+              conflict.field,
+              { message: conflict.message },
               { shouldFocus: true },
             )
+          }
+          for (const field of rejectedFields(error, FIELDS)) {
+            setError(field, { message: REJECTED_FIELD_MESSAGE })
           }
         },
     })
@@ -79,8 +101,12 @@ export function ManualCustomerRegistrationPage() {
   })
 
   const created = createCustomer.isSuccess ? createCustomer.data : undefined
+  // Un conflicto con campo se muestra en ese campo; el resto de los errores, arriba.
+  const conflict = createCustomer.isError
+    ? customerConflict(createCustomer.error)
+    : undefined
   const generalError =
-    createCustomer.isError && createCustomer.error.status !== 409
+    createCustomer.isError && !conflict?.field
       ? createCustomer.error
       : undefined
   const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
@@ -102,10 +128,16 @@ export function ManualCustomerRegistrationPage() {
 
       {generalError && (
         <Alert variant="error" className="mb-5">
-          {generalError.status === 400
-            ? 'Revisá los datos: el servidor rechazó el alta.'
-            : 'No se pudo registrar el cliente.'}
-          <AlertMessages messages={generalError.messages} />
+          {conflict ? (
+            conflict.message
+          ) : (
+            <>
+              {generalError.status === 400
+                ? 'Revisá los datos: el servidor rechazó el alta.'
+                : 'No se pudo registrar el cliente.'}
+              <AlertMessages messages={generalError.messages} />
+            </>
+          )}
         </Alert>
       )}
 

@@ -18,10 +18,12 @@ import { UpdateEmployeeDto } from './dto/update-employee.dto.js';
 import { ListEmployeesQueryDto } from './dto/list-employees-query.dto.js';
 import { EmployeeResponseDto } from './dto/employee-response.dto.js';
 import { EmployeesExceptionFilter } from './filters/employees-exception.filter.js';
+import { Roles } from '../../shared/security/roles.decorator.js';
 
 // La ruta en español respeta el contrato actual del frontend (features/empleados).
 // La validación del body la hace el ValidationPipe global de main.ts.
 @Controller('empleados')
+@Roles('ADMIN') // solo el Administrador gestiona empleados
 @UseFilters(EmployeesExceptionFilter)
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}

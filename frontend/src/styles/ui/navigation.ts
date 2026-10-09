@@ -16,6 +16,12 @@ export const appHeaderStyles = {
   area: 'font-sans text-base font-semibold sm:text-lg',
   actions: 'ml-auto flex items-center gap-3',
   meta: 'hidden text-sm text-white/90 md:inline',
+  // Botón con texto sobre el naranja (ej. cerrar sesión)
+  action: [
+    'inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-white/15 px-4 text-sm font-bold text-white transition-colors',
+    'hover:bg-white/25 disabled:pointer-events-none disabled:opacity-60',
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
+  ].join(' '),
   // Botón redondo sobre el naranja (ej. configuración)
   iconButton: [
     'group inline-flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-colors',
@@ -27,6 +33,17 @@ export const appHeaderStyles = {
 export const appFooterStyles = {
   root: 'border-t-4 border-accent bg-beige/50 py-4',
   text: 'text-center font-heading text-sm italic text-accent-800',
+}
+
+/** Pestañas que cambian de pantalla (ej. Ingresar / Registrarme): mismo aspecto que el control segmentado. */
+export const tabsStyles = {
+  root: 'mb-7 grid max-w-sm grid-cols-2 gap-1 rounded-xl border border-accent-200 bg-accent-50 p-1',
+  item: [
+    'block rounded-lg px-3 py-2.5 text-center text-base font-semibold transition-colors',
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700',
+  ].join(' '),
+  itemActive: 'bg-accent-700 text-white shadow-sm',
+  itemIdle: 'text-accent-800 hover:bg-accent-100',
 }
 
 /** Menú lateral desplegable: expandido muestra ícono + nombre; contraído, solo íconos. */
