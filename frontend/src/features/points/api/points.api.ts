@@ -18,9 +18,9 @@ import type {
   UpdatePointsExpirationDto,
 } from '../types/points-expiration';
 
-const FIRST_PURCHASE_BONUS_URL = '/settings/first-purchase-bonus';
-const POINTS_EQUIVALENCE_URL = '/settings/points-equivalence';
-const POINTS_EXPIRATION_URL = '/settings/points-expiration';
+const FIRST_PURCHASE_BONUS_URL = '/loyalty/configuration/first-purchase-bonus';
+const POINTS_EQUIVALENCE_URL = '/loyalty/configuration/points-equivalence';
+const POINTS_EXPIRATION_URL = '/loyalty/configuration/points-validity';
 
 // La equivalencia y la bonificación responden 404 mientras nadie las configuró.
 // No es un error: se devuelve null y la pantalla muestra el formulario vacío.

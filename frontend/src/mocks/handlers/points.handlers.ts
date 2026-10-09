@@ -11,9 +11,9 @@ import type {
 
 type BonusType = FirstPurchaseBonus['bonusType'];
 
-const FIRST_PURCHASE_BONUS_URL = `${API_URL}/settings/first-purchase-bonus`;
-const POINTS_EQUIVALENCE_URL = `${API_URL}/settings/points-equivalence`;
-const POINTS_EXPIRATION_URL = `${API_URL}/settings/points-expiration`;
+const FIRST_PURCHASE_BONUS_URL = `${API_URL}/loyalty/configuration/first-purchase-bonus`;
+const POINTS_EQUIVALENCE_URL = `${API_URL}/loyalty/configuration/points-equivalence`;
+const POINTS_EXPIRATION_URL = `${API_URL}/loyalty/configuration/points-validity`;
 
 // Fecha de la versión guardada, como la devuelve el backend en updatedAt.
 const now = () => new Date().toISOString();
@@ -154,12 +154,12 @@ function validatePointsExpirationBody(body: Record<string, unknown>): string[] {
 }
 
 export const pointsHandlers = [
-  // RF-011: GET /api/settings/first-purchase-bonus
+  // RF-011: GET /api/loyalty/configuration/first-purchase-bonus
   http.get(FIRST_PURCHASE_BONUS_URL, () =>
     HttpResponse.json(firstPurchaseBonus),
   ),
 
-  // RF-011: PUT /api/settings/first-purchase-bonus responde 200 / 400.
+  // RF-011: PUT /api/loyalty/configuration/first-purchase-bonus responde 200 / 400.
   http.put(FIRST_PURCHASE_BONUS_URL, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
 
@@ -174,10 +174,10 @@ export const pointsHandlers = [
     return HttpResponse.json(firstPurchaseBonus);
   }),
 
-  // RF-09: GET /api/settings/points-equivalence
+  // RF-09: GET /api/loyalty/configuration/points-equivalence
   http.get(POINTS_EQUIVALENCE_URL, () => HttpResponse.json(pointsEquivalence)),
 
-  // RF-09: PUT /api/settings/points-equivalence responde 200 / 400.
+  // RF-09: PUT /api/loyalty/configuration/points-equivalence responde 200 / 400.
   http.put(POINTS_EQUIVALENCE_URL, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
 
@@ -192,10 +192,10 @@ export const pointsHandlers = [
     return HttpResponse.json(pointsEquivalence);
   }),
 
-  // RF-010: GET /api/settings/points-expiration
+  // RF-010: GET /api/loyalty/configuration/points-validity
   http.get(POINTS_EXPIRATION_URL, () => HttpResponse.json(pointsExpiration)),
 
-  // RF-010: PUT /api/settings/points-expiration responde 200 / 400.
+  // RF-010: PUT /api/loyalty/configuration/points-validity responde 200 / 400.
   http.put(POINTS_EXPIRATION_URL, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
 

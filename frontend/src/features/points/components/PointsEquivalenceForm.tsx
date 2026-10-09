@@ -25,7 +25,7 @@ interface PointsEquivalenceFormProps {
 
 const HINT = `Monto de hasta $ ${MAX_BASE_AMOUNT.toLocaleString('es-AR')} (con centavos si hace falta) y entre 1 y ${MAX_POINTS.toLocaleString('es-AR')} puntos, sin decimales.`;
 
-// Mensaje según la respuesta del backend (PUT /settings/points-equivalence).
+// Mensaje según la respuesta del backend (PUT /loyalty/configuration/points-equivalence).
 function errorMessage(error: unknown): string {
   const apiError = toApiError(error);
   switch (apiError.status) {
