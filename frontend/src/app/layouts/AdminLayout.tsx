@@ -1,11 +1,17 @@
-// Layout para las vistas del rol Admin.
+// Este archivo es el marco de las pantallas del Administrador: encabezado, engranaje y
+// modal de Configuración. Decide qué pantalla de cada feature se muestra en cada sección.
+//
 // El fondo (catálogo, misiones, clientes, etc.) queda como placeholder: pertenece
-// a otros RF. Acá sólo se cablea la entrada a Configuración → Empleados y usuarios (RF-01).
+// a otros RF. Acá se cablean las secciones de Configuración ya implementadas:
+// Empleados (RF-01) y Puntos (RF-011).
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { PATHS } from '@/app/router/paths';
 import { SessionActions } from '@/features/auth';
 import { EmployeesPage } from '@/features/employees';
+// NUEVO (cambio 1): la pantalla de puntos, importada desde la API pública del
+// feature (su index.ts, archivo 10), nunca desde sus carpetas internas.
+import { PointsSettingsPage } from '@/features/points';
 import { StatusText } from '@/shared/components/feedback/StatusText';
 import { AppFooter, AppHeader } from '@/shared/components/navigation/AppHeader';
 import { SideNav } from '@/shared/components/navigation/SideNav';
@@ -14,14 +20,23 @@ import { ICONS } from '@/shared/components/ui/icons';
 import { Modal } from '@/shared/components/ui/Modal';
 import { appHeaderStyles } from '@/styles/ui';
 
+// Secciones del menú lateral del modal de Configuración.
 const SECTIONS = [
   {
     id: 'employees',
-    label: 'Empleados y usuarios',
+    label: 'Empleados',
     icon: ICONS.users,
     description: 'Cada empleado ingresa al sistema con su mail, según su rol.',
   },
-  { id: 'points', label: 'Equivalencia de puntos', icon: ICONS.coins },
+  // MODIFICADO (cambio 2): se agregó `description`, el texto chico que aparece
+  // bajo el título del modal. Es general a propósito: esta sección también va
+  // a tener "puntos por cada $1000" y "vigencia" de otras historias.
+  {
+    id: 'points',
+    label: 'Puntos',
+    icon: ICONS.coins,
+    description: 'Reglas con las que los clientes suman puntos en sus compras.',
+  },
   { id: 'levels', label: 'Niveles de fidelización', icon: ICONS.award },
   { id: 'notifications', label: 'Notificaciones', icon: ICONS.bell },
 ] as const;
@@ -29,7 +44,9 @@ const SECTIONS = [
 type Section = (typeof SECTIONS)[number];
 
 export function AdminLayout() {
+  // ¿Está abierto el modal de Configuración?
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Sección elegida en el menú lateral (arranca en la primera).
   const [activeSection, setActiveSection] = useState<Section>(SECTIONS[0]);
 
   return (
@@ -41,6 +58,7 @@ export function AdminLayout() {
           Caja
         </Link>
         <SessionActions />
+        {/* El engranaje: abre el modal de Configuración. */}
         <button
           type="button"
           onClick={() => setSettingsOpen(true)}
@@ -87,10 +105,16 @@ export function AdminLayout() {
             }))}
           />
 
+          {/* Contenido de la sección elegida. */}
           <section className="min-w-0 flex-1">
             {activeSection.id === 'employees' ? (
               <EmployeesPage />
+            ) : activeSection.id === 'points' ? (
+              // MODIFICADO (cambio 3): antes "points" caía en el texto
+              // "pendiente (otro RF)"; ahora muestra la pantalla nueva.
+              <PointsSettingsPage />
             ) : (
+              // Niveles y Notificaciones siguen pendientes (otras historias).
               <StatusText>{activeSection.label}: pendiente (otro RF).</StatusText>
             )}
           </section>
