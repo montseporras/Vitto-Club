@@ -14,7 +14,7 @@ que se despliegan por separado:
   de punta a punta el 2026-09-08.
 - **Sprint 1, ABMC de empleados** (`/api/empleados`): alta, edición, búsqueda
   por nombre y baja lógica, en el backend y en el frontend (Configuración →
-  *Empleados y usuarios*).
+  *Empleados*).
 - **Sprint 1, ABMC de clientes** (`/api/customers`): alta, búsqueda por
   documento, edición, baja y reactivación, historial de estados y validación
   del formato del documento según el tipo (DNI / pasaporte). En el frontend
@@ -229,6 +229,6 @@ archivo) y reiniciar `npm run dev`. Ver también
 [`frontend/.env.example`](./frontend/.env.example).
 
 Verificación: en `http://localhost:5173/admin`, abrir Configuración (⚙) →
-**Empleados y usuarios**. La tabla debe mostrar los empleados de la base y,
+**Empleados**. La tabla debe mostrar los empleados de la base y,
 en la pestaña Network del navegador, tiene que aparecer
 `GET http://localhost:3000/api/empleados` con respuesta 200.

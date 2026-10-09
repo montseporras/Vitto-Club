@@ -1,4 +1,4 @@
-// Sección "Empleados y usuarios": listado y búsqueda (RF-01/RF-03), alta
+// Sección "Empleados": listado y búsqueda (RF-01/RF-03), alta
 // (RF-01), edición (RF-02) y baja lógica (RF-04) de empleados.
 // Es la pantalla del prototipo dentro del modal de Configuración del Administrador;
 // el título y la descripción los muestra el encabezado de ese modal.
