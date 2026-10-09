@@ -19,7 +19,7 @@ así que agregarle las mismas capas sería sobre-ingeniería.
 ## Backend: monolito modular hexagonal
 
 Es **un solo proceso Nest** (un solo deploy), dividido en **módulos por
-contexto de negocio** (`customers`, `employees`, …). Cada módulo es
+contexto de negocio** (`customers`, `employees`, `loyalty`, …). Cada módulo es
 independiente y, puertas adentro, sigue puertos y adaptadores.
 
 ### Estructura de un módulo
@@ -48,13 +48,28 @@ Ejemplo real de la inversión de dependencia, en `<modulo>.module.ts`:
 providers: [
   CustomersService,
   { provide: CustomerRepository, useClass: CustomerPrismaRepository },
-]
+];
 ```
 
 `CustomersService` (application) solo conoce `CustomerRepository`, que es una
 `abstract class` (el puerto) definida en `domain/port/`. Nest resuelve en
 runtime qué implementación (`infrastructure/`) inyectar. Así, el dominio no
 depende de Prisma ni de HTTP.
+
+El módulo `loyalty` aplica el mismo patrón a la configuración global de
+puntos: `PointsEquivalence`, `PointsValidity` y `FirstPurchaseBonus` validan
+las invariantes del dominio y el default de RF-010.
+`LoyaltyConfigurationRepository` define el puerto y
+`LoyaltyPrismaRepository` implementa la persistencia versionada del snapshot
+completo, con una nueva versión por actualización y una transacción serializada
+por advisory lock de PostgreSQL. Los endpoints seccionales existentes se
+mantienen como patches compatibles y también crean versiones. Una migración
+importa los valores singleton existentes en la versión inicial; un índice
+único parcial garantiza como máximo una versión activa. El contrato REST y las
+limitaciones respecto al snapshot futuro de movimientos están en
+[`loyalty-api.md`](./loyalty-api.md). Su guard de rol requiere que la futura
+integración de autenticación establezca `request.user.role`; no reemplaza la
+autenticación.
 
 ### Reglas para módulos nuevos
 
