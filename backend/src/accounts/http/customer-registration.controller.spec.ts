@@ -33,7 +33,7 @@ describe('CustomerRegistrationController', () => {
       firstName: 'Lucía',
       lastName: 'Fernández',
       documentType: 'DNI',
-      documentNumber: '40123456',
+      documentNumber: '40.123.456',
       email: 'lucia@example.com',
       password: 'secreta123',
     });

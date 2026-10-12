@@ -74,15 +74,11 @@ renueva la sesión.
 cd backend
 npm install
 npx prisma migrate deploy
-npm run db:audit:migrate:develop
 npx prisma db seed
 ```
 
 - `migrate deploy` aplica las migraciones existentes. Es lo seguro para levantar el proyecto.
   (`migrate dev` es para **crear** una migración nueva cuando cambiás el `schema.prisma`).
-- `db:audit:migrate:develop` crea la tabla de auditoría por separado y solo permite
-  `APP_ENV=develop`; requiere `APP_ENV=develop` en `backend/.env` y `DATABASE_URL`
-  apuntando a la base de desarrollo. No se incluye en las migraciones estándar.
 - `db seed` crea el administrador inicial y, si `SEED_DEMO_DATA=true`, las cuentas de prueba.
   Se puede repetir sin duplicar datos.
 

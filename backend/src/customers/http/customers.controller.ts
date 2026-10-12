@@ -102,7 +102,9 @@ export class CustomersController {
         documentNumber: created.getDocumentNumber(),
         details: {
           customerId: created.getId()!,
-          fields: Object.keys(createDto),
+          fields: Object.entries(createDto)
+            .filter(([, value]) => value !== undefined)
+            .map(([field]) => field),
         },
       }),
     );
@@ -123,7 +125,12 @@ export class CustomersController {
         action: 'Modificación de cliente',
         documentType: updated.getDocumentType(),
         documentNumber: updated.getDocumentNumber(),
-        details: { customerId: id, fields: Object.keys(updateDto) },
+        details: {
+          customerId: id,
+          fields: Object.entries(updateDto)
+            .filter(([, value]) => value !== undefined)
+            .map(([field]) => field),
+        },
       }),
     );
     return CustomerResponseDto.fromDomain(customer);

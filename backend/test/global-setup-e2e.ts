@@ -12,8 +12,4 @@ export default function globalSetup(): void {
     env: { ...process.env, DATABASE_URL: url },
     stdio: 'pipe',
   });
-  execSync('node scripts/migrate-audit-test.mjs', {
-    env: { ...process.env, DATABASE_URL: url },
-    stdio: 'pipe',
-  });
 }

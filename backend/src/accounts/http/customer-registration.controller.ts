@@ -35,13 +35,14 @@ export class CustomerRegistrationController {
   async register(
     @Body() dto: RegisterCustomerDto,
   ): Promise<RegisteredCustomerResponseDto> {
+    const documentNumber = normalizeDocumentNumber(dto.documentNumber);
     const registered = await this.auditService.capture(
       () =>
         this.registrationService.register({
           firstName: dto.firstName,
           lastName: dto.lastName,
           documentType: dto.documentType,
-          documentNumber: normalizeDocumentNumber(dto.documentNumber),
+          documentNumber,
           email: dto.email,
           phone: dto.phone,
           dateOfBirth: dto.dateOfBirth,
@@ -52,7 +53,7 @@ export class CustomerRegistrationController {
         category: AuditCategory.CUSTOMERS,
         action: 'Autorregistro de cliente',
         documentType: dto.documentType,
-        documentNumber: dto.documentNumber,
+        documentNumber,
         details: { customerId: result.customerId },
       }),
     );

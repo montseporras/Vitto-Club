@@ -18,6 +18,13 @@ enum DocumentType {
   PASSPORT
 }
 
+enum AuditCategory {
+  SESSION
+  CUSTOMERS
+  EMPLOYEES
+  CONFIGURATION
+}
+
 /// Employees: required data: first name, last name, phone and role.
 model Employee {
   id        Int          @id @default(autoincrement())
@@ -200,4 +207,23 @@ model LoyaltyProgramConfiguration {
 
   @@index([isActive, version])
   @@map("loyalty_program_configurations")
+}
+
+/// Append-only record of sensitive operations.
+model AuditLog {
+  id             Int           @id @default(autoincrement())
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  performedBy    String        @map("performed_by") @db.VarChar(200)
+  actorAccountId Int?          @map("actor_account_id")
+  category       AuditCategory
+  action         String        @db.VarChar(200)
+  documentType   DocumentType? @map("document_type")
+  documentNumber String?       @map("document_number") @db.VarChar(20)
+  details        Json?
+
+  @@index([createdAt], map: "audit_logs_created_at_idx")
+  @@index([category, createdAt], map: "audit_logs_category_created_at_idx")
+  @@index([performedBy, createdAt], map: "audit_logs_performed_by_created_at_idx")
+  @@index([documentType, documentNumber, createdAt], map: "audit_logs_document_type_document_number_created_at_idx")
+  @@map("audit_logs")
 }

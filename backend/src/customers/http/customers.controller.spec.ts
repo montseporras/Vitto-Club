@@ -3,6 +3,7 @@ import { CustomersService } from '../application/customers.service.js';
 import { Customer } from '../domain/customer.js';
 import { ListCustomersQueryDto } from './dto/list-customers-query.dto.js';
 import { FindCustomerByDocumentQueryDto } from './dto/find-customer-by-document-query.dto.js';
+import { UpdateCustomerDto } from './dto/update-customer.dto.js';
 
 const makeCustomer = (active = true) =>
   Customer.reconstruct({
@@ -23,6 +24,7 @@ describe('CustomersController', () => {
     deactivate: jest.Mock;
     activate: jest.Mock;
     findById: jest.Mock;
+    update: jest.Mock;
   };
   let audit: { capture: jest.Mock };
   let controller: CustomersController;
@@ -36,6 +38,7 @@ describe('CustomersController', () => {
       deactivate: jest.fn(),
       activate: jest.fn(),
       findById: jest.fn(),
+      update: jest.fn(),
     };
     audit = {
       capture: jest.fn().mockImplementation(async (operation, createEntry) => {
@@ -139,6 +142,24 @@ describe('CustomersController', () => {
         id: 1,
         documentType: 'DNI',
         documentNumber: '12345678',
+      });
+    });
+  });
+
+  describe('update()', () => {
+    it('audits only the fields supplied in a partial DTO', async () => {
+      service.update.mockResolvedValue(makeCustomer());
+      const dto = Object.assign(new UpdateCustomerDto(), {
+        phone: '3511234567',
+      });
+
+      await controller.update(1, dto, actor);
+
+      expect(service.update).toHaveBeenCalledWith(1, dto);
+      const createEntry = audit.capture.mock.calls[0][1];
+      expect(createEntry(makeCustomer()).details).toEqual({
+        customerId: 1,
+        fields: ['phone'],
       });
     });
   });

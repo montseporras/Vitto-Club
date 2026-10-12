@@ -7,6 +7,7 @@ import {
 import { Account } from '../domain/account.js';
 import { RegisterAccountDto } from './dto/register-account.dto.js';
 import { UpdateAccountDto } from './dto/update-account.dto.js';
+import type { RecordAuditEntry } from '../../audit/domain/audit.repository.js';
 
 describe('AccountsController', () => {
   let service: {
@@ -19,6 +20,7 @@ describe('AccountsController', () => {
     findProfileById: jest.Mock;
   };
   let controller: AccountsController;
+  let lastAuditEntry: RecordAuditEntry | null;
   const actor = { accountId: 1, role: 'ADMIN' as const, employeeId: 1 };
 
   const profile: AccountProfile = {
@@ -30,6 +32,7 @@ describe('AccountsController', () => {
   };
 
   beforeEach(() => {
+    lastAuditEntry = null;
     service = {
       register: jest.fn(),
       updateRole: jest.fn(),
@@ -39,17 +42,16 @@ describe('AccountsController', () => {
       findProfileByEmployeeId: jest.fn(),
       findProfileById: jest.fn(),
     };
+    const capture = jest
+      .fn()
+      .mockImplementation(async (operation, createEntry) => {
+        const result = await operation();
+        lastAuditEntry = createEntry(result);
+        return result;
+      });
     controller = new AccountsController(
       service as unknown as AccountsService,
-      {
-        capture: jest
-          .fn()
-          .mockImplementation(async (operation, createEntry) => {
-            const result = await operation();
-            createEntry(result);
-            return result;
-          }),
-      } as never,
+      { capture } as never,
     );
   });
 
@@ -70,7 +72,7 @@ describe('AccountsController', () => {
       } as unknown as Account);
       service.findProfileById.mockResolvedValue(profile);
 
-      const result = await controller.register(registerDto());
+      const result = await controller.register(registerDto(), actor);
 
       expect(service.register).toHaveBeenCalledWith({
         employeeId: 2,
@@ -80,6 +82,12 @@ describe('AccountsController', () => {
       expect(service.findProfileById).toHaveBeenCalledWith(7);
       expect({ ...result }).toEqual(profile);
       expect(result).not.toHaveProperty('passwordHash');
+      expect(lastAuditEntry).toMatchObject({
+        actorAccountId: actor.accountId,
+        category: 'EMPLOYEES',
+        action: 'Registro de cuenta de usuario',
+        details: { employeeId: profile.employeeId },
+      });
     });
   });
 
@@ -113,6 +121,11 @@ describe('AccountsController', () => {
 
       expect(service.resetPassword).toHaveBeenCalledWith(7, 'nueva456');
       expect(service.updateRole).not.toHaveBeenCalled();
+      expect(lastAuditEntry).toMatchObject({
+        action: 'Modificación de usuario',
+        details: { employeeId: profile.employeeId, passwordReset: true },
+      });
+      expect(JSON.stringify(lastAuditEntry)).not.toContain('nueva456');
     });
 
     it('con ambos: llama a los dos', async () => {
@@ -131,7 +144,8 @@ describe('AccountsController', () => {
 
   describe('deactivate() — US-07', () => {
     it('delega en el servicio y no devuelve body (204)', async () => {
-      const result = await controller.deactivate(7);
+      service.findProfileById.mockResolvedValue(profile);
+      const result = await controller.deactivate(7, actor);
 
       expect(service.deactivate).toHaveBeenCalledWith(7);
       expect(result).toBeUndefined();
@@ -140,7 +154,8 @@ describe('AccountsController', () => {
 
   describe('reactivate() — SCRUM-27 (reversible)', () => {
     it('delega en el servicio y no devuelve body (204)', async () => {
-      const result = await controller.reactivate(7);
+      service.findProfileById.mockResolvedValue(profile);
+      const result = await controller.reactivate(7, actor);
 
       expect(service.reactivate).toHaveBeenCalledWith(7);
       expect(result).toBeUndefined();

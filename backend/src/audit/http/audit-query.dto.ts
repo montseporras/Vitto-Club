@@ -35,17 +35,17 @@ export class AuditQueryDto {
   documentNumber?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
   @Matches(DATE_FORMAT)
   date?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
   @Matches(DATE_FORMAT)
   fromDate?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
   @Matches(DATE_FORMAT)
   toDate?: string;
 

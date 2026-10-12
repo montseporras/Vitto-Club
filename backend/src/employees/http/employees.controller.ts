@@ -103,7 +103,7 @@ export class EmployeesController {
         actorAccountId: actor.accountId,
         category: AuditCategory.EMPLOYEES,
         action: 'Modificación de empleado',
-        details: { employeeId: id, fields: Object.keys(dto) },
+        details: { employeeId: id },
       }),
     );
     return EmployeeResponseDto.fromDomain(employee);

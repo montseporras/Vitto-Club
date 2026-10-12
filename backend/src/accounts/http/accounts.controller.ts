@@ -41,14 +41,27 @@ export class AccountsController {
   // POST /api/usuarios -> US-05 Registrar usuario
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async register(@Body() dto: RegisterAccountDto): Promise<AccountResponseDto> {
-    const account = await this.accountsService.register({
-      employeeId: dto.employeeId,
-      email: dto.email,
-      password: dto.password,
-    });
-    const profile = await this.accountsService.findProfileById(
-      account.getId() as number,
+  async register(
+    @Body() dto: RegisterAccountDto,
+    @CurrentUser() actor: CurrentUserData,
+  ): Promise<AccountResponseDto> {
+    const profile = await this.auditService.capture(
+      async () => {
+        const account = await this.accountsService.register({
+          employeeId: dto.employeeId,
+          email: dto.email,
+          password: dto.password,
+        });
+        return await this.accountsService.findProfileById(
+          account.getId() as number,
+        );
+      },
+      (created) => ({
+        actorAccountId: actor.accountId,
+        category: AuditCategory.EMPLOYEES,
+        action: 'Registro de cuenta de usuario',
+        details: { employeeId: created.employeeId },
+      }),
     );
     return AccountResponseDto.fromProfile(profile);
   }
@@ -79,18 +92,16 @@ export class AccountsController {
         }
         return await this.accountsService.findProfileById(id);
       },
-      (updated) =>
-        dto.role === undefined
-          ? null
-          : {
-              actorAccountId: actor.accountId,
-              category: AuditCategory.EMPLOYEES,
-              action: 'Modificación de empleado',
-              details: {
-                employeeId: updated.employeeId,
-                newRole: updated.role,
-              },
-            },
+      (updated) => ({
+        actorAccountId: actor.accountId,
+        category: AuditCategory.EMPLOYEES,
+        action: 'Modificación de usuario',
+        details: {
+          employeeId: updated.employeeId,
+          passwordReset: dto.password !== undefined,
+          ...(dto.role === undefined ? {} : { newRole: updated.role }),
+        },
+      }),
     );
     return AccountResponseDto.fromProfile(profile);
   }
@@ -98,15 +109,43 @@ export class AccountsController {
   // PATCH /api/usuarios/:id/deactivate -> US-07 Dar de baja usuario
   @Patch(':id/deactivate')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async deactivate(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    await this.accountsService.deactivate(id);
+  async deactivate(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() actor: CurrentUserData,
+  ): Promise<void> {
+    await this.auditService.capture(
+      async () => {
+        await this.accountsService.deactivate(id);
+        return await this.accountsService.findProfileById(id);
+      },
+      (deactivated) => ({
+        actorAccountId: actor.accountId,
+        category: AuditCategory.EMPLOYEES,
+        action: 'Baja lógica de cuenta de usuario',
+        details: { employeeId: deactivated.employeeId },
+      }),
+    );
   }
 
   // PATCH /api/usuarios/:id/reactivate -> SCRUM-27 (reversible) Reactivar usuario
   @Patch(':id/reactivate')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async reactivate(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    await this.accountsService.reactivate(id);
+  async reactivate(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() actor: CurrentUserData,
+  ): Promise<void> {
+    await this.auditService.capture(
+      async () => {
+        await this.accountsService.reactivate(id);
+        return await this.accountsService.findProfileById(id);
+      },
+      (reactivated) => ({
+        actorAccountId: actor.accountId,
+        category: AuditCategory.EMPLOYEES,
+        action: 'Reactivación de cuenta de usuario',
+        details: { employeeId: reactivated.employeeId },
+      }),
+    );
   }
 
   // GET /api/usuarios/empleado/:employeeId -> US-08 Consultar usuario (por empleado)

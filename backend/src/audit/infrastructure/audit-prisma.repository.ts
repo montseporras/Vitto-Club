@@ -24,13 +24,11 @@ type AuditRow = {
 };
 
 function dayStart(date: string): Date {
-  return new Date(`${date}T00:00:00.000Z`);
+  return new Date(`${date}T00:00:00.000-03:00`);
 }
 
 function dayAfter(date: string): Date {
-  const result = dayStart(date);
-  result.setUTCDate(result.getUTCDate() + 1);
-  return result;
+  return new Date(dayStart(date).getTime() + 24 * 60 * 60 * 1000);
 }
 
 @Injectable()
@@ -97,18 +95,17 @@ export class AuditPrismaRepository extends AuditRepository {
         );
       }
       if (filters.toDate) {
-        conditions.push(
-          Prisma.sql`created_at < ${dayAfter(filters.toDate)}`,
-        );
+        conditions.push(Prisma.sql`created_at < ${dayAfter(filters.toDate)}`);
       }
     }
-    if (filters.performedBy) {
-      conditions.push(
-        Prisma.sql`LOWER(performed_by) = LOWER(${filters.performedBy.trim()})`,
-      );
+    const performedBy = filters.performedBy?.trim();
+    if (performedBy) {
+      conditions.push(Prisma.sql`performed_by ILIKE ${`%${performedBy}%`}`);
     }
     if (filters.category) {
-      conditions.push(Prisma.sql`category = ${filters.category}::"AuditCategory"`);
+      conditions.push(
+        Prisma.sql`category = ${filters.category}::"AuditCategory"`,
+      );
     }
     if (filters.documentType) {
       conditions.push(

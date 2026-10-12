@@ -7,10 +7,9 @@ El endpoint es de solo lectura y requiere una sesión autenticada con rol `ADMIN
 
 1. Seguir los pasos de [levantar el proyecto](./levantar-el-proyecto.md) para arrancar
    PostgreSQL, backend y frontend.
-2. En `backend/.env`, verificar `APP_ENV=develop` y que `DATABASE_URL` apunte a la base
-   local de desarrollo.
-3. Ejecutar una vez, desde `backend/`, `npm run db:audit:migrate:develop`. Esta migración
-   explícita crea la tabla de auditoría; no forma parte de `prisma migrate deploy`.
+2. Confirmar que `DATABASE_URL` apunte a la base local de desarrollo.
+3. Desde `backend/`, ejecutar `npx prisma migrate deploy` para aplicar todas las migraciones,
+   incluida la de auditoría.
 4. En `frontend/.env.local`, poner `VITE_API_MOCKS=false` y arrancar/reiniciar Vite.
 
 El frontend ya usa `VITE_API_URL` con valor por defecto `/api`, proxy de Vite a
@@ -37,11 +36,11 @@ Todos son opcionales salvo que se quiera limitar o paginar los resultados.
 
 | Parámetro | Tipo / valores | Descripción |
 |---|---|---|
-| `performedBy` | string | Nombre del empleado/administrador que realizó la operación; la comparación no distingue mayúsculas. |
+| `performedBy` | string | Búsqueda parcial, sin distinguir mayúsculas, del nombre del actor. |
 | `category` | `SESSION`, `CUSTOMERS`, `EMPLOYEES`, `CONFIGURATION` | Categoría de la acción. |
 | `documentType` | `DNI`, `PASSPORT` | Tipo del documento del cliente afectado. |
 | `documentNumber` | string | Número del documento. Se envía como texto para admitir documentos alfanuméricos. |
-| `date` | `YYYY-MM-DD` | Día exacto, interpretado como día UTC completo. No combinar con `fromDate`/`toDate`. |
+| `date` | `YYYY-MM-DD` | Día exacto, interpretado como día local de Argentina (UTC−03:00). No combinar con `fromDate`/`toDate`. |
 | `fromDate` | `YYYY-MM-DD` | Primer día del rango, inclusivo. |
 | `toDate` | `YYYY-MM-DD` | Último día del rango, inclusivo. |
 | `page` | entero >= 1 | Página; predeterminado `1`. |

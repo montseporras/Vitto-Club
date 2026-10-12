@@ -7,6 +7,7 @@ import { ClsPluginTransactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import type { RequestHandler } from 'express';
 import { PrismaModule } from '../src/prisma/prisma.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { EmployeesModule } from '../src/employees/employees.module.js';
@@ -43,6 +44,7 @@ class TestPasswordHasherModule {}
 describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let actorAccountId = 0;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -71,6 +73,13 @@ describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () 
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
+    const attachTestActor: RequestHandler = (request, _response, next) => {
+      Object.assign(request, {
+        user: { accountId: actorAccountId, role: 'ADMIN' },
+      });
+      next();
+    };
+    app.use(attachTestActor);
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     );
@@ -89,7 +98,9 @@ describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () 
   beforeEach(async () => {
     await prisma.session.deleteMany();
     await prisma.account.deleteMany();
+    await prisma.customer.deleteMany();
     await prisma.employee.deleteMany();
+    actorAccountId = 0;
   });
 
   // Las Accounts se crean directamente con Prisma, no a través de AccountsService: así el
@@ -120,6 +131,7 @@ describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () 
         employeeId: employee.id,
       },
     });
+    if (params.role === 'ADMIN') actorAccountId = account.id;
     return { employee, account };
   }
 
