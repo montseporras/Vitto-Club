@@ -12,6 +12,7 @@ describe('AccountsController', () => {
     resetPassword: jest.Mock;
     deactivate: jest.Mock;
     reactivate: jest.Mock;
+    findAll: jest.Mock;
     findProfileByEmployeeId: jest.Mock;
     findProfileById: jest.Mock;
   };
@@ -32,6 +33,7 @@ describe('AccountsController', () => {
       resetPassword: jest.fn(),
       deactivate: jest.fn(),
       reactivate: jest.fn(),
+      findAll: jest.fn(),
       findProfileByEmployeeId: jest.fn(),
       findProfileById: jest.fn(),
     };
@@ -45,6 +47,25 @@ describe('AccountsController', () => {
       password: 'secreta123',
       ...values,
     });
+
+  describe('findAll() — SCRUM-27', () => {
+    it('delega en el servicio y arma la respuesta a partir de los profiles', async () => {
+      const secondProfile: AccountProfile = { ...profile, accountId: 8, employeeId: 5, active: false };
+      service.findAll.mockResolvedValue([profile, secondProfile]);
+
+      const result = await controller.findAll();
+
+      expect(service.findAll).toHaveBeenCalledWith();
+      expect(result.map((r) => ({ ...r }))).toEqual([profile, secondProfile]);
+      expect(result[0]).not.toHaveProperty('passwordHash');
+    });
+
+    it('[] si no hay cuentas', async () => {
+      service.findAll.mockResolvedValue([]);
+
+      await expect(controller.findAll()).resolves.toEqual([]);
+    });
+  });
 
   describe('register() — US-05', () => {
     it('delega en el servicio y arma la respuesta a partir del profile, sin passwordHash', async () => {

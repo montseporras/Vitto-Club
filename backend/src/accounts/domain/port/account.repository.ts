@@ -16,6 +16,9 @@ export abstract class AccountRepository {
   abstract save(account: Account): Promise<Account>;
   abstract findById(id: number): Promise<Account | null>;
   abstract findByEmployeeId(employeeId: number): Promise<Account | null>;
+  // Todas las cuentas de empleado (activas e inactivas), para el listado de usuarios
+  // (SCRUM-27). Nunca incluye cuentas de cliente. Orden estable por id ascendente.
+  abstract findAllEmployeeAccounts(): Promise<Account[]>;
   // Login: todos los roles usan email + password (ver infrastructure). Devuelve null si
   // no existe, o si la fila encontrada no es una cuenta de empleado (employeeId nulo).
   abstract findByEmail(email: string): Promise<Account | null>;

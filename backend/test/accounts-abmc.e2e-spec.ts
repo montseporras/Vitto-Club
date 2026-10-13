@@ -136,6 +136,7 @@ describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () 
         .send({ firstName: 'Test', lastName: 'Uno', role: 'CASHIER', phone: '3510000000' });
 
       expect(response.status).toBe(409);
+      expect(response.body.code).toBe('LAST_ADMIN');
 
       const freshEmployee = await prisma.employee.findUniqueOrThrow({ where: { id: employee.id } });
       const freshAccount = await prisma.account.findUniqueOrThrow({ where: { id: account.id } });
@@ -155,6 +156,7 @@ describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () 
       const response = await request(app.getHttpServer()).delete(`/api/empleados/${employee.id}`);
 
       expect(response.status).toBe(409);
+      expect(response.body.code).toBe('LAST_ADMIN');
 
       const freshEmployee = await prisma.employee.findUniqueOrThrow({ where: { id: employee.id } });
       const freshAccount = await prisma.account.findUniqueOrThrow({ where: { id: account.id } });
@@ -215,6 +217,30 @@ describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () 
       const freshAccount = await prisma.account.findUniqueOrThrow({ where: { id: account.id } });
       expect(freshEmployee.isActive).toBe(false);
       expect(freshAccount.isActive).toBe(false);
+    });
+  });
+
+  describe('E. GET /api/usuarios — listado (SCRUM-27)', () => {
+    it('devuelve todas las cuentas de empleado, activas e inactivas, sin passwordHash', async () => {
+      const { account: accountActive } = await seedEmployeeWithAccount({
+        email: 'admin.e@vitto.club',
+        role: 'ADMIN',
+        lastName: 'Activo',
+      });
+      const { account: accountInactive } = await seedEmployeeWithAccount({
+        email: 'cashier.e@vitto.club',
+        role: 'CASHIER',
+        lastName: 'Inactivo',
+      });
+      await request(app.getHttpServer()).patch(`/api/usuarios/${accountInactive.id}/deactivate`);
+
+      const response = await request(app.getHttpServer()).get('/api/usuarios');
+
+      expect(response.status).toBe(200);
+      const byId = new Map(response.body.map((p: { accountId: number }) => [p.accountId, p]));
+      expect(byId.get(accountActive.id)).toMatchObject({ employeeId: accountActive.employeeId, active: true });
+      expect(byId.get(accountInactive.id)).toMatchObject({ employeeId: accountInactive.employeeId, active: false });
+      expect(response.body.every((p: object) => !('passwordHash' in p))).toBe(true);
     });
   });
 });

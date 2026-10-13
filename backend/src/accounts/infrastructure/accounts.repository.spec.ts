@@ -12,6 +12,7 @@ function fakePrisma() {
     account: {
       create: jest.fn(),
       findFirst: jest.fn(),
+      findMany: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
@@ -240,6 +241,31 @@ describe('AccountPrismaRepository', () => {
 
       expect(prisma.account.findUnique).toHaveBeenCalledWith({ where: { employeeId: 2 } });
       expect(account?.getId()).toBe(7);
+    });
+  });
+
+  describe('findAllEmployeeAccounts()', () => {
+    it('filtra employeeId no nulo, ordena por id ascendente y mapea cada resultado', async () => {
+      const prisma = fakePrisma();
+      (prisma.account.findMany as jest.Mock).mockResolvedValue([BASE_RECORD]);
+      const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
+
+      const accounts = await repo.findAllEmployeeAccounts();
+
+      expect(prisma.account.findMany).toHaveBeenCalledWith({
+        where: { employeeId: { not: null } },
+        orderBy: { id: 'asc' },
+      });
+      expect(accounts).toHaveLength(1);
+      expect(accounts[0].getId()).toBe(7);
+    });
+
+    it('[] si no hay cuentas de empleado', async () => {
+      const prisma = fakePrisma();
+      (prisma.account.findMany as jest.Mock).mockResolvedValue([]);
+      const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
+
+      await expect(repo.findAllEmployeeAccounts()).resolves.toEqual([]);
     });
   });
 
