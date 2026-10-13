@@ -9,10 +9,15 @@ import type {
   EditEmployeeFormValues,
   CreateEmployeeFormValues,
 } from '../schemas/employee.schema';
-import type { CreateAccountDto } from '../types/employee';
+import type {
+  CreateAccountDto,
+  UpdateAccountPasswordDto,
+} from '../types/employee';
 import {
   updateEmployee,
   createEmployeeAccount,
+  getEmployeeAccount,
+  updateAccountPassword,
   deactivateEmployee,
   formToUpdateEmployeeDto,
   formToCreateEmployeeDto,
@@ -79,3 +84,21 @@ export const useCreateEmployeeAccount = () => {
     },
   });
 };
+
+// Usuario de un empleado (SCRUM-24): hace falta su id para cambiarle la
+// contraseña. Se pide cada vez que se abre, para ver si sigue activo.
+export const useEmployeeAccount = (employeeId: number) =>
+  useQuery({
+    queryKey: employeesKeys.account(employeeId),
+    queryFn: () => getEmployeeAccount(employeeId),
+    // El queryClient guarda 30 s por defecto; acá se quiere el estado actual.
+    staleTime: 0,
+    retry: false,
+  });
+
+// Cambio de contraseña del usuario (SCRUM-24).
+export const useUpdateAccountPassword = (accountId: number) =>
+  useMutation({
+    mutationFn: (body: UpdateAccountPasswordDto) =>
+      updateAccountPassword(accountId, body),
+  });

@@ -1,7 +1,8 @@
 // Formulario de edición de empleado (RF-02). El mail no se edita.
 // La baja lógica (RF-04) se ofrece acá mismo (onRequestDeactivation) en vez de un
-// botón aparte en la tabla. Lo mismo con el alta del usuario (SCRUM-21):
-// si el empleado no tiene, se ofrece crearlo (onCreateAccount).
+// botón aparte en la tabla. Lo mismo con el usuario del sistema: si el
+// empleado no tiene, se ofrece crearlo (SCRUM-21, onCreateAccount); si tiene,
+// cambiarle la contraseña (SCRUM-24, onChangePassword).
 // Un empleado dado de baja no se puede editar (el backend responde 409): sus
 // datos se muestran en modo sólo lectura.
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,6 +33,7 @@ interface EditEmployeeFormProps {
   onCancel: () => void;
   onRequestDeactivation: () => void;
   onCreateAccount: () => void;
+  onChangePassword: () => void;
 }
 
 const ROLE_OPTIONS = Object.entries(EMPLOYEE_ROLES).map(([value, label]) => ({
@@ -62,6 +64,7 @@ export function EditEmployeeForm({
   onCancel,
   onRequestDeactivation,
   onCreateAccount,
+  onChangePassword,
 }: EditEmployeeFormProps) {
   const isReadOnly = !employee.isActive;
 
@@ -168,11 +171,21 @@ export function EditEmployeeForm({
 
       <FormSection step={4} title="Usuario del sistema">
         {employee.hasAccount ? (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col items-start gap-3">
             <Badge variant="success">Con usuario</Badge>
             <p className="text-sm text-neutral-600">
               Ingresa al sistema con el mail <strong>{employee.email}</strong>.
             </p>
+            {employee.isActive && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onChangePassword}
+              >
+                <Icon d={ICONS.pencil} className="size-4" />
+                Cambiar contraseña
+              </Button>
+            )}
           </div>
         ) : employee.isActive ? (
           <div className="flex flex-col items-start gap-3">

@@ -1,7 +1,7 @@
 // Alta del usuario de un empleado (SCRUM-21), embebida en el modal de edición.
 // El usuario es el mail que el empleado ya tiene cargado y la contraseña se
 // genera sola; se puede generar otra o escribirla a mano. Al terminar se
-// muestran las credenciales una única vez para pasárselas al employee.
+// muestran las credenciales una única vez para pasárselas al empleado.
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -11,26 +11,20 @@ import { FormField } from '@/shared/components/forms/FormField';
 import { FormSection } from '@/shared/components/forms/FormSection';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
-import { Icon } from '@/shared/components/ui/Icon';
-import { ICONS } from '@/shared/components/ui/icons';
 import { Input } from '@/shared/components/ui/Input';
 import { generatePassword } from '@/shared/lib/password';
 import { useCreateEmployeeAccount } from '../api/employees.queries';
 import {
-  createAccountSchema,
-  type CreateAccountFormValues,
+  accountPasswordSchema,
+  type AccountPasswordFormValues,
 } from '../schemas/employee.schema';
 import type { Employee } from '../types/employee';
+import { IssuedCredentials, PasswordField } from './AccountPassword';
 
 interface CreateAccountFormProps {
   employee: Employee;
   onDone: () => void;
   onCancel: () => void;
-}
-
-interface Credentials {
-  email: string;
-  password: string;
 }
 
 // Mensaje según la respuesta del backend (POST /usuarios).
@@ -53,7 +47,7 @@ export function CreateAccountForm({
   onDone,
   onCancel,
 }: CreateAccountFormProps) {
-  const [created, setCreated] = useState<Credentials | null>(null);
+  const [createdPassword, setCreatedPassword] = useState<string | null>(null);
   const createAccount = useCreateEmployeeAccount();
 
   const {
@@ -62,62 +56,31 @@ export function CreateAccountForm({
     setValue,
     getValues,
     formState: { errors },
-  } = useForm<CreateAccountFormValues>({
-    resolver: zodResolver(createAccountSchema(employee.email)),
+  } = useForm<AccountPasswordFormValues>({
+    resolver: zodResolver(accountPasswordSchema(employee.email)),
     defaultValues: { password: generatePassword() },
   });
 
   const onSubmit = handleSubmit(({ password }) => {
-    const credentials = { email: employee.email, password };
     createAccount.mutate(
-      { employeeId: employee.id, ...credentials },
-      { onSuccess: () => setCreated(credentials) },
+      { employeeId: employee.id, email: employee.email, password },
+      { onSuccess: () => setCreatedPassword(password) },
     );
   });
 
-  const regenerate = () =>
-    setValue('password', generatePassword(), { shouldValidate: true });
-
-  if (created) {
+  if (createdPassword) {
     return (
-      <div>
-        <Alert variant="success" className="mb-6">
-          Se creó el usuario de{' '}
-          <strong>
-            {employee.firstName} {employee.lastName}
-          </strong>
-          . Ya puede ingresar al sistema.
-        </Alert>
-
-        <FormSection step={1} title="Datos de acceso">
-          <FormField id="usuario-creado" label="Usuario">
-            <Input id="usuario-creado" value={created.email} readOnly />
-          </FormField>
-
-          <FormField
-            id="password-creada"
-            label="Contraseña"
-            hint="Pasásela al empleado ahora: después no se vuelve a mostrar."
-          >
-            <div className="flex gap-2">
-              <Input
-                id="password-creada"
-                value={created.password}
-                readOnly
-                className="font-mono"
-                aria-describedby="password-creada-hint"
-              />
-              <CopyButton text={created.password} />
-            </div>
-          </FormField>
-        </FormSection>
-
-        <FormActions>
-          <Button type="button" size="lg" onClick={onDone}>
-            Listo
-          </Button>
-        </FormActions>
-      </div>
+      <IssuedCredentials
+        email={employee.email}
+        password={createdPassword}
+        onDone={onDone}
+      >
+        Se creó el usuario de{' '}
+        <strong>
+          {employee.firstName} {employee.lastName}
+        </strong>
+        . Ya puede ingresar al sistema.
+      </IssuedCredentials>
     );
   }
 
@@ -138,11 +101,7 @@ export function CreateAccountForm({
       </p>
 
       <FormSection step={1} title="Datos de acceso">
-        <FormField
-          id="usuario"
-          label="Usuario"
-          hint="Es el mail del employee."
-        >
+        <FormField id="usuario" label="Usuario" hint="Es el mail del empleado.">
           <Input
             id="usuario"
             value={employee.email}
@@ -152,37 +111,15 @@ export function CreateAccountForm({
           />
         </FormField>
 
-        <FormField
-          id="password"
+        <PasswordField
           label="Contraseña"
           error={errors.password?.message}
-          hint="Mínimo 8 caracteres, con una mayúscula, un número y un carácter especial."
-        >
-          <div className="flex gap-2">
-            <Input
-              id="password"
-              autoComplete="new-password"
-              spellCheck={false}
-              className="font-mono"
-              aria-invalid={errors.password ? true : undefined}
-              aria-describedby={
-                errors.password ? 'password-error' : 'password-hint'
-              }
-              {...register('password')}
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={regenerate}
-              aria-label="Generar otra contraseña"
-              title="Generar otra contraseña"
-              className="h-auto shrink-0"
-            >
-              <Icon d={ICONS.reload} className="size-4" />
-            </Button>
-            <CopyButton text={() => getValues('password')} />
-          </div>
-        </FormField>
+          registration={register('password')}
+          onRegenerate={() =>
+            setValue('password', generatePassword(), { shouldValidate: true })
+          }
+          getPassword={() => getValues('password')}
+        />
       </FormSection>
 
       <FormActions>
@@ -194,37 +131,5 @@ export function CreateAccountForm({
         </Button>
       </FormActions>
     </form>
-  );
-}
-
-// Copia la contraseña al portapapeles y avisa unos segundos que se copió.
-// El portapapeles solo existe en contextos seguros (https o localhost).
-function CopyButton({ text }: { text: string | (() => string) }) {
-  const [copied, setCopied] = useState(false);
-
-  if (!navigator.clipboard) return null;
-
-  const copy = async () => {
-    await navigator.clipboard.writeText(
-      typeof text === 'function' ? text() : text,
-    );
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <Button
-      type="button"
-      variant="secondary"
-      onClick={() => void copy()}
-      aria-label="Copiar contraseña"
-      title="Copiar contraseña"
-      className="h-auto shrink-0"
-    >
-      <Icon d={copied ? ICONS.check : ICONS.copy} className="size-4" />
-      <span aria-live="polite" className="sr-only">
-        {copied ? 'Contraseña copiada' : ''}
-      </span>
-    </Button>
   );
 }

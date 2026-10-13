@@ -3,4 +3,6 @@ export const employeesKeys = {
   all: ['employees'] as const,
   lists: () => [...employeesKeys.all, 'list'] as const,
   list: (name: string) => [...employeesKeys.lists(), { name }] as const,
+  account: (employeeId: number) =>
+    [...employeesKeys.all, 'account', employeeId] as const,
 };

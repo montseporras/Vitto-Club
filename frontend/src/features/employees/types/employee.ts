@@ -48,3 +48,9 @@ export interface Account {
   role: EmployeeRole;
   active: boolean;
 }
+
+// Cuerpo del PATCH /usuarios/:id (SCRUM-24). El backend también acepta `role`,
+// pero el rol se cambia desde el empleado: el front solo cambia la contraseña.
+export interface UpdateAccountPasswordDto {
+  password: string;
+}

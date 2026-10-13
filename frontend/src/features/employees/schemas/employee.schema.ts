@@ -56,11 +56,12 @@ export const editEmployeeSchema = createEmployeeSchema.omit({
 
 export type EditEmployeeFormValues = z.infer<typeof editEmployeeSchema>;
 
-// Usuario del empleado (SCRUM-21). El usuario es el mail, que ya está validado
-// en el alta; acá solo se valida la contraseña, por si la editan a mano.
+// Contraseña del usuario del empleado, al crearlo (SCRUM-21) o al cambiarla
+// (SCRUM-24). El usuario es el mail, que ya está validado en el alta del
+// empleado; acá solo se valida la contraseña, por si la editan a mano.
 // El backend pide 8 a 64 caracteres y que no sea igual al mail; la mayúscula,
 // el número y el carácter especial son una exigencia extra del front.
-export const createAccountSchema = (email: string) =>
+export const accountPasswordSchema = (email: string) =>
   z.object({
     password: z
       .string()
@@ -78,6 +79,6 @@ export const createAccountSchema = (email: string) =>
       ),
   });
 
-export type CreateAccountFormValues = z.infer<
-  ReturnType<typeof createAccountSchema>
+export type AccountPasswordFormValues = z.infer<
+  ReturnType<typeof accountPasswordSchema>
 >;
