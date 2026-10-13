@@ -1,8 +1,7 @@
 // Formulario de edición de empleado (RF-02). El mail no se edita.
 // La baja lógica (RF-04) se ofrece acá mismo (onRequestDeactivation) en vez de un
-// botón aparte en la tabla. Lo mismo con el usuario del sistema: si el
-// empleado no tiene, se ofrece crearlo (SCRUM-21, onCreateAccount); si tiene,
-// cambiarle la contraseña (SCRUM-24, onChangePassword).
+// botón aparte en la tabla. Lo mismo con el usuario del sistema (SCRUM-21/24/27):
+// las acciones sobre él se piden con onAccountAction.
 // Un empleado dado de baja no se puede editar (el backend responde 409): sus
 // datos se muestran en modo sólo lectura.
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,10 +13,7 @@ import { FormField } from '@/shared/components/forms/FormField';
 import { FormSection } from '@/shared/components/forms/FormSection';
 import { StatusText } from '@/shared/components/feedback/StatusText';
 import { Alert } from '@/shared/components/ui/Alert';
-import { Badge } from '@/shared/components/ui/Badge';
 import { Button } from '@/shared/components/ui/Button';
-import { Icon } from '@/shared/components/ui/Icon';
-import { ICONS } from '@/shared/components/ui/icons';
 import { Input } from '@/shared/components/ui/Input';
 import { Select } from '@/shared/components/ui/Select';
 import { useUpdateEmployee } from '../api/employees.queries';
@@ -26,14 +22,17 @@ import {
   type EditEmployeeFormValues,
 } from '../schemas/employee.schema';
 import type { Employee } from '../types/employee';
+import {
+  EmployeeAccountSection,
+  type AccountAction,
+} from './EmployeeAccountSection';
 
 interface EditEmployeeFormProps {
   employee: Employee;
   onSuccess: () => void;
   onCancel: () => void;
   onRequestDeactivation: () => void;
-  onCreateAccount: () => void;
-  onChangePassword: () => void;
+  onAccountAction: (action: AccountAction) => void;
 }
 
 const ROLE_OPTIONS = Object.entries(EMPLOYEE_ROLES).map(([value, label]) => ({
@@ -63,8 +62,7 @@ export function EditEmployeeForm({
   onSuccess,
   onCancel,
   onRequestDeactivation,
-  onCreateAccount,
-  onChangePassword,
+  onAccountAction,
 }: EditEmployeeFormProps) {
   const isReadOnly = !employee.isActive;
 
@@ -169,40 +167,11 @@ export function EditEmployeeForm({
         </FormField>
       </FormSection>
 
-      <FormSection step={4} title="Usuario del sistema">
-        {employee.hasAccount ? (
-          <div className="flex flex-col items-start gap-3">
-            <Badge variant="success">Con usuario</Badge>
-            <p className="text-sm text-neutral-600">
-              Ingresa al sistema con el mail <strong>{employee.email}</strong>.
-            </p>
-            {employee.isActive && (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={onChangePassword}
-              >
-                <Icon d={ICONS.pencil} className="size-4" />
-                Cambiar contraseña
-              </Button>
-            )}
-          </div>
-        ) : employee.isActive ? (
-          <div className="flex flex-col items-start gap-3">
-            <p className="text-sm text-neutral-600">
-              Todavía no tiene usuario, así que no puede ingresar al sistema.
-            </p>
-            <Button type="button" variant="secondary" onClick={onCreateAccount}>
-              <Icon d={ICONS.userPlus} className="size-4" />
-              Crear usuario
-            </Button>
-          </div>
-        ) : (
-          <p className="text-sm text-neutral-600">
-            No tiene usuario. Para crearlo, el empleado tiene que estar activo.
-          </p>
-        )}
-      </FormSection>
+      <EmployeeAccountSection
+        step={4}
+        employee={employee}
+        onAction={onAccountAction}
+      />
 
       {isReadOnly ? (
         <FormActions>

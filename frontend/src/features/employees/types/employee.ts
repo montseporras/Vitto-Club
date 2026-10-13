@@ -10,9 +10,20 @@ export interface Employee {
   email: string;
   role: EmployeeRole;
   isActive: boolean;
-  // true si el empleado ya tiene usuario para entrar al sistema (SCRUM-21)
-  hasAccount: boolean;
+  // Usuario con el que entra al sistema (SCRUM-21/24/27); null si no tiene.
+  account: EmployeeAccount | null;
 }
+
+// Resumen del usuario de cada empleado: el id para operar sobre él y si está
+// activo (un usuario dado de baja no puede ingresar). El backend no lo manda con
+// el empleado: el front lo arma cruzando GET /usuarios por employeeId.
+export interface EmployeeAccount {
+  id: number;
+  active: boolean;
+}
+
+// Empleado tal como lo devuelve /empleados, sin el resumen del usuario.
+export type EmployeeResponse = Omit<Employee, 'account'>;
 
 // Cuerpo del POST /empleados. Teléfono opcional (RF-01).
 export interface CreateEmployeeDto {
