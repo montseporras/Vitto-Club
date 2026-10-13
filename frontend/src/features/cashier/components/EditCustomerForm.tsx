@@ -13,6 +13,11 @@ import { Input } from '@/shared/components/ui/Input'
 import { isoToDisplayDate } from '@/shared/lib/dates'
 import { useUpdateCustomer } from '../api/cashier.queries'
 import {
+  customerConflict,
+  rejectedFields,
+  REJECTED_FIELD_MESSAGE,
+} from '../api/customer-errors'
+import {
   createCustomerSchema,
   type CreateCustomerFormInput,
   type CreateCustomerFormOutput,
@@ -26,6 +31,7 @@ const DOCUMENT_OPTIONS = DOCUMENT_TYPE_VALUES.map((type) => ({
 
 // El documento (tipo y número) se muestra bloqueado: no se edita ni viaja en el PATCH.
 const REQUIRED_FIELDS = ['firstName', 'lastName', 'email'] as const
+const EDITABLE_FIELDS = [...REQUIRED_FIELDS, 'phone', 'dateOfBirth'] as const
 
 const toFormValues = (customer: Customer): CreateCustomerFormInput => ({
   firstName: customer.firstName,
@@ -63,6 +69,7 @@ export function EditCustomerForm({ customer, onSaved, onCancel }: EditCustomerFo
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<CreateCustomerFormInput, unknown, CreateCustomerFormOutput>({
     resolver: zodResolver(createCustomerSchema),
@@ -81,7 +88,23 @@ export function EditCustomerForm({ customer, onSaved, onCancel }: EditCustomerFo
     setNoChanges(false)
     updateCustomer.mutate(
       { id: customer.id, body: changes },
-      { onSuccess: onSaved },
+      {
+        onSuccess: onSaved,
+        onError: (error) => {
+          // El mail repetido se marca en su campo (el documento no se edita)
+          const conflict = customerConflict(error)
+          if (conflict?.field === 'email') {
+            setError(
+              'email',
+              { message: conflict.message },
+              { shouldFocus: true },
+            )
+          }
+          for (const field of rejectedFields(error, EDITABLE_FIELDS)) {
+            setError(field, { message: REJECTED_FIELD_MESSAGE })
+          }
+        },
+      },
     )
   }
 
@@ -93,18 +116,28 @@ export function EditCustomerForm({ customer, onSaved, onCancel }: EditCustomerFo
     'aria-describedby': errors[field] ? `edit-${field}-error` : undefined,
   })
 
-  const generalError = updateCustomer.isError ? updateCustomer.error : undefined
+  const conflict = updateCustomer.isError
+    ? customerConflict(updateCustomer.error)
+    : undefined
+  const generalError =
+    updateCustomer.isError && conflict?.field !== 'email'
+      ? updateCustomer.error
+      : undefined
 
   return (
     <form noValidate onSubmit={handleSubmit(onSubmit)}>
       {generalError && (
         <Alert variant="error" className="mb-6">
-          {generalError.status === 409
-            ? 'No se pudo guardar: el cliente está dado de baja.'
-            : generalError.status === 400
-              ? 'Revisá los datos: el servidor rechazó los cambios.'
-              : 'No se pudieron guardar los cambios.'}
-          <AlertMessages messages={generalError.messages} />
+          {conflict ? (
+            `No se pudo guardar. ${conflict.message}`
+          ) : (
+            <>
+              {generalError.status === 400
+                ? 'Revisá los datos: el servidor rechazó los cambios.'
+                : 'No se pudieron guardar los cambios.'}
+              <AlertMessages messages={generalError.messages} />
+            </>
+          )}
         </Alert>
       )}
 
