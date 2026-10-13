@@ -205,6 +205,7 @@ model LoyaltyProgramConfiguration {
   validTo                DateTime?               @map("valid_to")
   createdAt              DateTime                @default(now()) @map("created_at")
 
+  // Only one active version at a time (partial unique index, like customers)
   @@unique([isActive], map: "loyalty_program_configurations_one_active_key", where: { isActive: true })
   @@map("loyalty_program_configurations")
 }

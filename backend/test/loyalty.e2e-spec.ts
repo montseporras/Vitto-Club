@@ -6,12 +6,7 @@ import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { LoyaltyConfigurationRepository } from '../src/loyalty/domain/port/loyalty-configuration.repository.js';
-
-type RequestWithUser = Request & {
-  user?: {
-    role: string;
-  };
-};
+import { AccessTokenIssuer } from '../src/auth/domain/port/access-token-issuer.js';
 
 const POINTS_EQUIVALENCE_URL = '/api/loyalty/configuration/points-equivalence';
 const POINTS_VALIDITY_URL = '/api/loyalty/configuration/points-validity';
@@ -40,10 +35,12 @@ describe('Loyalty configuration (e2e)', () => {
     );
 
     // Test-only stand-in for the principal that the authentication module will provide.
-    app.use((request: Request, _response: Response, next: NextFunction) => {
+    const issuer = moduleFixture.get(AccessTokenIssuer, { strict: false });
+    app.use(async (request: Request, _response: Response, next: NextFunction) => {
       const role = request.header('x-test-auth-role');
-      if (role) {
-        (request as RequestWithUser).user = { role };
+      if (role === 'ADMIN' || role === 'CASHIER') {
+        const token = await issuer.issue({ accountId: 1, role, employeeId: 1 });
+        request.headers.authorization = `Bearer ${token}`;
       }
       next();
     });
