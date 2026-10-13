@@ -87,6 +87,14 @@ export class AccountPrismaRepository implements AccountRepository {
     return record ? toDomain(record) : null;
   }
 
+  async findAllEmployeeAccounts(): Promise<Account[]> {
+    const records = await this.prisma.account.findMany({
+      where: { employeeId: { not: null } },
+      orderBy: { id: 'asc' },
+    });
+    return records.map(toDomain);
+  }
+
   // Login: todos los roles usan email + password. Si la fila encontrada es de un customer
   // (employeeId null), se trata como "no encontrada" en vez de lanzar: ese caso está fuera
   // de este dominio (todavía no modelado), no es un dato inconsistente.

@@ -128,6 +128,9 @@ class FakeAccountRepository implements AccountRepository {
   async findByEmployeeId(employeeId: number): Promise<Account | null> {
     return [...this.items.values()].find((a) => a.getEmployeeId() === employeeId) ?? null;
   }
+  async findAllEmployeeAccounts(): Promise<Account[]> {
+    return [...this.items.values()].sort((a, b) => (a.getId() as number) - (b.getId() as number));
+  }
   async findByEmail(_email: string): Promise<Account | null> {
     throw new Error('not implemented: se reasigna por test en el describe de verifyCredentials');
   }
@@ -431,6 +434,36 @@ describe('AccountsService', () => {
     });
   });
 
+  describe('findAll (SCRUM-27: listado de usuarios de empleados)', () => {
+    it('devuelve todas las cuentas de empleado, activas e inactivas, ordenadas por accountId', async () => {
+      employeeRepo.seed(ADMIN_EMPLOYEE);
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account1 = await service.register({ employeeId: 1, email: 'ana.gomez@vitto.club', password: 'secreta123' });
+      const account2 = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+      await service.deactivate(account2.getId() as number);
+
+      const profiles = await service.findAll();
+
+      expect(profiles).toEqual([
+        { accountId: account1.getId(), employeeId: 1, email: 'ana.gomez@vitto.club', role: 'ADMIN', active: true },
+        { accountId: account2.getId(), employeeId: 2, email: 'bruno.perez@vitto.club', role: 'CASHIER', active: false },
+      ]);
+    });
+
+    it('nunca incluye passwordHash', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+
+      const profiles = await service.findAll();
+
+      expect(profiles[0]).not.toHaveProperty('passwordHash');
+    });
+
+    it('[] si no hay ninguna cuenta', async () => {
+      await expect(service.findAll()).resolves.toEqual([]);
+    });
+  });
+
   describe('findProfileByEmployeeId / findProfileById (US-08)', () => {
     it('devuelve email, rol y estado, nunca el passwordHash', async () => {
       employeeRepo.seed(CASHIER_EMPLOYEE);
@@ -602,6 +635,22 @@ describe('AccountsService', () => {
       expect(eventEmitter.emitted).toHaveLength(0);
     });
 
+    it('el 409 del último ADMIN trae code: LAST_ADMIN', async () => {
+      employeeRepo.seed(ADMIN_EMPLOYEE);
+      const account = await service.register({
+        employeeId: 1,
+        email: 'ana.gomez@vitto.club',
+        password: 'secreta123',
+      });
+
+      const error = await service
+        .deactivate(account.getId() as number)
+        .catch((e: ConflictException) => e);
+
+      expect(error).toBeInstanceOf(ConflictException);
+      expect((error as ConflictException).getResponse()).toMatchObject({ code: 'LAST_ADMIN' });
+    });
+
     it('permite dar de baja a un ADMIN si hay otro ADMIN disponible', async () => {
       employeeRepo.seed(ADMIN_EMPLOYEE);
       employeeRepo.seed({ id: 3, firstName: 'Carla', lastName: 'Martínez', email: 'carla@vitto.club', role: 'ADMIN', phone: null });
@@ -734,6 +783,17 @@ describe('AccountsService', () => {
       expect(eventEmitter.emitted).toHaveLength(0);
     });
 
+    it('el 409 del último ADMIN trae code: LAST_ADMIN', async () => {
+      employeeRepo.seed(ADMIN_EMPLOYEE);
+      await service.register({ employeeId: 1, email: 'ana.gomez@vitto.club', password: 'secreta123' });
+      employeeRepo.items.set(1, Employee.reconstruct({ ...ADMIN_EMPLOYEE, active: false }));
+
+      const error = await service.handleEmployeeDeactivated(1).catch((e: ConflictException) => e);
+
+      expect(error).toBeInstanceOf(ConflictException);
+      expect((error as ConflictException).getResponse()).toMatchObject({ code: 'LAST_ADMIN' });
+    });
+
     it('permite la baja si hay otro ADMIN disponible', async () => {
       employeeRepo.seed(ADMIN_EMPLOYEE);
       employeeRepo.seed({ id: 3, firstName: 'Carla', lastName: 'Martínez', email: 'carla@vitto.club', role: 'ADMIN', phone: null });
@@ -776,6 +836,18 @@ describe('AccountsService', () => {
       expect(accountRepo.syncedRoles).toHaveLength(0);
       // La Account no quedó sincronizada con el rol nuevo
       expect(accountRepo.items.get(account.getId() as number)).toBeDefined();
+    });
+
+    it('el 409 del último ADMIN trae code: LAST_ADMIN', async () => {
+      employeeRepo.seed(ADMIN_EMPLOYEE);
+      await service.register({ employeeId: 1, email: 'ana.gomez@vitto.club', password: 'secreta123' });
+
+      const error = await service
+        .handleEmployeeRoleChanged({ employeeId: 1, previousRole: 'ADMIN', newRole: 'CASHIER' })
+        .catch((e: ConflictException) => e);
+
+      expect(error).toBeInstanceOf(ConflictException);
+      expect((error as ConflictException).getResponse()).toMatchObject({ code: 'LAST_ADMIN' });
     });
 
     it('permite degradar si hay otro ADMIN disponible', async () => {

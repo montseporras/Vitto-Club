@@ -38,6 +38,13 @@ export class AccountsController {
     private readonly auditService: AuditService,
   ) {}
 
+  // GET /api/usuarios -> SCRUM-27: listar usuarios de empleados (activos e inactivos)
+  @Get()
+  async findAll(): Promise<AccountResponseDto[]> {
+    const profiles = await this.accountsService.findAll();
+    return profiles.map((profile) => AccountResponseDto.fromProfile(profile));
+  }
+
   // POST /api/usuarios -> US-05 Registrar usuario
   @Post()
   @HttpCode(HttpStatus.CREATED)

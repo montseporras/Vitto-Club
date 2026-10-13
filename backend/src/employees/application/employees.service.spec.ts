@@ -494,6 +494,9 @@ describe('EmployeesService', () => {
       async findByEmployeeId(employeeId: number): Promise<Account | null> {
         return [...this.items.values()].find((a) => a.getEmployeeId() === employeeId) ?? null;
       }
+      async findAllEmployeeAccounts(): Promise<Account[]> {
+        return [...this.items.values()].sort((a, b) => (a.getId() as number) - (b.getId() as number));
+      }
       async findByEmail(): Promise<Account | null> {
         throw new Error('not implemented: no usado en esta suite');
       }

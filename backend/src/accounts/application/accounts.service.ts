@@ -114,6 +114,21 @@ export class AccountsService {
     return await this.accountsRepository.save(account);
   }
 
+  // --- SCRUM-27: listar usuarios de empleados (para que el front cruce con /empleados) ---
+  async findAll(): Promise<AccountProfile[]> {
+    const accounts = await this.accountsRepository.findAllEmployeeAccounts();
+    const employees = await this.employeesService.findAll();
+    const employeesById = new Map(employees.map((employee) => [employee.getId(), employee]));
+
+    return accounts.map((account) => {
+      const employee = employeesById.get(account.getEmployeeId());
+      if (!employee) {
+        throw new NotFoundException(`Employee with ID ${account.getEmployeeId()} not found`);
+      }
+      return this.toProfile(account, employee);
+    });
+  }
+
   // --- US-08: CONSULTAR USUARIO ---
   async findProfileByEmployeeId(employeeId: number): Promise<AccountProfile> {
     const account = await this.accountsRepository.findByEmployeeId(employeeId);
@@ -414,9 +429,10 @@ export class AccountsService {
 
     const availableAdmins = await this.countAvailableAdmins();
     if (availableAdmins <= 1) {
-      throw new ConflictException(
-        'This operation would leave the system without an available administrator',
-      );
+      throw new ConflictException({
+        message: 'This operation would leave the system without an available administrator',
+        code: 'LAST_ADMIN',
+      });
     }
   }
 
@@ -440,9 +456,10 @@ export class AccountsService {
         : await this.accountsRepository.countActiveByEmployeeIds(otherAdminIds);
 
     if (availableAdmins === 0) {
-      throw new ConflictException(
-        'This operation would leave the system without an available administrator',
-      );
+      throw new ConflictException({
+        message: 'This operation would leave the system without an available administrator',
+        code: 'LAST_ADMIN',
+      });
     }
   }
 
