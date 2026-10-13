@@ -3,17 +3,24 @@
 // Estado en memoria, sembrado igual que el seed de Prisma del backend.
 import { http, HttpResponse } from 'msw';
 import { API_URL } from '@/shared/api/http';
-import type { Employee } from '@/features/employees';
+import type { Account, Employee } from '@/features/employees';
 
 const employees: Employee[] = [
-  { id: 1, firstName: 'Ana', lastName: 'Gómez', phone: '3510000001', email: 'ana.gomez@vitto.club', role: 'ADMIN', isActive: true },
-  { id: 2, firstName: 'Bruno', lastName: 'Pérez', phone: '3510000002', email: 'bruno.perez@vitto.club', role: 'CASHIER', isActive: true },
-  { id: 3, firstName: 'Carla', lastName: 'Martínez', phone: '3510000003', email: 'carla.martinez@vitto.club', role: 'CASHIER', isActive: true },
+  { id: 1, firstName: 'Ana', lastName: 'Gómez', phone: '3510000001', email: 'ana.gomez@vitto.club', role: 'ADMIN', isActive: true, hasAccount: true },
+  { id: 2, firstName: 'Bruno', lastName: 'Pérez', phone: '3510000002', email: 'bruno.perez@vitto.club', role: 'CASHIER', isActive: true, hasAccount: false },
+  { id: 3, firstName: 'Carla', lastName: 'Martínez', phone: '3510000003', email: 'carla.martinez@vitto.club', role: 'CASHIER', isActive: true, hasAccount: false },
   // Dado de baja (no está en el seed): sirve para probar que no se puede editar (409)
-  { id: 4, firstName: 'Diego', lastName: 'Sosa', phone: null, email: 'diego.sosa@vitto.club', role: 'CASHIER', isActive: false },
+  { id: 4, firstName: 'Diego', lastName: 'Sosa', phone: null, email: 'diego.sosa@vitto.club', role: 'CASHIER', isActive: false, hasAccount: false },
 ];
 
 let nextId = employees.length + 1;
+
+// Usuarios del sistema (tabla accounts). Ana es la administradora del seed.
+const accounts: Account[] = [
+  { accountId: 1, employeeId: 1, email: 'ana.gomez@vitto.club', role: 'ADMIN', active: true },
+];
+
+let nextAccountId = accounts.length + 1;
 
 const STATUS_NAMES = { 400: 'Bad Request', 404: 'Not Found', 409: 'Conflict' };
 
@@ -211,6 +218,7 @@ export const employeesHandlers = [
       email,
       role: body.role as Employee['role'],
       isActive: true,
+      hasAccount: false,
     };
     employees.push(created);
     return HttpResponse.json(created, { status: 201 });
@@ -268,5 +276,70 @@ export const employeesHandlers = [
     }
     employee.isActive = false;
     return HttpResponse.json(employee);
+  }),
+
+  // SCRUM-21: POST /api/usuarios responde 201 / 400 / 404 / 409, en el mismo
+  // orden de validaciones que AccountsService.register del backend.
+  // No se valida el mail contra los clientes (en el backend es un 409).
+  http.post(`${API_URL}/usuarios`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+
+    const errors = Object.keys(body)
+      .filter((key) => !['employeeId', 'email', 'password'].includes(key))
+      .map((key) => `property ${key} should not exist`);
+    const { employeeId, email, password } = body;
+    if (!Number.isInteger(employeeId) || (employeeId as number) <= 0) {
+      errors.push('employeeId must be a positive number');
+    }
+    if (!isNonEmptyText(email)) errors.push('email should not be empty');
+    else if (!EMAIL_PATTERN.test(email)) errors.push('email must be an email');
+    else if (email.length > 150) {
+      errors.push('email must be shorter than or equal to 150 characters');
+    }
+    if (typeof password !== 'string' || password.length < 8) {
+      errors.push('password must be longer than or equal to 8 characters');
+    } else if (password.length > 64) {
+      errors.push('password must be shorter than or equal to 64 characters');
+    }
+    if (errors.length) return errorResponse(400, errors, request);
+
+    const { employee, error } = findById(String(employeeId), request);
+    if (error) return error;
+
+    if (!employee.isActive) {
+      return errorResponse(
+        409,
+        `Employee with ID ${employee.id} is inactive and cannot have an account`,
+        request,
+      );
+    }
+    if (accounts.some((a) => a.employeeId === employee.id)) {
+      return errorResponse(
+        409,
+        `Employee with ID ${employee.id} already has an account`,
+        request,
+      );
+    }
+    if ((email as string).trim().toLowerCase() !== employee.email) {
+      return errorResponse(
+        400,
+        "The email must match the associated employee's email",
+        request,
+      );
+    }
+    if (password === employee.email) {
+      return domainError('password', 'Password cannot be equal to the email', request);
+    }
+
+    const account: Account = {
+      accountId: nextAccountId++,
+      employeeId: employee.id,
+      email: employee.email,
+      role: employee.role,
+      active: true,
+    };
+    accounts.push(account);
+    employee.hasAccount = true;
+    return HttpResponse.json(account, { status: 201 });
   }),
 ];

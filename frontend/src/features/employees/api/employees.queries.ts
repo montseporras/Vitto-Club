@@ -9,8 +9,10 @@ import type {
   EditEmployeeFormValues,
   CreateEmployeeFormValues,
 } from '../schemas/employee.schema';
+import type { CreateAccountDto } from '../types/employee';
 import {
   updateEmployee,
+  createEmployeeAccount,
   deactivateEmployee,
   formToUpdateEmployeeDto,
   formToCreateEmployeeDto,
@@ -59,6 +61,19 @@ export const useDeactivateEmployee = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => deactivateEmployee(id),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: employeesKeys.lists() });
+    },
+  });
+};
+
+// Alta del usuario de un empleado (SCRUM-21). Refresca la tabla para que el
+// empleado aparezca con usuario; también si falla, porque un 404/409
+// significa que la tabla estaba desactualizada.
+export const useCreateEmployeeAccount = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateAccountDto) => createEmployeeAccount(body),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: employeesKeys.lists() });
     },

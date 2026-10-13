@@ -10,6 +10,8 @@ export interface Employee {
   email: string;
   role: EmployeeRole;
   isActive: boolean;
+  // true si el empleado ya tiene usuario para entrar al sistema (SCRUM-21)
+  hasAccount: boolean;
 }
 
 // Cuerpo del POST /empleados. Teléfono opcional (RF-01).
@@ -27,4 +29,22 @@ export interface UpdateEmployeeDto {
   lastName: string;
   phone?: string;
   role: EmployeeRole;
+}
+
+// Cuerpo del POST /usuarios (SCRUM-21). El mail tiene que ser el del
+// empleado: con él inicia sesión. La contraseña se genera en el front.
+export interface CreateAccountDto {
+  employeeId: number;
+  email: string;
+  password: string;
+}
+
+// Respuesta del alta de usuario. El rol es una copia del rol del empleado y
+// la contraseña nunca vuelve del backend.
+export interface Account {
+  accountId: number;
+  employeeId: number;
+  email: string;
+  role: EmployeeRole;
+  active: boolean;
 }
