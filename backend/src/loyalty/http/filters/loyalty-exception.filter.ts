@@ -30,6 +30,7 @@ export class LoyaltyExceptionFilter implements ExceptionFilter {
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | string[] = 'Unexpected error.';
     let details: { field: string; message: string }[] | undefined;
+    let code: string | undefined;
 
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
@@ -40,6 +41,7 @@ export class LoyaltyExceptionFilter implements ExceptionFilter {
         const bodyObject = body as Record<string, unknown>;
         message =
           (bodyObject.message as string | string[]) ?? exception.message;
+        code = typeof bodyObject.code === 'string' ? bodyObject.code : undefined;
       }
     } else if (exception instanceof DomainError) {
       statusCode = HttpStatus.BAD_REQUEST;
@@ -62,6 +64,7 @@ export class LoyaltyExceptionFilter implements ExceptionFilter {
       path: request.url,
       timestamp: new Date().toISOString(),
       ...(details ? { details } : {}),
+      ...(code ? { code } : {}),
     });
   }
 }
