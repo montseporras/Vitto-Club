@@ -5,6 +5,7 @@ import { DomainError } from '../../domain/errors/domain.error.js';
 const STATUS_NAMES: Record<number, string> = {
   400: 'Bad Request',
   401: 'Unauthorized',
+  403: 'Forbidden',
   404: 'Not Found',
   409: 'Conflict',
   500: 'Internal Server Error',
@@ -34,6 +35,7 @@ export class CustomerExceptionFilter implements ExceptionFilter {
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Unexpected error.';
     let details: { field: string; message: string }[] | undefined;
+    let code: string | undefined;
 
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
@@ -44,6 +46,7 @@ export class CustomerExceptionFilter implements ExceptionFilter {
         const bodyObj = body as Record<string, unknown>;
         message = (bodyObj.message as string) ?? exception.message;
         details = bodyObj.details as { field: string; message: string }[] | undefined;
+        code = typeof bodyObj.code === 'string' ? bodyObj.code : undefined;
       }
     } else if (exception instanceof DomainError) {
       // Validaciones y reglas del dominio (Customer, Mail): el cliente envió un dato inválido
@@ -53,9 +56,9 @@ export class CustomerExceptionFilter implements ExceptionFilter {
         details = [{ field: exception.field, message: exception.message }];
       }
     } else if (hasErrorCode(exception, PRISMA_UNIQUE_VIOLATION)) {
-      // Dos altas simultáneas con el mismo documento: la base rechaza la segunda
+      // Dos operaciones simultáneas con el mismo documento o email: la base rechaza la segunda
       statusCode = HttpStatus.CONFLICT;
-      message = 'A customer with that document already exists';
+      message = 'An active customer with that document or email already exists';
     } else if (hasErrorCode(exception, PRISMA_RECORD_NOT_FOUND)) {
       statusCode = HttpStatus.NOT_FOUND;
       message = 'Customer not found';
@@ -73,6 +76,7 @@ export class CustomerExceptionFilter implements ExceptionFilter {
       path: request.url,
       timestamp: new Date().toISOString(),
       ...(details ? { details } : {}),
+      ...(code ? { code } : {}),
     });
   }
 }

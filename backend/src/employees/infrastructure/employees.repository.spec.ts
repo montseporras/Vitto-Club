@@ -1,6 +1,13 @@
 import { buildEmployeeWhere, EmployeePrismaRepository } from './employees.repository.js';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import { Employee } from '../domain/employee.js';
+
+// El repositorio ahora inyecta PrismaTransactionRunner y usa su getter .client en vez de
+// PrismaService directo (ver docs/ARCHITECTURE.md). Este fake solo necesita exponer ese
+// getter con el cliente de Prisma simulado.
+function fakeTransactionRunner(prismaLike: object): PrismaTransactionRunner {
+  return { client: prismaLike } as unknown as PrismaTransactionRunner;
+}
 
 // Filtro del listado (US-03), probado sin base de datos
 describe('buildEmployeeWhere', () => {
@@ -65,9 +72,7 @@ describe('EmployeePrismaRepository.updateStatus', () => {
       delete: jest.fn(),
       deleteMany: jest.fn(),
     };
-    repository = new EmployeePrismaRepository({
-      employee: prismaEmployee,
-    } as unknown as PrismaService);
+    repository = new EmployeePrismaRepository(fakeTransactionRunner({ employee: prismaEmployee }));
   });
 
   const deactivated = () => {
@@ -109,9 +114,7 @@ describe('EmployeePrismaRepository.updateStatus', () => {
 describe('EmployeePrismaRepository.findAll', () => {
   it('ordena por apellido ascendente, desempatando por nombre e id', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
-    const repository = new EmployeePrismaRepository({
-      employee: { findMany },
-    } as unknown as PrismaService);
+    const repository = new EmployeePrismaRepository(fakeTransactionRunner({ employee: { findMany } }));
 
     await repository.findAll();
 

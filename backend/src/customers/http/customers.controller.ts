@@ -20,12 +20,14 @@ import { FindCustomerByDocumentQueryDto } from "./dto/find-customer-by-document-
 import { CustomersService } from "../application/customers.service.js";
 import { CustomerResponseDto } from "./dto/customer-response.dto.js";
 import { CustomerExceptionFilter } from "./filters/customers-exception.filter.js";
+import { Roles } from "../../shared/security/roles.decorator.js";
 
 
 
 
 
 @Controller('customers')
+@Roles('ADMIN', 'CASHIER') // el Cajero gestiona clientes, incluida la baja, la reactivación y el historial
 @UseFilters(CustomerExceptionFilter)
 @UsePipes(
   new ValidationPipe({
