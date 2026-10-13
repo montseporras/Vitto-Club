@@ -7,4 +7,5 @@ export type {
   CreateEmployeeDto,
   Employee,
   EmployeeAccount,
+  EmployeeResponse,
 } from './types/employee';

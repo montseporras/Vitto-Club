@@ -3,13 +3,11 @@
 // Estado en memoria, sembrado igual que el seed de Prisma del backend.
 import { http, HttpResponse } from 'msw';
 import { API_URL } from '@/shared/api/http';
-import type { Account, Employee } from '@/features/employees';
+import type { Account, EmployeeResponse } from '@/features/employees';
 
-// El resumen del usuario (`account`) no se guarda en el empleado: se arma en
-// cada respuesta a partir de `accounts`, como en el backend.
-type StoredEmployee = Omit<Employee, 'account'>;
-
-const employees: StoredEmployee[] = [
+// Como en el backend, el empleado no trae su usuario: el front lo cruza con
+// GET /usuarios.
+const employees: EmployeeResponse[] = [
   { id: 1, firstName: 'Ana', lastName: 'Gómez', phone: '3510000001', email: 'ana.gomez@vitto.club', role: 'ADMIN', isActive: true },
   { id: 2, firstName: 'Bruno', lastName: 'Pérez', phone: '3510000002', email: 'bruno.perez@vitto.club', role: 'CASHIER', isActive: true },
   { id: 3, firstName: 'Carla', lastName: 'Martínez', phone: '3510000003', email: 'carla.martinez@vitto.club', role: 'CASHIER', isActive: true },
@@ -26,15 +24,6 @@ const accounts: Account[] = [
   { accountId: 1, employeeId: 1, email: 'ana.gomez@vitto.club', role: 'ADMIN', active: true },
   { accountId: 2, employeeId: 5, email: 'lucia.fernandez@vitto.club', role: 'CASHIER', active: false },
 ];
-
-// Empleado tal como lo devuelve la API, con el resumen de su usuario.
-const toResponse = (employee: StoredEmployee): Employee => {
-  const account = accounts.find((a) => a.employeeId === employee.id);
-  return {
-    ...employee,
-    account: account ? { id: account.accountId, active: account.active } : null,
-  };
-};
 
 let nextAccountId = accounts.length + 1;
 
@@ -232,13 +221,13 @@ export const employeesHandlers = [
           a.firstName.localeCompare(b.firstName, 'es') ||
           a.id - b.id,
       );
-    return HttpResponse.json(result.map(toResponse));
+    return HttpResponse.json(result);
   }),
 
   // US-03: GET /api/empleados/:id
   http.get(`${API_URL}/empleados/:id`, ({ params, request }) => {
     const { employee, error } = findById(params.id, request);
-    return error ?? HttpResponse.json(toResponse(employee));
+    return error ?? HttpResponse.json(employee);
   }),
 
   // US-01: POST /api/empleados responde 201 / 400 / 409.
@@ -270,17 +259,17 @@ export const employeesHandlers = [
       );
     }
 
-    const created: StoredEmployee = {
+    const created: EmployeeResponse = {
       id: nextId++,
       firstName,
       lastName,
       phone,
       email,
-      role: body.role as Employee['role'],
+      role: body.role as EmployeeResponse['role'],
       isActive: true,
     };
     employees.push(created);
-    return HttpResponse.json(toResponse(created), { status: 201 });
+    return HttpResponse.json(created, { status: 201 });
   }),
 
   // US-02: PATCH /api/empleados/:id responde 200 / 400 / 404 / 409.
@@ -317,11 +306,11 @@ export const employeesHandlers = [
     employee.firstName = firstName;
     employee.lastName = lastName;
     employee.phone = phone;
-    employee.role = body.role as Employee['role'];
+    employee.role = body.role as EmployeeResponse['role'];
     // En el backend, el evento employee.role-changed sincroniza el rol del usuario.
     const account = accounts.find((a) => a.employeeId === employee.id);
     if (account) account.role = employee.role;
-    return HttpResponse.json(toResponse(employee));
+    return HttpResponse.json(employee);
   }),
 
   // US-04: DELETE /api/empleados/:id -> baja lógica, responde 200 / 400 / 404 / 409.
@@ -343,7 +332,7 @@ export const employeesHandlers = [
     if (account && isLastAvailableAdmin(account)) return lastAdminError(request);
     employee.isActive = false;
     if (account) account.active = false;
-    return HttpResponse.json(toResponse(employee));
+    return HttpResponse.json(employee);
   }),
 
   // SCRUM-21: POST /api/usuarios responde 201 / 400 / 404 / 409, en el mismo
@@ -413,6 +402,12 @@ export const employeesHandlers = [
     accounts.push(account);
     return HttpResponse.json(account, { status: 201 });
   }),
+
+  // SCRUM-27: GET /api/usuarios responde 200 con los usuarios de empleados,
+  // activos y dados de baja, ordenados por id (pedido al backend).
+  http.get(`${API_URL}/usuarios`, () =>
+    HttpResponse.json([...accounts].sort((a, b) => a.accountId - b.accountId)),
+  ),
 
   // SCRUM-24: GET /api/usuarios/empleado/:employeeId responde 200 / 400 / 404.
   http.get(`${API_URL}/usuarios/empleado/:employeeId`, ({ params, request }) => {

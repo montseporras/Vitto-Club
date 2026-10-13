@@ -10,6 +10,7 @@ import type {
   CreateAccountDto,
   CreateEmployeeDto,
   Employee,
+  EmployeeResponse,
   UpdateAccountPasswordDto,
 } from '../types/employee';
 
@@ -29,25 +30,37 @@ export function formToCreateEmployeeDto(
 
 // Listado de empleados (RF-03). La búsqueda por nombre y/o apellido la resuelve
 // el backend (?name=); sin `name` devuelve todos, activos e inactivos.
+// A cada empleado se le suma el resumen de su usuario, que sale de GET /usuarios
+// (SCRUM-27): el módulo de empleados del backend no conoce a las cuentas.
 export async function listEmployees(name?: string): Promise<Employee[]> {
   const trimmed = name?.trim();
-  const { data } = await http.get<Employee[]>('/empleados', {
-    params: trimmed ? { name: trimmed } : undefined,
+  const [{ data: employees }, { data: accounts }] = await Promise.all([
+    http.get<EmployeeResponse[]>('/empleados', {
+      params: trimmed ? { name: trimmed } : undefined,
+    }),
+    http.get<Account[]>('/usuarios'),
+  ]);
+  const accountByEmployee = new Map(accounts.map((a) => [a.employeeId, a]));
+  return employees.map((employee) => {
+    const account = accountByEmployee.get(employee.id);
+    return {
+      ...employee,
+      account: account ? { id: account.accountId, active: account.active } : null,
+    };
   });
-  return data;
 }
 
 export async function createEmployee(
   body: CreateEmployeeDto,
-): Promise<Employee> {
-  const { data } = await http.post<Employee>('/empleados', body);
+): Promise<EmployeeResponse> {
+  const { data } = await http.post<EmployeeResponse>('/empleados', body);
   return data;
 }
 
 // Baja lógica de un empleado (RF-04): el backend marca isActive=false,
 // no borra el registro.
-export async function deactivateEmployee(id: number): Promise<Employee> {
-  const { data } = await http.delete<Employee>(`/empleados/${id}`);
+export async function deactivateEmployee(id: number): Promise<EmployeeResponse> {
+  const { data } = await http.delete<EmployeeResponse>(`/empleados/${id}`);
   return data;
 }
 
@@ -68,8 +81,8 @@ export function formToUpdateEmployeeDto(
 export async function updateEmployee(
   id: number,
   body: UpdateEmployeeDto,
-): Promise<Employee> {
-  const { data } = await http.patch<Employee>(`/empleados/${id}`, body);
+): Promise<EmployeeResponse> {
+  const { data } = await http.patch<EmployeeResponse>(`/empleados/${id}`, body);
   return data;
 }
 
