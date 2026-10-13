@@ -3,17 +3,29 @@
 // Estado en memoria, sembrado igual que el seed de Prisma del backend.
 import { http, HttpResponse } from 'msw';
 import { API_URL } from '@/shared/api/http';
-import type { Employee } from '@/features/employees';
+import type { Account, EmployeeResponse } from '@/features/employees';
 
-const employees: Employee[] = [
+// Como en el backend, el empleado no trae su usuario: el front lo cruza con
+// GET /usuarios.
+const employees: EmployeeResponse[] = [
   { id: 1, firstName: 'Ana', lastName: 'Gómez', phone: '3510000001', email: 'ana.gomez@vitto.club', role: 'ADMIN', isActive: true },
   { id: 2, firstName: 'Bruno', lastName: 'Pérez', phone: '3510000002', email: 'bruno.perez@vitto.club', role: 'CASHIER', isActive: true },
   { id: 3, firstName: 'Carla', lastName: 'Martínez', phone: '3510000003', email: 'carla.martinez@vitto.club', role: 'CASHIER', isActive: true },
   // Dado de baja (no está en el seed): sirve para probar que no se puede editar (409)
   { id: 4, firstName: 'Diego', lastName: 'Sosa', phone: null, email: 'diego.sosa@vitto.club', role: 'CASHIER', isActive: false },
+  // Activa con el usuario dado de baja (no está en el seed): sirve para probar la reactivación
+  { id: 5, firstName: 'Lucía', lastName: 'Fernández', phone: '3510000005', email: 'lucia.fernandez@vitto.club', role: 'CASHIER', isActive: true },
 ];
 
 let nextId = employees.length + 1;
+
+// Usuarios del sistema (tabla accounts). Ana es la administradora del seed.
+const accounts: Account[] = [
+  { accountId: 1, employeeId: 1, email: 'ana.gomez@vitto.club', role: 'ADMIN', active: true },
+  { accountId: 2, employeeId: 5, email: 'lucia.fernandez@vitto.club', role: 'CASHIER', active: false },
+];
+
+let nextAccountId = accounts.length + 1;
 
 const STATUS_NAMES = { 400: 'Bad Request', 404: 'Not Found', 409: 'Conflict' };
 
@@ -25,6 +37,7 @@ const errorResponse = (
   message: string | string[],
   request: Request,
   details?: Detail[],
+  code?: string,
 ) => {
   const { pathname, search } = new URL(request.url);
   return HttpResponse.json(
@@ -35,6 +48,7 @@ const errorResponse = (
       path: pathname + search,
       timestamp: new Date().toISOString(),
       ...(details ? { details } : {}),
+      ...(code ? { code } : {}),
     },
     { status: statusCode },
   );
@@ -127,6 +141,48 @@ function findById(idParam: unknown, request: Request) {
   return { employee };
 }
 
+// Administrador disponible: usuario activo de un empleado activo con rol ADMIN.
+// El sistema no puede quedarse sin ninguno.
+const isAvailableAdmin = (account: Account) =>
+  account.active &&
+  employees.some(
+    (e) => e.id === account.employeeId && e.isActive && e.role === 'ADMIN',
+  );
+
+const isLastAvailableAdmin = (account: Account) =>
+  isAvailableAdmin(account) && accounts.filter(isAvailableAdmin).length <= 1;
+
+// Supuesto: el backend agrega `code: 'LAST_ADMIN'` a este 409 (pedido).
+const lastAdminError = (request: Request) =>
+  errorResponse(
+    409,
+    'This operation would leave the system without an available administrator',
+    request,
+    undefined,
+    'LAST_ADMIN',
+  );
+
+// /usuarios/:id — ParseIntPipe: 400 si el id no es numérico; 404 si no existe.
+function findAccount(idParam: unknown, request: Request) {
+  if (typeof idParam !== 'string' || !/^-?\d+$/.test(idParam)) {
+    return {
+      error: errorResponse(
+        400,
+        'Validation failed (numeric string is expected)',
+        request,
+      ),
+    };
+  }
+  const id = Number(idParam);
+  const account = accounts.find((a) => a.accountId === id);
+  if (!account) {
+    return {
+      error: errorResponse(404, `Account with ID ${id} not found`, request),
+    };
+  }
+  return { account };
+}
+
 export const employeesHandlers = [
   // US-03: GET /api/empleados?name=ana&active=true -> siempre un array.
   http.get(`${API_URL}/empleados`, ({ request }) => {
@@ -203,13 +259,13 @@ export const employeesHandlers = [
       );
     }
 
-    const created: Employee = {
+    const created: EmployeeResponse = {
       id: nextId++,
       firstName,
       lastName,
       phone,
       email,
-      role: body.role as Employee['role'],
+      role: body.role as EmployeeResponse['role'],
       isActive: true,
     };
     employees.push(created);
@@ -250,7 +306,10 @@ export const employeesHandlers = [
     employee.firstName = firstName;
     employee.lastName = lastName;
     employee.phone = phone;
-    employee.role = body.role as Employee['role'];
+    employee.role = body.role as EmployeeResponse['role'];
+    // En el backend, el evento employee.role-changed sincroniza el rol del usuario.
+    const account = accounts.find((a) => a.employeeId === employee.id);
+    if (account) account.role = employee.role;
     return HttpResponse.json(employee);
   }),
 
@@ -266,7 +325,195 @@ export const employeesHandlers = [
         request,
       );
     }
+    // En el backend, el evento employee.deactivated da de baja también su
+    // cuenta, salvo que sea el último administrador disponible: ahí se deshace
+    // todo y responde 409.
+    const account = accounts.find((a) => a.employeeId === employee.id);
+    if (account && isLastAvailableAdmin(account)) return lastAdminError(request);
     employee.isActive = false;
+    if (account) account.active = false;
     return HttpResponse.json(employee);
+  }),
+
+  // SCRUM-21: POST /api/usuarios responde 201 / 400 / 404 / 409, en el mismo
+  // orden de validaciones que AccountsService.register del backend.
+  // No se valida el mail contra los clientes (en el backend es un 409).
+  http.post(`${API_URL}/usuarios`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+
+    const errors = Object.keys(body)
+      .filter((key) => !['employeeId', 'email', 'password'].includes(key))
+      .map((key) => `property ${key} should not exist`);
+    const { employeeId, email, password } = body;
+    if (!Number.isInteger(employeeId) || (employeeId as number) <= 0) {
+      errors.push('employeeId must be a positive number');
+    }
+    if (!isNonEmptyText(email)) errors.push('email should not be empty');
+    else if (!EMAIL_PATTERN.test(email)) errors.push('email must be an email');
+    else if (email.length > 150) {
+      errors.push('email must be shorter than or equal to 150 characters');
+    }
+    if (typeof password !== 'string' || password.length < 8) {
+      errors.push('password must be longer than or equal to 8 characters');
+    } else if (password.length > 64) {
+      errors.push('password must be shorter than or equal to 64 characters');
+    }
+    if (errors.length) return errorResponse(400, errors, request);
+
+    const { employee, error } = findById(String(employeeId), request);
+    if (error) return error;
+
+    if (!employee.isActive) {
+      return errorResponse(
+        409,
+        `Employee with ID ${employee.id} is inactive and cannot have an account`,
+        request,
+      );
+    }
+    if (accounts.some((a) => a.employeeId === employee.id)) {
+      return errorResponse(
+        409,
+        `Employee with ID ${employee.id} already has an account`,
+        request,
+      );
+    }
+    if ((email as string).trim().toLowerCase() !== employee.email) {
+      return errorResponse(
+        400,
+        "The email must match the associated employee's email",
+        request,
+      );
+    }
+    if (password === employee.email) {
+      return errorResponse(
+        400,
+        'Password cannot be the same as the email',
+        request,
+      );
+    }
+
+    const account: Account = {
+      accountId: nextAccountId++,
+      employeeId: employee.id,
+      email: employee.email,
+      role: employee.role,
+      active: true,
+    };
+    accounts.push(account);
+    return HttpResponse.json(account, { status: 201 });
+  }),
+
+  // SCRUM-27: GET /api/usuarios responde 200 con los usuarios de empleados,
+  // activos y dados de baja, ordenados por id (pedido al backend).
+  http.get(`${API_URL}/usuarios`, () =>
+    HttpResponse.json([...accounts].sort((a, b) => a.accountId - b.accountId)),
+  ),
+
+  // SCRUM-24: GET /api/usuarios/empleado/:employeeId responde 200 / 400 / 404.
+  http.get(`${API_URL}/usuarios/empleado/:employeeId`, ({ params, request }) => {
+    const { employee, error } = findById(params.employeeId, request);
+    if (error) return error;
+
+    const account = accounts.find((a) => a.employeeId === employee.id);
+    if (!account) {
+      return errorResponse(
+        404,
+        `Employee with ID ${employee.id} has no account`,
+        request,
+      );
+    }
+    return HttpResponse.json(account);
+  }),
+
+  // SCRUM-24: PATCH /api/usuarios/:id responde 200 / 400 / 404 / 409, en el
+  // mismo orden que AccountsService.resetPassword. El backend también acepta
+  // `role`, pero el front no lo manda: el rol se cambia desde el empleado.
+  http.patch(`${API_URL}/usuarios/:id`, async ({ params, request }) => {
+    if (typeof params.id !== 'string' || !/^-?\d+$/.test(params.id)) {
+      return errorResponse(
+        400,
+        'Validation failed (numeric string is expected)',
+        request,
+      );
+    }
+    const body = (await request.json()) as Record<string, unknown>;
+
+    const errors = Object.keys(body)
+      .filter((key) => key !== 'password')
+      .map((key) => `property ${key} should not exist`);
+    const { password } = body;
+    if (password === undefined) {
+      errors.push('At least one of role or password must be provided');
+    } else if (typeof password !== 'string' || password.length < 8) {
+      errors.push('password must be longer than or equal to 8 characters');
+    } else if (password.length > 64) {
+      errors.push('password must be shorter than or equal to 64 characters');
+    }
+    if (errors.length) return errorResponse(400, errors, request);
+
+    const id = Number(params.id);
+    const account = accounts.find((a) => a.accountId === id);
+    if (!account) {
+      return errorResponse(404, `Account with ID ${id} not found`, request);
+    }
+    if (!account.active) {
+      return errorResponse(
+        409,
+        `Account with ID ${id} is inactive and cannot be modified`,
+        request,
+      );
+    }
+    if (password === account.email) {
+      return errorResponse(
+        400,
+        'Password cannot be the same as the email',
+        request,
+      );
+    }
+    return HttpResponse.json(account);
+  }),
+
+  // SCRUM-27: PATCH /api/usuarios/:id/deactivate responde 204 / 400 / 404 / 409,
+  // en el mismo orden que AccountsService.deactivate. Supuesto: el 409 del
+  // último administrador trae `code: 'LAST_ADMIN'` (pedido al backend).
+  http.patch(`${API_URL}/usuarios/:id/deactivate`, ({ params, request }) => {
+    const { account, error } = findAccount(params.id, request);
+    if (error) return error;
+
+    if (!account.active) {
+      return errorResponse(
+        409,
+        `Account with ID ${account.accountId} is already inactive`,
+        request,
+      );
+    }
+    if (isLastAvailableAdmin(account)) return lastAdminError(request);
+    account.active = false;
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // SCRUM-27: PATCH /api/usuarios/:id/reactivate responde 204 / 400 / 404 / 409,
+  // en el mismo orden que AccountsService.reactivate.
+  http.patch(`${API_URL}/usuarios/:id/reactivate`, ({ params, request }) => {
+    const { account, error } = findAccount(params.id, request);
+    if (error) return error;
+
+    if (account.active) {
+      return errorResponse(
+        409,
+        `Account with ID ${account.accountId} is already active`,
+        request,
+      );
+    }
+    const employee = employees.find((e) => e.id === account.employeeId);
+    if (!employee?.isActive) {
+      return errorResponse(
+        409,
+        `Employee with ID ${account.employeeId} is inactive and cannot have its account reactivated`,
+        request,
+      );
+    }
+    account.active = true;
+    return new HttpResponse(null, { status: 204 });
   }),
 ];

@@ -9,6 +9,7 @@ export const ICONS = {
   search: 'm21 21-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Z',
   plus: 'M12 5v14M5 12h14',
   close: 'M18 6 6 18M6 6l12 12',
+  copy: 'M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2ZM4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2',
   chevronDown: 'm6 9 6 6 6-6',
   arrowLeft: 'm12 19-7-7 7-7M19 12H5',
   panelClose:

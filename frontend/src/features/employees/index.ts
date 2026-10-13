@@ -1,3 +1,11 @@
 // Barrel del feature empleados: lo único que otros módulos deben importar.
 export { EmployeesPage } from './pages/EmployeesPage';
-export type { UpdateEmployeeDto, CreateEmployeeDto, Employee } from './types/employee';
+export type {
+  Account,
+  UpdateEmployeeDto,
+  CreateAccountDto,
+  CreateEmployeeDto,
+  Employee,
+  EmployeeAccount,
+  EmployeeResponse,
+} from './types/employee';

@@ -9,8 +9,16 @@ import type {
   EditEmployeeFormValues,
   CreateEmployeeFormValues,
 } from '../schemas/employee.schema';
+import type {
+  CreateAccountDto,
+  UpdateAccountPasswordDto,
+} from '../types/employee';
 import {
   updateEmployee,
+  createEmployeeAccount,
+  updateAccountPassword,
+  deactivateAccount,
+  reactivateAccount,
   deactivateEmployee,
   formToUpdateEmployeeDto,
   formToCreateEmployeeDto,
@@ -59,6 +67,48 @@ export const useDeactivateEmployee = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => deactivateEmployee(id),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: employeesKeys.lists() });
+    },
+  });
+};
+
+// Alta del usuario de un empleado (SCRUM-21). Refresca la tabla para que el
+// empleado aparezca con usuario; también si falla, porque un 404/409
+// significa que la tabla estaba desactualizada.
+export const useCreateEmployeeAccount = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateAccountDto) => createEmployeeAccount(body),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: employeesKeys.lists() });
+    },
+  });
+};
+
+// Cambio de contraseña del usuario (SCRUM-24).
+export const useUpdateAccountPassword = (accountId: number) =>
+  useMutation({
+    mutationFn: (body: UpdateAccountPasswordDto) =>
+      updateAccountPassword(accountId, body),
+  });
+
+// Baja y reactivación del usuario (SCRUM-27). Se refresca el listado también
+// si fallan: un 404/409 significa que la tabla estaba desactualizada.
+export const useDeactivateAccount = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (accountId: number) => deactivateAccount(accountId),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: employeesKeys.lists() });
+    },
+  });
+};
+
+export const useReactivateAccount = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (accountId: number) => reactivateAccount(accountId),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: employeesKeys.lists() });
     },

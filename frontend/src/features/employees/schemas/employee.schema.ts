@@ -2,6 +2,11 @@
 // Reglas alineadas con el backend (docs/employees-api.md): nombre/apellido/mail/rol
 // obligatorios, teléfono opcional. Los largos máximos siguen al schema de Prisma.
 import { z } from 'zod';
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_RULES,
+} from '@/shared/lib/password';
 
 export const createEmployeeSchema = z.object({
   firstName: z
@@ -50,3 +55,30 @@ export const editEmployeeSchema = createEmployeeSchema.omit({
 });
 
 export type EditEmployeeFormValues = z.infer<typeof editEmployeeSchema>;
+
+// Contraseña del usuario del empleado, al crearlo (SCRUM-21) o al cambiarla
+// (SCRUM-24). El usuario es el mail, que ya está validado en el alta del
+// empleado; acá solo se valida la contraseña, por si la editan a mano.
+// El backend pide 8 a 64 caracteres y que no sea igual al mail; la mayúscula,
+// el número y el carácter especial son una exigencia extra del front.
+export const accountPasswordSchema = (email: string) =>
+  z.object({
+    password: z
+      .string()
+      .min(PASSWORD_MIN_LENGTH, `Mínimo ${PASSWORD_MIN_LENGTH} caracteres`)
+      .max(PASSWORD_MAX_LENGTH, `Máximo ${PASSWORD_MAX_LENGTH} caracteres`)
+      .regex(PASSWORD_RULES.uppercase, 'Tiene que tener al menos una mayúscula')
+      .regex(PASSWORD_RULES.digit, 'Tiene que tener al menos un número')
+      .regex(
+        PASSWORD_RULES.special,
+        'Tiene que tener al menos un carácter especial',
+      )
+      .refine(
+        (password) => password !== email,
+        'La contraseña no puede ser igual al mail',
+      ),
+  });
+
+export type AccountPasswordFormValues = z.infer<
+  ReturnType<typeof accountPasswordSchema>
+>;

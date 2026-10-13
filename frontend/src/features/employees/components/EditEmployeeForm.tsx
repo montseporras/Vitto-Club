@@ -1,6 +1,7 @@
 // Formulario de edición de empleado (RF-02). El mail no se edita.
 // La baja lógica (RF-04) se ofrece acá mismo (onRequestDeactivation) en vez de un
-// botón aparte en la tabla.
+// botón aparte en la tabla. Lo mismo con el usuario del sistema (SCRUM-21/24/27):
+// las acciones sobre él se piden con onAccountAction.
 // Un empleado dado de baja no se puede editar (el backend responde 409): sus
 // datos se muestran en modo sólo lectura.
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,12 +22,17 @@ import {
   type EditEmployeeFormValues,
 } from '../schemas/employee.schema';
 import type { Employee } from '../types/employee';
+import {
+  EmployeeAccountSection,
+  type AccountAction,
+} from './EmployeeAccountSection';
 
 interface EditEmployeeFormProps {
   employee: Employee;
   onSuccess: () => void;
   onCancel: () => void;
   onRequestDeactivation: () => void;
+  onAccountAction: (action: AccountAction) => void;
 }
 
 const ROLE_OPTIONS = Object.entries(EMPLOYEE_ROLES).map(([value, label]) => ({
@@ -56,6 +62,7 @@ export function EditEmployeeForm({
   onSuccess,
   onCancel,
   onRequestDeactivation,
+  onAccountAction,
 }: EditEmployeeFormProps) {
   const isReadOnly = !employee.isActive;
 
@@ -159,6 +166,12 @@ export function EditEmployeeForm({
           />
         </FormField>
       </FormSection>
+
+      <EmployeeAccountSection
+        step={4}
+        employee={employee}
+        onAction={onAccountAction}
+      />
 
       {isReadOnly ? (
         <FormActions>

@@ -16,6 +16,9 @@ interface ConfirmEmployeeDeactivationProps {
 // Mensaje según la respuesta del backend (DELETE /empleados/:id).
 function errorMessage(error: unknown): string {
   const apiError = toApiError(error);
+  if (apiError.code === 'LAST_ADMIN') {
+    return 'No se puede dar de baja: es el único administrador que puede ingresar al sistema.';
+  }
   switch (apiError.status) {
     case undefined:
       return apiError.message;
