@@ -15,7 +15,7 @@ de empleados, qué se puede enviar, qué devuelve la API y qué reglas aplica.
 | **URL base** | `http://localhost:3000/api` (el puerto sale de `PORT` en `backend/.env`) |
 | **Formato** | JSON. En `POST` y `PATCH` enviar `Content-Type: application/json` |
 | **CORS** | Solo acepta el origen `http://localhost:5173` (Vite) |
-| **Autenticación** | **No hay** todavía |
+| **Autenticación** | **Obligatoria**: `Authorization: Bearer <accessToken>`. Solo el **Administrador** puede usar este módulo; el Cajero y el Cliente reciben 403. Sin token, 401. Ver `docs/auth-api.md` |
 
 La ruta es **`/api/empleados`** (en español) para respetar el contrato que ya usa el frontend
 (`features/employees/api/employees.api.ts` y los handlers de MSW).
@@ -262,13 +262,19 @@ El empleado dado de baja:
 - **Teléfono opcional sin migración:** la columna `employees.phone` es `NOT NULL` en el schema. Mientras no
   se migre a opcional, un empleado sin teléfono se guarda con `''` en la base y la API lo devuelve como
   `null`. El frontend no necesita hacer nada distinto.
-- **Unicidad del email a nivel aplicación:** el schema no tiene `@unique` en `email`. El backend verifica
-  el duplicado antes de guardar, pero dos altas simultáneas con el mismo email podrían pasar ambas. Se
-  resuelve agregando `@unique` con una migración, cuando el equipo lo decida.
+- **Unicidad del email a nivel de base:** `employees.email` ya tiene `@unique` en el schema
+  (migración `employee_email_unique`). Además, el email de un empleado nuevo se valida contra los
+  emails de clientes activos vía `CustomersService` (ver `docs/accounts-abmc-status.md`, sección
+  "Unicidad global de email"); un empleado creado con el email de un cliente existente **no se
+  detecta en este endpoint** — ese conflicto recién aparece al intentar crear su cuenta de acceso,
+  por `Account.email @unique`. Es un riesgo aceptado explícitamente, no un bug.
 - **La búsqueda por nombre no ignora acentos:** `name=gomez` no encuentra "Gómez" (sí `gómez` o `GÓMEZ`).
   Resolverlo requiere la extensión `unaccent` de PostgreSQL y una migración.
 - **Bajas simultáneas:** si llegan dos `DELETE` al mismo tiempo para el mismo empleado, ambos pueden pasar
   la verificación de estado y el segundo sobrescribe la fecha de baja (mismo comportamiento que customers).
-- **Sin protección del último administrador:** hoy se puede dar de baja a cualquier empleado, incluso al
-  último `ADMIN` activo.
+- **Protección del último administrador:** ya implementada, pero no en este endpoint directamente —
+  `DELETE /api/empleados/:id` publica el evento `employee.deactivated`; si el empleado es el último
+  `ADMIN` con una cuenta de acceso activa, el módulo de cuentas rechaza la operación (409) y la baja
+  del empleado se deshace por completo (ver `docs/transacciones-y-eventos.md`). Si el empleado no
+  tiene cuenta de acceso, la baja no tiene esta restricción.
 - **Sin autenticación ni roles:** hoy cualquiera puede registrar, editar, consultar y dar de baja empleados.

@@ -7,7 +7,8 @@ import type {
 import { API_URL } from '@/shared/api/http'
 
 // Mismos clientes que backend/prisma/seed.ts, para probar el documento duplicado.
-const customers: Customer[] = [
+// Se exporta para que el autorregistro (auth.handlers.ts) vea y sume a la misma lista.
+export const customers: Customer[] = [
   {
     id: 1,
     firstName: 'Lucía',
@@ -53,7 +54,7 @@ const customers: Customer[] = [
 const STATUS_NAMES = { 400: 'Bad Request', 404: 'Not Found', 409: 'Conflict' }
 
 // Mismo formato que CustomerExceptionFilter del backend.
-const errorResponse = (
+export const errorResponse = (
   statusCode: 400 | 404 | 409,
   message: string | string[],
   path: string,
@@ -107,8 +108,19 @@ export const cashierHandlers = [
       if (exists) {
         return errorResponse(
           409,
-          `Customer with ${body.documentType} "${body.documentNumber}" already exists. ` +
-            'If that customer is inactive, reactivate it instead of creating a new one',
+          `An active customer with ${body.documentType} "${body.documentNumber}" already exists`,
+          path,
+        )
+      }
+      const emailTaken = customers.some(
+        (customer) =>
+          customer.active &&
+          customer.email.toLowerCase() === body.email.toLowerCase(),
+      )
+      if (emailTaken) {
+        return errorResponse(
+          409,
+          `An active customer with email "${body.email.toLowerCase()}" already exists`,
           path,
         )
       }
@@ -205,8 +217,7 @@ export const cashierHandlers = [
       if (taken) {
         return errorResponse(
           409,
-          `Customer with ${documentType} "${documentNumber}" already exists. ` +
-            'If that customer is inactive, reactivate it instead of creating a new one',
+          `An active customer with ${documentType} "${documentNumber}" already exists`,
           path,
         )
       }

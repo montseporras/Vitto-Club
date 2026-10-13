@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma, Employee as PrismaEmployeeRecord } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import { Employee, EmployeeRole } from '../domain/employee.js';
 import { EmployeeListFilters, EmployeeRepository } from '../domain/port/employee.repository.js';
 
@@ -46,7 +46,15 @@ export function buildEmployeeWhere(filters: EmployeeListFilters = {}): Prisma.Em
 
 @Injectable()
 export class EmployeePrismaRepository implements EmployeeRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  // Inyecta PrismaTransactionRunner (no PrismaService) y usa .client en cada query: así
+  // participa de la transacción ambiente abierta por EmployeesService.update()/deactivate()
+  // sin que este repositorio sepa nada de transacciones — .client es el cliente normal si
+  // no hay ninguna abierta (ver docs/ARCHITECTURE.md).
+  constructor(private readonly transactionRunner: PrismaTransactionRunner) {}
+
+  private get prisma() {
+    return this.transactionRunner.client;
+  }
 
   async save(employee: Employee): Promise<Employee> {
     const created = await this.prisma.employee.create({

@@ -19,7 +19,7 @@ así que agregarle las mismas capas sería sobre-ingeniería.
 ## Backend: monolito modular hexagonal
 
 Es **un solo proceso Nest** (un solo deploy), dividido en **módulos por
-contexto de negocio** (`customers`, `employees`, …). Cada módulo es
+contexto de negocio** (`customers`, `employees`, `loyalty`, …). Cada módulo es
 independiente y, puertas adentro, sigue puertos y adaptadores.
 
 ### Estructura de un módulo
@@ -48,13 +48,28 @@ Ejemplo real de la inversión de dependencia, en `<modulo>.module.ts`:
 providers: [
   CustomersService,
   { provide: CustomerRepository, useClass: CustomerPrismaRepository },
-]
+];
 ```
 
 `CustomersService` (application) solo conoce `CustomerRepository`, que es una
 `abstract class` (el puerto) definida en `domain/port/`. Nest resuelve en
 runtime qué implementación (`infrastructure/`) inyectar. Así, el dominio no
 depende de Prisma ni de HTTP.
+
+El módulo `loyalty` aplica el mismo patrón a la configuración global de
+puntos: `PointsEquivalence`, `PointsValidity` y `FirstPurchaseBonus` validan
+las invariantes del dominio y el default de RF-010.
+`LoyaltyConfigurationRepository` define el puerto y
+`LoyaltyPrismaRepository` implementa la persistencia versionada del snapshot
+completo, con una nueva versión por actualización y una transacción serializada
+por advisory lock de PostgreSQL. Los endpoints seccionales existentes se
+mantienen como patches compatibles y también crean versiones. Una migración
+importa los valores singleton existentes en la versión inicial; un índice
+único parcial garantiza como máximo una versión activa. El contrato REST y las
+limitaciones respecto al snapshot futuro de movimientos están en
+[`loyalty-api.md`](./loyalty-api.md). Su guard de rol requiere que la futura
+integración de autenticación establezca `request.user.role`; no reemplaza la
+autenticación.
 
 ### Reglas para módulos nuevos
 
@@ -78,6 +93,69 @@ depende de Prisma ni de HTTP.
    health check) sí puede vivir fuera de un módulo de dominio — ver
    `backend/src/prisma/` y `backend/src/health/` como ejemplo. Eso no rompe la
    regla anterior porque no es dominio de ningún contexto de negocio.
+
+### Operaciones que cruzan módulos
+
+Dos mecanismos transversales, sin lógica de negocio (regla 4), para que una
+operación que toca dos módulos sea atómica sin que esos módulos se conozcan
+en los dos sentidos.
+
+**Transacción ambiente** (`backend/src/prisma/prisma-transaction-runner.ts`).
+Lo que se ejecuta dentro de `run(fn)` comparte una sola transacción de base de
+datos, aunque pase por repositorios de módulos distintos:
+
+- En `application/`, el caso de uso la abre a través de un puerto propio de su
+  módulo (una `abstract class` con `run`), ligado a `PrismaTransactionRunner`
+  en el `*.module.ts`. Nunca importa la librería ni Prisma.
+- En `infrastructure/`, los repositorios que participan usan `client` de
+  `PrismaTransactionRunner` en lugar de `PrismaService`.
+- Lo lento (por ejemplo, hashear una contraseña) se hace antes de abrir la
+  transacción.
+
+**Eventos de dominio** (`backend/src/shared/events/domain-events.ts`). Es la
+forma de que un módulo reaccione a lo que pasa en otro sin una dependencia
+circular. `forwardRef` no se usa.
+
+- Los nombres y los datos de los eventos se definen **solo** en ese archivo.
+  Es un contrato compartido: quien publica y quien escucha importan de ahí,
+  nunca del `domain/` del otro módulo. Los datos son primitivos.
+- Se publica con `await eventEmitter.emitAsync(NOMBRE, datos)`, dentro de la
+  transacción y después de escribir lo propio.
+- Se escucha con `@OnEvent(NOMBRE, { suppressErrors: false })`. Sin esa opción
+  la librería atrapa el error del listener y la operación sigue como si nada.
+- No se activan las opciones `async` ni `nextTick` del emisor.
+
+Con esas reglas el listener corre dentro de la transacción de quien publica:
+si tira un error, se deshace todo. Ejemplo: degradar al último administrador
+desde `PATCH /empleados/:id` falla entero, porque `accounts` escucha
+`employee.role-changed`, detecta que no quedaría ningún administrador
+disponible y tira.
+
+### Lo único que los módulos comparten: `src/shared/`
+
+La regla 2 dice que un módulo usa de otro solo el service que ese otro
+exporta. Hay **dos excepciones**, y las dos viven en `backend/src/shared/`
+para que no sean el `domain/` de nadie:
+
+| Carpeta | Qué contiene | Quién lo usa |
+|---|---|---|
+| `shared/events/` | Los nombres y los datos de los eventos de dominio | El módulo que publica y el que escucha |
+| `shared/security/` | Los decoradores `@Roles()`, `@Public()` y `@CurrentUser()`, y el tipo del usuario autenticado | Los controllers de cualquier módulo |
+
+Las dos cumplen lo mismo que pide la regla 4: son transversales y no tienen
+lógica de negocio. Son **contratos**: declaran nombres, datos y marcas, no
+deciden nada.
+
+- Los **guards** (`JwtAuthGuard`, `RolesGuard`), que sí tienen lógica, se
+  quedan en `auth`. Los decoradores solo dejan una marca en el endpoint; quien
+  la lee y decide es el guard.
+- Por eso los decoradores no viven en `auth`: `auth` depende de `accounts`
+  para el login, y si el controller de `accounts` importara `@Roles()` desde
+  `auth`, los dos módulos se necesitarían mutuamente.
+
+Lo que **no** va en `shared/`: entidades, reglas de negocio, services ni
+repositorios. Si algo de eso parece necesitar compartirse, es una señal de que
+hay que exponerlo por el service del módulo dueño o modelarlo como un evento.
 
 ## Frontend: monolito tradicional
 
