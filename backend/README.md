@@ -8,7 +8,7 @@ pendiente).
 
 - **NestJS 12** (ESM, `"type": "module"` en `package.json`).
 - **Prisma 7** con `@prisma/adapter-pg` como driver adapter de PostgreSQL —
-  ver [PRISMA.md](./PRISMA.md) para el porqué de esta configuración y los
+  ver [PRISMA.md](../docs/database/prisma.md) para el porqué de esta configuración y los
   comandos de día a día (`migrate dev`, `db seed`, `studio`).
 - **PostgreSQL 16** vía Docker (`docker-compose.yml` en la raíz del repo).
 
@@ -85,5 +85,5 @@ un `beforeEach` las tablas que usa, en orden de claves foráneas (`sessions`,
 
 ## Resources
 
-- [PRISMA.md](./PRISMA.md) — historial de cómo quedó configurado Prisma y comandos de uso diario.
+- [PRISMA.md](../docs/database/prisma.md) — historial de cómo quedó configurado Prisma y comandos de uso diario.
 - [Documentación de NestJS](https://docs.nestjs.com).

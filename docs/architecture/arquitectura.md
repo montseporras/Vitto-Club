@@ -67,7 +67,7 @@ mantienen como patches compatibles y también crean versiones. Una migración
 importa los valores singleton existentes en la versión inicial; un índice
 único parcial garantiza como máximo una versión activa. El contrato REST y las
 limitaciones respecto al snapshot futuro de movimientos están en
-[`loyalty-api.md`](./loyalty-api.md). Su guard de rol requiere que la futura
+[`loyalty-api.md`](../funcionalidades/configuracion-de-puntos.md). Su guard de rol requiere que la futura
 integración de autenticación establezca `request.user.role`; no reemplaza la
 autenticación.
 

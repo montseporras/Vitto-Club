@@ -145,4 +145,4 @@ directamente, porque esa capa ya depende de Prisma.
 | `backend/package.json`, `backend/package-lock.json` | Tres dependencias nuevas |
 | `backend/src/app.module.ts` | Registro de `ClsModule` con el plugin transaccional |
 | `backend/test/transactions.e2e-spec.ts` | Nuevo: los 6 tests |
-| `docs/spike-transacciones.md` | Este documento |
+| `docs/seguimiento/historico/spike-transacciones.md` | Este documento |

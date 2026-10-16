@@ -90,7 +90,7 @@ en Prisma desde la migración `account_email`).
 `Employees` no importa ni conoce a `Accounts`, ni en código ni en imports — cero
 `forwardRef` entre ambos. La integración es por los eventos de dominio definidos en
 `src/shared/events/domain-events.ts` (contrato compartido, documentado a fondo en
-`docs/transacciones-y-eventos.md`):
+`docs/conceptos-transversales/transacciones-y-eventos.md`):
 
 | Evento | Publica | Escucha | Efecto |
 |---|---|---|---|

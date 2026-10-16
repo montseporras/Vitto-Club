@@ -16,7 +16,7 @@ endpoints existen, qué se puede enviar, qué devuelve la API y qué reglas hay 
 | **URL base** | `http://localhost:3000/api` (el puerto sale de `PORT` en `backend/.env`) |
 | **Formato** | JSON. En `POST` y `PATCH` enviar `Content-Type: application/json` |
 | **CORS** | Solo acepta el origen `http://localhost:5173` (Vite), con credenciales |
-| **Autenticación** | **Obligatoria**: `Authorization: Bearer <accessToken>`. Pueden usar este módulo el **Administrador** y el **Cajero**; el Cliente recibe 403. Sin token, 401. Ver `docs/auth-api.md` |
+| **Autenticación** | **Obligatoria**: `Authorization: Bearer <accessToken>`. Pueden usar este módulo el **Administrador** y el **Cajero**; el Cliente recibe 403. Sin token, 401. Ver `docs/funcionalidades/autenticacion.md` |
 
 **Todas las rutas de este documento cuelgan de `/api`.** Ejemplo: `GET http://localhost:3000/api/customers`.
 
@@ -244,7 +244,7 @@ La pantalla debe mostrar **el valor que devuelve la API**, no el que escribió e
 - **El email también es único entre los clientes activos**, sin distinguir mayúsculas (se guarda en
   minúsculas). Repetirlo devuelve **409**. Además se valida contra empleados: crear o editar un
   cliente con el email de un empleado existente también responde **409** (ver
-  `docs/accounts-abmc-status.md`, sección "Unicidad global de email").
+  `docs/seguimiento/historico/accounts-abmc-status.md`, sección "Unicidad global de email").
 - **Baja lógica.** Dar de baja no borra nada: el cliente pasa a `active: false`, se registra `deactivatedAt` y el registro conserva todos sus datos.
 - **Los clientes inactivos no cuentan para la unicidad.** Un cliente dado de baja perdió sus puntos y
   su cuenta anterior, así que su documento y su email quedan libres: si vuelve a inscribirse, se crea un

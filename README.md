@@ -20,33 +20,33 @@ que se despliegan por separado:
   del formato del documento según el tipo (DNI / pasaporte). En el frontend
   está en la pantalla de caja (`features/cashier`). El listado paginado y el
   historial de estados todavía no tienen pantalla (ver
-  [`docs/frontend-customers-pendientes.md`](./docs/frontend-customers-pendientes.md)).
+  [`docs/seguimiento/pendientes-frontend.md`](docs/seguimiento/pendientes-frontend.md)).
 - **Configuración de puntos** (`/api/loyalty/configuration/*`): equivalencia de
   monto/puntos, vigencia en meses (default RF-010: 12) y bonificación de
   primera compra (porcentaje o puntos fijos), con endpoints GET/PUT y
   configuración completa versionada para cumplir RF-014 sin sobrescribir
   reglas anteriores. Las rutas seccionales también crean versiones, y la
   configuración vigente se consulta en `/api/loyalty/configuration/current`.
-  La autorización exige un principal
-  `request.user.role = 'ADMIN'`; responderá 401 hasta que se integre la
-  historia de autenticación backend. Ver
-  [`docs/loyalty-api.md`](./docs/loyalty-api.md).
+  Solo el rol `ADMIN` puede usarla (guards globales del módulo `auth`). Ver
+  [`docs/funcionalidades/configuracion-de-puntos.md`](docs/funcionalidades/configuracion-de-puntos.md).
 - El resto de los módulos del frontend (`auth`, `recompensas`, `misiones`,
   etc.) existen solo como carpetas vacías.
 
 ## Documentación
 
+Índice completo en [`docs/README.md`](docs/README.md).
+
 | Documento | Contenido |
 |---|---|
-| [`docs/levantar-el-proyecto.md`](./docs/levantar-el-proyecto.md) | Cómo levantar base de datos, backend y frontend en local, variables de entorno y problemas frecuentes |
+| [`docs/SETUP.md`](docs/SETUP.md) | Cómo levantar base de datos, backend y frontend en local, variables de entorno y problemas frecuentes |
 | [`docs/CONTRIBUTING.MD`](./docs/CONTRIBUTING.MD) | Forma de trabajo: ramas, commits, Pull Requests y revisión |
-| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | Arquitectura del backend (hexagonal por módulo) y del frontend |
-| [`docs/FRONTEND-STRUCTURE.md`](./docs/FRONTEND-STRUCTURE.md) | Estructura del frontend: capas, carpetas, pantallas y estilos |
-| [`docs/customers-api.md`](./docs/customers-api.md) | Contrato de la API de clientes |
-| [`docs/employees-api.md`](./docs/employees-api.md) | Contrato de la API de empleados |
-| [`docs/loyalty-api.md`](./docs/loyalty-api.md) | Contrato de la API de configuración de puntos |
-| [`docs/frontend-customers-pendientes.md`](./docs/frontend-customers-pendientes.md) | Pendientes de frontend del módulo de clientes |
-| [`backend/PRISMA.md`](./backend/PRISMA.md) | Cómo quedó configurado Prisma y comandos de uso diario |
+| [`docs/architecture/arquitectura.md`](docs/architecture/arquitectura.md) | Arquitectura del backend (hexagonal por módulo) y del frontend |
+| [`docs/architecture/estructura-frontend.md`](docs/architecture/estructura-frontend.md) | Estructura del frontend: capas, carpetas, pantallas y estilos |
+| [`docs/funcionalidades/clientes.md`](docs/funcionalidades/clientes.md) | Contrato de la API de clientes |
+| [`docs/funcionalidades/empleados.md`](docs/funcionalidades/empleados.md) | Contrato de la API de empleados |
+| [`docs/funcionalidades/configuracion-de-puntos.md`](docs/funcionalidades/configuracion-de-puntos.md) | Contrato de la API de configuración de puntos |
+| [`docs/seguimiento/pendientes-frontend.md`](docs/seguimiento/pendientes-frontend.md) | Pendientes de frontend del módulo de clientes |
+| [`docs/database/prisma.md`](docs/database/prisma.md) | Cómo quedó configurado Prisma y comandos de uso diario |
 
 ## Estructura del repositorio
 
@@ -84,8 +84,8 @@ Vitto-Club/
 ```
 
 El detalle de cada carpeta y las reglas para sumar módulos nuevos están en
-[`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) y
-[`docs/FRONTEND-STRUCTURE.md`](./docs/FRONTEND-STRUCTURE.md).
+[`docs/architecture/arquitectura.md`](docs/architecture/arquitectura.md) y
+[`docs/architecture/estructura-frontend.md`](docs/architecture/estructura-frontend.md).
 
 ## Qué hace cada componente clave
 
@@ -135,7 +135,7 @@ common source directory... 'rootDir' must be explicitly set`), causado por
    `jest.config.ts` (que ya usa `rootDir: '.'`).
 4. **`backend/.gitattributes` obsoleto**: declaraba como `linguist-generated`
    archivos (`prisma/contract.json`, `prisma/schema.json`, etc.) de un intento
-   abortado de migrar a "Prisma Next" (ver historial en `backend/PRISMA.md`).
+   abortado de migrar a "Prisma Next" (ver historial en `docs/database/prisma.md`).
    Esos archivos ya fueron eliminados; el `.gitattributes` no tenía función y
    se quitó.
 5. **`backend/README.md`** contenía solo el boilerplate por defecto de
@@ -200,7 +200,7 @@ Verificación: `GET http://localhost:3000/api/health` debe responder
 `{"status":"ok","db":"conectada","timestamp":"..."}`.
 
 Comandos día a día de Prisma (generar cliente, nuevas migraciones, Studio):
-ver [`backend/PRISMA.md`](./backend/PRISMA.md).
+ver [`docs/database/prisma.md`](docs/database/prisma.md).
 
 ### Frontend: mocks o backend real
 

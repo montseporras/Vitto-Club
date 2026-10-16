@@ -11,7 +11,7 @@ de control.
 >
 > - **El paso E está hecho** (integración con `accounts`, guards globales, login real). Las secciones 6 ("Lo
 >   que falta", paso E) y 4 ("dos cosas que hoy NO funcionan") están **superadas**: los empleados ya
->   inician sesión y los guards ya protegen toda la aplicación. Detalle en `docs/autenticacion.md`.
+>   inician sesión y los guards ya protegen toda la aplicación. Detalle en `docs/conceptos-transversales/autenticacion-y-sesiones.md`.
 > - **`users` ya tiene la reactivación de cuenta y el e2e de aceptación.** Tachar esos dos pendientes de 7.1.
 > - **`feature/auth-login` ya está en GitHub.** Y ya incluye `users` (merge `efeb3b2`).
 > - **Decisiones nuevas:** el rol solo se cambia desde empleados (sale de `PATCH /usuarios/:id`); la lista de
@@ -32,8 +32,8 @@ de control.
   y lint sin errores.
 
 > **Cómo usarlo en el próximo chat.** Decirle al asistente: *"Leé
-> `docs/contexto-proximo-chat.md`, `docs/autenticacion.md` y
-> `docs/transacciones-y-eventos.md` antes de hacer nada, y después revisá el
+> `docs/seguimiento/historico/contexto-proximo-chat.md`, `docs/conceptos-transversales/autenticacion-y-sesiones.md` y
+> `docs/conceptos-transversales/transacciones-y-eventos.md` antes de hacer nada, y después revisá el
 > estado real de las ramas con git, porque puede haber cambiado."*
 
 ---
@@ -82,7 +82,7 @@ en local.
   hizo.
 - **Que no modifique nada si digo "solo decime".** Leer archivos sí puede.
 - **Que explique todo lo que hace** y que **actualice los documentos**
-  (`docs/autenticacion.md` y `docs/transacciones-y-eventos.md`) en cada paso,
+  (`docs/conceptos-transversales/autenticacion-y-sesiones.md` y `docs/conceptos-transversales/transacciones-y-eventos.md`) en cada paso,
   con una fila nueva en su tabla de historial.
 - **Al final de cada paso:** qué quedó pendiente de hablar con otra persona.
 - **Lo que es de otra rama o de otra persona no se toca:** me arma el mensaje
@@ -138,7 +138,7 @@ conflictos (al corte).
   transacción que comparten los repositorios de cualquier módulo; `client` da
   el cliente actual.
 - Contrato de eventos en `backend/src/shared/events/domain-events.ts`.
-- 9 tests e2e. Explicado en `docs/transacciones-y-eventos.md`.
+- 9 tests e2e. Explicado en `docs/conceptos-transversales/transacciones-y-eventos.md`.
 
 ### En `feature/auth-login` (módulo `auth`, completo por dentro)
 
@@ -157,7 +157,7 @@ Además, fuera de `auth`:
 - Los filtros de error de `customers` y `employees` conocen el 403 y dejan
   pasar el campo `code`.
 - E2E de la matriz de permisos (`endpoint-permissions.e2e-spec.ts`).
-- Contrato para el frontend: `docs/auth-api.md`.
+- Contrato para el frontend: `docs/funcionalidades/autenticacion.md`.
 
 **Dos cosas que hoy NO funcionan, a propósito:**
 
@@ -288,7 +288,7 @@ Varias reemplazan decisiones anteriores. Estas son las que valen.
    - Agregar a `/api/usuarios` al e2e de permisos.
 9. **E2E con usuarios reales**: login de un empleado con su contraseña
    hasheada de verdad, sin nada falso. En tests, bajar `BCRYPT_COST` a 4.
-10. Actualizar `docs/autenticacion.md` y `docs/auth-api.md` (sacar el aviso de
+10. Actualizar `docs/conceptos-transversales/autenticacion-y-sesiones.md` y `docs/funcionalidades/autenticacion.md` (sacar el aviso de
     "todavía no habilitado").
 
 **Lo que se va a poder probar a mano después del paso E:** con el seed de
@@ -352,7 +352,7 @@ relleno contra ataques por tiempo, el email normalizado, `PasswordHasher` con
    e2e propio de `accounts`.
 3. Su **filtro de errores** no conoce el 403 ni deja pasar `code` (esto puedo
    hacerlo yo en el paso E).
-4. En `docs/accounts-abmc-status.md` dice que `AuthAccountInfo` no tiene
+4. En `docs/seguimiento/historico/accounts-abmc-status.md` dice que `AuthAccountInfo` no tiene
    `email`, pero el código sí.
 
 Mensaje listo para mandar:
@@ -388,7 +388,7 @@ cookie no se comporta igual que en producción.
 
 Mensaje listo para mandar:
 
-> Subí el contrato de autenticación en `docs/auth-api.md` (rama
+> Subí el contrato de autenticación en `docs/funcionalidades/autenticacion.md` (rama
 > `feature/auth-login`). Para que la cookie del refresh token funcione igual en
 > desarrollo y en producción hacen falta dos cambios de su lado:
 >
@@ -483,7 +483,7 @@ cerrar. Lo que tiene que saber:
 >   descarta las cuentas de cliente: hay que ampliarlos para que un cliente
 >   pueda iniciar sesión.
 > - Nadie fuera de `accounts` hashea contraseñas.
-> - Reglas: `docs/ARCHITECTURE.md` y `docs/transacciones-y-eventos.md`.
+> - Reglas: `docs/architecture/arquitectura.md` y `docs/conceptos-transversales/transacciones-y-eventos.md`.
 
 ### 7.6 Equipo
 
@@ -670,10 +670,10 @@ ahí se desinstalan.
 
 | Documento | Qué tiene |
 |---|---|
-| `docs/autenticacion.md` | Todo el módulo `auth` explicado paso a paso, con código y tests. **Se actualiza en cada paso** |
-| `docs/auth-api.md` | El contrato para el frontend |
-| `docs/transacciones-y-eventos.md` | Transacciones, commit, rollback y eventos. **Se actualiza cuando se toca el tema** |
-| `docs/ARCHITECTURE.md` | Las reglas de arquitectura, incluidas las dos excepciones de `shared/` |
-| `docs/spike-transacciones.md` | Informe de la prueba inicial de la librería de transacciones |
-| `docs/accounts-abmc-status.md` | (En la rama `users`) Estado del módulo `accounts` |
-| `docs/customers-api.md`, `docs/employees-api.md` | Contratos de esos módulos. Dicen "Autenticación: no hay todavía": actualizar después del paso E |
+| `docs/conceptos-transversales/autenticacion-y-sesiones.md` | Todo el módulo `auth` explicado paso a paso, con código y tests. **Se actualiza en cada paso** |
+| `docs/funcionalidades/autenticacion.md` | El contrato para el frontend |
+| `docs/conceptos-transversales/transacciones-y-eventos.md` | Transacciones, commit, rollback y eventos. **Se actualiza cuando se toca el tema** |
+| `docs/architecture/arquitectura.md` | Las reglas de arquitectura, incluidas las dos excepciones de `shared/` |
+| `docs/seguimiento/historico/spike-transacciones.md` | Informe de la prueba inicial de la librería de transacciones |
+| `docs/seguimiento/historico/accounts-abmc-status.md` | (En la rama `users`) Estado del módulo `accounts` |
+| `docs/funcionalidades/clientes.md`, `docs/funcionalidades/empleados.md` | Contratos de esos módulos. Dicen "Autenticación: no hay todavía": actualizar después del paso E |

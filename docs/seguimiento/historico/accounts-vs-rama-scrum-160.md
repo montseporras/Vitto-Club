@@ -54,11 +54,11 @@ Dos commits sucesivos que son **una sola idea corregida**:
 
 Resultado final: un documento o email duplicado, sea el otro cliente activo o no, devuelve **409**
 con el mensaje *"A customer with that document or email already exists"* (filtro de excepciones de
-`customers`). El detalle está en `docs/customers-api.md`.
+`customers`). El detalle está en `docs/funcionalidades/clientes.md`.
 
 Archivos de Jaz: `schema.prisma`, las 2 migraciones, `customers.service.ts` (+spec),
 `customer.repository.ts` (puerto), `customers.repository.ts`, `customer-already-exists.error.ts`,
-`customers-exception.filter.ts` (+spec) y `docs/customers-api.md`.
+`customers-exception.filter.ts` (+spec) y `docs/funcionalidades/clientes.md`.
 
 ---
 
@@ -73,7 +73,7 @@ cliente no esté ya en una cuenta de empleado**. Los dos cambios caen en estos a
 | `customers.service.spec.ts` | Tests de lo de Montse | Tests de lo de Jaz | Conservar ambos juegos de tests |
 | `customer.repository.ts` (puerto) | Agrega `existsByEmail` | Agrega un método de existencia propio | Si hacen lo mismo, **unificarlos en uno solo** |
 | `customers.repository.ts` | Implementa lo suyo | Implementa lo suyo | Igual: sin duplicar |
-| `docs/customers-api.md` | Documenta el 409 por email de empleado | Documenta el 409 por duplicado | Juntar ambos párrafos |
+| `docs/funcionalidades/clientes.md` | Documenta el 409 por email de empleado | Documenta el 409 por duplicado | Juntar ambos párrafos |
 
 **Cuándo aparece el conflicto:** al mergear una con la otra, o las dos a `develop`. Conviene que
 el primero en entrar sea quien más cambios tenga (`users`), y que Jaz resuelva sobre eso.
@@ -119,7 +119,7 @@ accounts.registerCustomer(...)       ← una sola transacción
 | Partir de `origin/feature/auth-login` (no de `develop`) y abrir el PR contra esa rama | Jaz |
 | `registerCustomer` en `accounts` + endpoint público `@Public()` + DTO + tests | Jaz (con aval de Montse por ser su módulo) |
 | `customers.repository.ts`: usar `client` (transacción ambiente) en vez de `$transaction([...])` en `updateStatus` | Jaz |
-| `customers` debe **publicar `customer.email-changed`** al cambiar el email. El listener de `accounts` ya está escrito (ver `docs/cambios-en-accounts.md`) | Jaz |
+| `customers` debe **publicar `customer.email-changed`** al cambiar el email. El listener de `accounts` ya está escrito (ver `docs/seguimiento/historico/cambios-en-accounts.md`) | Jaz |
 | Código de error para "cliente dado de baja intenta entrar" (`CUSTOMER_INACTIVE`) | Pendiente del Product Owner |
 | Resolver los 5 conflictos de la sección 4 | Jaz |
 
@@ -131,4 +131,4 @@ accounts.registerCustomer(...)       ← una sola transacción
 - El único choque real son **5 archivos de `customers`**, resolubles quedándose con las dos partes.
 - El trabajo de Jaz es la base de la unicidad que el registro necesita; el registro en sí
   **todavía no existe en ninguna rama**.
-- Lo que cambió el bloque de autenticación sobre `accounts` está en `docs/cambios-en-accounts.md`.
+- Lo que cambió el bloque de autenticación sobre `accounts` está en `docs/seguimiento/historico/cambios-en-accounts.md`.

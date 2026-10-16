@@ -7,7 +7,7 @@ mantener la sesión, cerrarla y cómo reaccionar a cada error.
 > con la aplicación levantada.
 >
 > - **Los empleados (Administrador y Cajero) ya pueden iniciar sesión.**
-> - **Los clientes también**: se registran con `POST /api/auth/register` (ver `docs/registro-api.md`) y después
+> - **Los clientes también**: se registran con `POST /api/auth/register` (ver `docs/funcionalidades/registro-de-clientes.md`) y después
 >   inician sesión acá, con su email y su contraseña.
 > - **Todos los endpoints exigen token**, salvo `/api/auth/*` y `/api/health`. Un pedido sin token responde
 >   401 `UNAUTHENTICATED`, y uno con un rol sin permiso responde 403 `FORBIDDEN`. Esto rige desde que

@@ -247,8 +247,8 @@ npx prisma db seed
 
 ## 7. Más información
 
-- Contrato HTTP del login: [`auth-api.md`](./auth-api.md)
-- Cómo funciona la autenticación: [`autenticacion.md`](./autenticacion.md)
-- Estructura del frontend: [`FRONTEND-STRUCTURE.md`](./FRONTEND-STRUCTURE.md)
+- Contrato HTTP del login: [`auth-api.md`](funcionalidades/autenticacion.md)
+- Cómo funciona la autenticación: [`autenticacion.md`](conceptos-transversales/autenticacion-y-sesiones.md)
+- Estructura del frontend: [`FRONTEND-STRUCTURE.md`](architecture/estructura-frontend.md)
 - Forma de trabajo (ramas, commits, PRs): [`CONTRIBUTING.MD`](./CONTRIBUTING.MD)
-- Prisma: [`../backend/PRISMA.md`](../backend/PRISMA.md)
+- Prisma: [`../backend/PRISMA.md`](database/prisma.md)

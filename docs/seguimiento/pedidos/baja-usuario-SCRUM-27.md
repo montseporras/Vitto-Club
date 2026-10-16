@@ -7,7 +7,7 @@
 >
 > Faltan dos cosas para conectarlo al back real: un listado de usuarios, para saber
 > qué empleado tiene usuario y si está activo, y un `code` estable en el 409 del último
-> administrador. Las dos ya figuraban como pendientes en `docs/cambios-en-accounts.md`
+> administrador. Las dos ya figuraban como pendientes en `docs/seguimiento/historico/cambios-en-accounts.md`
 > (sección 9). Todo lo que no se menciona **no cambia**.
 
 ## Qué se decidió

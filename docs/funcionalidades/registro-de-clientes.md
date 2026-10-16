@@ -15,7 +15,7 @@ devuelve la API y cómo mostrar cada error.
 | **Ruta** | `POST /api/auth/register` |
 | **Autenticación** | **No hace falta**: es público (la persona todavía no tiene cuenta) |
 | **Éxito** | `201 Created` |
-| **Después** | **No inicia sesión.** El frontend llama a `POST /api/auth/login` con el email y la contraseña que la persona acaba de cargar (ver `docs/auth-api.md`) |
+| **Después** | **No inicia sesión.** El frontend llama a `POST /api/auth/login` con el email y la contraseña que la persona acaba de cargar (ver `docs/funcionalidades/autenticacion.md`) |
 
 Crea **el cliente y su cuenta (rol Cliente) juntos**: si algo falla, no se crea ninguno de los dos.
 
@@ -48,10 +48,10 @@ export interface RegisterCustomerRequest {
 ```
 
 - Los datos del cliente siguen **las mismas reglas que el alta por caja** (formato de DNI y pasaporte,
-  teléfono, fecha de nacimiento): ver `docs/customers-api.md`, sección 4.
+  teléfono, fecha de nacimiento): ver `docs/funcionalidades/clientes.md`, sección 4.
 - **Contraseña:** de 8 a 64 caracteres, **máximo 72 bytes** (las letras con tilde y la eñe ocupan 2) y
   **distinta del email**. No se normaliza: los espacios y las mayúsculas cuentan. Son las mismas reglas
-  que para las cuentas de empleados (`docs/auth-api.md`).
+  que para las cuentas de empleados (`docs/funcionalidades/autenticacion.md`).
 - La **fotografía** todavía no se puede cargar (no hay dónde guardarla); se suma con "editar perfil".
 - Cualquier campo que no esté en la lista (por ejemplo `role`) se rechaza con **400**.
 

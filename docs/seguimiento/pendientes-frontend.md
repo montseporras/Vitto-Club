@@ -4,14 +4,14 @@
 > edición, baja/alta lógica, `dateOfBirth`, historial de estados). Lo que sigue
 > son 3 puntos detectados al comparar `frontend/src/features/cashier` contra la API
 > real. **No hay que tocar nada del backend** — los tres son cambios de frontend.
-> Ver [`docs/customers-api.md`](./customers-api.md) para el contrato completo de la API.
+> Ver [`docs/funcionalidades/clientes.md`](../funcionalidades/clientes.md) para el contrato completo de la API.
 
 ---
 
 ## 1. ✅ Resuelto — el frontend no le estaba pegando al backend real
 
 No existía `frontend/.env.local` y, sin `VITE_API_MOCKS=false`,
-[`main.tsx`](../frontend/src/app/main.tsx) arrancaba MSW igual.
+[`main.tsx`](../../frontend/src/app/main.tsx) arrancaba MSW igual.
 
 **Qué se hizo:** se creó `frontend/.env.local` con:
 

@@ -314,9 +314,9 @@ Prueba a mano con el seed de demo (la cuenta de Lucía ya existe): login con `lu
 | `code: 'LAST_ADMIN'` en los dos `ConflictException` del último administrador (`assertNotLastAvailableAdmin` y `assertOtherAdminRemainsAvailable`), con el formato `{ statusCode: 409, error: 'Conflict', message, code: 'LAST_ADMIN' }`. El filtro **ya lo deja pasar** | Tuyo |
 | Sacar `role` de `PATCH /api/usuarios/:id` (decisión del PO: el rol se cambia solo desde empleados). Toca `update-account.dto.ts`, el controller y `updateRole` | Tuyo |
 | `GET /api/usuarios` con `{ id, employeeId, active }` por cuenta | Tuyo |
-| Corregir `docs/accounts-abmc-status.md`: `AuthAccountInfo` sí tiene `email` (y ahora nombre), y `PasswordHasher` ya tiene implementación | Tuyo |
+| Corregir `docs/seguimiento/historico/accounts-abmc-status.md`: `AuthAccountInfo` sí tiene `email` (y ahora nombre), y `PasswordHasher` ya tiene implementación | Tuyo |
 | Abrir el PR de `users` a `develop` | Tuyo |
-| **Registro de clientes** (`registerCustomer`): lo orquesta `accounts`, lo hace Jaz (SCRUM-160). Ver `docs/accounts-vs-rama-scrum-160.md` | De Jaz; coordinar con vos |
+| **Registro de clientes** (`registerCustomer`): lo orquesta `accounts`, lo hace Jaz (SCRUM-160). Ver `docs/seguimiento/historico/accounts-vs-rama-scrum-160.md` | De Jaz; coordinar con vos |
 
 Los puntos de `LAST_ADMIN` y de sacar `role` caen justo en archivos tocados acá (el controller y el
 filtro): conviene **traer esta rama primero**, para no resolver conflictos después.
