@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/modernist-c11cfd55-1e38-4a0d-8147-f94cbaacf2f2/styles.css">
+  <script src="_ds/modernist-c11cfd55-1e38-4a0d-8147-f94cbaacf2f2/_ds_bundle.js"></script>
+  <script src="./consumos-store.js"></script>
+</helmet>
+<div class="vc-r" style="max-width:896px; width:100%; margin:0 auto; display:flex; flex-direction:column; gap:20px;">
+  <sc-if value="{{ enForm }}" hint-placeholder-val="{{ true }}"><div style="display:flex; flex-direction:column; gap:20px;">
+    <div style="overflow:hidden; border-radius:24px; border:1px solid #f6d0b1; background:#ffffff; box-shadow:0 20px 25px -5px rgba(126,62,32,.1), 0 8px 10px -6px rgba(126,62,32,.1); padding:32px;">
+      <h2 style="margin:0 0 20px; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.2; color:#2b1a10;">Buscar cliente</h2>
+      <div style="display:flex; align-items:center; margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid #fbe6d4;"><span style="font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Cliente</span></div>
+      <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;"><span class="vc-label">Tipo de documento</span><div class="vc-seg" style="max-width:320px;"><button type="button" class="{{ segDni }}" onClick="{{ setDni }}">DNI</button><button type="button" class="{{ segPas }}" onClick="{{ setPas }}">Pasaporte</button></div></div>
+      <div class="field"><label>Número de documento</label><div style="display:flex; gap:8px;"><input class="input" placeholder="{{ docPh }}" aria-invalid="{{ dniInv }}" value="{{ dni }}" onChange="{{ onDni }}" /><button type="button" class="btn btn-primary" style="flex-shrink:0;" onClick="{{ buscar }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Z"></path></svg>Buscar</button></div>
+        <sc-if value="{{ dniErr }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ dniErr }}</p></sc-if></div>
+      <sc-if value="{{ noEncontrado }}" hint-placeholder-val="{{ false }}"><div role="alert" style="margin-top:16px; display:flex; align-items:flex-start; gap:12px; border:1px solid rgba(202,100,60,.4); border-left:4px solid #ca643c; background:#fdf3ea; color:#7e3e20; border-radius:12px; padding:12px 16px; font-size:14px; line-height:1.5;"><p style="margin:0;">No existe un cliente con ese {{ docNom }}. <a href="#" onClick="{{ irAlta }}" style="font-weight:600; text-decoration:underline; text-underline-offset:2px; color:inherit;">Registrar cliente</a></p></div></sc-if>
+      <sc-if value="{{ encontrado }}" hint-placeholder-val="{{ false }}"><div style="margin-top:16px; border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:20px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:16px;">
+        <div><div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;"><h3 style="margin:0; font-family:var(--font-heading); font-weight:700; font-size:20px; color:#2b1a10;">{{ cli.nombre }}</h3><span class="tag tag-accent">Nivel {{ cli.nivel }}</span></div><div style="font-size:14px; color:#5c5249; margin-top:2px;">{{ cli.tipo }} {{ cli.dni }}</div></div>
+        <div style="text-align:right;"><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">Saldo actual</div><div style="font-size:22px; font-family:'DM Serif Display', Georgia, serif; font-variant-numeric:lining-nums tabular-nums; color:{{ cli.saldoColor }};">{{ cli.saldo }} pts</div></div>
+      </div></sc-if>
+      <sc-if value="{{ encontrado }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;"><button type="button" class="btn btn-secondary" onClick="{{ toggleInfo }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:{{ infoRot }}; transition:transform .15s;"><path d="m9 18 6-6-6-6"></path></svg>{{ infoTxt }}</button>
+        <sc-if value="{{ verInfo }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px; border:1px solid #f6d0b1; border-radius:16px; padding:16px 18px; display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px 24px; font-size:13px;">
+          <div><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20; margin-bottom:6px;">Canjes pendientes</div>
+            <sc-for list="{{ info.canjes }}" as="c" hint-placeholder-count="1"><div style="display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-top:1px solid #fbe6d4;"><span><strong>{{ c.recompensa }}</strong><br /><span style="color:#7a6e63; font-size:12px;">Código {{ c.codigo }}</span></span><span style="white-space:nowrap;">{{ c.puntos }} pts</span></div></sc-for>
+            <sc-if value="{{ info.sinCanjes }}" hint-placeholder-val="{{ false }}"><p style="margin:0; color:#7a6e63;">No tiene canjes pendientes.</p></sc-if></div>
+          <div><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20; margin-bottom:6px;">Recompensas a las que puede acceder</div>
+            <sc-for list="{{ info.recompensas }}" as="r" hint-placeholder-count="2"><div style="display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-top:1px solid #fbe6d4;"><span>{{ r.nombre }}</span><span style="white-space:nowrap;">{{ r.puntos }} pts</span></div></sc-for>
+            <sc-if value="{{ info.sinRec }}" hint-placeholder-val="{{ false }}"><p style="margin:0; color:#7a6e63;">No tiene puntos suficientes para ninguna recompensa disponible.</p></sc-if></div>
+          <div><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20; margin-bottom:6px;">{{ info.movTitulo }}</div>
+            <sc-for list="{{ info.movs }}" as="m" hint-placeholder-count="3"><div style="display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-top:1px solid #fbe6d4;"><span>{{ m.detalle }}<br /><span style="color:#7a6e63; font-size:12px;">{{ m.fecha }}</span></span><strong style="white-space:nowrap; color:{{ m.color }};">{{ m.pts }}</strong></div></sc-for>
+            <sc-if value="{{ info.sinMovs }}" hint-placeholder-val="{{ false }}"><p style="margin:0; color:#7a6e63;">Sin movimientos registrados.</p></sc-if></div>
+        </div></sc-if>
+      </div></sc-if>
+      <sc-if value="{{ encontrado }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px;"><button type="button" class="btn btn-secondary" onClick="{{ toggle24 }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:{{ rot24 }}; transition:transform .15s;"><path d="m9 18 6-6-6-6"></path></svg>{{ txt24 }}</button>
+        <sc-if value="{{ ver24 }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px; border:1px solid #f6d0b1; border-radius:16px; padding:16px 18px;">
+          <p style="margin:0 0 10px; font-size:12px; color:#7a6e63;">{{ nota24 }}</p>
+          <sc-if value="{{ hay24 }}" hint-placeholder-val="{{ true }}"><div style="overflow-x:auto;"><table class="table"><thead><tr><th>Código</th><th>Fecha y hora</th><th style="text-align:right;">Monto</th><th style="text-align:right;">Puntos</th><th>Registrado por</th><th>Estado</th><th></th></tr></thead><tbody>
+            <sc-for list="{{ lista24 }}" as="k" hint-placeholder-count="2"><tr><td style="font-weight:700; white-space:nowrap;">{{ k.codigo }}</td><td style="white-space:nowrap;">{{ k.fecha }}</td><td style="text-align:right;">{{ k.monto }}</td><td style="text-align:right;">{{ k.pts }}</td><td>{{ k.por }}</td><td><span class="{{ k.badge }}">{{ k.estado }}</span></td>
+              <td style="text-align:right;"><sc-if value="{{ k.registrado }}" hint-placeholder-val="{{ true }}"><span title="{{ k.tip }}" style="display:inline-flex;"><button type="button" class="btn btn-primary" disabled="{{ k.noPuede }}" onClick="{{ k.anular }}">Anular consumo</button></span></sc-if></td></tr></sc-for>
+          </tbody></table></div></sc-if>
+          <sc-if value="{{ sin24 }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; color:#5c5249;">No hay consumos de este cliente en las últimas 24 hs.</p></sc-if>
+        </div></sc-if>
+      </div></sc-if>
+      <sc-if value="{{ encontrado }}" hint-placeholder-val="{{ false }}"><div style="margin-top:20px;">
+        <div style="display:flex; align-items:center; margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid #fbe6d4;"><span style="font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Consumo</span></div>
+        <div class="field" style="max-width:320px;"><label>Monto del consumo ($)</label><input class="input" inputMode="decimal" placeholder="50.000" aria-invalid="{{ montoInv }}" value="{{ monto }}" onChange="{{ onMonto }}" />
+          <sc-if value="{{ montoErr }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ montoErr }}</p></sc-if></div>
+        <div class="field" style="max-width:520px; margin-top:12px;"><label>Observaciones (opcional)</label><input class="input" maxLength="255" value="{{ obs }}" onChange="{{ onObs }}" onInput="{{ onObs }}" /><p style="margin:2px 0 0; font-size:12px; color:#7a6e63; text-align:right;">{{ obsLen }}</p></div>
+        <sc-if value="{{ preview }}" hint-placeholder-val="{{ false }}"><div style="margin-top:14px; border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 18px;"><div style="font-size:16px; font-weight:700; color:#7e3e20;">Se acreditarán {{ ptsTxt }} puntos{{ ptsDesglose }}</div><div style="font-size:14px; color:#2b1a10; margin-top:2px;">Saldo resultante: <strong>{{ resTxt }} pts</strong></div></div></sc-if>
+        <p style="margin:10px 0 0; font-size:12px; color:#7a6e63;">Equivalencia vigente: {{ eqTxt }}</p>
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid #fbe6d4; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:12px;"><button type="button" class="btn btn-secondary" onClick="{{ cancelar }}">Cancelar</button><button type="button" class="btn btn-primary" onClick="{{ registrar }}">Registrar consumo</button></div>
+      </div></sc-if>
+    </div>
+  </div></sc-if>
+
+  <sc-if value="{{ enConf }}" hint-placeholder-val="{{ false }}"><div style="overflow:hidden; border-radius:24px; border:1px solid #f6d0b1; background:#ffffff; box-shadow:0 20px 25px -5px rgba(126,62,32,.1), 0 8px 10px -6px rgba(126,62,32,.1); padding:32px;">
+    <h2 style="margin:0 0 16px; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.2; color:#2b1a10;">Consumo registrado</h2>
+    <sc-if value="{{ subio }}" hint-placeholder-val="{{ false }}"><div role="status" style="margin-bottom:16px; display:flex; align-items:center; gap:10px; border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:15px; font-weight:700;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9L12 17.8 5.8 21.1 7 14.2 2 9.3l6.9-1Z"></path></svg>{{ subio }}</div></sc-if>
+    <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px 24px;">
+      <sc-for list="{{ confDatos }}" as="d" hint-placeholder-count="7"><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">{{ d.k }}</span><span style="font-size:16px; color:#2b1a10; overflow-wrap:anywhere;">{{ d.v }}</span></div></sc-for>
+    </div>
+    <div style="margin-top:20px; padding-top:16px; border-top:1px solid #fbe6d4; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:12px;"><button type="button" class="btn btn-secondary" onClick="{{ otro }}">Registrar otro consumo</button><sc-if value="{{ esAdmin }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-primary" onClick="{{ verDetalle }}">Ver detalle</button></sc-if></div>
+  </div></sc-if>
+
+  <sc-if value="{{ m.open }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000; padding:16px;">
+      <div class="dialog" style="max-width:480px; width:100%;">
+        <sc-if value="{{ m.form }}" hint-placeholder-val="{{ true }}"><div>
+          <div class="dialog-title">Anular consumo {{ m.codigo }}</div>
+          <div class="dialog-body">
+            <p style="font-size:13px; color:var(--color-accent-700); margin-top:0;">Los consumos no se pueden editar. Si el monto es incorrecto, anulalo y registrá uno nuevo.</p>
+            <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 16px; display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; font-size:14px;">
+              <div><div style="font-size:12px; font-weight:700; color:#7e3e20;">Código</div>{{ m.codigo }}</div><div><div style="font-size:12px; font-weight:700; color:#7e3e20;">Cliente</div>{{ m.cliente }}</div>
+              <div><div style="font-size:12px; font-weight:700; color:#7e3e20;">Monto</div>{{ m.monto }}</div><div><div style="font-size:12px; font-weight:700; color:#7e3e20;">Puntos a revertir</div>−{{ m.pts }} pts</div>
+              <div style="grid-column:1 / -1; border-top:1px solid #f6d0b1; padding-top:8px;">Saldo: {{ m.saldo }} pts → <strong style="color:{{ m.resColor }};">{{ m.res }} pts</strong></div>
+            </div>
+            <sc-if value="{{ m.neg }}" hint-placeholder-val="{{ false }}"><div role="alert" style="margin-top:12px; border:1px solid rgba(202,100,60,.4); border-left:4px solid #ca643c; background:#fdf3ea; color:#7e3e20; border-radius:12px; padding:10px 14px; font-size:13px; line-height:1.5;">El cliente ya utilizó parte de estos puntos. Su saldo quedará en {{ m.res }} pts y deberá regularizarse con un ajuste del Administrador.</div></sc-if>
+            <div class="field" style="margin-top:12px;"><label>Motivo de anulación (obligatorio)</label><textarea class="input vc-input" rows="3" style="height:auto; padding:10px 12px;" aria-invalid="{{ m.inv }}" value="{{ m.motivo }}" onChange="{{ onMotivo }}" placeholder="Ej: monto cargado incorrectamente"></textarea></div>
+            <sc-if value="{{ m.err }}" hint-placeholder-val="{{ false }}"><p style="font-size:12px; color:var(--color-accent-700); margin:4px 0 0;">{{ m.err }}</p></sc-if>
+          </div>
+          <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-secondary" onClick="{{ cerrarAn }}">Volver</button><button type="button" class="btn btn-primary" onClick="{{ confirmarAn }}">Confirmar anulación</button></div>
+        </div></sc-if>
+        <sc-if value="{{ m.ask }}" hint-placeholder-val="{{ false }}"><div>
+          <div class="dialog-title">Consumo anulado</div>
+          <div class="dialog-body"><p style="margin:0; font-size:14px;">¿Registrar un nuevo consumo para este cliente?</p></div>
+          <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-secondary" onClick="{{ cerrarAn }}">No</button><button type="button" class="btn btn-primary" onClick="{{ anNuevo }}">Sí, registrar consumo</button></div>
+        </div></sc-if>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed; right:20px; bottom:20px; z-index:10060; max-width:calc(100vw - 40px); border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; font-weight:600; box-shadow:0 12px 30px -12px rgba(45,24,14,.4);">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:960,&quot;height&quot;:720},&quot;usuario&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Lucía Fernández&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;montoBase&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1000,&quot;tsType&quot;:&quot;number&quot;},&quot;puntosPorMonto&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:10,&quot;tsType&quot;:&quot;number&quot;},&quot;bonifTipo&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;bonifValor&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;number&quot;},&quot;onIrAlta&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+class Component extends DCLogic {
+  state = { obs: '', tipo: 'DNI', verInfo: false, ver24: false, an: { open: false, ask: false, codigo: '', motivo: '', err: '' }, dni: '', dniErr: '', buscado: false, cid: null, monto: '', montoErr: '', paso: 'form', conf: null, codigo: null, toast: '', v: 0 };
+  componentDidMount() {
+    const t = () => { if (window.VCStore) { this._u = window.VCStore.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.prefill(); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); };
+    t();
+  }
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._p); if (this._u) this._u(); }
+  prefill() { const d = this.props && this.props.dniInicial; if (d) this.setState({ dni: d }, this.buscar); }
+  st() { return window.VCStore; }
+  num(n) { const s = String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); return (n < 0 ? '-' : '') + s; }
+  money(n) { const p = (Math.round(n * 100) / 100).toFixed(2).split('.'); return '$' + this.num(+p[0]) + (p[1] !== '00' ? ',' + p[1] : ''); }
+  eq() { const p = this.props || {}; return { base: Number(p.montoBase) || 1000, pts: Number(p.puntosPorMonto) || 10 }; }
+  parse(v) {
+    let s = String(v || '').replace(/[\s$]/g, '');
+    if (!s) return { err: 'Ingresá el monto del consumo.' };
+    if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+    if (!/^-?\d+(\.\d{1,2})?$/.test(s)) return { err: 'Formato inválido. Usá solo números, por ejemplo 50.000 o 12.500,50.' };
+    const n = parseFloat(s); if (!(n > 0)) return { err: 'El monto debe ser mayor a 0.' };
+    return { n };
+  }
+  puntos(n) { const e = this.eq(); return Math.floor(n / e.base * e.pts); }
+  bono(base) { const p = this.props || {}; const v = Number(p.bonifValor) || 0; if (!(v > 0)) return 0; return p.bonifTipo === 'porcentaje' ? Math.floor(base * v / 100) : Math.floor(v); }
+  fdt(ts) { const d = new Date(ts), z = (x) => String(x).padStart(2, '0'); return z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); }
+  buscar = () => {
+    const d = this.state.dni.replace(/\D/g, ''); const tipo = this.state.tipo;
+    if (!d) { this.setState({ dniErr: 'Ingresá el número de documento.', buscado: false, cid: null }); return; }
+    const S = this.st(); let c = S && S.porDoc(tipo, d);
+    const baja = ((this.props && this.props.clientes) || []).find((k) => (k.tipoDocumento || 'DNI') === tipo && String(k.numeroDocumento).replace(/\D/g, '') === d && (k.estado || 'Activo') !== 'Activo');
+    if (baja) c = null;
+    if (!c && S && !baja) { const x = ((this.props && this.props.clientes) || []).find((k) => (k.tipoDocumento || 'DNI') === tipo && String(k.numeroDocumento).replace(/\D/g, '') === d && (k.estado || 'Activo') === 'Activo');
+      if (x) c = S.agregar({ nombre: x.nombre + ' ' + x.apellido, tipo, dni: String(x.numeroDocumento), email: x.email, tel: x.telefono, alta: x.alta, base: x.puntos, histBase: ((this.props && this.props.histPorDoc) || {})[tipo + '|' + x.numeroDocumento] || 0 }); }
+    this.setState({ dniErr: '', buscado: true, cid: c ? c.id : null, monto: '', montoErr: '', verInfo: false });
+  };
+  registrar = () => {
+    const s = this.state; const p = this.parse(s.monto);
+    if (p.err) { this.setState({ montoErr: p.err }); return; }
+    const S = this.st(); const c = S.cliente(s.cid); const base = this.puntos(p.n); const bono = S.primeraCompra(c.id) ? this.bono(base) : 0; const pts = base + bono; const e = this.eq(); const por = (this.props && this.props.usuario) || ''; const obs = s.obs.trim();
+    const nivAntes = this.nivel(S.historicos(c.id));
+    const r = S.registrar({ cid: c.id, monto: p.n, pts, por, obs, bono, eq: this.money(e.base) + ' = ' + this.num(e.pts) + ' pts' });
+    this.setState({ paso: 'conf', codigo: r.codigo,
+      conf: [['Código de consumo', r.codigo], ['Fecha y hora', this.fdt(r.ts)], ['Cliente', c.nombre + ' · ' + (c.tipo || 'DNI') + ' ' + c.dni], ['Monto', this.money(p.n)], ['Puntos acreditados', '+' + this.num(pts) + ' pts' + (bono ? ' (incluye ' + this.num(bono) + ' de bonificación por primera compra)' : '')], ['Observaciones', obs || '—'], ['Saldo', this.num(r.antes) + ' pts → ' + this.num(r.despues) + ' pts'], ['Registrado por', por]].map(([k, v]) => ({ k, v })),
+      toast: 'Consumo ' + r.codigo + ' registrado: +' + this.num(pts) + ' pts.', subio: (() => { const n = this.nivel(S.historicos(c.id)); return n && nivAntes && n !== nivAntes ? '¡' + c.nombre + ' subió a nivel ' + n + '!' : ''; })() });
+    clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 3800);
+  };
+  nivel(hist) { const ns = ((this.props && this.props.niveles) || []).slice().sort((a, b) => a.minimo - b.minimo); let act = ns[0]; ns.forEach((n) => { if (hist >= n.minimo) act = n; }); return act ? act.nombre : ''; }
+  reset = () => this.setState({ obs: '', dni: '', dniErr: '', buscado: false, cid: null, monto: '', montoErr: '', paso: 'form', verInfo: false });
+  confirmarAn = () => {
+    const a = this.state.an; if (!a.motivo.trim()) { this.setState({ an: { ...a, err: 'El motivo de anulación es obligatorio.' } }); return; }
+    const k = this.st().anular(a.codigo, (this.props && this.props.usuario) || '', a.motivo.trim()); if (!k) return;
+    this.setState({ an: { ...a, err: '', ask: true }, toast: 'Consumo ' + k.codigo + ' anulado. Se revirtieron ' + this.num(k.pts) + ' pts.' });
+    clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 3800);
+  };
+  setTipo = (tipo) => this.setState({ tipo, buscado: false, cid: null, dniErr: '', verInfo: false });
+  info(c) {
+    if (!c) return { canjes: [], recompensas: [], movs: [], sinCanjes: true, sinRec: true, sinMovs: true, movTitulo: '' };
+    const p = this.props || {}; const S = this.st(); const d = String(c.dni).replace(/\D/g, ''); const hoy = new Date().toISOString().slice(0, 10);
+    const cp = p.canjesCliente && String(p.canjesCliente.dni).replace(/\D/g, '') === d ? (p.canjesCliente.lista || []).filter((k) => /pendiente/i.test(k.estado || '')) : [];
+    const rec = c.saldo < 0 ? [] : (p.recompensas || []).filter((r) => (r.estado === 'Activa') && r.stock > 0 && (!r.fechaVencimiento || r.fechaVencimiento >= hoy) && r.puntos <= c.saldo);
+    const lim = p.rol === 'Administrador' ? 0 : Date.now() - 864e5;
+    let mv = (S ? S.movsConSaldo().filter((m) => m.cid === c.id && m.ts >= lim).reverse() : []).map((m) => ({ detalle: m.detalle, fecha: this.fdt(m.ts), pts: m.pts }));
+    const ml = p.movsCliente && String(p.movsCliente.dni).replace(/\D/g, '') === d ? (p.movsCliente.lista || []) : [];
+    if (!mv.length && ml.length) mv = ml.filter((m) => !lim || (typeof m.ts === 'number' && m.ts >= lim)).map((m) => ({ detalle: m.motivo, fecha: m.fecha, pts: Number(m.cantidad) || 0 }));
+    mv = mv.slice(0, 5);
+    return { canjes: cp.map((k) => ({ recompensa: k.recompensa, codigo: k.codigo, puntos: this.num(k.puntos) })), sinCanjes: !cp.length,
+      recompensas: rec.map((r) => ({ nombre: r.nombre, puntos: this.num(r.puntos) })), sinRec: !rec.length,
+      movs: mv.map((m) => ({ detalle: m.detalle, fecha: m.fecha, pts: (m.pts > 0 ? '+' : '−') + this.num(Math.abs(m.pts)) + ' pts', color: m.pts < 0 ? '#b3261e' : '#4e5e41' })), sinMovs: !mv.length, movTitulo: lim ? 'Movimientos de las últimas 24 hs' : 'Últimos movimientos' };
+  }
+  datos24(c) {
+    const p = this.props || {}; const S = this.st(); const esAdmin = p.rol === 'Administrador'; const user = p.usuario || '';
+    const lst = c && S ? S.consumos.filter((k) => k.cid === c.id && Date.now() - k.ts <= 864e5).sort((a, b) => b.ts - a.ts) : [];
+    return lst.map((k) => { const mio = k.por === user; const reg = k.estado === 'Registrado'; const puede = reg && (esAdmin || mio);
+      return { codigo: k.codigo, fecha: this.fdt(k.ts), monto: this.money(k.monto), pts: this.num(k.pts), por: k.por, estado: k.estado, badge: 'vc-b ' + (reg ? 'vc-b-ok' : 'vc-b-off'), registrado: reg,
+        noPuede: !puede, tip: puede ? '' : 'Solo podés anular consumos propios dentro de las 24 hs', anular: () => this.setState({ an: { open: true, ask: false, codigo: k.codigo, motivo: '', err: '' } }) }; });
+  }
+  renderVals() {
+    const s = this.state; const S = this.st(); const c = S && s.cid ? S.cliente(s.cid) : null; const e = this.eq();
+    const p = s.monto.trim() ? this.parse(s.monto) : {}; const pts = p.n ? this.puntos(p.n) : 0;
+    return {
+      enForm: s.paso === 'form', enConf: s.paso === 'conf', confDatos: s.conf || [], toast: s.toast,
+      dni: s.dni, dniErr: s.dniErr, dniInv: !!s.dniErr, onDni: (ev) => this.setState({ dni: ev.target.value, dniErr: '', buscado: false, cid: null }),
+      buscar: this.buscar, noEncontrado: s.buscado && !c, encontrado: !!c,
+      segDni: 'vc-seg-opt' + (s.tipo === 'DNI' ? ' vc-seg-on' : ''), segPas: 'vc-seg-opt' + (s.tipo === 'Pasaporte' ? ' vc-seg-on' : ''), setDni: () => this.setTipo('DNI'), setPas: () => this.setTipo('Pasaporte'),
+      docPh: s.tipo === 'DNI' ? '38.456.123' : 'AAB123456', docNom: s.tipo === 'DNI' ? 'DNI' : 'pasaporte',
+      verInfo: s.verInfo, toggleInfo: () => this.setState({ verInfo: !s.verInfo }), infoRot: s.verInfo ? 'rotate(90deg)' : 'none', infoTxt: s.verInfo ? 'Ocultar canjes, recompensas y movimientos' : ((this.props || {}).rol === 'Administrador' ? 'Ver canjes pendientes, recompensas y últimos movimientos' : 'Ver canjes pendientes, recompensas y movimientos de las últimas 24 hs'),
+      info: this.info(c),
+      subio: s.paso === 'conf' ? (s.subio || '') : '',
+      cli: c ? { nivel: this.nivel(S.historicos(c.id)), tipo: c.tipo || 'DNI', nombre: c.nombre, dni: c.dni, saldo: this.num(c.saldo), saldoColor: c.saldo < 0 ? '#b3261e' : '#7e3e20' } : {},
+      irAlta: (ev) => { if (ev && ev.preventDefault) ev.preventDefault(); if (this.props && this.props.onIrAlta) this.props.onIrAlta(); },
+      monto: s.monto, montoErr: s.montoErr, montoInv: !!s.montoErr, onMonto: (ev) => this.setState({ monto: ev.target.value, montoErr: '' }),
+      preview: !!p.n && !!c, bono: (c && p.n && S.primeraCompra(c.id)) ? this.bono(pts) : 0, ptsTxt: this.num(pts + ((c && p.n && S.primeraCompra(c.id)) ? this.bono(pts) : 0)), ptsDesglose: (c && p.n && S.primeraCompra(c.id) && this.bono(pts) > 0) ? ' (' + this.num(pts) + ' + ' + this.num(this.bono(pts)) + ' de bonificación por primera compra)' : '', resTxt: c ? this.num(c.saldo + pts + ((p.n && S.primeraCompra(c.id)) ? this.bono(pts) : 0)) : '',
+      obs: s.obs, obsLen: s.obs.length + '/255', onObs: (ev) => this.setState({ obs: String(ev.target.value).slice(0, 255) }),
+      eqTxt: this.money(e.base) + ' = ' + this.num(e.pts) + ' pts',
+      cancelar: this.reset, registrar: this.registrar, otro: this.reset,
+      esAdmin: (this.props || {}).rol === 'Administrador',
+      ver24: s.ver24, toggle24: () => this.setState({ ver24: !s.ver24 }), rot24: s.ver24 ? 'rotate(90deg)' : 'none', txt24: s.ver24 ? 'Ocultar movimientos de las últimas 24 hs' : 'Ver movimientos de las últimas 24 hs',
+      nota24: (this.props || {}).rol === 'Administrador' ? 'Consumos registrados en las últimas 24 hs. Como administrador podés anular cualquiera.' : 'Consumos registrados en las últimas 24 hs. Solo podés anular los que registraste vos.',
+      lista24: this.datos24(c), hay24: this.datos24(c).length > 0, sin24: this.datos24(c).length === 0,
+      m: (() => { const a = s.an; if (!a.open || !S) return { open: false }; const k = S.consumos.find((x) => x.codigo === a.codigo); if (!k) return { open: false }; const cc = S.cliente(k.cid);
+        const saldo = cc.saldo + (k.estado === 'Registrado' ? 0 : k.pts); const res = saldo - k.pts;
+        return { open: true, form: !a.ask, ask: a.ask, codigo: k.codigo, cliente: cc.nombre, monto: this.money(k.monto), pts: this.num(k.pts), saldo: this.num(saldo), res: this.num(res), resColor: res < 0 ? '#b3261e' : '#2b1a10', neg: res < 0, motivo: a.motivo, err: a.err, inv: !!a.err }; })(),
+      onMotivo: (e) => this.setState({ an: { ...this.state.an, motivo: e.target.value, err: '' } }),
+      cerrarAn: () => this.setState({ an: { ...s.an, open: false, ask: false } }), confirmarAn: this.confirmarAn,
+      anNuevo: () => this.setState({ an: { ...s.an, open: false, ask: false }, monto: '', obs: '', montoErr: '', ver24: false }),
+      verDetalle: () => { if (this.props && this.props.onVerDetalle) this.props.onVerDetalle(s.codigo); }
+    };
+  }
+}
+</script>
+</body>
+</html>

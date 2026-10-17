@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/modernist-c11cfd55-1e38-4a0d-8147-f94cbaacf2f2/styles.css">
+  <script src="_ds/modernist-c11cfd55-1e38-4a0d-8147-f94cbaacf2f2/_ds_bundle.js"></script>
+</helmet>
+<div style="display:flex; flex-direction:column; gap:22px; padding-bottom:24px;">
+  <div style="display:flex; align-items:center; gap:10px;"><button type="button" class="btn btn-secondary" onClick="{{ volver }}" aria-label="Volver" style="padding:6px 10px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5 M12 19l-7-7 7-7"></path></svg></button><h4 style="margin:0; font-size:17px;">Mi perfil</h4></div>
+
+  <div>
+    <h4 style="margin:0 0 12px; padding-bottom:6px; border-bottom:1px solid #f0d9c4; font-size:14px; line-height:1.2; text-transform:uppercase; letter-spacing:.08em;">Mis datos</h4>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:14px;"><div style="width:88px; height:88px; border-radius:50%; overflow:hidden; border:2px solid var(--color-divider); opacity:.5; pointer-events:none;" aria-hidden="true"><image-slot id="cliente-avatar" shape="circle" placeholder="Foto"></image-slot></div><button type="button" class="btn btn-secondary" disabled="{{ true }}" title="Disponible en el próximo sprint" style="height:30px; padding:0 12px; font-size:12px;">Cambiar foto</button><span class="text-muted" style="font-size:11px;">Disponible en el próximo sprint</span></div>
+    <div class="card" style="border:2px solid var(--color-divider); padding:4px 14px; text-align:left;">
+      <sc-for list="{{ fijos }}" as="d" hint-placeholder-count="3"><div style="display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:2px 12px; padding:9px 0; border-top:{{ d.borde }};"><span class="text-muted" style="font-size:11px;">{{ d.k }}</span><span style="font-size:14px; font-weight:600; color:#2b1a10; overflow-wrap:anywhere;">{{ d.v }}</span></div></sc-for>
+    </div>
+    <p class="text-muted" style="font-size:11px; margin:8px 0 0;">Para cambiar estos datos, comunicate con el restaurante.</p>
+  </div>
+
+  <div>
+    <h4 style="margin:0 0 12px; padding-bottom:6px; border-bottom:1px solid #f0d9c4; font-size:14px; line-height:1.2; text-transform:uppercase; letter-spacing:.08em;">Datos de contacto</h4>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div class="field" style="margin:0;"><label>Teléfono <span class="text-muted" style="font-weight:400;">(opcional)</span></label><input class="input vc-input" type="tel" aria-invalid="{{ e.telInv }}" value="{{ f.telefono }}" onChange="{{ on.telefono }}" /><sc-if value="{{ e.telefono }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ e.telefono }}</p></sc-if></div>
+      <div class="field" style="margin:0;"><label>Correo electrónico</label><input class="input vc-input" type="email" aria-invalid="{{ e.mailInv }}" value="{{ f.email }}" onChange="{{ on.email }}" /><sc-if value="{{ e.email }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ e.email }}</p></sc-if><p class="text-muted" style="margin:2px 0 0; font-size:11px;">Este correo es el que usás para ingresar.</p></div>
+      <sc-if value="{{ emailCambia }}" hint-placeholder-val="{{ false }}"><div class="field" style="margin:0;"><label>Contraseña actual</label><div style="position:relative;"><input class="input vc-input" type="{{ pwEmailType }}" aria-invalid="{{ e.pwEmailInv }}" value="{{ pwEmail }}" onChange="{{ onPwEmail }}" style="padding-right:40px;" /><button type="button" onClick="{{ togglePwEmail }}" aria-label="Mostrar u ocultar contraseña" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); width:30px; height:30px; display:grid; place-items:center; border:none; background:transparent; color:#7e3e20; cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ pwEmailIcon }}"></path></svg></button></div><sc-if value="{{ e.pwEmail }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ e.pwEmail }}</p></sc-if><p class="text-muted" style="margin:2px 0 0; font-size:11px;">Para cambiar el correo con el que ingresás, confirmá tu contraseña.</p></div></sc-if>
+      <div class="field" style="margin:0;"><label>Fecha de nacimiento <span class="text-muted" style="font-weight:400;">(opcional)</span></label><input class="input vc-input" type="date" value="{{ f.fechaNacimiento }}" onChange="{{ on.fecha }}" /></div>
+      <div style="display:flex; gap:8px; margin-top:4px;"><button type="button" class="btn btn-secondary" style="flex:1;" disabled="{{ sinCambios }}" onClick="{{ cancelar }}">Cancelar</button><button type="button" class="btn btn-primary" style="flex:1;" disabled="{{ sinCambios }}" onClick="{{ guardar }}">Guardar cambios</button></div>
+    </div>
+  </div>
+
+  <div>
+    <h4 style="margin:0 0 12px; padding-bottom:6px; border-bottom:1px solid #f0d9c4; font-size:14px; line-height:1.2; text-transform:uppercase; letter-spacing:.08em;">Mi situación en el programa</h4>
+    <sc-if value="{{ sit.neg }}" hint-placeholder-val="{{ false }}"><div role="status" style="display:flex; gap:8px; align-items:flex-start; border:1px solid rgba(202,100,60,.4); border-left:4px solid #ca643c; background:#fdf3ea; color:#7e3e20; border-radius:12px; padding:10px 12px; font-size:12px; line-height:1.45; margin-bottom:12px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:1px;"><path d="M12 16v-4M12 8h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z"></path></svg><span>Tu saldo tiene un ajuste pendiente. Comunicate con el restaurante para regularizarlo.</span></div></sc-if>
+    <div class="card" style="border:2px solid var(--color-divider); padding:14px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; text-align:left;">
+      <div><div class="text-muted" style="font-size:10px; text-transform:uppercase; letter-spacing:.06em;">Saldo</div><div style="font-size:18px; font-family:'DM Serif Display', Georgia, serif; font-variant-numeric:lining-nums tabular-nums; color:{{ sit.saldoColor }};">{{ sit.saldo }}</div></div>
+      <div><div class="text-muted" style="font-size:10px; text-transform:uppercase; letter-spacing:.06em;">Nivel</div><span class="tag tag-accent" style="margin-top:2px;">{{ sit.nivel }}</span></div>
+      <div><div class="text-muted" style="font-size:10px; text-transform:uppercase; letter-spacing:.06em;">Acumulados</div><div style="font-size:18px; font-family:'DM Serif Display', Georgia, serif; font-variant-numeric:lining-nums tabular-nums;">{{ sit.hist }}</div></div>
+    </div>
+  </div>
+
+  <div>
+    <h4 style="margin:0 0 12px; padding-bottom:6px; border-bottom:1px solid #f0d9c4; font-size:14px; line-height:1.2; text-transform:uppercase; letter-spacing:.08em;">Cambiar contraseña</h4>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <sc-for list="{{ pwCampos }}" as="p" hint-placeholder-count="3"><div class="field" style="margin:0;"><label>{{ p.label }}</label><div style="position:relative;"><input class="input vc-input" type="{{ p.type }}" aria-invalid="{{ p.inv }}" value="{{ p.value }}" onChange="{{ p.onChange }}" style="padding-right:40px;" /><button type="button" onClick="{{ p.toggle }}" aria-label="{{ p.aria }}" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); width:30px; height:30px; display:grid; place-items:center; border:none; background:transparent; color:#7e3e20; cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ p.icon }}"></path></svg></button></div><sc-if value="{{ p.err }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ p.err }}</p></sc-if><sc-if value="{{ p.hint }}" hint-placeholder-val="{{ false }}"><p class="text-muted" style="margin:2px 0 0; font-size:11px;">{{ p.hint }}</p></sc-if></div></sc-for>
+      <button type="button" class="btn btn-primary btn-block" onClick="{{ cambiarPw }}">Cambiar contraseña</button>
+    </div>
+  </div>
+
+  <div style="border-top:1px solid #f0d9c4; padding-top:16px;"><button type="button" class="btn btn-secondary btn-block" onClick="{{ cerrarSesion }}">Cerrar sesión</button></div>
+
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:10060; max-width:calc(100vw - 40px); border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:10px 14px; font-size:13px; font-weight:600; box-shadow:0 12px 30px -12px rgba(45,24,14,.4);">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:900},&quot;cliente&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;},&quot;situacion&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;},&quot;emailsOcupados&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;onGuardar&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(d) =&gt; void&quot;},&quot;onVolver&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onCerrarSesion&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+class Component extends DCLogic {
+  EYE = 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z';
+  EYE_OFF = 'M3 3l18 18 M10.6 10.6a2 2 0 0 0 2.8 2.8 M9.9 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2 M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6';
+  state = { f: null, e: {}, pw: { actual: '', nueva: '', conf: '' }, pwErr: {}, ver: {}, pwEmail: '', verEmail: false, toast: '' };
+  actualOk() { return (this.props && this.props.passwordActual) || 'vitto2026'; }
+  norm(v) { return String(v || '').replace(/[.\s-]/g, '').toUpperCase(); }
+  base() { const c = (this.props && this.props.cliente) || {}; return { telefono: c.telefono || '', email: c.email || '', fechaNacimiento: c.fechaNacimiento || '' }; }
+  form() { return this.state.f || this.base(); }
+  say(t) { this.setState({ toast: t }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 3500); }
+  componentWillUnmount() { clearTimeout(this._t); }
+  setF = (k) => (ev) => { const v = ev.target.value; this.setState((s) => ({ f: { ...(s.f || this.base()), [k]: v }, e: { ...s.e, [k === 'fechaNacimiento' ? 'x' : k]: '' } })); };
+  guardar = () => {
+    const f = this.form(); const t = (x) => String(x || '').trim(); const e = {};
+    const mail = t(f.email).toLowerCase(); const otros = ((this.props && this.props.emailsOcupados) || []).map((x) => String(x).toLowerCase());
+    if (!mail) e.email = 'Este campo es obligatorio'; else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail)) e.email = 'Ingresá un correo válido, por ejemplo nombre@mail.com'; else if (otros.includes(mail)) e.email = 'Ese correo ya está registrado';
+    const tel = t(f.telefono); if (tel && (!/^\+?[0-9 ()-]+$/.test(tel) || tel.replace(/\D/g, '').length < 8 || tel.replace(/\D/g, '').length > 15)) e.telefono = 'El teléfono tiene que tener entre 8 y 15 números';
+    const bm = String(this.base().email || '').trim().toLowerCase();
+    if (!e.email && mail !== bm) { if (!this.state.pwEmail) e.pwEmail = 'Ingresá tu contraseña actual para cambiar el correo'; else if (this.state.pwEmail !== this.actualOk()) e.pwEmail = 'La contraseña actual es incorrecta'; }
+    if (e.email || e.telefono || e.pwEmail) { this.setState({ e }); return; }
+    const datos = { telefono: tel, email: mail, fechaNacimiento: t(f.fechaNacimiento) };
+    if (this.props && this.props.onGuardar) this.props.onGuardar(datos);
+    this.setState({ f: null, e: {}, pwEmail: '' }); this.say('Datos actualizados');
+  };
+  cambiarPw = () => {
+    const p = this.state.pw; const actualOk = this.actualOk(); const e = {}; const pr = this.props || {}; const cl = pr.cliente || {};
+    if (!p.actual) e.actual = 'Este campo es obligatorio'; else if (p.actual !== actualOk) e.actual = 'La contraseña actual es incorrecta';
+    if (!p.nueva) e.nueva = 'Este campo es obligatorio'; else if (p.nueva.length < 8 || p.nueva.length > 64) e.nueva = 'Tiene que tener entre 8 y 64 caracteres'; else if (String(cl.email || '').trim().toLowerCase() === p.nueva.trim().toLowerCase()) e.nueva = 'La contraseña no puede ser igual al mail'; else if (this.norm(cl.dni) && this.norm(p.nueva) === this.norm(cl.dni)) e.nueva = 'La contraseña no puede ser tu número de documento'; else if (p.nueva === actualOk) e.nueva = 'La nueva contraseña no puede ser igual a la actual';
+    if (!p.conf) e.conf = 'Este campo es obligatorio'; else if (p.nueva && p.conf !== p.nueva) e.conf = 'Las contraseñas no coinciden';
+    if (e.actual || e.nueva || e.conf) { this.setState({ pwErr: e }); return; }
+    if (pr.onPasswordCambiada) pr.onPasswordCambiada(p.nueva);
+    this.setState({ pw: { actual: '', nueva: '', conf: '' }, pwErr: {}, ver: {} }); this.say('Contraseña actualizada');
+  };
+  renderVals() {
+    const p = this.props || {}; const c = p.cliente || {}; const s = this.state; const f = this.form(); const b = this.base();
+    const sinCambios = f.telefono === b.telefono && f.email === b.email && f.fechaNacimiento === b.fechaNacimiento;
+    const pwDef = [['actual', 'Contraseña actual', ''], ['nueva', 'Nueva contraseña', 'Entre 8 y 64 caracteres. No puede ser tu mail ni tu número de documento.'], ['conf', 'Confirmar nueva contraseña', '']];
+    const sit = p.situacion || {};
+    return {
+      volver: () => p.onVolver && p.onVolver(), cerrarSesion: () => p.onCerrarSesion && p.onCerrarSesion(),
+      fijos: [['Nombre y apellido', ((c.nombreSolo || '') + ' ' + (c.apellido || '')).trim()], ['Documento', (c.tipoDocumento || 'DNI') + ' ' + (c.dni || '')], ['Fecha de alta', c.alta || '—']].map(([k, v], i) => ({ k, v, borde: i ? '1px solid #f0d9c4' : 'none' })),
+      f, e: { ...s.e, telInv: s.e.telefono ? 'true' : 'false', mailInv: s.e.email ? 'true' : 'false', pwEmailInv: s.e.pwEmail ? 'true' : 'false' },
+      on: { telefono: this.setF('telefono'), email: this.setF('email'), fecha: this.setF('fechaNacimiento') },
+      sinCambios, guardar: this.guardar, cancelar: () => this.setState({ f: null, e: {}, pwEmail: '' }),
+      sit: { neg: !!sit.neg, saldo: sit.saldo || '0', saldoColor: sit.neg ? '#b3261e' : 'var(--color-accent-700)', nivel: sit.nivel || '', hist: sit.hist || '0' },
+      pwCampos: pwDef.map(([k, label, hint]) => ({ label, hint: s.pwErr[k] ? '' : hint, err: s.pwErr[k] || '', inv: s.pwErr[k] ? 'true' : 'false', value: s.pw[k], type: s.ver[k] ? 'text' : 'password', icon: s.ver[k] ? this.EYE_OFF : this.EYE, aria: s.ver[k] ? 'Ocultar contraseña' : 'Mostrar contraseña',
+        onChange: (ev) => { const v = ev.target.value; this.setState((st) => ({ pw: { ...st.pw, [k]: v }, pwErr: { ...st.pwErr, [k]: '' } })); }, toggle: () => this.setState((st) => ({ ver: { ...st.ver, [k]: !st.ver[k] } })) })),
+      emailCambia: String(f.email || '').trim().toLowerCase() !== String(b.email || '').trim().toLowerCase(), pwEmail: s.pwEmail, pwEmailType: s.verEmail ? 'text' : 'password', pwEmailIcon: s.verEmail ? this.EYE_OFF : this.EYE,
+      onPwEmail: (ev) => { const v = ev.target.value; this.setState((st) => ({ pwEmail: v, e: { ...st.e, pwEmail: '' } })); }, togglePwEmail: () => this.setState((st) => ({ verEmail: !st.verEmail })),
+      cambiarPw: this.cambiarPw, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

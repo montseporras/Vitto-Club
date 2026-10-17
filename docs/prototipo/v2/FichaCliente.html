@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/modernist-c11cfd55-1e38-4a0d-8147-f94cbaacf2f2/styles.css">
+  <script src="_ds/modernist-c11cfd55-1e38-4a0d-8147-f94cbaacf2f2/_ds_bundle.js"></script>
+  <script src="./consumos-store.js"></script>
+</helmet>
+<div class="vc-r" style="max-width:896px; width:100%; margin:0 auto; display:flex; flex-direction:column; gap:20px;">
+  <div><button type="button" class="btn btn-ghost" onClick="{{ volver }}">← Volver</button></div>
+  <sc-if value="{{ neg }}" hint-placeholder-val="{{ false }}"><div role="alert" style="display:flex; align-items:flex-start; gap:12px; border:1px solid #e0a79e; border-left:4px solid #b3261e; background:#fdeeea; color:#8e2417; border-radius:12px; padding:12px 16px; font-size:14px; line-height:1.5; font-weight:600; justify-content:space-between; align-items:center; flex-wrap:wrap;"><span>Saldo negativo por anulación de consumo. Requiere ajuste del Administrador.</span><sc-if value="{{ esAdmin }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-secondary" onClick="{{ abrirAjuste }}">Ajustar puntos</button></sc-if></div></sc-if>
+  <div style="overflow:hidden; border-radius:24px; border:1px solid #f6d0b1; background:#ffffff; box-shadow:0 20px 25px -5px rgba(126,62,32,.1), 0 8px 10px -6px rgba(126,62,32,.1); padding:32px;">
+    <div style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:16px;">
+      <h2 style="margin:0; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.2; color:#2b1a10;">{{ c.nombre }}</h2>
+      <div style="display:flex; flex-wrap:wrap; gap:12px;"><button type="button" class="btn btn-primary btn-lg" onClick="{{ registrar }}">Registrar consumo</button><sc-if value="{{ esAdmin }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-secondary btn-lg" onClick="{{ abrirAjuste }}">Ajustar puntos</button></sc-if></div>
+    </div>
+    <div style="margin-top:20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+      <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:20px;">
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">Saldo actual</div>
+        <div style="margin-top:6px; font-size:48px; line-height:1; font-family:'DM Serif Display', Georgia, serif; font-variant-numeric:lining-nums tabular-nums; color:{{ saldoColor }};">{{ saldo }}<span style="font-size:18px; margin-left:6px;">pts</span></div>
+        <div style="margin-top:14px; display:flex; flex-direction:column; gap:6px;"><span class="tag tag-accent" style="align-self:flex-start;">Nivel {{ niv.actual }}</span>
+          <div style="height:8px; border-radius:999px; background:#fbe6d4; overflow:hidden;"><div style="height:100%; width:{{ niv.pct }}; background:#a8532a; border-radius:999px;"></div></div>
+          <div style="font-size:13px; color:#5c5249;">{{ niv.msg }}</div></div>
+        <div style="margin-top:14px; padding-top:12px; border-top:1px solid #f6d0b1;"><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">Puntos por vencer</div><div style="font-size:16px; color:#2b1a10; margin-top:2px;">{{ porVencer }}</div></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px 24px; align-content:start; padding:4px 0;">
+        <sc-for list="{{ datos }}" as="d" hint-placeholder-count="5"><div style="display:flex; flex-direction:column; gap:2px; min-width:0;"><span style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">{{ d.k }}</span><span style="font-size:16px; color:#2b1a10; overflow-wrap:anywhere;">{{ d.v }}</span></div></sc-for>
+      </div>
+    </div>
+    <div style="margin-top:28px;">
+      <div class="vc-seg" style="max-width:460px;"><button type="button" class="{{ tabC }}" onClick="{{ verC }}">{{ tabCTxt }}</button><button type="button" class="{{ tabM }}" onClick="{{ verM }}">{{ tabMTxt }}</button></div>
+      <sc-if value="{{ enC }}" hint-placeholder-val="{{ true }}"><div style="margin-top:16px;">
+        <sc-if value="{{ hayC }}" hint-placeholder-val="{{ true }}"><div style="overflow-x:auto;"><table class="table"><thead><tr><th>Código</th><th>Fecha y hora</th><th style="text-align:right;">Monto</th><th style="text-align:right;">Puntos</th><th>Estado</th><th></th></tr></thead><tbody>
+          <sc-for list="{{ cons }}" as="r" hint-placeholder-count="3"><tr><td style="font-weight:700; white-space:nowrap;">{{ r.codigo }}</td><td style="white-space:nowrap;">{{ r.fecha }}</td><td style="text-align:right;">{{ r.monto }}</td><td style="text-align:right;">{{ r.pts }}</td><td><span class="{{ r.badge }}">{{ r.estado }}</span></td><td style="text-align:right;"><sc-if value="{{ esAdmin }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-secondary" onClick="{{ r.ver }}">Ver</button></sc-if></td></tr></sc-for>
+        </tbody></table></div>
+        <sc-if value="{{ esAdmin }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;"><button type="button" class="btn btn-ghost" onClick="{{ verTodos }}">Ver todos</button></div></sc-if></sc-if>
+        <sc-if value="{{ sinC }}" hint-placeholder-val="{{ false }}"><p style="margin:0; padding:24px 16px; text-align:center; font-size:16px; color:#5c5249; border:1px dashed #f6d0b1; border-radius:16px;">Este cliente todavía no tiene consumos.</p></sc-if>
+      </div></sc-if>
+      <sc-if value="{{ enM }}" hint-placeholder-val="{{ false }}"><div style="margin-top:16px;">
+        <sc-if value="{{ hayM }}" hint-placeholder-val="{{ true }}"><div style="overflow-x:auto;"><table class="table"><thead><tr><th>Fecha y hora</th><th>Tipo</th><th>Detalle</th><th style="text-align:right;">Puntos</th></tr></thead><tbody>
+          <sc-for list="{{ movs }}" as="r" hint-placeholder-count="3"><tr><td style="white-space:nowrap;">{{ r.fecha }}</td><td><span class="{{ r.badge }}">{{ r.tipo }}</span></td><td>{{ r.detalle }}</td><td style="text-align:right; font-weight:700; color:{{ r.color }};">{{ r.pts }}</td></tr></sc-for>
+        </tbody></table></div>
+        <sc-if value="{{ esAdmin }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;"><button type="button" class="btn btn-ghost" onClick="{{ verTodosMovs }}">Ver todos</button></div></sc-if></sc-if>
+        <sc-if value="{{ sinM }}" hint-placeholder-val="{{ false }}"><p style="margin:0; padding:24px 16px; text-align:center; font-size:16px; color:#5c5249; border:1px dashed #f6d0b1; border-radius:16px;">Este cliente todavía no tiene movimientos de puntos.</p></sc-if>
+      </div></sc-if>
+    </div>
+  </div>
+  <sc-if value="{{ aj.open }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000; padding:16px;">
+      <div class="dialog" style="max-width:480px; width:100%;">
+        <div class="dialog-title">Ajustar puntos</div>
+        <div class="dialog-body">
+          <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 16px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; font-size:14px;">
+            <div><div style="font-weight:700; color:#2b1a10;">{{ c.nombre }}</div><div style="font-size:12px; color:#5c5249;">{{ c.doc }}</div></div>
+            <div style="text-align:right;"><div style="font-size:12px; font-weight:700; color:#7e3e20;">Saldo actual</div><div style="font-size:18px; font-weight:700; color:{{ saldoColor }};">{{ saldo }} pts</div></div>
+          </div>
+          <sc-if value="{{ neg }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;"><button type="button" class="btn btn-secondary" onClick="{{ regularizar }}">Regularizar a 0</button></div></sc-if>
+          <div style="margin-top:14px; display:flex; flex-direction:column; gap:6px;"><span class="vc-label">Tipo de ajuste</span><div class="vc-seg" style="max-width:280px;"><button type="button" class="{{ aj.sumCls }}" onClick="{{ ajSumar }}">Sumar</button><button type="button" class="{{ aj.resCls }}" onClick="{{ ajRestar }}">Restar</button></div></div>
+          <div class="field" style="margin-top:12px; max-width:220px;"><label>Cantidad de puntos</label><input class="input" inputMode="numeric" aria-invalid="{{ aj.cantInv }}" value="{{ aj.cant }}" onChange="{{ onCant }}" /><sc-if value="{{ aj.cantErr }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:13px; font-weight:500; color:#a8532a;">{{ aj.cantErr }}</p></sc-if></div>
+          <div class="field" style="margin-top:12px;"><label>Motivo (obligatorio)</label><textarea class="input vc-input" rows="2" style="height:auto; padding:10px 12px;" aria-invalid="{{ aj.motInv }}" value="{{ aj.motivo }}" onChange="{{ onMot }}"></textarea><sc-if value="{{ aj.motErr }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:13px; font-weight:500; color:#a8532a;">{{ aj.motErr }}</p></sc-if></div>
+          <div style="margin-top:14px; border-top:1px solid #f6d0b1; padding-top:10px; font-size:14px;">Saldo: {{ saldo }} pts → <strong style="color:{{ aj.finColor }};">{{ aj.fin }} pts</strong></div>
+        </div>
+        <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-secondary" onClick="{{ cerrarAjuste }}">Cancelar</button><button type="button" class="btn btn-primary" onClick="{{ confirmarAjuste }}">Confirmar ajuste</button></div>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed; right:20px; bottom:20px; z-index:10060; max-width:calc(100vw - 40px); border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; font-weight:600; box-shadow:0 12px 30px -12px rgba(45,24,14,.4);">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:960,&quot;height&quot;:820},&quot;cliente&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{nombre:string; dni:string; email:string; telefono:string; alta:string; puntos:number}&quot;},&quot;rol&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Cajero&quot;,&quot;Administrador&quot;],&quot;default&quot;:&quot;Cajero&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onVolver&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onRegistrarConsumo&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(dni: string) =&gt; void&quot;},&quot;onVerConsumo&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(codigo: string) =&gt; void&quot;},&quot;onVerTodos&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(dni: string) =&gt; void&quot;}}">
+class Component extends DCLogic {
+  state = { tab: 'c', v: 0, aj: { open: false, tipo: 'Sumar', cant: '', motivo: '', cantErr: '', motErr: '' }, toast: '' };
+  componentDidMount() {
+    const t = () => { if (window.VCStore) { this._u = window.VCStore.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); };
+    t();
+  }
+  componentWillUnmount() { clearTimeout(this._p); clearTimeout(this._t); if (this._u) this._u(); }
+  setAj = (o) => this.setState((s) => ({ aj: { ...s.aj, ...o } }));
+  confirmarAjuste = () => {
+    const a = this.state.aj; const t = a.cant.trim(); const n = Number(t);
+    const cantErr = !t ? 'Ingresá la cantidad de puntos.' : (!/^\d+$/.test(t) || n <= 0) ? 'Tiene que ser un número entero mayor a 0.' : '';
+    const motErr = a.motivo.trim() ? '' : 'El motivo es obligatorio.';
+    if (cantErr || motErr) { this.setAj({ cantErr, motErr }); return; }
+    const S = window.VCStore; const p = this.props || {}; const sc = S && S.porDni((p.cliente || {}).dni); if (!sc) return;
+    const pts = a.tipo === 'Sumar' ? n : -n; S.ajustar(sc.id, pts, a.motivo.trim(), p.usuario || '');
+    this.setState({ aj: { open: false, tipo: 'Sumar', cant: '', motivo: '', cantErr: '', motErr: '' }, toast: 'Ajuste aplicado: ' + (pts > 0 ? '+' : '−') + this.num(n) + ' pts. Nuevo saldo: ' + this.num(sc.saldo) + ' pts.' });
+    clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 3800);
+  };
+  num(n) { const s = String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); return (n < 0 ? '-' : '') + s; }
+  money(n) { const p = (Math.round(n * 100) / 100).toFixed(2).split('.'); return '$' + this.num(+p[0]) + (p[1] !== '00' ? ',' + p[1] : ''); }
+  z(x) { return String(x).padStart(2, '0'); }
+  fdt(ts) { const d = new Date(ts); return this.z(d.getDate()) + '/' + this.z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + this.z(d.getHours()) + ':' + this.z(d.getMinutes()); }
+  renderVals() {
+    const p = this.props || {}; const c = p.cliente || {}; const S = window.VCStore; const s = this.state;
+    const sc = S ? S.porDni(c.dni) : null; const saldo = sc ? sc.saldo : (Number(c.puntos) || 0);
+    const cons = S && sc ? S.consumos.filter((k) => k.cid === sc.id && (p.rol === 'Administrador' || k.ts >= Date.now() - 864e5)).sort((a, b) => b.ts - a.ts) : [];
+    const lim = p.rol === 'Administrador' ? 0 : Date.now() - 864e5;
+    const movs = S && sc ? S.movsConSaldo().filter((m) => m.cid === sc.id && m.ts >= lim).reverse() : [];
+    const venc = sc && sc.venc && sc.venc.length ? sc.venc[0] : null;
+    const tabCls = (on) => 'vc-seg-opt' + (on ? ' vc-seg-on' : '');
+    return {
+      niv: (() => { const hist = sc && S ? S.historicos(sc.id) : (Number(c.historicos) || 0); const ns = (p.niveles || []).slice().sort((a, b) => a.minimo - b.minimo); if (!ns.length) return { actual: '', pct: '0%', msg: '' };
+        let act = ns[0]; ns.forEach((n) => { if (hist >= n.minimo) act = n; }); const sig = ns.find((n) => n.minimo > hist);
+        const pct = sig ? Math.max(0, Math.min(100, Math.round((hist - act.minimo) / (sig.minimo - act.minimo) * 100))) : 100;
+        return { actual: act.nombre, pct: pct + '%', msg: sig ? 'Le faltan ' + this.num(sig.minimo - hist) + ' pts para ' + sig.nombre : 'Nivel máximo alcanzado' }; })(),
+      c: { nombre: c.nombre, dni: c.dni, doc: (c.tipo || 'DNI') + ' ' + c.dni }, esAdmin: p.rol === 'Administrador', neg: saldo < 0,
+      saldo: this.num(saldo), saldoColor: saldo < 0 ? '#b3261e' : '#2b1a10',
+      porVencer: venc ? this.num(venc.pts) + ' pts vencen el ' + venc.f : 'Sin puntos por vencer',
+      datos: [[c.tipo || 'DNI', c.dni], ['Fecha de alta', c.alta || '—'], ['Email', c.email || '—'], ['Teléfono', c.telefono || '—']].map(([k, v]) => ({ k, v })),
+      tabCTxt: p.rol === 'Administrador' ? 'Últimos consumos' : 'Consumos de las últimas 24 hs', tabMTxt: p.rol === 'Administrador' ? 'Movimientos de puntos' : 'Movimientos de las últimas 24 hs',
+      tabC: tabCls(s.tab === 'c'), tabM: tabCls(s.tab === 'm'), enC: s.tab === 'c', enM: s.tab === 'm',
+      verC: () => this.setState({ tab: 'c' }), verM: () => this.setState({ tab: 'm' }),
+      cons: cons.slice(0, 5).map((k) => ({ codigo: k.codigo, fecha: this.fdt(k.ts), monto: this.money(k.monto), pts: this.num(k.pts), estado: k.estado, badge: 'vc-b ' + (k.estado === 'Anulado' ? 'vc-b-off' : 'vc-b-ok'), ver: () => p.onVerConsumo && p.onVerConsumo(k.codigo) })),
+      hayC: cons.length > 0, sinC: !!S && cons.length === 0,
+      movs: movs.slice(0, 5).map((m) => ({ fecha: this.fdt(m.ts), tipo: m.tipo, detalle: m.detalle, pts: (m.pts > 0 ? '+' : '−') + this.num(Math.abs(m.pts)), color: m.pts < 0 ? '#b3261e' : '#4e5e41', badge: 'vc-b ' + (m.pts < 0 ? 'vc-b-off' : 'vc-b-ok') })),
+      hayM: movs.length > 0, sinM: !!S && movs.length === 0,
+      volver: () => p.onVolver && p.onVolver(),
+      registrar: () => p.onRegistrarConsumo && p.onRegistrarConsumo(c.dni),
+      verTodos: () => p.onVerTodos && p.onVerTodos(sc ? sc.dni : c.dni),
+      verTodosMovs: () => p.onVerTodosMovs && p.onVerTodosMovs(sc ? sc.dni : c.dni),
+      toast: s.toast, abrirAjuste: () => this.setAj({ open: true, tipo: 'Sumar', cant: '', motivo: '', cantErr: '', motErr: '' }), cerrarAjuste: () => this.setAj({ open: false }),
+      ajSumar: () => this.setAj({ tipo: 'Sumar' }), ajRestar: () => this.setAj({ tipo: 'Restar' }),
+      onCant: (e) => this.setAj({ cant: e.target.value, cantErr: '' }), onMot: (e) => this.setAj({ motivo: e.target.value, motErr: '' }),
+      regularizar: () => this.setAj({ tipo: 'Sumar', cant: String(Math.abs(saldo)), motivo: 'Regularización por anulación de consumo', cantErr: '', motErr: '' }),
+      confirmarAjuste: this.confirmarAjuste,
+      aj: (() => { const a = s.aj; const n = /^\d+$/.test(a.cant.trim()) ? Number(a.cant) : 0; const fin = saldo + (a.tipo === 'Sumar' ? n : -n); return { open: a.open, sumCls: 'vc-seg-opt' + (a.tipo === 'Sumar' ? ' vc-seg-on' : ''), resCls: 'vc-seg-opt' + (a.tipo === 'Restar' ? ' vc-seg-on' : ''), cant: a.cant, cantErr: a.cantErr, cantInv: !!a.cantErr, motivo: a.motivo, motErr: a.motErr, motInv: !!a.motErr, fin: this.num(fin), finColor: fin < 0 ? '#b3261e' : '#2b1a10' }; })()
+    };
+  }
+}
+</script>
+</body>
+</html>

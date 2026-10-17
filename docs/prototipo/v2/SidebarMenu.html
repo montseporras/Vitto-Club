@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/modernist-c11cfd55-1e38-4a0d-8147-f94cbaacf2f2/styles.css">
+  <script src="_ds/modernist-c11cfd55-1e38-4a0d-8147-f94cbaacf2f2/_ds_bundle.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap">
+  <style>
+    .vc-si { position:relative; display:flex; align-items:center; gap:12px; width:100%; min-height:48px; margin:0; padding:10px 12px 10px 14px; border:none; border-radius:12px; background:transparent; color:#3b2a20; font-family:'Lora', Georgia, serif; font-size:14px; font-weight:600; line-height:1.3; text-align:left; cursor:pointer; box-sizing:border-box; box-shadow:none; transition:background-color .2s ease, color .2s ease, box-shadow .2s ease; }
+    .vc-si:hover { background:#FDF1E8; }
+    .vc-si:focus-visible { outline:none; box-shadow:0 0 0 3px rgba(169,83,43,.3); }
+    .vc-si-tx { flex:1 1 auto; min-width:0; }
+    .vc-si-chev { flex-shrink:0; margin-left:auto; color:#CDBBAC; transition:transform .2s ease, color .2s ease; }
+    .vc-si:hover .vc-si-chev { transform:translateX(2px); color:#8a6f5e; }
+    .vc-si-on, .vc-si-on:hover { background:#FFE4D9; color:#7a3a1d; }
+    .vc-si-on .vc-si-chev, .vc-si-on:hover .vc-si-chev { color:#A9532B; }
+    .vc-si-dis, .vc-si-dis:hover { background:transparent; color:#B8A799; cursor:default; }
+    .vc-si-tag { flex-shrink:0; margin-left:auto; padding:2px 8px; border-radius:999px; background:#FCE9DA; color:#A9532B; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .vc-si-col { justify-content:center; width:48px; height:48px; min-height:48px; padding:0; margin:0 auto; }
+    .vc-si-col:hover::after { content:attr(data-label); position:absolute; left:calc(100% + 10px); top:50%; transform:translateY(-50%); background:#3b2a20; color:#ffffff; font-size:13px; font-weight:600; padding:6px 10px; border-radius:6px; white-space:nowrap; z-index:60; pointer-events:none; box-shadow:0 6px 14px -6px rgba(45,24,14,.5); }
+    .vc-sm-tog:hover { background:#FDF1E8; }
+    .vc-sm-tog:focus-visible { outline:none; box-shadow:0 0 0 3px rgba(169,83,43,.3); }
+  </style>
+</helmet>
+<div style="display:flex; flex-direction:column; width:100%; padding-bottom:16px; box-sizing:border-box;">
+  <div style="display:flex; align-items:center; justify-content:{{ headJustify }}; gap:8px; padding:{{ headPad }}; margin-bottom:24px; min-height:32px;">
+    <sc-if value="{{ abierto }}" hint-placeholder-val="{{ true }}"><span style="font-family:'Lora', Georgia, serif; font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#A9532B; line-height:1.3;">{{ titulo }}</span></sc-if>
+    <button type="button" class="vc-sm-tog" onClick="{{ onToggle }}" aria-label="Contraer o expandir menú" title="Contraer o expandir menú" style="flex-shrink:0; width:32px; height:32px; display:grid; place-items:center; background:none; border:none; border-radius:8px; cursor:pointer; color:#7A3E1E; transition:background-color .2s ease;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ toggleIcon }}"></path></svg></button>
+  </div>
+  <nav style="display:flex; flex-direction:column; gap:8px; padding:{{ navPad }};">
+    <sc-for list="{{ itemsV }}" as="it" hint-placeholder-count="4">
+      <button type="button" class="{{ it.cls }}" data-label="{{ it.label }}" aria-label="{{ it.label }}" aria-current="{{ it.current }}" aria-disabled="{{ it.dis }}" onClick="{{ it.onClick }}" onMouseEnter="{{ it.onEnter }}" onMouseLeave="{{ it.onLeave }}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="{{ it.icon }}"></path></svg>
+        <sc-if value="{{ it.showLabel }}" hint-placeholder-val="{{ true }}"><span class="vc-si-tx">{{ it.label }}</span></sc-if>
+        <sc-if value="{{ it.showChevron }}" hint-placeholder-val="{{ true }}"><svg class="vc-si-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+        <sc-if value="{{ it.showTag }}" hint-placeholder-val="{{ false }}"><span class="vc-si-tag">Próx.</span></sc-if>
+      </button>
+    </sc-for>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:260,&quot;height&quot;:360},&quot;titulo&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Menú de mostrador&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;colapsado&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;items&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{label:string; icon:string; active?:boolean; disabled?:boolean; onClick?:()=&gt;void; onEnter?:(e)=&gt;void}[]&quot;},&quot;onToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;toggleIcon&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onItemLeave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props || {};
+    const col = !!p.colapsado;
+    const noop = () => {};
+    const itemsV = (p.items || []).map((it) => {
+      const dis = !!it.disabled;
+      const on = !!it.active && !dis;
+      return {
+        label: it.label, icon: it.icon,
+        cls: 'vc-si' + (on ? ' vc-si-on' : '') + (dis ? ' vc-si-dis' : '') + (col ? ' vc-si-col' : ''),
+        current: on ? 'page' : 'false', dis: dis ? 'true' : 'false',
+        onClick: dis ? noop : (it.onClick || noop),
+        onEnter: it.onEnter || noop, onLeave: p.onItemLeave || noop,
+        showLabel: !col, showChevron: !col && !dis, showTag: !col && dis
+      };
+    });
+    return {
+      titulo: p.titulo || 'Menú', abierto: !col, itemsV,
+      onToggle: p.onToggle || noop, toggleIcon: p.toggleIcon || '',
+      headJustify: col ? 'center' : 'space-between',
+      headPad: col ? '16px 0 0' : '20px 12px 0 26px',
+      navPad: col ? '0 8px' : '0 12px'
+    };
+  }
+}
+</script>
+</body>
+</html>

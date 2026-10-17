@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/modernist-c11cfd55-1e38-4a0d-8147-f94cbaacf2f2/styles.css">
+  <script src="_ds/modernist-c11cfd55-1e38-4a0d-8147-f94cbaacf2f2/_ds_bundle.js"></script>
+  <script src="./consumos-store.js"></script>
+</helmet>
+<div class="vc-r" style="width:100%; display:flex; flex-direction:column; gap:20px;">
+  <sc-if value="{{ enLista }}" hint-placeholder-val="{{ true }}"><div style="display:flex; flex-direction:column; gap:20px;">
+    <div style="border-radius:24px; border:1px solid #f6d0b1; background:#ffffff; box-shadow:0 20px 25px -5px rgba(126,62,32,.1), 0 8px 10px -6px rgba(126,62,32,.1); padding:32px;">
+      <h2 style="margin:0 0 20px; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.2; color:#2b1a10;">Consumos</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+        <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 18px;"><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">Consumos</div><div style="margin-top:4px; font-size:24px; font-family:'DM Serif Display', Georgia, serif; font-variant-numeric:lining-nums tabular-nums; color:#2b1a10;">{{ tot.n }}</div></div>
+        <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 18px;"><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">Monto total</div><div style="margin-top:4px; font-size:24px; font-family:'DM Serif Display', Georgia, serif; font-variant-numeric:lining-nums tabular-nums; color:#2b1a10;">{{ tot.monto }}</div></div>
+        <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 18px;"><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">Puntos otorgados</div><div style="margin-top:4px; font-size:24px; font-family:'DM Serif Display', Georgia, serif; font-variant-numeric:lining-nums tabular-nums; color:#2b1a10;">{{ tot.pts }}</div></div>
+      </div>
+      <p style="margin:6px 0 0; font-size:12px; color:#7a6e63;">Monto total y puntos otorgados no incluyen consumos anulados.</p>
+      <div class="vc-cfiltros" style="position:relative; margin-top:16px; display:flex; flex-wrap:wrap; align-items:stretch; border:1px solid #f6d0b1; border-radius:12px; background:#ffffff;">
+        <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1.3 1 220px; position:relative;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Fechas</span>
+          <button type="button" onClick="{{ toggleCal }}" style="display:flex; align-items:center; gap:8px; height:34px; padding:0; border:none; background:transparent; cursor:pointer; font-family:var(--font-body); font-size:13px; color:{{ rangoColor }}; text-align:left;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7e3e20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"></path></svg>{{ rangoTxt }}</button>
+          <sc-if value="{{ cal.open }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; top:calc(100% + 6px); left:0; z-index:60; width:280px; background:#ffffff; border:1px solid #f6d0b1; border-radius:14px; box-shadow:0 20px 25px -5px rgba(126,62,32,.15), 0 8px 10px -6px rgba(126,62,32,.12); padding:12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;"><button type="button" class="btn btn-ghost" style="height:28px; padding:0 8px;" onClick="{{ cal.prev }}" aria-label="Mes anterior">‹</button><span style="font-family:var(--font-heading); font-weight:700; font-size:14px; color:#2b1a10;">{{ cal.titulo }}</span><button type="button" class="btn btn-ghost" style="height:28px; padding:0 8px;" onClick="{{ cal.next }}" aria-label="Mes siguiente">›</button></div>
+            <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:2px; text-align:center; font-size:11px; font-weight:700; color:#7a6e63; margin-bottom:4px;"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+            <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:2px;"><sc-for list="{{ cal.dias }}" as="d" hint-placeholder-count="35"><button type="button" onClick="{{ d.onClick }}" style="height:32px; border:none; border-radius:8px; cursor:pointer; font-family:var(--font-body); font-size:13px; background:{{ d.bg }}; color:{{ d.color }}; font-weight:{{ d.fw }};">{{ d.n }}</button></sc-for></div>
+            <p style="margin:8px 0 0; font-size:12px; color:#7a6e63;">{{ cal.ayuda }}</p>
+            <div style="display:flex; justify-content:space-between; gap:8px; margin-top:10px;"><button type="button" class="btn btn-ghost" style="height:30px; padding:0 10px; font-size:13px;" onClick="{{ cal.limpiar }}">Limpiar</button><button type="button" class="btn btn-secondary" style="height:30px; padding:0 12px; font-size:13px;" onClick="{{ toggleCal }}">Listo</button></div>
+          </div></sc-if>
+        </div>
+        <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1.3 1 200px; border-left:1px solid #f6d0b1;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Cliente (DNI o nombre)</span><input style="height:34px; width:100%; box-sizing:border-box; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none;" placeholder="Buscar" value="{{ fd.q }}" onChange="{{ on.q }}" /></div>
+        <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1 1 140px; border-left:1px solid #f6d0b1;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Estado</span><select style="height:34px; width:100%; box-sizing:border-box; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none; cursor:pointer;" value="{{ fd.estado }}" onChange="{{ on.estado }}"><option>Todos</option><option>Registrado</option><option>Anulado</option></select></div>
+        <sc-if value="{{ esAdmin }}" hint-placeholder-val="{{ false }}"><div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1 1 160px; border-left:1px solid #f6d0b1;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Cajero</span><select style="height:34px; width:100%; box-sizing:border-box; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none; cursor:pointer;" value="{{ fd.cajero }}" onChange="{{ on.cajero }}"><sc-for list="{{ cajeros }}" as="c" hint-placeholder-count="4"><option>{{ c }}</option></sc-for></select></div></sc-if>
+        <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-left:1px solid #f6d0b1;"><sc-if value="{{ hayPendientes }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; color:#7e3e20;">Sin aplicar</span></sc-if><button type="button" class="btn btn-primary" style="height:36px;" onClick="{{ filtrar }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg>Filtrar</button></div>
+      </div>
+      <sc-if value="{{ cal.open }}" hint-placeholder-val="{{ false }}"><div onClick="{{ toggleCal }}" style="position:fixed; inset:0; z-index:50;"></div></sc-if>
+      <sc-if value="{{ hay }}" hint-placeholder-val="{{ true }}"><div style="margin-top:20px; overflow-x:auto;"><table class="table"><thead><tr><th>Código</th><th>Fecha y hora</th><th>Cliente</th><th style="text-align:right;">Monto</th><th style="text-align:right;">Puntos</th><th>Registrado por</th><th>Estado</th><th></th></tr></thead><tbody>
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5"><tr><td style="font-weight:700; white-space:nowrap;">{{ r.codigo }}</td><td style="white-space:nowrap;">{{ r.fecha }}</td><td>{{ r.cliente }}<div style="font-size:12px; color:#7a6e63;">{{ r.doc }}</div></td><td style="text-align:right; white-space:nowrap;">{{ r.monto }}</td><td style="text-align:right;">{{ r.pts }}</td><td>{{ r.por }}</td><td><span class="{{ r.badge }}">{{ r.estado }}</span></td><td style="text-align:right;"><button type="button" class="btn btn-secondary" onClick="{{ r.ver }}">Ver</button></td></tr></sc-for>
+      </tbody></table></div>
+      <div style="margin-top:16px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;"><span style="font-size:14px; color:#5c5249;">{{ pg.info }}</span><div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary" disabled="{{ pg.prevDis }}" onClick="{{ pg.prev }}">Anterior</button><button type="button" class="btn btn-secondary" disabled="{{ pg.nextDis }}" onClick="{{ pg.next }}">Siguiente</button></div></div></sc-if>
+      <sc-if value="{{ vacio }}" hint-placeholder-val="{{ false }}"><p style="margin:24px 0 0; padding:28px 16px; text-align:center; font-size:16px; color:#5c5249; border:1px dashed #f6d0b1; border-radius:16px;">No hay consumos para los filtros seleccionados</p></sc-if>
+    </div>
+  </div></sc-if>
+
+  <sc-if value="{{ enDetalle }}" hint-placeholder-val="{{ false }}"><div style="max-width:896px; width:100%; margin:0 auto; display:flex; flex-direction:column; gap:20px;">
+    <div><button type="button" class="btn btn-ghost" onClick="{{ volver }}">← Volver a Consumos</button></div>
+    <div style="overflow:hidden; border-radius:24px; border:1px solid #f6d0b1; background:#ffffff; box-shadow:0 20px 25px -5px rgba(126,62,32,.1), 0 8px 10px -6px rgba(126,62,32,.1); padding:32px;">
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:20px;"><h2 style="margin:0; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.2; color:#2b1a10;">{{ d.codigo }}</h2><span class="{{ d.badge }}">{{ d.estado }}</span></div>
+      <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px 24px;">
+        <sc-for list="{{ d.datos }}" as="x" hint-placeholder-count="7"><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">{{ x.k }}</span><sc-if value="{{ x.link }}" hint-placeholder-val="{{ false }}"><span style="font-size:16px; color:#2b1a10; overflow-wrap:anywhere;"><a href="#" onClick="{{ x.onClick }}" style="font-weight:600; text-decoration:underline; text-underline-offset:2px; color:inherit;">{{ x.v }}</a>{{ x.extra }}</span></sc-if><sc-if value="{{ x.plain }}" hint-placeholder-val="{{ true }}"><span style="font-size:16px; color:#2b1a10; overflow-wrap:anywhere;">{{ x.v }}</span></sc-if></div></sc-for>
+      </div>
+      <sc-if value="{{ d.anulado }}" hint-placeholder-val="{{ false }}"><div style="margin-top:20px;">
+        <div style="display:flex; align-items:center; margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid #fbe6d4;"><span style="font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Anulación</span></div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px 24px;">
+          <sc-for list="{{ d.anul }}" as="x" hint-placeholder-count="4"><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">{{ x.k }}</span><span style="font-size:16px; color:#2b1a10; overflow-wrap:anywhere;">{{ x.v }}</span></div></sc-for>
+        </div>
+      </div></sc-if>
+      <sc-if value="{{ d.registrado }}" hint-placeholder-val="{{ false }}"><div style="margin-top:20px; padding-top:16px; border-top:1px solid #fbe6d4; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:12px;">
+        <sc-if value="{{ d.restante }}" hint-placeholder-val="{{ false }}"><span style="margin-right:auto; font-size:14px; color:#5c5249;">Tiempo restante para anular: <strong>{{ d.restante }}</strong></span></sc-if>
+        <span title="{{ d.tip }}" style="display:inline-flex;"><button type="button" class="btn btn-primary" disabled="{{ d.noPuede }}" onClick="{{ abrirAnular }}">Anular consumo</button></span>
+      </div></sc-if>
+    </div>
+  </div></sc-if>
+
+  <sc-if value="{{ m.open }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000; padding:16px;">
+      <div class="dialog" style="max-width:480px; width:100%;">
+        <sc-if value="{{ m.form }}" hint-placeholder-val="{{ true }}"><div>
+          <div class="dialog-title">Anular consumo {{ m.codigo }}</div>
+          <div class="dialog-body">
+            <p style="font-size:13px; color:var(--color-accent-700); margin-top:0;">Los consumos no se pueden editar. Si el monto es incorrecto, anulalo y registrá uno nuevo.</p>
+            <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 16px; display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; font-size:14px;">
+              <div><div style="font-size:12px; font-weight:700; color:#7e3e20;">Código</div>{{ m.codigo }}</div><div><div style="font-size:12px; font-weight:700; color:#7e3e20;">Cliente</div>{{ m.cliente }}</div>
+              <div><div style="font-size:12px; font-weight:700; color:#7e3e20;">Monto</div>{{ m.monto }}</div><div><div style="font-size:12px; font-weight:700; color:#7e3e20;">Puntos a revertir</div>−{{ m.pts }} pts</div>
+              <div style="grid-column:1 / -1; border-top:1px solid #f6d0b1; padding-top:8px;">Saldo: {{ m.saldo }} pts → <strong style="color:{{ m.resColor }};">{{ m.res }} pts</strong></div>
+            </div>
+            <sc-if value="{{ m.neg }}" hint-placeholder-val="{{ false }}"><div role="alert" style="margin-top:12px; border:1px solid rgba(202,100,60,.4); border-left:4px solid #ca643c; background:#fdf3ea; color:#7e3e20; border-radius:12px; padding:10px 14px; font-size:13px; line-height:1.5;">El cliente ya utilizó parte de estos puntos. Su saldo quedará en {{ m.res }} pts y deberá regularizarse con un ajuste del Administrador.</div></sc-if>
+            <div class="field" style="margin-top:12px;"><label>Motivo de anulación (obligatorio)</label><textarea class="input vc-input" rows="3" style="height:auto; padding:10px 12px;" aria-invalid="{{ m.inv }}" value="{{ m.motivo }}" onChange="{{ onMotivo }}" placeholder="Ej: monto cargado incorrectamente"></textarea></div>
+            <sc-if value="{{ m.err }}" hint-placeholder-val="{{ false }}"><p style="font-size:12px; color:var(--color-accent-700); margin:4px 0 0;">{{ m.err }}</p></sc-if>
+          </div>
+          <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-secondary" onClick="{{ cerrar }}">Volver</button><button type="button" class="btn btn-primary" onClick="{{ confirmar }}">Confirmar anulación</button></div>
+        </div></sc-if>
+        <sc-if value="{{ m.ask }}" hint-placeholder-val="{{ false }}"><div>
+          <div class="dialog-title">Consumo anulado</div>
+          <div class="dialog-body"><p style="margin:0; font-size:14px;">¿Registrar un nuevo consumo para este cliente?</p></div>
+          <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-secondary" onClick="{{ cerrar }}">No</button><button type="button" class="btn btn-primary" onClick="{{ registrarNuevo }}">Sí, registrar consumo</button></div>
+        </div></sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed; right:20px; bottom:20px; z-index:10060; max-width:calc(100vw - 40px); border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; font-weight:600; box-shadow:0 12px 30px -12px rgba(45,24,14,.4);">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1100,&quot;height&quot;:800},&quot;usuario&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Ana Pereyra&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;rol&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Cajero&quot;,&quot;Administrador&quot;],&quot;default&quot;:&quot;Cajero&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;codigo&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onVer&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(codigo: string) =&gt; void&quot;},&quot;onVolver&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onRegistrarNuevo&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(dni: string) =&gt; void&quot;}}">
+class Component extends DCLogic {
+  state = { f: { desde: '', hasta: '', q: '', estado: 'Todos', cajero: 'Todos' }, fd: { desde: '', hasta: '', q: '', estado: 'Todos', cajero: 'Todos' }, cal: { open: false, y: new Date().getFullYear(), m: new Date().getMonth() }, page: 1, m: { open: false, ask: false, motivo: '', err: '', cid: null }, toast: '', v: 0, tick: 0 };
+  componentDidMount() {
+    const t = () => { if (window.VCStore) { this._u = window.VCStore.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); };
+    t(); if (this.props && this.props.clienteInicial) this.setState((s) => ({ f: { ...s.f, q: this.props.clienteInicial }, fd: { ...s.fd, q: this.props.clienteInicial } })); this._i = setInterval(() => this.setState((s) => ({ tick: s.tick + 1 })), 30000);
+  }
+  componentWillUnmount() { clearTimeout(this._p); clearTimeout(this._t); clearInterval(this._i); if (this._u) this._u(); }
+  num(n) { const s = String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); return (n < 0 ? '-' : '') + s; }
+  money(n) { const p = (Math.round(n * 100) / 100).toFixed(2).split('.'); return '$' + this.num(+p[0]) + (p[1] !== '00' ? ',' + p[1] : ''); }
+  z(x) { return String(x).padStart(2, '0'); }
+  fdt(ts) { const d = new Date(ts); return this.z(d.getDate()) + '/' + this.z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + this.z(d.getHours()) + ':' + this.z(d.getMinutes()); }
+  iso(ts) { const d = new Date(ts); return d.getFullYear() + '-' + this.z(d.getMonth() + 1) + '-' + this.z(d.getDate()); }
+  nrm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  setF = (k) => (e) => { const v = e.target.value; this.setState((s) => ({ fd: { ...s.fd, [k]: v } })); };
+  dmy(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : ''; }
+  pickDay = (iso) => this.setState((s) => { const d = s.fd; let desde = d.desde, hasta = d.hasta; if (!desde || hasta) { desde = iso; hasta = ''; } else if (iso < desde) { desde = iso; } else { hasta = iso; } return { fd: { ...d, desde, hasta } }; });
+  calData() {
+    const s = this.state, y = s.cal.y, m = s.cal.m; const MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const first = new Date(y, m, 1); const off = (first.getDay() + 6) % 7; const n = new Date(y, m + 1, 0).getDate(); const dias = [];
+    const { desde, hasta } = s.fd; const hoy = this.iso(Date.now());
+    for (let i = 0; i < off; i++) dias.push({ n: '', bg: 'transparent', color: 'transparent', fw: '400', onClick: () => {} });
+    for (let d = 1; d <= n; d++) { const iso = y + '-' + this.z(m + 1) + '-' + this.z(d); const ext = iso === desde || iso === hasta; const mid = desde && hasta && iso > desde && iso < hasta;
+      dias.push({ n: d, bg: ext ? '#a8532a' : mid ? '#fbe6d4' : 'transparent', color: ext ? '#ffffff' : '#2b1a10', fw: ext || iso === hoy ? '700' : '400', onClick: () => this.pickDay(iso) }); }
+    const mv = (k) => () => this.setState((st) => { const dt = new Date(st.cal.y, st.cal.m + k, 1); return { cal: { ...st.cal, y: dt.getFullYear(), m: dt.getMonth() } }; });
+    return { open: s.cal.open, titulo: MES[m] + ' ' + y, dias, prev: mv(-1), next: mv(1), ayuda: !desde ? 'Elegí la fecha de inicio.' : !hasta ? 'Ahora elegí la fecha de fin.' : 'Rango seleccionado.', limpiar: () => this.setState((st) => ({ fd: { ...st.fd, desde: '', hasta: '' } })) };
+  }
+  confirmar = () => {
+    const m = this.state.m; if (!m.motivo.trim()) { this.setState({ m: { ...m, err: 'El motivo de anulación es obligatorio.' } }); return; }
+    const p = this.props || {}; const k = window.VCStore.anular(p.codigo, p.usuario || '', m.motivo.trim());
+    if (!k) return;
+    this.setState({ m: { ...m, ask: true, err: '', cid: k.cid }, toast: 'Consumo ' + k.codigo + ' anulado. Se revirtieron ' + this.num(k.pts) + ' pts.' });
+    clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 3800);
+  };
+  renderVals() {
+    const S = window.VCStore; const p = this.props || {}; const s = this.state; const esAdmin = p.rol === 'Administrador'; const user = p.usuario || '';
+    const cons = S ? S.consumos : []; const cli = (id) => (S && S.cliente(id)) || {};
+    const f = s.f; const q = f.q.trim(); const qd = q.replace(/\D/g, '');
+    const lista = cons.filter((c) => (esAdmin || c.por === user) && (f.estado === 'Todos' || c.estado === f.estado) && (!esAdmin || f.cajero === 'Todos' || c.por === f.cajero)
+      && (!f.desde || this.iso(c.ts) >= f.desde) && (!f.hasta || this.iso(c.ts) <= f.hasta)
+      && (!q || this.nrm(cli(c.cid).nombre).includes(this.nrm(q)) || (qd.length >= 3 && String(cli(c.cid).dni).replace(/\D/g, '').includes(qd)))).sort((a, b) => b.ts - a.ts);
+    const ok = lista.filter((c) => c.estado === 'Registrado');
+    const size = 8, pages = Math.max(1, Math.ceil(lista.length / size)), pg = Math.min(s.page, pages);
+    const rows = lista.slice((pg - 1) * size, pg * size).map((c) => ({ codigo: c.codigo, fecha: this.fdt(c.ts), cliente: cli(c.cid).nombre, dni: cli(c.cid).dni, doc: (cli(c.cid).tipo || 'DNI') + ' ' + cli(c.cid).dni, monto: this.money(c.monto), pts: this.num(c.pts), por: c.por, estado: c.estado, badge: 'vc-b ' + (c.estado === 'Anulado' ? 'vc-b-off' : 'vc-b-ok'), ver: () => p.onVer && p.onVer(c.codigo) }));
+    const cajeros = ['Todos', ...Array.from(new Set(cons.map((c) => c.por)))];
+    // detalle
+    const k = p.codigo && S ? cons.find((c) => c.codigo === p.codigo) : null; let d = {}; let m = { open: false };
+    if (k) {
+      const c = cli(k.cid); const rem = 1440 - Math.floor((Date.now() - k.ts) / 60000); const mio = k.por === user; const reg = k.estado === 'Registrado';
+      const puede = reg && (esAdmin || (mio && rem > 0));
+      d = { codigo: k.codigo, estado: k.estado, badge: 'vc-b ' + (reg ? 'vc-b-ok' : 'vc-b-off'), registrado: reg, anulado: !reg,
+        datos: [['Fecha y hora', this.fdt(k.ts)], ['Cliente', c.nombre], ['Monto', this.money(k.monto)], ['Equivalencia aplicada', k.eq], ['Puntos acreditados', '+' + this.num(k.pts) + ' pts' + (k.bono ? ' (incluye ' + this.num(k.bono) + ' de bonificación por primera compra)' : '')], ['Observaciones', k.obs || '—'], ['Registrado por', k.por]].map(([a, b]) => (a === 'Cliente' ? { k: a, v: b, extra: ' · ' + (c.tipo || 'DNI') + ' ' + c.dni, link: true, plain: false, onClick: (e) => { if (e && e.preventDefault) e.preventDefault(); if (p.onVerCliente) p.onVerCliente(c.dni); } } : { k: a, v: b, link: false, plain: true })),
+        anul: reg ? [] : [['Fecha y hora de anulación', this.fdt(k.anulTs)], ['Anulado por', k.anulPor], ['Puntos revertidos', '−' + this.num(k.pts) + ' pts'], ['Motivo', k.motivo]].map(([a, b]) => ({ k: a, v: b })),
+        noPuede: !puede, tip: puede ? '' : 'Solo podés anular consumos propios dentro de las 24 hs',
+        restante: !esAdmin && mio && reg && rem > 0 ? Math.floor(rem / 60) + ' h ' + (rem % 60) + ' min' : '' };
+      if (s.m.open) { const saldo = c.saldo + (reg ? 0 : k.pts); const res = saldo - k.pts;
+        m = { open: true, form: !s.m.ask, ask: s.m.ask, codigo: k.codigo, cliente: c.nombre, monto: this.money(k.monto), pts: this.num(k.pts), saldo: this.num(saldo), res: this.num(res), resColor: res < 0 ? '#b3261e' : '#2b1a10', neg: res < 0, motivo: s.m.motivo, err: s.m.err, inv: !!s.m.err }; }
+    }
+    return {
+      fd: s.fd, cal: this.calData(), toggleCal: () => this.setState((st) => ({ cal: { ...st.cal, open: !st.cal.open } })),
+      rangoTxt: s.fd.desde ? this.dmy(s.fd.desde) + ' – ' + (s.fd.hasta ? this.dmy(s.fd.hasta) : 'dd/mm/aaaa') : 'dd/mm/aaaa – dd/mm/aaaa', rangoColor: s.fd.desde ? '#2b1a10' : '#9c8f82',
+      filtrar: () => this.setState((st) => ({ f: { ...st.fd }, page: 1, cal: { ...st.cal, open: false } })),
+      hayPendientes: JSON.stringify(s.fd) !== JSON.stringify(s.f),
+      enLista: !p.codigo, enDetalle: !!k, esAdmin, f, cajeros, toast: s.toast,
+      on: { desde: this.setF('desde'), hasta: this.setF('hasta'), q: this.setF('q'), estado: this.setF('estado'), cajero: this.setF('cajero') },
+      tot: { n: this.num(lista.length), monto: this.money(ok.reduce((a, c) => a + c.monto, 0)), pts: this.num(ok.reduce((a, c) => a + c.pts, 0)) },
+      rows, hay: lista.length > 0, vacio: !!S && lista.length === 0,
+      pg: { info: 'Mostrando ' + (lista.length ? (pg - 1) * size + 1 : 0) + '–' + Math.min(lista.length, pg * size) + ' de ' + lista.length, prevDis: pg <= 1, nextDis: pg >= pages, prev: () => this.setState({ page: pg - 1 }), next: () => this.setState({ page: pg + 1 }) },
+      d, m, volver: () => p.onVolver && p.onVolver(),
+      abrirAnular: () => this.setState({ m: { open: true, ask: false, motivo: '', err: '', cid: null } }),
+      cerrar: () => this.setState({ m: { ...s.m, open: false, ask: false } }),
+      onMotivo: (e) => this.setState({ m: { ...this.state.m, motivo: e.target.value, err: '' } }),
+      confirmar: this.confirmar,
+      registrarNuevo: () => { const c = cli(s.m.cid); this.setState({ m: { ...s.m, open: false, ask: false } }); if (p.onRegistrarNuevo) p.onRegistrarNuevo(c.dni); }
+    };
+  }
+}
+</script>
+</body>
+</html>

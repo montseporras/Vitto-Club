@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/modernist-c11cfd55-1e38-4a0d-8147-f94cbaacf2f2/styles.css">
+  <script src="_ds/modernist-c11cfd55-1e38-4a0d-8147-f94cbaacf2f2/_ds_bundle.js"></script>
+  <script src="./consumos-store.js"></script>
+</helmet>
+<div style="display:flex; flex-direction:column; gap:14px;">
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; align-items:end;">
+    <div class="field" style="margin:0; min-width:0;"><label>Realizado por</label><select class="input" value="{{ f.usuario }}" onChange="{{ on.usuario }}"><sc-for list="{{ usuarios }}" as="o" hint-placeholder-count="4"><option value="{{ o }}">{{ o }}</option></sc-for></select></div>
+    <div class="field" style="margin:0; min-width:0;"><label>Módulo</label><select class="input" value="{{ f.modulo }}" onChange="{{ on.modulo }}"><sc-for list="{{ modulos }}" as="o" hint-placeholder-count="9"><option value="{{ o.v }}" disabled="{{ o.dis }}">{{ o.label }}</option></sc-for></select></div>
+    <div class="field" style="margin:0; min-width:0;"><label>Acción</label><select class="input" disabled="{{ accionDis }}" value="{{ f.accion }}" onChange="{{ on.accion }}"><sc-for list="{{ acciones }}" as="o" hint-placeholder-count="3"><option value="{{ o }}">{{ o }}</option></sc-for></select></div>
+    <div class="field" style="margin:0; min-width:0;"><label>Tipo doc.</label><select class="input" value="{{ f.tipoDoc }}" onChange="{{ on.tipoDoc }}"><option value="DNI">DNI</option><option value="Pasaporte">Pasaporte</option></select></div>
+    <div class="field" style="margin:0; min-width:0;"><label>N° doc. cliente</label><input class="input" placeholder="30111222" value="{{ f.numDoc }}" onChange="{{ on.numDoc }}" /></div>
+    <div class="field" style="margin:0; min-width:0;"><label>Fecha</label><select class="input" value="{{ f.fecha }}" onChange="{{ on.fecha }}"><option value="cualquiera">Cualquiera</option><option value="hoy">Hoy</option><option value="7d">Últimos 7 días</option><option value="mes">Este mes</option><option value="rango">Rango personalizado</option></select></div>
+    <sc-if value="{{ esRango }}" hint-placeholder-val="{{ false }}"><div class="field" style="margin:0; min-width:0; position:relative; grid-column:span 2;"><label>Rango de fechas</label>
+      <button type="button" class="input" onClick="{{ toggleCal }}" style="display:flex; align-items:center; gap:8px; cursor:pointer; text-align:left; color:{{ rangoColor }}; white-space:nowrap; overflow:hidden;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7e3e20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"></path></svg>{{ rangoTxt }}</button>
+      <sc-if value="{{ cal.open }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; top:calc(100% + 6px); left:0; z-index:60; width:280px; background:#ffffff; border:1px solid #f6d0b1; border-radius:14px; box-shadow:0 20px 25px -5px rgba(126,62,32,.15), 0 8px 10px -6px rgba(126,62,32,.12); padding:12px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;"><button type="button" class="btn btn-ghost" style="height:28px; padding:0 8px;" onClick="{{ cal.prev }}" aria-label="Mes anterior">‹</button><span style="font-family:var(--font-heading); font-weight:700; font-size:14px; color:#2b1a10;">{{ cal.titulo }}</span><button type="button" class="btn btn-ghost" style="height:28px; padding:0 8px;" onClick="{{ cal.next }}" aria-label="Mes siguiente">›</button></div>
+        <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:2px; text-align:center; font-size:11px; font-weight:700; color:#7a6e63; margin-bottom:4px;"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+        <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:2px;"><sc-for list="{{ cal.dias }}" as="d" hint-placeholder-count="35"><button type="button" onClick="{{ d.onClick }}" style="height:32px; border:none; border-radius:8px; cursor:pointer; font-family:var(--font-body); font-size:13px; background:{{ d.bg }}; color:{{ d.color }}; font-weight:{{ d.fw }};">{{ d.n }}</button></sc-for></div>
+        <p style="margin:8px 0 0; font-size:12px; color:#7a6e63;">{{ cal.ayuda }}</p>
+        <div style="display:flex; justify-content:space-between; gap:8px; margin-top:10px;"><button type="button" class="btn btn-ghost" style="height:30px; padding:0 10px; font-size:13px;" onClick="{{ cal.limpiar }}">Limpiar</button><button type="button" class="btn btn-secondary" style="height:30px; padding:0 12px; font-size:13px;" onClick="{{ toggleCal }}">Listo</button></div>
+      </div></sc-if>
+    </div></sc-if>
+    <sc-if value="{{ cal.open }}" hint-placeholder-val="{{ false }}"><div onClick="{{ toggleCal }}" style="position:fixed; inset:0; z-index:50;"></div></sc-if>
+    <div style="display:flex; align-items:flex-end;"><button type="button" class="btn btn-secondary" onClick="{{ limpiar }}">Limpiar filtros</button></div>
+  </div>
+
+  <sc-if value="{{ hay }}" hint-placeholder-val="{{ true }}"><div style="overflow-x:auto; max-width:100%;"><table class="table">
+    <thead><tr><th style="width:28px;"></th><th>Fecha y hora</th><th>Realizado por</th><th>Módulo</th><th>Acción</th></tr></thead>
+    <tbody>
+      <sc-for list="{{ rows }}" as="a" hint-placeholder-count="6">
+        <tr class="vc-rowlink" title="Ver detalle" aria-expanded="{{ a.abierto }}" onClick="{{ a.toggle }}">
+          <td style="color:#7e3e20;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="transform:{{ a.rot }}; transition:transform .15s;"><path d="m9 18 6-6-6-6"></path></svg></td>
+          <td style="white-space:nowrap;">{{ a.fecha }}</td>
+          <td><span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7e3e20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="{{ a.icon }}"></path></svg>{{ a.usuario }}</span></td>
+          <td><span class="tag tag-neutral" style="font-size:10px; padding:1px 8px;">{{ a.modulo }}</span></td>
+          <td>{{ a.texto }}</td>
+        </tr>
+        <sc-if value="{{ a.abierto }}" hint-placeholder-val="{{ false }}"><tr><td colSpan="5" style="background:#fffaf5;">
+          <div style="display:flex; flex-wrap:wrap; gap:16px 32px; padding:4px 0 4px 28px;">
+            <sc-if value="{{ a.tieneCliente }}" hint-placeholder-val="{{ false }}"><div style="min-width:200px;"><div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20; margin-bottom:6px;">Cliente afectado</div><div style="font-size:13px; line-height:1.6;"><div><strong>{{ a.cliente.nombre }}</strong></div><div>{{ a.cliente.tipo }} {{ a.cliente.num }}</div></div></div></sc-if>
+            <div style="min-width:220px; flex:1;"><div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20; margin-bottom:6px;">Detalle</div>
+              <div style="display:grid; grid-template-columns:max-content 1fr; gap:4px 16px; font-size:13px;"><sc-for list="{{ a.filas }}" as="d" hint-placeholder-count="3"><span style="color:#7a6e63;">{{ d.k }}</span><span style="color:#2b1a10; font-weight:600;">{{ d.v }}</span></sc-for></div>
+              <sc-if value="{{ a.sinFilas }}" hint-placeholder-val="{{ false }}"><p class="text-muted" style="font-size:13px; margin:0;">Sin datos adicionales.</p></sc-if>
+            </div>
+          </div>
+        </td></tr></sc-if>
+      </sc-for>
+    </tbody>
+  </table></div>
+  <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;"><span class="text-muted" style="font-size:13px;">{{ pg.info }}</span><div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary" disabled="{{ pg.prevDis }}" onClick="{{ pg.prev }}">Anterior</button><button type="button" class="btn btn-secondary" disabled="{{ pg.nextDis }}" onClick="{{ pg.next }}">Siguiente</button></div></div></sc-if>
+  <sc-if value="{{ vacio }}" hint-placeholder-val="{{ false }}"><p class="text-muted" style="font-size:13px; margin:0;">No hay registros para los filtros seleccionados</p></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1100,&quot;height&quot;:760},&quot;registros&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{fecha:string; usuario:string; accion:string; detalle?:[string,string][]}[]&quot;},&quot;empleados&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;}}">
+class Component extends DCLogic {
+  F0 = { usuario: 'Todos', modulo: 'Todos', accion: 'Todas', tipoDoc: 'DNI', numDoc: '', fecha: 'cualquiera', desde: '', hasta: '', codigo: '' };
+  state = { f: { ...this.F0 }, open: {}, page: 1, v: 0, cal: { open: false, y: new Date().getFullYear(), m: new Date().getMonth() } };
+  CAT = {
+    Empleados: ['Registró empleado', 'Editó empleado', 'Dio de baja empleado', 'Creó cuenta de usuario', 'Editó cuenta de usuario', 'Dio de baja cuenta de usuario'],
+    Clientes: ['Registró cliente', 'Editó cliente', 'Dio de baja cliente'],
+    Consumos: ['Registró consumo', 'Anuló consumo'],
+    Puntos: ['Ajustó puntos', 'Venció puntos'],
+    Canjes: ['Confirmó canje', 'Registró uso de canje', 'Rechazó canje', 'Venció canje'],
+    Recompensas: ['Creó recompensa', 'Editó recompensa', 'Activó recompensa', 'Desactivó recompensa', 'Dio de baja recompensa', 'Deshabilitó recompensa', 'Habilitó recompensa'],
+    Misiones: ['Creó misión', 'Editó misión', 'Dio de baja misión', 'Completó misión', 'Reclamó recompensa de misión', 'Venció misiones del mes'],
+    'Configuración': ['Modificó equivalencia de puntos', 'Modificó vigencia de puntos', 'Modificó bonificación por primera compra', 'Modificó logo y mensajes', 'Modificó promociones', 'Modificó niveles']
+  };
+  ICON_P = 'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8';
+  ICON_S = 'M4 4h16v12H4z M8 20h8 M12 16v4 M8 8h.01 M12 8h4';
+  componentDidMount() { const t = () => { if (window.VCStore) { this._u = window.VCStore.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); }; t(); }
+  componentWillUnmount() { clearTimeout(this._p); if (this._u) this._u(); }
+  num(n) { return String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  sg(n) { return (n < 0 ? '−' : '+') + this.num(n) + ' pts'; }
+  money(n) { return '$' + this.num(n); }
+  z(x) { return String(x).padStart(2, '0'); }
+  fdt(ts) { const d = new Date(ts); return this.z(d.getDate()) + '/' + this.z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + this.z(d.getHours()) + ':' + this.z(d.getMinutes()); }
+  parseF(s) { const m = String(s || '').match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/); return m ? new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)).getTime() : 0; }
+  at(d, m, hh, mm) { return new Date(2026, m - 1, d, hh, mm).getTime(); }
+  cli(nombre, num, tipo) { return { nombre, tipo: tipo || 'DNI', num }; }
+  // filas existentes del prototipo → módulo / acción
+  clasificar(a) {
+    const t = a.accion || ''; const x = t.toLowerCase(); const det = (a.detalle || []).map((d) => d[0].toLowerCase()).join(' ');
+    if (/sesi[oó]n|autorregistro/.test(x)) return null;
+    let modulo = 'Configuración', accion = null;
+    if (/usuario de|contraseña|el usuario/.test(x)) { modulo = 'Empleados'; accion = /cre[oó]/.test(x) ? 'Creó cuenta de usuario' : /baja/.test(x) ? 'Dio de baja cuenta de usuario' : /contraseña/.test(x) ? 'Editó cuenta de usuario' : null; }
+    else if (/empleado/.test(x)) { modulo = 'Empleados'; accion = /^registr/.test(x) ? 'Registró empleado' : /^modific|^edit/.test(x) ? 'Editó empleado' : /baja/.test(x) ? 'Dio de baja empleado' : null; }
+    else if (/compra|consumo/.test(x)) { modulo = 'Consumos'; accion = /anul/.test(x) ? 'Anuló consumo' : 'Registró consumo'; }
+    else if (/canje/.test(x)) { modulo = 'Canjes'; accion = /rechaz/.test(x) ? 'Rechazó canje' : /venci/.test(x) ? 'Venció canje' : /confirm|aplic/.test(x) ? 'Confirmó canje' : 'Registró uso de canje'; }
+    else if (/cliente/.test(x)) { modulo = 'Clientes'; accion = /^registr/.test(x) ? 'Registró cliente' : /edit|modific/.test(x) ? 'Editó cliente' : /baja/.test(x) ? 'Dio de baja cliente' : null; }
+    else if (/recompensa/.test(x)) { modulo = 'Recompensas'; accion = /^cre/.test(x) ? 'Creó recompensa' : /^modific|^edit/.test(x) ? 'Editó recompensa' : /^desactiv/.test(x) ? 'Desactivó recompensa' : /^activ/.test(x) ? 'Activó recompensa' : null; }
+    else if (/misi[oó]n/.test(x)) { modulo = 'Misiones'; accion = /^cre/.test(x) ? 'Creó misión' : /^modific|^edit/.test(x) ? 'Editó misión' : /baja/.test(x) ? 'Dio de baja misión' : null; }
+    else if (/venci[oó].*(punto|lote)/.test(x)) { modulo = 'Puntos'; accion = 'Venció puntos'; }
+    else if (/ajust/.test(x)) { modulo = 'Puntos'; accion = 'Ajustó puntos'; }
+    else if (/nivel/.test(x)) { modulo = 'Configuración'; accion = 'Modificó niveles'; }
+    else if (/notificaci/.test(x)) { modulo = 'Configuración'; accion = 'Modificó logo y mensajes'; }
+    else if (/configuraci/.test(x)) { modulo = 'Configuración'; accion = /puntos por|monto base/.test(det) ? 'Modificó equivalencia de puntos' : /vigencia/.test(det) ? 'Modificó vigencia de puntos' : /bonificaci/.test(det) ? 'Modificó bonificación por primera compra' : 'Modificó equivalencia de puntos'; }
+    let cliente = null; let filas = (a.detalle || []).filter((d) => d[0] !== 'Cliente');
+    const dc = (a.detalle || []).find((d) => d[0] === 'Cliente');
+    if (dc) { const m = String(dc[1]).match(/^(.*?)\s*\((DNI|Pasaporte)\s+([^)]+)\)/); if (m) cliente = this.cli(m[1], m[3].replace(/\D/g, ''), m[2]); }
+    if (!cliente && a.clienteNumero) { const nm = (t.match(/cliente\s+(.+?)(\s+desde.*)?$/i) || [])[1] || ''; cliente = this.cli(nm, String(a.clienteNumero), a.clienteTipo); }
+    const cod = (t.match(/#\d+|C-\d{6}/) || [])[0] || '';
+    if (cod) filas = [['Código de operación', cod], ...filas];
+    return { ts: this.parseF(a.fecha), usuario: a.usuario, modulo, accion, texto: t, cliente, codigo: cod, filas };
+  }
+  desdeStore() {
+    const S = window.VCStore; if (!S) return [];
+    const out = []; const C = (id) => { const c = S.cliente(id); return this.cli(c.nombre, c.dni.replace(/\D/g, '')); };
+    S.movsConSaldo().forEach((m) => {
+      const c = C(m.cid); const sal = ['Saldo resultante', this.num(m.saldo) === '0' ? '0 pts' : (m.saldo < 0 ? '-' : '') + this.num(m.saldo) + ' pts'];
+      const code = (m.detalle.match(/C-\d{6}/) || [])[0] || '';
+      const k = code ? S.consumos.find((x) => x.codigo === code) : null;
+      if (m.tipo === S.T.AC) out.push({ ts: m.ts, usuario: m.por, modulo: 'Consumos', accion: 'Registró consumo', texto: 'Registró el consumo ' + code + ' de ' + c.nombre, cliente: c, codigo: code, filas: [['Código de operación', code], ['Monto', this.money(k ? k.monto : 0)], ['Puntos acreditados', this.sg(m.pts)], sal] });
+      else if (m.tipo === S.T.RE) out.push({ ts: m.ts, usuario: m.por, modulo: 'Consumos', accion: 'Anuló consumo', texto: 'Anuló el consumo ' + code + ' de ' + c.nombre, cliente: c, codigo: code, filas: [['Código de operación', code], ['Monto', this.money(k ? k.monto : 0)], ['Puntos revertidos', this.sg(m.pts)], sal, ['Motivo', (k && k.motivo) || '—']] });
+      else if (m.tipo === S.T.AJ) out.push({ ts: m.ts, usuario: m.por, modulo: 'Puntos', accion: 'Ajustó puntos', texto: 'Ajustó puntos de ' + c.nombre, cliente: c, codigo: '', filas: [['Cantidad', this.sg(m.pts)], sal, ['Motivo', m.detalle.replace(/^Ajuste:\s*/, '')]] });
+      else if (m.tipo === S.T.VE) out.push({ ts: m.ts, usuario: 'Sistema', modulo: 'Puntos', accion: 'Venció puntos', texto: 'Venció ' + this.num(m.pts) + ' pts de ' + c.nombre, cliente: c, codigo: '', filas: [['Puntos vencidos', this.sg(m.pts)], ['Fecha del lote', (m.detalle.match(/\d{2}\/\d{2}\/\d{4}/) || ['—'])[0]], sal] });
+      else if (m.tipo === S.T.CA) { const cj = 'CJ-' + String(300 + m.id).padStart(5, '0'); out.push({ ts: m.ts, usuario: m.por, modulo: 'Canjes', accion: 'Registró uso de canje', texto: 'Registró el uso del canje de ' + c.nombre, cliente: c, codigo: cj, filas: [['Recompensa', m.detalle.replace(/^Canje:\s*/, '')], ['Código del canje', cj], ['Puntos descontados', this.sg(m.pts)], sal] }); }
+    });
+    return out;
+  }
+  mock() {
+    const car = this.cli('Carolina Fernández', '38456123'), sof = this.cli('Sofía Ríos', '35222880');
+    return [
+      { ts: this.at(16, 10, 15, 40), usuario: 'Ana Pereyra', modulo: 'Consumos', accion: 'Registró consumo', texto: 'Registró el consumo C-000141 de Carolina Fernández', cliente: car, codigo: 'C-000141', filas: [['Código de operación', 'C-000141'], ['Monto', '$50.000'], ['Puntos acreditados', '+500 pts'], ['Saldo resultante', '1.240 pts']] },
+      { ts: this.at(16, 10, 14, 5), usuario: 'Valeria Vitto', modulo: 'Configuración', accion: 'Modificó niveles', texto: 'Modificó niveles', cliente: null, codigo: '', filas: [['Plata', '250 → 300 pts']] },
+      { ts: this.at(16, 10, 11, 30), usuario: 'Jorge Molina', modulo: 'Canjes', accion: 'Registró uso de canje', texto: 'Registró el uso del canje de Carolina Fernández', cliente: car, codigo: 'CJ-00412', filas: [['Recompensa', 'Postre a elección'], ['Código del canje', 'CJ-00412'], ['Puntos descontados', '−300 pts'], ['Saldo resultante', '740 pts']] },
+      { ts: this.at(16, 10, 9, 0), usuario: 'Sistema', modulo: 'Canjes', accion: 'Venció canje', texto: 'Venció el canje de Sofía Ríos', cliente: sof, codigo: 'CJ-00398', filas: [['Recompensa', 'Merienda gratis'], ['Código del canje', 'CJ-00398']] },
+      { ts: this.at(16, 10, 0, 5), usuario: 'Sistema', modulo: 'Puntos', accion: 'Venció puntos', texto: 'Venció 200 pts de Carolina Fernández', cliente: car, codigo: '', filas: [['Puntos vencidos', '−200 pts'], ['Fecha del lote', '16/08/2026'], ['Saldo resultante', '1.040 pts']] },
+      { ts: this.at(15, 10, 18, 45) + 1, usuario: 'Sistema', modulo: 'Recompensas', accion: 'Habilitó recompensa', texto: 'Habilitó la recompensa "Café + medialuna"', cliente: null, codigo: '', filas: [['Motivo', 'Stock repuesto']] },
+      { ts: this.at(15, 10, 18, 45), usuario: 'Valeria Vitto', modulo: 'Recompensas', accion: 'Editó recompensa', texto: 'Editó la recompensa "Café + medialuna"', cliente: null, codigo: '', filas: [['Stock', '0 → 20']] },
+      { ts: this.at(15, 10, 18, 30), usuario: 'Sistema', modulo: 'Recompensas', accion: 'Deshabilitó recompensa', texto: 'Deshabilitó la recompensa "Café + medialuna"', cliente: null, codigo: '', filas: [['Motivo', 'Sin stock']] },
+      { ts: this.at(14, 10, 12, 0), usuario: 'Sistema', modulo: 'Misiones', accion: 'Completó misión', texto: 'Completó la misión "Vení 3 veces esta semana" de Carolina Fernández', cliente: car, codigo: '', filas: [['Misión', 'Vení 3 veces esta semana'], ['Puntos otorgados', '+50 pts']] },
+      { ts: this.at(1, 10, 0, 0), usuario: 'Sistema', modulo: 'Misiones', accion: 'Venció misiones del mes', texto: 'Venció las misiones del mes', cliente: null, codigo: '', filas: [['Misiones vencidas', 'Vení 3 veces esta semana · Probá el brunch de domingo']] }
+    ];
+  }
+  iso(ts) { const d = new Date(ts); return d.getFullYear() + '-' + this.z(d.getMonth() + 1) + '-' + this.z(d.getDate()); }
+  dmy(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : ''; }
+  pickDay = (iso) => this.setState((s) => { const d = s.f; let desde = d.desde, hasta = d.hasta; if (!desde || hasta) { desde = iso; hasta = ''; } else if (iso < desde) desde = iso; else hasta = iso; return { f: { ...d, desde, hasta }, page: 1 }; });
+  calData() {
+    const s = this.state, y = s.cal.y, m = s.cal.m; const MES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const off = (new Date(y, m, 1).getDay() + 6) % 7; const n = new Date(y, m + 1, 0).getDate(); const dias = []; const { desde, hasta } = s.f; const hoy = this.iso(Date.now());
+    for (let i = 0; i < off; i++) dias.push({ n: '', bg: 'transparent', color: 'transparent', fw: '400', onClick: () => {} });
+    for (let d = 1; d <= n; d++) { const iso = y + '-' + this.z(m + 1) + '-' + this.z(d); const ext = iso === desde || iso === hasta; const mid = desde && hasta && iso > desde && iso < hasta;
+      dias.push({ n: d, bg: ext ? '#a8532a' : mid ? '#fbe6d4' : 'transparent', color: ext ? '#ffffff' : '#2b1a10', fw: ext || iso === hoy ? '700' : '400', onClick: () => this.pickDay(iso) }); }
+    const mv = (k) => () => this.setState((st) => { const dt = new Date(st.cal.y, st.cal.m + k, 1); return { cal: { ...st.cal, y: dt.getFullYear(), m: dt.getMonth() } }; });
+    return { open: s.cal.open, titulo: MES[m] + ' ' + y, dias, prev: mv(-1), next: mv(1), ayuda: !desde ? 'Elegí la fecha de inicio.' : !hasta ? 'Ahora elegí la fecha de fin.' : 'Rango seleccionado.', limpiar: () => this.setState((st) => ({ f: { ...st.f, desde: '', hasta: '' }, page: 1 })) };
+  }
+  setF = (k) => (e) => { const v = e.target.value; this.setState((s) => ({ f: { ...s.f, [k]: v, ...(k === 'modulo' ? { accion: 'Todas' } : {}) }, page: 1 })); };
+  renderVals() {
+    const p = this.props || {}; const s = this.state; const f = s.f;
+    const emps = (p.empleados || []).filter(Boolean);
+    const empSet = new Set(emps);
+    const base = (p.registros || []).map((a) => this.clasificar(a)).filter((a) => a && (a.usuario === 'Sistema' || empSet.has(a.usuario)));
+    const todos = [...base, ...this.desdeStore(), ...this.mock()].filter((a) => a.usuario === 'Sistema' || empSet.has(a.usuario)).sort((a, b) => b.ts - a.ts);
+    const now = new Date(); const d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const okF = (ts) => f.fecha === 'hoy' ? ts >= d0 : f.fecha === '7d' ? ts >= d0 - 6 * 864e5 : f.fecha === 'mes' ? ts >= new Date(now.getFullYear(), now.getMonth(), 1).getTime() : f.fecha === 'rango' ? ((!f.desde || this.iso(ts) >= f.desde) && (!f.hasta || this.iso(ts) <= f.hasta)) : true;
+    const nd = f.numDoc.replace(/\D/g, ''); const cq = f.codigo.trim().toLowerCase();
+    const lista = todos.filter((a) => (f.usuario === 'Todos' || a.usuario === f.usuario) && (f.modulo === 'Todos' || a.modulo === f.modulo) && (f.accion === 'Todas' || a.accion === f.accion)
+      && (!nd || (a.cliente && a.cliente.tipo === f.tipoDoc && String(a.cliente.num).includes(nd))) && okF(a.ts));
+    const size = 10, pages = Math.max(1, Math.ceil(lista.length / size)), pg = Math.min(s.page, pages);
+    const rows = lista.slice((pg - 1) * size, pg * size).map((a, i) => { const key = a.ts + '|' + a.texto; const ab = !!s.open[key];
+      return { fecha: this.fdt(a.ts), usuario: a.usuario, icon: a.usuario === 'Sistema' ? this.ICON_S : this.ICON_P, modulo: a.modulo, texto: a.texto, abierto: ab, rot: ab ? 'rotate(90deg)' : 'none',
+        toggle: () => this.setState((st) => ({ open: { ...st.open, [key]: !st.open[key] } })), tieneCliente: !!a.cliente, cliente: a.cliente || {}, filas: (a.filas || []).map(([k, v]) => ({ k, v })), sinFilas: !(a.filas || []).length }; });
+    return {
+      f, on: { usuario: this.setF('usuario'), modulo: this.setF('modulo'), accion: this.setF('accion'), tipoDoc: this.setF('tipoDoc'), numDoc: this.setF('numDoc'), fecha: this.setF('fecha'), desde: this.setF('desde'), hasta: this.setF('hasta'), codigo: this.setF('codigo') },
+      usuarios: ['Todos', ...emps, 'Sistema'], modulos: ['Todos', ...Object.keys(this.CAT)].map((m) => ({ v: m, dis: m === 'Recompensas' || m === 'Misiones', label: (m === 'Recompensas' || m === 'Misiones') ? m + ' (Próximamente)' : m })), acciones: ['Todas', ...(this.CAT[f.modulo] || [])], accionDis: f.modulo === 'Todos', esRango: f.fecha === 'rango',
+      limpiar: () => this.setState((st) => ({ f: { ...this.F0 }, page: 1, cal: { ...st.cal, open: false } })),
+      cal: this.calData(), toggleCal: () => this.setState((st) => ({ cal: { ...st.cal, open: !st.cal.open } })),
+      rangoTxt: f.desde ? this.dmy(f.desde) + ' – ' + (f.hasta ? this.dmy(f.hasta) : 'dd/mm/aaaa') : 'dd/mm/aaaa – dd/mm/aaaa', rangoColor: f.desde ? '#2b1a10' : '#9c8f82',
+      rows, hay: lista.length > 0, vacio: lista.length === 0,
+      pg: { info: 'Mostrando ' + (lista.length ? (pg - 1) * size + 1 : 0) + '–' + Math.min(lista.length, pg * size) + ' de ' + lista.length, prevDis: pg <= 1, nextDis: pg >= pages, prev: () => this.setState({ page: pg - 1 }), next: () => this.setState({ page: pg + 1 }) }
+    };
+  }
+}
+</script>
+</body>
+</html>
