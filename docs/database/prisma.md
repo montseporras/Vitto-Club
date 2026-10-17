@@ -180,6 +180,16 @@ npx prisma db seed        # Corre prisma/seed.ts
 npx prisma studio         # UI para explorar los datos
 ```
 
+Si cambio el schema:
+1- Desde la raíz de Vitto-Club
+docker compose up -d
+
+2- Entrar al backend
+cd backend
+
+3- Crear la migración y aplicar los cambios
+npx prisma migrate dev --name descripcion_del_cambio
+
 ## A tener en cuenta a futuro
 
 - **No correr `npx prisma orm init`** en este proyecto: es el instalador de

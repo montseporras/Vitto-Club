@@ -1,12 +1,16 @@
 generator client {
   provider        = "prisma-client-js"
-  // Unique indexes with a WHERE clause (customers: unique only among active ones)
+  // Unique indexes with a WHERE clause (unique only among active rows)
   previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
   provider = "postgresql"
 }
+
+// =====================================================================
+// ENUMS
+// =====================================================================
 
 enum EmployeeRole {
   ADMIN
@@ -18,16 +22,120 @@ enum DocumentType {
   PASSPORT
 }
 
-/// Employees: required data: first name, last name, phone and role.
+enum AccountRole {
+  ADMIN
+  CASHIER
+  CUSTOMER
+}
+
+/// ACTIVATED is no longer written (there is no customer reactivation); kept for old rows.
+enum CustomerStatusAction {
+  DEACTIVATED
+  ACTIVATED
+}
+
+enum FirstPurchaseBonusType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum ConsumptionStatus {
+  REGISTERED
+  VOIDED // final state
+}
+
+enum PointsLotStatus {
+  ACTIVE
+  CONSUMED
+  EXPIRED
+}
+
+enum PointsMovementType {
+  PURCHASE_CREDIT
+  VOID_REVERSAL
+  MANUAL_ADJUSTMENT
+  EXPIRATION
+  REDEMPTION // Sprint 4
+}
+
+enum AuditActorType {
+  EMPLOYEE
+  SYSTEM
+}
+
+enum AuditModule {
+  EMPLOYEES
+  CUSTOMERS
+  CONSUMPTIONS
+  POINTS
+  REDEMPTIONS
+  REWARDS
+  MISSIONS
+  CONFIGURATION
+}
+
+enum AuditAction {
+  // EMPLOYEES
+  EMPLOYEE_CREATED
+  EMPLOYEE_UPDATED
+  EMPLOYEE_DEACTIVATED
+  USER_ACCOUNT_CREATED
+  USER_ACCOUNT_UPDATED
+  USER_ACCOUNT_DEACTIVATED
+  USER_ACCOUNT_REACTIVATED
+  // CUSTOMERS
+  CUSTOMER_CREATED
+  CUSTOMER_UPDATED
+  CUSTOMER_DEACTIVATED
+  // CONSUMPTIONS
+  CONSUMPTION_REGISTERED
+  CONSUMPTION_VOIDED
+  // POINTS
+  POINTS_ADJUSTED
+  POINTS_EXPIRED
+  // REDEMPTIONS (Sprint 4)
+  REDEMPTION_CONFIRMED
+  REDEMPTION_USED
+  REDEMPTION_REJECTED
+  REDEMPTION_EXPIRED
+  // REWARDS (Sprint 4)
+  REWARD_CREATED
+  REWARD_UPDATED
+  REWARD_ACTIVATED
+  REWARD_DEACTIVATED
+  REWARD_DELETED
+  REWARD_DISABLED
+  REWARD_ENABLED
+  // MISSIONS (Sprint 5)
+  MISSION_CREATED
+  MISSION_UPDATED
+  MISSION_DELETED
+  MISSION_COMPLETED
+  MISSION_REWARD_CLAIMED
+  MISSIONS_EXPIRED
+  // CONFIGURATION
+  POINTS_EQUIVALENCE_UPDATED
+  POINTS_VALIDITY_UPDATED
+  FIRST_PURCHASE_BONUS_UPDATED
+  LEVELS_UPDATED
+  LOGO_AND_MESSAGES_UPDATED // Sprint 5
+  PROMOTIONS_UPDATED // Sprint 5
+}
+
+// =====================================================================
+// EMPLOYEES
+// =====================================================================
+
+/// Employees: required data: first name, last name, email and role. Phone is optional.
 model Employee {
   id        Int          @id @default(autoincrement())
   firstName String       @map("first_name") @db.VarChar(80)
   lastName  String       @map("last_name") @db.VarChar(80)
-  phone     String       @db.VarChar(30)
-  email     String       @unique @db.VarChar(150)
+  phone     String?      @db.VarChar(30)
+  email     String       @db.VarChar(150)
   role      EmployeeRole
 
-  // Soft delete: record is kept, not removed
+  // Soft delete: record is kept, not removed. No reactivation.
   isActive      Boolean   @default(true) @map("is_active")
   deactivatedAt DateTime? @map("deactivated_at")
 
@@ -36,11 +144,18 @@ model Employee {
 
   account Account?
 
+  // Email must not repeat among ACTIVE employees: a deactivated employee frees it.
+  @@unique([email], map: "employees_active_email_key", where: { isActive: true })
+  @@index([email])
   @@index([isActive])
   @@map("employees")
 }
 
-/// Customers: document, email (required, unique), phone (optional), first name, last name.
+// =====================================================================
+// CUSTOMERS
+// =====================================================================
+
+/// Customers: document, email (required), phone (optional), first name, last name.
 model Customer {
   id             Int          @id @default(autoincrement())
   firstName      String       @map("first_name") @db.VarChar(80)
@@ -52,15 +167,19 @@ model Customer {
 
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
 
-  // Soft delete: record is kept, not removed, to preserve history
+  // Soft delete: record is kept, not removed, to preserve history. No reactivation.
   isActive      Boolean   @default(true) @map("is_active")
   deactivatedAt DateTime? @map("deactivated_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  statusChanges CustomerStatusChange[]
-  account       Account?
+  statusChanges   CustomerStatusChange[]
+  account         Account?
+  points          CustomerPoints?
+  consumptions    Consumption[]
+  pointsLots      PointsLot[]
+  pointsMovements PointsMovement[]
 
   // Document and email must not repeat among ACTIVE customers (PO decision, 2026-10-08): a
   // deactivated customer lost their points and can sign up again as a new customer.
@@ -73,12 +192,7 @@ model Customer {
   @@map("customers")
 }
 
-enum CustomerStatusAction {
-  DEACTIVATED
-  ACTIVATED
-}
-
-/// History of deactivations and reactivations of a customer (never deleted).
+/// History of deactivations of a customer (never deleted).
 model CustomerStatusChange {
   id         Int                  @id @default(autoincrement())
   customerId Int                  @map("customer_id")
@@ -91,16 +205,9 @@ model CustomerStatusChange {
   @@map("customer_status_changes")
 }
 
-enum AccountRole {
-  ADMIN
-  CASHIER
-  CUSTOMER
-}
-
-enum FirstPurchaseBonusType {
-  PERCENTAGE
-  FIXED_AMOUNT
-}
+// =====================================================================
+// ACCOUNTS AND SESSIONS
+// =====================================================================
 
 /// Login credentials. Everyone logs in with an email, employees and customers alike.
 /// Exactly one owner, matching the role: CUSTOMER -> customerId; ADMIN/CASHIER -> employeeId.
@@ -109,14 +216,19 @@ enum FirstPurchaseBonusType {
 model Account {
   id           Int         @id @default(autoincrement())
   // Copy of Employee.email (not editable) or Customer.email (kept in sync when it changes).
-  // One email = one account: the same person needs a different email per role.
-  email        String      @unique @db.VarChar(150)
+  // Unique only among ACTIVE accounts.
+  email        String      @db.VarChar(150)
   passwordHash String      @map("password_hash")
   // Derived copy of Employee.role (source of truth); always CUSTOMER for customers
   role         AccountRole
 
   isActive Boolean @default(true) @map("is_active")
 
+  // true only for customer accounts created at checkout/admin (initial password = document)
+  // until the customer changes it.
+  mustChangePassword Boolean @default(false) @map("must_change_password")
+
+  // An employee always keeps the same account (user reactivation is kept)
   employeeId Int? @unique @map("employee_id")
   customerId Int? @unique @map("customer_id")
 
@@ -127,6 +239,12 @@ model Account {
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
   sessions Session[]
 
+  registeredConsumptions   Consumption[]    @relation("ConsumptionRegisteredBy")
+  voidedConsumptions       Consumption[]    @relation("ConsumptionVoidedBy")
+  performedPointsMovements PointsMovement[] @relation("PointsMovementPerformedBy")
+
+  @@unique([email], map: "accounts_active_email_key", where: { isActive: true })
+  @@index([email])
   @@map("accounts")
 }
 
@@ -151,8 +269,11 @@ model Session {
   @@map("sessions")
 }
 
-/// Current global rule for converting purchase amounts into loyalty points.
-/// The primary key is constrained to 1 so the table stores exactly one active configuration.
+// =====================================================================
+// LOYALTY CONFIGURATION
+// =====================================================================
+
+/// LEGACY (imported as version 1 of LoyaltyProgramConfiguration). Not read by the app.
 model LoyaltyPointsConfiguration {
   id            Int      @id @default(1)
   baseAmount    Decimal  @map("base_amount") @db.Decimal(12, 2)
@@ -163,7 +284,7 @@ model LoyaltyPointsConfiguration {
   @@map("loyalty_points_configuration")
 }
 
-/// Current global points expiration period, measured from the point accreditation date.
+/// LEGACY (imported as version 1 of LoyaltyProgramConfiguration). Not read by the app.
 model LoyaltyPointsValidityConfiguration {
   id                     Int      @id @default(1)
   pointsExpirationMonths Int      @default(12) @map("points_expiration_months")
@@ -173,7 +294,7 @@ model LoyaltyPointsValidityConfiguration {
   @@map("loyalty_points_validity_configuration")
 }
 
-/// Current global bonus granted in addition to the normal points for a customer's first purchase.
+/// LEGACY (imported as version 1 of LoyaltyProgramConfiguration). Not read by the app.
 model FirstPurchaseBonusConfiguration {
   id         Int                    @id @default(1)
   bonusType  FirstPurchaseBonusType @map("bonus_type")
@@ -185,6 +306,7 @@ model FirstPurchaseBonusConfiguration {
 }
 
 /// Immutable version of all loyalty program settings. Exactly one version is active at a time.
+/// Levels: BRONZE from 0 (fixed), SILVER and GOLD thresholds over lifetime points.
 model LoyaltyProgramConfiguration {
   id                     Int                     @id @default(autoincrement())
   version                Int                     @unique
@@ -193,12 +315,192 @@ model LoyaltyProgramConfiguration {
   pointsExpirationMonths Int                     @default(12) @map("points_expiration_months")
   bonusType              FirstPurchaseBonusType? @map("bonus_type")
   bonusValue             Decimal?                @map("bonus_value") @db.Decimal(12, 2)
+  // CHECK: silver > 0 and gold > silver (written by hand in the migration)
+  silverMinPoints        Int                     @default(300) @map("silver_min_points")
+  goldMinPoints          Int                     @default(800) @map("gold_min_points")
   isActive               Boolean                 @default(true) @map("is_active")
   validFrom              DateTime                @default(now()) @map("valid_from")
   validTo                DateTime?               @map("valid_to")
   createdAt              DateTime                @default(now()) @map("created_at")
 
+  consumptions Consumption[]
+
   // Only one active version at a time (partial unique index, like customers)
   @@unique([isActive], map: "loyalty_program_configurations_one_active_key", where: { isActive: true })
   @@map("loyalty_program_configurations")
+}
+
+// =====================================================================
+// CONSUMPTIONS
+// =====================================================================
+
+/// A purchase registered at checkout. Never edited: if wrong, it is voided and registered again.
+/// Visible code "C-000141" is derived from the id (not stored).
+model Consumption {
+  id         Int @id @default(autoincrement())
+  customerId Int @map("customer_id")
+
+  amount      Decimal @db.Decimal(12, 2)
+  points      Int
+  bonusPoints Int     @default(0) @map("bonus_points")
+  notes       String? @db.VarChar(255)
+
+  // Snapshot of the configuration used (RF-014): later changes do not modify it
+  configurationVersion Int     @map("configuration_version")
+  baseAmount           Decimal @map("base_amount") @db.Decimal(12, 2)
+  pointsAwarded        Int     @map("points_awarded")
+
+  status ConsumptionStatus @default(REGISTERED)
+
+  registeredByAccountId Int    @map("registered_by_account_id")
+  // Employee's name at the moment of registering
+  registeredByName      String @map("registered_by_name") @db.VarChar(161)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // CHECK: all null when REGISTERED, all set when VOIDED
+  voidedAt          DateTime? @map("voided_at")
+  voidedByAccountId Int?      @map("voided_by_account_id")
+  voidedByName      String?   @map("voided_by_name") @db.VarChar(161)
+  voidedReason      String?   @map("voided_reason") @db.VarChar(500)
+
+  customer      Customer                    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  configuration LoyaltyProgramConfiguration @relation(fields: [configurationVersion], references: [version], onDelete: Restrict)
+  registeredBy  Account                     @relation("ConsumptionRegisteredBy", fields: [registeredByAccountId], references: [id], onDelete: Restrict)
+  voidedBy      Account?                    @relation("ConsumptionVoidedBy", fields: [voidedByAccountId], references: [id], onDelete: Restrict)
+
+  pointsLot       PointsLot?
+  pointsMovements PointsMovement[]
+
+  @@index([customerId, createdAt])
+  @@index([createdAt])
+  @@index([registeredByAccountId, createdAt])
+  @@index([status])
+  @@map("consumptions")
+}
+
+// =====================================================================
+// POINTS
+// =====================================================================
+
+/// One row per customer: current balance, debt and lifetime points (level).
+/// Every operation that moves points locks this row first (SELECT ... FOR UPDATE).
+/// Invariant: balance = SUM(remaining of ACTIVE lots) - debt.
+model CustomerPoints {
+  customerId     Int      @id @map("customer_id")
+  // Can be negative (voided consumption whose points were already spent)
+  balance        Int      @default(0)
+  // CHECK >= 0
+  debt           Int      @default(0)
+  // CHECK >= 0. PURCHASE_CREDIT - VOID_REVERSAL; defines the level
+  lifetimePoints Int      @default(0) @map("lifetime_points")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  @@index([lifetimePoints])
+  @@map("customer_points")
+}
+
+/// Batch of accredited points with its own expiration (snapshot of the validity at accreditation).
+model PointsLot {
+  id            Int  @id @default(autoincrement())
+  customerId    Int  @map("customer_id")
+  // Lot created by a consumption (at most one per consumption); null for manual ADD adjustments
+  consumptionId Int? @unique @map("consumption_id")
+
+  // CHECK initial > 0 and 0 <= remaining <= initial
+  initialPoints   Int             @map("initial_points")
+  remainingPoints Int             @map("remaining_points")
+  accreditedAt    DateTime        @default(now()) @map("accredited_at")
+  expiresAt       DateTime        @map("expires_at")
+  status          PointsLotStatus @default(ACTIVE)
+  expiredAt       DateTime?       @map("expired_at")
+
+  customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  consumption Consumption? @relation(fields: [consumptionId], references: [id], onDelete: Restrict)
+
+  movements PointsMovement[]
+
+  // Daily expiration job
+  @@index([status, expiresAt])
+  // FIFO and next expirations per customer
+  @@index([customerId, status, expiresAt])
+  @@map("points_lots")
+}
+
+/// Append-only ledger of points (trigger rejects UPDATE, DELETE and TRUNCATE).
+model PointsMovement {
+  id            Int  @id @default(autoincrement())
+  customerId    Int  @map("customer_id")
+  // Required for PURCHASE_CREDIT and VOID_REVERSAL (CHECK)
+  consumptionId Int? @map("consumption_id")
+  lotId         Int? @map("lot_id")
+
+  type         PointsMovementType
+  // Signed, never 0 (CHECK). Sign depends on the type
+  points       Int
+  // Customer balance after the movement; can be negative
+  balanceAfter Int                @map("balance_after")
+  // Required for MANUAL_ADJUSTMENT (CHECK)
+  reason       String?            @db.VarChar(500)
+
+  // null = System (automatic processes)
+  performedByAccountId Int?   @map("performed_by_account_id")
+  // Snapshot of the employee's name, or "Sistema"
+  performedByName      String @map("performed_by_name") @db.VarChar(200)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  consumption Consumption? @relation(fields: [consumptionId], references: [id], onDelete: Restrict)
+  lot         PointsLot?   @relation(fields: [lotId], references: [id], onDelete: Restrict)
+  performedBy Account?     @relation("PointsMovementPerformedBy", fields: [performedByAccountId], references: [id], onDelete: Restrict)
+
+  @@index([customerId, createdAt])
+  @@index([createdAt])
+  @@index([type, createdAt])
+  @@index([consumptionId])
+  @@index([lotId])
+  @@map("points_movements")
+}
+
+// =====================================================================
+// AUDIT
+// =====================================================================
+
+/// Append-only record of sensitive operations (trigger rejects UPDATE, DELETE and TRUNCATE).
+/// Actor is always an employee or the System, never a customer. Each row is a snapshot.
+model AuditLog {
+  id             Int            @id @default(autoincrement())
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  actorType      AuditActorType @map("actor_type")
+  // null for SYSTEM
+  actorAccountId Int?           @map("actor_account_id")
+  // Snapshot of the employee's name, or "Sistema"
+  performedBy    String         @map("performed_by") @db.VarChar(200)
+
+  // Nullable only for old rows with no equivalent (sessions, self sign-up); the listing excludes them
+  module      AuditModule?
+  actionCode  AuditAction? @map("action_code")
+  description String?      @db.VarChar(300)
+
+  // Affected customer (snapshot). No FK, to keep the immutable table independent
+  affectedCustomerId   Int?          @map("affected_customer_id")
+  affectedCustomerName String?       @map("affected_customer_name") @db.VarChar(161)
+  documentType         DocumentType? @map("document_type")
+  documentNumber       String?       @map("document_number") @db.VarChar(20)
+
+  // C-000141, CJ-00412...
+  operationCode String? @map("operation_code") @db.VarChar(20)
+
+  // Ordered array of { label, value }, already formatted. Never passwords or hashes
+  details Json @default("[]")
+
+  @@index([createdAt], map: "audit_logs_created_at_idx")
+  @@index([module, createdAt])
+  @@index([actorType, actorAccountId, createdAt])
+  @@index([documentType, documentNumber, createdAt], map: "audit_logs_document_type_document_number_created_at_idx")
+  @@index([operationCode])
+  @@map("audit_logs")
 }
