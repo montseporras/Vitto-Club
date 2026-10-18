@@ -11,6 +11,8 @@ function fakePrisma() {
       create: jest.fn(),
       findUnique: jest.fn(),
       findFirst: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
       update: jest.fn(),
     },
   };
@@ -181,6 +183,66 @@ describe('ConsumptionPrismaRepository', () => {
       });
 
       await expect(repo.updateVoidStatus(consumption)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findByCustomerId()', () => {
+    it('filtra por customerId, pagina y ordena por createdAt descendente', async () => {
+      const prisma = fakePrisma();
+      (prisma.consumption.findMany as jest.Mock).mockResolvedValue([BASE_RECORD]);
+      (prisma.consumption.count as jest.Mock).mockResolvedValue(1);
+      const repo = new ConsumptionPrismaRepository(fakeTransactionRunner(prisma));
+
+      const result = await repo.findByCustomerId(101, { last24h: false, page: 1, limit: 20 });
+
+      expect(prisma.consumption.findMany).toHaveBeenCalledWith({
+        where: { customerId: 101 },
+        orderBy: { createdAt: 'desc' },
+        skip: 0,
+        take: 20,
+      });
+      expect(prisma.consumption.count).toHaveBeenCalledWith({ where: { customerId: 101 } });
+      expect(result.total).toBe(1);
+      expect(result.items).toHaveLength(1);
+    });
+
+    it('agrega el filtro de status cuando se pide', async () => {
+      const prisma = fakePrisma();
+      (prisma.consumption.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.consumption.count as jest.Mock).mockResolvedValue(0);
+      const repo = new ConsumptionPrismaRepository(fakeTransactionRunner(prisma));
+
+      await repo.findByCustomerId(101, { last24h: false, status: 'VOIDED', page: 1, limit: 20 });
+
+      expect(prisma.consumption.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { customerId: 101, status: 'VOIDED' } }),
+      );
+    });
+
+    it('agrega el filtro de últimas 24 hs cuando last24h es true', async () => {
+      const prisma = fakePrisma();
+      (prisma.consumption.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.consumption.count as jest.Mock).mockResolvedValue(0);
+      const repo = new ConsumptionPrismaRepository(fakeTransactionRunner(prisma));
+
+      await repo.findByCustomerId(101, { last24h: true, page: 1, limit: 20 });
+
+      const call = (prisma.consumption.findMany as jest.Mock).mock.calls[0][0];
+      expect(call.where.customerId).toBe(101);
+      expect(call.where.createdAt.gte).toBeInstanceOf(Date);
+    });
+
+    it('calcula skip según la página', async () => {
+      const prisma = fakePrisma();
+      (prisma.consumption.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.consumption.count as jest.Mock).mockResolvedValue(0);
+      const repo = new ConsumptionPrismaRepository(fakeTransactionRunner(prisma));
+
+      await repo.findByCustomerId(101, { last24h: false, page: 3, limit: 10 });
+
+      expect(prisma.consumption.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 20, take: 10 }),
+      );
     });
   });
 });

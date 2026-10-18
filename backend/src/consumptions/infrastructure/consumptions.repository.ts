@@ -2,7 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Consumption as PrismaConsumptionRecord } from '@prisma/client';
 import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import { Consumption } from '../domain/consumption.js';
-import { ConsumptionRepository } from '../domain/port/consumption.repository.js';
+import {
+  ConsumptionRepository,
+  FindByCustomerIdFilters,
+  FindByCustomerIdResult,
+} from '../domain/port/consumption.repository.js';
 
 // amount/baseAmount son DECIMAL(12,2) en Prisma -> llegan como Prisma.Decimal; el dominio
 // trabaja con number (igual criterio que loyalty con PointsEquivalence).
@@ -88,5 +92,31 @@ export class ConsumptionPrismaRepository implements ConsumptionRepository {
         voidedReason: consumption.getVoidedReason(),
       },
     });
+  }
+
+  // §3.2.1. last24h ya viene resuelto por el service según el rol (Cajero: siempre true).
+  async findByCustomerId(
+    customerId: number,
+    filters: FindByCustomerIdFilters,
+  ): Promise<FindByCustomerIdResult> {
+    const where = {
+      customerId,
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.last24h
+        ? { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } }
+        : {}),
+    };
+
+    const [records, total] = await Promise.all([
+      this.prisma.consumption.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (filters.page - 1) * filters.limit,
+        take: filters.limit,
+      }),
+      this.prisma.consumption.count({ where }),
+    ]);
+
+    return { items: records.map(toDomain), total };
   }
 }

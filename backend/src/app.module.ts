@@ -12,6 +12,7 @@ import { EmployeesModule } from './employees/employees.module.js';
 import { AccountsModule } from './accounts/accounts.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { LoyaltyModule } from './loyalty/loyalty.module.js';
+import { ConsumptionsModule } from './consumptions/consumptions.module.js';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { LoyaltyModule } from './loyalty/loyalty.module.js';
     AccountsModule,
     AuthModule,
     LoyaltyModule,
+    ConsumptionsModule,
   ],
 })
 export class AppModule {}
