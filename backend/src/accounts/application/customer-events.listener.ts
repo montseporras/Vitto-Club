@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { AccountsService } from './accounts.service.js';
+import { CustomerAccountCreationService } from './customer-account-creation.service.js';
 import {
+  CUSTOMER_CREATED,
   CUSTOMER_EMAIL_CHANGED,
+  type CustomerCreatedEvent,
   type CustomerEmailChangedEvent,
 } from '../../shared/events/domain-events.js';
 
@@ -10,12 +13,20 @@ import {
 // docs/ARCHITECTURE.md, "Eventos de dominio"). suppressErrors: false es obligatorio: sin
 // eso, un error acá no se propaga y la transacción de quien publicó sigue como si nada.
 //
-// Solo se escucha el cambio de email. La baja y la reactivación de un cliente NO se
-// sincronizan: el login lee el estado directamente de Customer (ver
-// AccountsService.toCustomerAuthInfo), así que no hay nada que mantener en la cuenta.
+// Se escuchan el alta (customer.created: crea la cuenta) y el cambio de email. La baja y la
+// reactivación de un cliente NO se sincronizan: el login lee el estado directamente de
+// Customer (ver AccountsService.toCustomerAuthInfo), así que no hay nada que mantener en la cuenta.
 @Injectable()
 export class CustomerEventsListener {
-  constructor(private readonly accountsService: AccountsService) {}
+  constructor(
+    private readonly accountsService: AccountsService,
+    private readonly customerAccountCreation: CustomerAccountCreationService,
+  ) {}
+
+  @OnEvent(CUSTOMER_CREATED, { suppressErrors: false })
+  async onCustomerCreated(event: CustomerCreatedEvent): Promise<void> {
+    await this.customerAccountCreation.handleCustomerCreated(event);
+  }
 
   @OnEvent(CUSTOMER_EMAIL_CHANGED, { suppressErrors: false })
   async onCustomerEmailChanged(event: CustomerEmailChangedEvent): Promise<void> {

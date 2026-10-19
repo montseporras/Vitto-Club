@@ -28,7 +28,12 @@ export class CustomerAccountPrismaRepository implements CustomerAccountRepositor
     };
   }
 
-  async create(data: { customerId: number; email: string; passwordHash: string }): Promise<{ accountId: number }> {
+  async create(data: {
+    customerId: number;
+    email: string;
+    passwordHash: string;
+    mustChangePassword: boolean;
+  }): Promise<{ accountId: number }> {
     const created = await this.prisma.account.create({
       data: {
         customerId: data.customerId,
@@ -36,6 +41,7 @@ export class CustomerAccountPrismaRepository implements CustomerAccountRepositor
         passwordHash: data.passwordHash,
         role: 'CUSTOMER',
         isActive: true,
+        mustChangePassword: data.mustChangePassword,
       },
       select: { id: true },
     });

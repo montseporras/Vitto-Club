@@ -33,6 +33,14 @@ export type CustomerDeactivatedEvent = { customerId: number };
 export const CUSTOMER_REACTIVATED = 'customer.reactivated';
 export type CustomerReactivatedEvent = { customerId: number };
 
+// Lo emite customers cuando el Cajero o el Administrador dan de alta un cliente (no en el
+// autorregistro, donde el cliente elige su contraseña). Lo escucha accounts para crear la
+// cuenta de acceso, con el documento como contraseña inicial y mustChangePassword = true.
+// documentNumber ya viene normalizado (pasaporte en mayúsculas); es la contraseña inicial y
+// no se guarda en ningún otro lado. Si el listener tira, se deshace también el cliente.
+export const CUSTOMER_CREATED = 'customer.created';
+export type CustomerCreatedEvent = { customerId: number; email: string; documentNumber: string };
+
 // Lo emite customers cuando cambia el email de un cliente (solo si realmente cambió).
 // Lo escucha accounts para actualizar el email de acceso; si ese email ya tiene cuenta,
 // tira ConflictException y se deshace el cambio.

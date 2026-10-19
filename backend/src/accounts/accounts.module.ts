@@ -10,6 +10,7 @@ import { BcryptPasswordHasher } from './infrastructure/bcrypt-password-hasher.js
 import { AccountsController } from './http/accounts.controller.js';
 import { CustomerRegistrationController } from './http/customer-registration.controller.js';
 import { CustomerRegistrationService } from './application/customer-registration.service.js';
+import { CustomerAccountCreationService } from './application/customer-account-creation.service.js';
 import { CustomerAccountRepository } from './domain/port/customer-account.repository.js';
 import { CustomerAccountPrismaRepository } from './infrastructure/customer-accounts.repository.js';
 import { EmployeesModule } from '../employees/employees.module.js';
@@ -30,6 +31,8 @@ import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js'
     AccountsService,
     // SCRUM-160: registro de clientes (servicio y repositorio propios, aparte del ABMC de usuarios)
     CustomerRegistrationService,
+    // US-17-AJ: cuenta del cliente dado de alta por el Cajero o el Administrador (evento customer.created)
+    CustomerAccountCreationService,
     { provide: CustomerAccountRepository, useClass: CustomerAccountPrismaRepository },
     EmployeeEventsListener,
     CustomerEventsListener,

@@ -13,8 +13,14 @@ export abstract class CustomerAccountRepository {
   // La cuenta que usa ese email (ya normalizado), de un empleado o de un cliente, o null
   abstract findByEmail(email: string): Promise<AccountByEmail | null>;
 
-  // Crea la cuenta de un cliente (rol CUSTOMER) con el email normalizado y el hash ya calculado
-  abstract create(data: { customerId: number; email: string; passwordHash: string }): Promise<{ accountId: number }>;
+  // Crea la cuenta de un cliente (rol CUSTOMER) con el email normalizado y el hash ya calculado.
+  // mustChangePassword es true solo si la cuenta nace con la contraseña inicial (= documento).
+  abstract create(data: {
+    customerId: number;
+    email: string;
+    passwordHash: string;
+    mustChangePassword: boolean;
+  }): Promise<{ accountId: number }>;
 
   // Un cliente dado de baja perdió su cuenta (decisión del PO): si vuelve a registrarse con
   // el mismo email, su cuenta vieja se desactiva para liberar ese email

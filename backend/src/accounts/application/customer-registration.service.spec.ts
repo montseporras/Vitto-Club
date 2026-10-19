@@ -80,16 +80,18 @@ class FakeCustomerRepository implements CustomerRepository {
   }
 }
 
-type AccountRow = AccountByEmail & { email: string; passwordHash: string };
+type AccountRow = AccountByEmail & { email: string; passwordHash: string; mustChangePassword?: boolean };
 
 class FakeCustomerAccountRepository implements CustomerAccountRepository {
   rows = new Map<number, AccountRow>();
   private nextId = 1;
-  readonly create = jest.fn(async (data: { customerId: number; email: string; passwordHash: string }) => {
-    const accountId = this.nextId++;
-    this.rows.set(accountId, { accountId, employeeId: null, active: true, ...data });
-    return { accountId };
-  });
+  readonly create = jest.fn(
+    async (data: { customerId: number; email: string; passwordHash: string; mustChangePassword: boolean }) => {
+      const accountId = this.nextId++;
+      this.rows.set(accountId, { accountId, employeeId: null, active: true, ...data });
+      return { accountId };
+    },
+  );
 
   async findByEmail(email: string): Promise<AccountByEmail | null> {
     const row = [...this.rows.values()]
@@ -205,6 +207,8 @@ describe('CustomerRegistrationService (SCRUM-160)', () => {
       customerId: 1,
       email: 'lucia@example.com',
       passwordHash: 'hashed:secreta123',
+      // CA-17AJ.6: en el autorregistro el cliente elige su contraseña
+      mustChangePassword: false,
     });
   });
 

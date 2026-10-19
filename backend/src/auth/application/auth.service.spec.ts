@@ -86,8 +86,13 @@ class FakeCredentials extends CredentialsVerifier {
     email: string,
     password: string,
     names?: { firstName: string; lastName: string },
+    mustChangePassword?: boolean,
   ): void {
-    this.accounts.set(account.accountId, { verified: { account, email, ...names }, password, active: true });
+    this.accounts.set(account.accountId, {
+      verified: { account, email, ...names, ...(mustChangePassword !== undefined ? { mustChangePassword } : {}) },
+      password,
+      active: true,
+    });
   }
 
   deactivate(accountId: number): void {
@@ -172,6 +177,7 @@ describe('AuthService', () => {
         email: 'ana.gomez@vitto.club',
         firstName: 'Ana',
         lastName: 'Gómez',
+        mustChangePassword: false,
       });
       expect(result.refreshTokenExpiresAt).toEqual(sessions.rows[0].getAbsoluteExpiresAt());
     });
@@ -179,9 +185,23 @@ describe('AuthService', () => {
     it('si accounts no conoce el nombre (clientes), la respuesta no lo trae', async () => {
       const result = await service.login('lucia@example.com', 'secreta-de-lucia');
 
-      expect(result.user).toEqual({ ...LUCIA, email: 'lucia@example.com' });
+      expect(result.user).toEqual({ ...LUCIA, email: 'lucia@example.com', mustChangePassword: false });
       expect(result.user).not.toHaveProperty('firstName');
       expect(result.user).not.toHaveProperty('lastName');
+    });
+
+    // US-17-AJ: un cliente dado de alta en caja entra con su documento y debe cambiarla.
+    // El flag viaja en el usuario de la respuesta, nunca en el access token.
+    it('el login y la renovación devuelven mustChangePassword = true si accounts lo informa', async () => {
+      const ROSA: AuthenticatedAccount = { accountId: 3, role: 'CUSTOMER', customerId: 30 };
+      credentials.add(ROSA, 'rosa@example.com', '30111222', undefined, true);
+
+      const login = await service.login('rosa@example.com', '30111222');
+      expect(login.user.mustChangePassword).toBe(true);
+      expect(JSON.parse(login.accessToken)).toEqual(ROSA);
+
+      const refreshed = await service.refresh(login.refreshToken);
+      expect(refreshed.user.mustChangePassword).toBe(true);
     });
 
     it('guarda el hash del refresh token, nunca el token', async () => {

@@ -11,6 +11,9 @@ export type VerifiedAccount = {
   // hoy accounts solo lo conoce para empleados; para clientes no viene (ver docs/auth-api.md).
   firstName?: string;
   lastName?: string;
+  // true solo para un cliente que todavía no cambió su contraseña inicial. Tampoco va en el
+  // token. Si falta, es false (la respuesta del login siempre lo incluye).
+  mustChangePassword?: boolean;
 };
 
 // Puerto hacia el módulo dueño de las cuentas y las contraseñas (accounts). auth nunca ve

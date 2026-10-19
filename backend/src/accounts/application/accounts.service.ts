@@ -60,6 +60,9 @@ export type AuthAccountInfo = {
   email: string;
   firstName: string;
   lastName: string;
+  // true solo para un cliente dado de alta por el Cajero o el Administrador que todavía no
+  // cambió la contraseña inicial. Siempre false para empleados y clientes autorregistrados.
+  mustChangePassword: boolean;
 };
 
 @Injectable()
@@ -333,6 +336,7 @@ export class AccountsService {
       email: account.getEmail() as string,
       firstName: employee.getFirstName(),
       lastName: employee.getLastName(),
+      mustChangePassword: false,
     };
   }
 
@@ -363,6 +367,7 @@ export class AccountsService {
     accountId: number;
     customerId: number;
     email: string;
+    mustChangePassword: boolean;
   }): Promise<AuthAccountInfo | undefined> {
     const customer = await this.customersService.findById(record.customerId);
     if (!customer.isActive()) return undefined;
@@ -374,6 +379,7 @@ export class AccountsService {
       email: record.email,
       firstName: customer.getFirstName(),
       lastName: customer.getLastName(),
+      mustChangePassword: record.mustChangePassword,
     };
   }
 
@@ -418,6 +424,7 @@ export class AccountsService {
       email: account.getEmail() as string,
       firstName: employee.getFirstName(),
       lastName: employee.getLastName(),
+      mustChangePassword: false,
     };
   }
 

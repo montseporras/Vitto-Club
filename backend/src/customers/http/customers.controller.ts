@@ -94,7 +94,8 @@ export class CustomersController{
     @Post()
     @HttpCode(HttpStatus.CREATED)
     async create(@Body() createDto: CreateCustomerDto){
-        const customer = await this.customersService.create(createDto);
+        // Crea también la cuenta del cliente (contraseña inicial = documento)
+        const customer = await this.customersService.createWithAccount(createDto);
         return CustomerResponseDto.fromDomain(customer);
     }
 

@@ -38,6 +38,7 @@ function toCustomerLogin(record: PrismaAccountRecord): CustomerLoginRecord | nul
     email: record.email,
     passwordHash: record.passwordHash,
     active: record.isActive,
+    mustChangePassword: record.mustChangePassword,
   };
 }
 

@@ -16,6 +16,8 @@ export type AuthenticatedUser = AuthenticatedAccount & {
   // Solo si accounts los conoce (hoy, empleados). Nunca van dentro del access token.
   firstName?: string;
   lastName?: string;
+  // Para que el front abra la ventana "Cambiá tu contraseña". Tampoco va dentro del access token.
+  mustChangePassword: boolean;
 };
 
 // Lo que devuelven el login y la renovación: exactamente lo mismo, para que el front
@@ -144,6 +146,7 @@ export class AuthService {
       user: {
         ...verified.account,
         email: verified.email,
+        mustChangePassword: verified.mustChangePassword ?? false,
         ...(verified.firstName !== undefined ? { firstName: verified.firstName } : {}),
         ...(verified.lastName !== undefined ? { lastName: verified.lastName } : {}),
       },

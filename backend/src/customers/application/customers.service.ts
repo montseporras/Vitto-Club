@@ -9,7 +9,13 @@ import { CustomerAlreadyExists } from '../domain/errors/customer-already-exists.
 import { Mail } from '../domain/mail.js';
 import { EmployeesService } from '../../employees/application/employees.service.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
-import { CUSTOMER_EMAIL_CHANGED, type CustomerEmailChangedEvent } from '../../shared/events/domain-events.js';
+import { emailInUse } from '../domain/errors/email-in-use.error.js';
+import {
+  CUSTOMER_CREATED,
+  CUSTOMER_EMAIL_CHANGED,
+  type CustomerCreatedEvent,
+  type CustomerEmailChangedEvent,
+} from '../../shared/events/domain-events.js';
 
 // Dirección única de la unicidad global de email: Customers -> Employees. Employees ya NO
 // consulta a Customers (ver employees.service.ts) — por eso esta dependencia ya no forma
@@ -40,22 +46,42 @@ export class CustomersService {
       dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
     });
 
-    // 2. Verificar que el documento y el email no estén ya registrados (por un cliente activo o no)
+    // 2. Verificar que el documento no esté ya registrado por un cliente activo
     await this.assertDocumentAvailable(
       customer.getDocumentType(),
       customer.getDocumentNumber(),
     );
-    await this.assertEmailAvailable(customer.getEmail());
 
-    // 3. El email debe ser único en todo el sistema, no solo entre customers.
-    if (await this.employeesService.existsByEmail(customer.getEmail())) {
-      throw new ConflictException(
-        `Email "${customer.getEmail()}" is already registered as an employee`,
-      );
+    // 3. El email no puede usarlo otro cliente activo ni un empleado (contrato §5: EMAIL_IN_USE)
+    if (
+      (await this.customersRepository.existsByEmail(customer.getEmail(), { onlyActive: true })) ||
+      (await this.employeesService.existsByEmail(customer.getEmail()))
+    ) {
+      throw emailInUse();
     }
 
     // 4. Persistir
     return await this.customersRepository.save(customer);
+  }
+
+  // --- ALTA POR EL CAJERO O EL ADMINISTRADOR (US-17-AJ) ---
+  // Crea el cliente y publica customer.created en la misma transacción: accounts escucha el
+  // evento y crea la cuenta (contraseña inicial = documento, mustChangePassword = true). Si la
+  // cuenta no se puede crear (email en uso por otra cuenta activa), accounts tira 409
+  // EMAIL_IN_USE y se deshace también el cliente. El autorregistro NO pasa por acá: sigue
+  // usando create(), porque ahí el cliente elige su contraseña.
+  async createWithAccount(dto: CreateCustomerDto): Promise<Customer> {
+    return await this.transactionRunner.run(async () => {
+      const customer = await this.create(dto);
+
+      await this.eventEmitter.emitAsync(CUSTOMER_CREATED, {
+        customerId: customer.getId() as number,
+        email: customer.getEmail(),
+        documentNumber: customer.getDocumentNumber(),
+      } satisfies CustomerCreatedEvent);
+
+      return customer;
+    });
   }
 
   // --- LISTAR TODOS ---

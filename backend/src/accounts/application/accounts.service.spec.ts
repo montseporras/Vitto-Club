@@ -887,6 +887,7 @@ describe('AccountsService', () => {
         email: 'bruno.perez@vitto.club',
         firstName: 'Bruno',
         lastName: 'Pérez',
+        mustChangePassword: false,
       });
     });
 
@@ -1004,6 +1005,7 @@ describe('AccountsService', () => {
         email: 'bruno.perez@vitto.club',
         firstName: 'Bruno',
         lastName: 'Pérez',
+        mustChangePassword: false,
       });
     });
 
@@ -1051,7 +1053,9 @@ describe('AccountsService', () => {
     };
 
     // Un cliente ya persistido, con su cuenta (la contraseña es "clave-de-lucia")
-    function seedCustomerWithAccount(opts: { active?: boolean; accountActive?: boolean } = {}) {
+    function seedCustomerWithAccount(
+      opts: { active?: boolean; accountActive?: boolean; mustChangePassword?: boolean } = {},
+    ) {
       const customer = Customer.reconstruct({ ...LUCIA, active: opts.active ?? true });
       customerRepo.items.set(LUCIA.id, customer);
       accountRepo.customerLogins.set(7, {
@@ -1060,6 +1064,7 @@ describe('AccountsService', () => {
         email: LUCIA.email,
         passwordHash: 'hashed:clave-de-lucia',
         active: opts.accountActive ?? true,
+        mustChangePassword: opts.mustChangePassword ?? false,
       });
       return customer;
     }
@@ -1082,7 +1087,17 @@ describe('AccountsService', () => {
           email: 'lucia@example.com',
           firstName: 'Lucía',
           lastName: 'Fernández',
+          mustChangePassword: false,
         });
+      });
+
+      // US-17-AJ: el cliente dado de alta en caja entra con su documento y debe cambiarla
+      it('devuelve mustChangePassword = true para un cliente con la contraseña inicial', async () => {
+        seedCustomerWithAccount({ mustChangePassword: true });
+
+        const result = await service.verifyCredentials('lucia@example.com', 'clave-de-lucia');
+
+        expect(result?.mustChangePassword).toBe(true);
       });
 
       it('normaliza el email: mayúsculas y espacios no impiden entrar', async () => {
@@ -1173,7 +1188,14 @@ describe('AccountsService', () => {
           email: 'lucia@example.com',
           firstName: 'Lucía',
           lastName: 'Fernández',
+          mustChangePassword: false,
         });
+      });
+
+      it('mantiene mustChangePassword = true al renovar mientras no cambie la contraseña inicial', async () => {
+        seedCustomerWithAccount({ mustChangePassword: true });
+
+        expect((await service.findActiveById(7))?.mustChangePassword).toBe(true);
       });
 
       it('si dan de baja al cliente, la sesión deja de renovarse', async () => {
@@ -1234,6 +1256,7 @@ describe('AccountsService', () => {
           email: 'martin@example.com',
           passwordHash: 'hashed:otra',
           active: true,
+          mustChangePassword: false,
         });
 
         await expect(

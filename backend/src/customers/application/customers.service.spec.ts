@@ -3,7 +3,7 @@ import { CustomersService } from './customers.service.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EmployeesService } from '../../employees/application/employees.service.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
-import { CUSTOMER_EMAIL_CHANGED } from '../../shared/events/domain-events.js';
+import { CUSTOMER_CREATED, CUSTOMER_EMAIL_CHANGED } from '../../shared/events/domain-events.js';
 import { Customer, DocumentType } from '../domain/customer.js';
 import { CustomerStatusAction, CustomerStatusChange } from '../domain/customer-status-change.js';
 import {
@@ -399,6 +399,101 @@ describe('CustomersService', () => {
     });
   });
 
+  // US-17-AJ: alta por el Cajero o el Administrador (crea también la cuenta, vía customer.created)
+  describe('createWithAccount()', () => {
+    const newCustomer = {
+      firstName: 'Sofía',
+      lastName: 'Ríos',
+      documentType: 'DNI' as const,
+      documentNumber: '38.456.123',
+      email: ' Sofia.Rios@Gmail.com ',
+    };
+
+    it('crea el cliente y publica customer.created con el documento normalizado (CA-17AJ.1)', async () => {
+      emitAsync.mockClear();
+
+      const customer = await service.createWithAccount(newCustomer);
+
+      expect(customer.getId()).not.toBeNull();
+      expect(emitAsync).toHaveBeenCalledTimes(1);
+      expect(emitAsync).toHaveBeenCalledWith(CUSTOMER_CREATED, {
+        customerId: customer.getId(),
+        email: 'sofia.rios@gmail.com',
+        documentNumber: '38456123',
+      });
+    });
+
+    it('en un pasaporte el documento viaja en mayúsculas (CA-17AJ.1)', async () => {
+      emitAsync.mockClear();
+
+      await service.createWithAccount({
+        ...newCustomer,
+        documentType: 'PASSPORT',
+        documentNumber: 'ab-123 456',
+      });
+
+      expect(emitAsync).toHaveBeenCalledWith(
+        CUSTOMER_CREATED,
+        expect.objectContaining({ documentNumber: 'AB123456' }),
+      );
+    });
+
+    it('corre todo dentro de una transacción: el evento se publica con la transacción abierta', async () => {
+      const order: string[] = [];
+      const runner: TransactionRunner = {
+        run: async (fn) => {
+          order.push('begin');
+          const result = await fn();
+          order.push('commit');
+          return result;
+        },
+      };
+      emitAsync.mockImplementationOnce(async () => {
+        order.push('event');
+        return [];
+      });
+      const transactional = new CustomersService(
+        repo,
+        employeesService as unknown as EmployeesService,
+        runner,
+        { emitAsync } as unknown as EventEmitter2,
+      );
+
+      await transactional.createWithAccount(newCustomer);
+
+      expect(order).toEqual(['begin', 'event', 'commit']);
+    });
+
+    // CA-17AJ.2: si accounts rechaza (email en uso por otra cuenta activa), el error llega a quien
+    // publicó y la transacción real se deshace; acá se comprueba que el error se propaga tal cual.
+    it('si el listener falla con EMAIL_IN_USE, el error se propaga con su code (CA-17AJ.2)', async () => {
+      emitAsync.mockRejectedValueOnce(
+        new ConflictException({ message: 'Ya hay un cliente o una cuenta activa con ese mail.', code: 'EMAIL_IN_USE' }),
+      );
+
+      await expect(service.createWithAccount(newCustomer)).rejects.toMatchObject({
+        response: { code: 'EMAIL_IN_USE' },
+      });
+    });
+
+    it('si el email ya lo usa un cliente activo, rechaza sin publicar el evento', async () => {
+      emitAsync.mockClear();
+
+      await expect(
+        service.createWithAccount({ ...newCustomer, documentNumber: '87654321', email: 'juan@example.com' }),
+      ).rejects.toMatchObject({ response: { code: 'EMAIL_IN_USE' } });
+      expect(emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('create() a secas no publica customer.created: el autorregistro elige su propia contraseña (CA-17AJ.6)', async () => {
+      emitAsync.mockClear();
+
+      await otherCustomer();
+
+      expect(emitAsync).not.toHaveBeenCalled();
+    });
+  });
+
   describe('create()', () => {
     it('lanza 409 si otro cliente activo ya tiene el documento', async () => {
       await expect(otherCustomer({ documentNumber: '12.345.678' })).rejects.toThrow(ConflictException);
@@ -420,7 +515,10 @@ describe('CustomersService', () => {
 
     it('lanza 409 si otro cliente ya tiene el email (normalizado)', async () => {
       await expect(otherCustomer({ email: ' JUAN@example.com' })).rejects.toThrow(ConflictException);
-      await expect(otherCustomer({ email: ' JUAN@example.com' })).rejects.toThrow(/email "juan@example.com"/);
+      // Contrato §5: lleva el code EMAIL_IN_USE (el front decide por el code, no por el texto)
+      await expect(otherCustomer({ email: ' JUAN@example.com' })).rejects.toMatchObject({
+        response: { code: 'EMAIL_IN_USE', message: 'Ya hay un cliente o una cuenta activa con ese mail.' },
+      });
     });
 
     it('permite dar de alta otro cliente con el email de uno dado de baja', async () => {
@@ -448,7 +546,7 @@ describe('CustomersService', () => {
           documentNumber: '87654321',
           email: 'empleado@vitto.club',
         }),
-      ).rejects.toThrow(ConflictException);
+      ).rejects.toMatchObject({ response: { code: 'EMAIL_IN_USE' } });
     });
 
     it('permite crear el cliente si el email no está en uso por ningún employee', async () => {

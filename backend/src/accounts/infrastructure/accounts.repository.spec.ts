@@ -36,6 +36,7 @@ const BASE_RECORD = {
   passwordHash: 'hashed:secreta123',
   role: 'CASHIER' as const,
   isActive: true,
+  mustChangePassword: false,
   employeeId: 2,
   customerId: null,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
