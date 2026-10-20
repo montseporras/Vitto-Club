@@ -9,6 +9,12 @@ import { AccountPrismaRepository } from './infrastructure/accounts.repository.js
 import { BcryptPasswordHasher } from './infrastructure/bcrypt-password-hasher.js';
 import { AccountsController } from './http/accounts.controller.js';
 import { CustomerRegistrationController } from './http/customer-registration.controller.js';
+import { MyAccountController } from './http/my-account.controller.js';
+import { PasswordChangeService } from './application/password-change.service.js';
+import { AccountCredentialsRepository } from './domain/port/account-credentials.repository.js';
+import { AccountCredentialsPrismaRepository } from './infrastructure/account-credentials.repository.js';
+import { PasswordAttemptLimiter } from './domain/port/password-attempt-limiter.js';
+import { InMemoryPasswordAttemptLimiter } from './infrastructure/in-memory-password-attempt-limiter.js';
 import { CustomerRegistrationService } from './application/customer-registration.service.js';
 import { CustomerAccountCreationService } from './application/customer-account-creation.service.js';
 import { CustomerAccountSyncService } from './application/customer-account-sync.service.js';
@@ -28,7 +34,7 @@ import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js'
 // es por eventos (EmployeeEventsListener), no por import circular.
 @Module({
   imports: [EmployeesModule, CustomersModule, AuditModule],
-  controllers: [AccountsController, CustomerRegistrationController],
+  controllers: [AccountsController, CustomerRegistrationController, MyAccountController],
   providers: [
     AccountsService,
     // SCRUM-160: registro de clientes (servicio y repositorio propios, aparte del ABMC de usuarios)
@@ -38,6 +44,12 @@ import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js'
     // CLI-ADM: baja del cliente (cuenta inactiva y sesiones cerradas) y corrección de su documento
     CustomerAccountSyncService,
     { provide: CustomerAccountRepository, useClass: CustomerAccountPrismaRepository },
+    // PERFIL: el usuario cambia su contraseña (y confirma la actual para cambiar su correo)
+    PasswordChangeService,
+    { provide: AccountCredentialsRepository, useClass: AccountCredentialsPrismaRepository },
+    // Contador de intentos incorrectos en memoria: un solo objeto para toda la aplicación, así lo
+    // comparten el cambio de contraseña y el de correo
+    { provide: PasswordAttemptLimiter, useClass: InMemoryPasswordAttemptLimiter },
     EmployeeEventsListener,
     CustomerEventsListener,
     {

@@ -282,7 +282,7 @@ export class AccountsService {
   // --- Listener de customer.email-changed (ver customer-events.listener.ts) ---
   // El email de acceso de un cliente es una copia de Customer.email: si el cliente lo cambia,
   // hay que cambiarlo también en su cuenta, o seguiría entrando con el email viejo. Si el
-  // email nuevo ya lo usa OTRA cuenta (de un empleado o de otro cliente), se rechaza con 409
+  // email nuevo ya lo usa OTRA cuenta ACTIVA (de un empleado o de otro cliente), se rechaza con 409
   // y, como corre en la transacción de quien publicó, se deshace también el cambio en Customer.
   async handleCustomerEmailChanged(event: CustomerEmailChangedEvent): Promise<void> {
     return await this.transactionRunner.run(async () => {
@@ -290,9 +290,12 @@ export class AccountsService {
 
       const employeeAccount = await this.accountsRepository.findByEmail(email);
       const customerAccount = await this.accountsRepository.findCustomerLoginByEmail(email);
+      // Solo cuentan las cuentas activas: el email de una cuenta dada de baja se puede reutilizar
+      // (contrato §1, unicidad de email entre activos). Cambio de PERFIL, ver
+      // docs/sprint-3/CAMBIOS_PROPUESTOS_AL_CONTRATO_PERFIL.md, sección 6.
       const usedByAnother =
-        employeeAccount !== null ||
-        (customerAccount !== null && customerAccount.customerId !== event.customerId);
+        (employeeAccount !== null && employeeAccount.isActive()) ||
+        (customerAccount !== null && customerAccount.active && customerAccount.customerId !== event.customerId);
 
       if (usedByAnother) {
         throw new ConflictException(`Email "${email}" is already used by another account`);

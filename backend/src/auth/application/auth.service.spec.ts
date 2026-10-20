@@ -72,6 +72,14 @@ class InMemorySessions extends SessionRepository {
     );
   }
 
+  async revokeAllForAccountExcept(accountId: number, keepTokenHash: string | null, now: Date): Promise<void> {
+    this.rows = this.rows.map((r) =>
+      r.getAccountId() === accountId && r.getRevokedAt() === null && r.getTokenHash() !== keepTokenHash
+        ? copy(r, { revokedAt: now })
+        : r,
+    );
+  }
+
   // Solo para los tests: simular que pasó el tiempo o que alguien revocó la sesión
   patch(index: number, overrides: { expiresAt?: Date; absoluteExpiresAt?: Date; revokedAt?: Date | null }): void {
     this.rows[index] = copy(this.rows[index], overrides);
@@ -376,6 +384,28 @@ describe('AuthService', () => {
       await service.logout(cashRegister.refreshToken);
 
       await expect(service.refresh(phone.refreshToken)).resolves.toBeDefined();
+    });
+  });
+
+  describe('revokeOtherSessionsOfAccount', () => {
+    it('revoca las otras sesiones de la cuenta y deja abierta la del token indicado', async () => {
+      const ana1 = await service.login('ana.gomez@vitto.club', 'secreta-de-ana');
+      const ana2 = await service.login('ana.gomez@vitto.club', 'secreta-de-ana');
+      const lucia = await service.login('lucia@example.com', 'secreta-de-lucia');
+
+      await service.revokeOtherSessionsOfAccount(ANA.accountId, ana2.refreshToken);
+
+      expect(await unauthorizedCode(service.refresh(ana1.refreshToken))).toBe(INVALID_SESSION);
+      await expect(service.refresh(ana2.refreshToken)).resolves.toBeDefined();
+      await expect(service.refresh(lucia.refreshToken)).resolves.toBeDefined();
+    });
+
+    it('sin token actual revoca todas las sesiones de la cuenta', async () => {
+      const ana1 = await service.login('ana.gomez@vitto.club', 'secreta-de-ana');
+
+      await service.revokeOtherSessionsOfAccount(ANA.accountId, undefined);
+
+      expect(await unauthorizedCode(service.refresh(ana1.refreshToken))).toBe(INVALID_SESSION);
     });
   });
 

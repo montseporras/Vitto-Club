@@ -3,15 +3,18 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { AccountsService } from './accounts.service.js';
 import { CustomerAccountCreationService } from './customer-account-creation.service.js';
 import { CustomerAccountSyncService } from './customer-account-sync.service.js';
+import { PasswordChangeService } from './password-change.service.js';
 import {
   CUSTOMER_CREATED,
   CUSTOMER_DEACTIVATED,
   CUSTOMER_DOCUMENT_CHANGED,
   CUSTOMER_EMAIL_CHANGED,
+  CUSTOMER_EMAIL_CHANGE_REQUESTED,
   type CustomerCreatedEvent,
   type CustomerDeactivatedEvent,
   type CustomerDocumentChangedEvent,
   type CustomerEmailChangedEvent,
+  type CustomerEmailChangeRequestedEvent,
 } from '../../shared/events/domain-events.js';
 
 // Reacciona a lo que pasa en customers sin que customers conozca a accounts (ver
@@ -29,6 +32,7 @@ export class CustomerEventsListener {
     private readonly accountsService: AccountsService,
     private readonly customerAccountCreation: CustomerAccountCreationService,
     private readonly customerAccountSync: CustomerAccountSyncService,
+    private readonly passwordChange: PasswordChangeService,
   ) {}
 
   @OnEvent(CUSTOMER_DEACTIVATED, { suppressErrors: false })
@@ -44,6 +48,12 @@ export class CustomerEventsListener {
   @OnEvent(CUSTOMER_CREATED, { suppressErrors: false })
   async onCustomerCreated(event: CustomerCreatedEvent): Promise<void> {
     await this.customerAccountCreation.handleCustomerCreated(event);
+  }
+
+  // PERFIL: el cliente cambia su correo desde Mi perfil; se confirma su contraseña antes de escribir
+  @OnEvent(CUSTOMER_EMAIL_CHANGE_REQUESTED, { suppressErrors: false })
+  async onCustomerEmailChangeRequested(event: CustomerEmailChangeRequestedEvent): Promise<void> {
+    await this.passwordChange.handleCustomerEmailChangeRequested(event);
   }
 
   @OnEvent(CUSTOMER_EMAIL_CHANGED, { suppressErrors: false })

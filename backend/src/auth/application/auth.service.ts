@@ -138,6 +138,14 @@ export class AuthService {
     await this.sessions.revokeAllForAccount(accountId, new Date());
   }
 
+  // --- Cambio de contraseña (PERFIL): se cierran todas las sesiones menos la actual ---
+  // La actual se identifica por el refresh token de la cookie del pedido. Sin cookie no se conserva
+  // ninguna.
+  async revokeOtherSessionsOfAccount(accountId: number, currentRefreshToken: string | undefined): Promise<void> {
+    const keepTokenHash = currentRefreshToken ? this.refreshTokens.hash(currentRefreshToken) : null;
+    await this.sessions.revokeAllForAccountExcept(accountId, keepTokenHash, new Date());
+  }
+
   private async toResult(verified: VerifiedAccount, refreshToken: string, session: Session): Promise<AuthResult> {
     return {
       accessToken: await this.accessTokens.issue(verified.account),

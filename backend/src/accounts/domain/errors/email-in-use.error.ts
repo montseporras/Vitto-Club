@@ -9,3 +9,10 @@ export const EMAIL_IN_USE_MESSAGE = 'Ya hay un cliente o una cuenta activa con e
 export function emailInUse(): ConflictException {
   return new ConflictException({ message: EMAIL_IN_USE_MESSAGE, code: EMAIL_IN_USE });
 }
+
+// Texto del contrato para el cambio de correo desde Mi perfil (§3.10.4)
+export const PROFILE_EMAIL_IN_USE_MESSAGE = 'Ese correo ya está registrado';
+
+export function profileEmailInUse(): ConflictException {
+  return new ConflictException({ message: PROFILE_EMAIL_IN_USE_MESSAGE, code: EMAIL_IN_USE });
+}

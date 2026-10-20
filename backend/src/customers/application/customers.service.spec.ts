@@ -8,6 +8,7 @@ import {
   CUSTOMER_DEACTIVATED,
   CUSTOMER_DOCUMENT_CHANGED,
   CUSTOMER_EMAIL_CHANGED,
+  CUSTOMER_EMAIL_CHANGE_REQUESTED,
 } from '../../shared/events/domain-events.js';
 import { Customer, DocumentType } from '../domain/customer.js';
 import { CustomerStatusAction, CustomerStatusChange } from '../domain/customer-status-change.js';
@@ -738,6 +739,138 @@ describe('CustomersService', () => {
       await expect(
         service.update(id, { documentNumber: '87654321', reason: 'x' }, 'ADMIN'),
       ).rejects.toThrow('sin cuenta');
+    });
+  });
+
+  // PERFIL: el cliente edita su propio perfil (contrato §3.10.4)
+  describe('updateOwnProfile()', () => {
+    const profileEvents = () => emitAsync.mock.calls.map(([name]) => name);
+
+    it('actualiza solo el teléfono, sin pedir contraseña ni publicar eventos', async () => {
+      emitAsync.mockClear();
+
+      const customer = await service.updateOwnProfile(id, { phone: '3547-555123' });
+
+      expect(customer.getPhone()).toBe('3547-555123');
+      expect(customer.getEmail()).toBe('juan@example.com');
+      expect(emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('borra el teléfono y la fecha de nacimiento con null', async () => {
+      await service.updateOwnProfile(id, { dateOfBirth: '1990-05-14' });
+
+      const customer = await service.updateOwnProfile(id, { phone: null, dateOfBirth: null });
+
+      expect(customer.getPhone()).toBeNull();
+      expect(customer.getDateOfBirth()).toBeNull();
+    });
+
+    it('rechaza un body sin ningún dato (currentPassword solo no cuenta)', async () => {
+      await expect(service.updateOwnProfile(id, {})).rejects.toThrow(BadRequestException);
+      await expect(service.updateOwnProfile(id, { currentPassword: 'x' })).rejects.toThrow(BadRequestException);
+    });
+
+    it('rechaza un teléfono inválido con el mensaje del contrato', async () => {
+      await expect(service.updateOwnProfile(id, { phone: '123' })).rejects.toThrow(
+        'El teléfono tiene que tener entre 8 y 15 números',
+      );
+    });
+
+    it('rechaza una fecha futura y una inexistente con los mensajes del contrato', async () => {
+      await expect(service.updateOwnProfile(id, { dateOfBirth: '2999-01-01' })).rejects.toThrow(
+        'La fecha no puede ser futura',
+      );
+      await expect(service.updateOwnProfile(id, { dateOfBirth: '1990-02-31' })).rejects.toThrow(
+        'Esa fecha no existe',
+      );
+    });
+
+    it('cambiar el correo sin contraseña actual responde 400 y no guarda nada', async () => {
+      repo.update_.mockClear();
+
+      await expect(
+        service.updateOwnProfile(id, { email: 'nuevo@example.com', phone: '3547-555123' }),
+      ).rejects.toThrow('Ingresá tu contraseña actual para cambiar el correo');
+
+      expect(repo.update_).not.toHaveBeenCalled();
+    });
+
+    it('cambiar el correo: primero confirma la contraseña, después guarda y por último avisa el cambio', async () => {
+      const order: string[] = [];
+      emitAsync.mockImplementation(async (name: string) => {
+        order.push(name);
+        return [];
+      });
+      repo.update_.mockImplementation(() => order.push('update'));
+
+      const customer = await service.updateOwnProfile(id, {
+        email: ' Nuevo@Example.com ',
+        currentPassword: 'MiClave2026',
+      });
+
+      expect(customer.getEmail()).toBe('nuevo@example.com');
+      expect(order).toEqual([CUSTOMER_EMAIL_CHANGE_REQUESTED, 'update', CUSTOMER_EMAIL_CHANGED]);
+      expect(emitAsync).toHaveBeenCalledWith(CUSTOMER_EMAIL_CHANGE_REQUESTED, {
+        customerId: id,
+        email: 'nuevo@example.com',
+        currentPassword: 'MiClave2026',
+      });
+    });
+
+    it('si accounts rechaza la contraseña, no se guarda nada (tampoco el teléfono)', async () => {
+      repo.update_.mockClear();
+      emitAsync.mockRejectedValueOnce(new BadRequestException('La contraseña actual es incorrecta'));
+
+      await expect(
+        service.updateOwnProfile(id, { email: 'nuevo@example.com', currentPassword: 'mala', phone: '3547-555123' }),
+      ).rejects.toThrow('La contraseña actual es incorrecta');
+
+      expect(repo.update_).not.toHaveBeenCalled();
+      expect((await service.findById(id)).getPhone()).toBe('1155555555');
+    });
+
+    it('el mismo correo con otras mayúsculas o espacios no es un cambio: no pide contraseña y se ignora', async () => {
+      emitAsync.mockClear();
+
+      const customer = await service.updateOwnProfile(id, {
+        email: '  JUAN@example.com ',
+        phone: '3547-555123',
+        currentPassword: 'cualquiera',
+      });
+
+      expect(customer.getEmail()).toBe('juan@example.com');
+      expect(profileEvents()).toEqual([]);
+    });
+
+    it('409 EMAIL_IN_USE si otro cliente activo ya usa el correo', async () => {
+      await otherCustomer({ email: 'ocupado@example.com' });
+      repo.update_.mockClear();
+
+      await expect(
+        service.updateOwnProfile(id, { email: 'ocupado@example.com', currentPassword: 'MiClave2026' }),
+      ).rejects.toMatchObject({ response: { code: 'EMAIL_IN_USE', message: 'Ese correo ya está registrado' } });
+
+      expect(repo.update_).not.toHaveBeenCalled();
+    });
+
+    it('409 EMAIL_IN_USE si un empleado ya usa el correo', async () => {
+      employeesService.emails.add('mozo@vitto.club');
+
+      await expect(
+        service.updateOwnProfile(id, { email: 'mozo@vitto.club', currentPassword: 'MiClave2026' }),
+      ).rejects.toMatchObject({ response: { code: 'EMAIL_IN_USE' } });
+    });
+
+    it('el correo de un cliente dado de baja no cuenta como ocupado', async () => {
+      const baja = await otherCustomer({ email: 'baja@example.com' });
+      await service.deactivate(baja.getId() as number);
+
+      const customer = await service.updateOwnProfile(id, {
+        email: 'baja@example.com',
+        currentPassword: 'MiClave2026',
+      });
+
+      expect(customer.getEmail()).toBe('baja@example.com');
     });
   });
 });

@@ -5,11 +5,14 @@ import { CustomerStatusChange } from '../domain/customer-status-change.js';
 import { CustomerRepository, CustomerListParams, CustomerListResult } from '../domain/port/customer.repository.js';
 import { CreateCustomerDto } from '../http/dto/create-customer.dto.js';
 import { UpdateCustomerDto } from '../http/dto/update-customer.dto.js';
+import { UpdateMyProfileDto } from '../http/dto/update-my-profile.dto.js';
+import { DomainError } from '../domain/errors/domain.error.js';
+import { checkBirthDate } from '../domain/profile-birth-date.js';
 import { CustomerAlreadyExists } from '../domain/errors/customer-already-exists.error.js';
 import { Mail } from '../domain/mail.js';
 import { EmployeesService } from '../../employees/application/employees.service.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
-import { emailInUse } from '../domain/errors/email-in-use.error.js';
+import { emailInUse, profileEmailInUse } from '../domain/errors/email-in-use.error.js';
 import { customerInactive } from '../domain/errors/customer-inactive.error.js';
 import { forbiddenField } from '../domain/errors/forbidden-field.error.js';
 import { reasonRequired } from '../domain/errors/reason-required.error.js';
@@ -20,10 +23,12 @@ import {
   CUSTOMER_DEACTIVATED,
   CUSTOMER_DOCUMENT_CHANGED,
   CUSTOMER_EMAIL_CHANGED,
+  CUSTOMER_EMAIL_CHANGE_REQUESTED,
   type CustomerCreatedEvent,
   type CustomerDeactivatedEvent,
   type CustomerDocumentChangedEvent,
   type CustomerEmailChangedEvent,
+  type CustomerEmailChangeRequestedEvent,
 } from '../../shared/events/domain-events.js';
 
 // Dirección única de la unicidad global de email: Customers -> Employees. Employees ya NO
@@ -219,6 +224,82 @@ export class CustomersService {
           customerId: id,
           documentNumber: customer.getDocumentNumber(),
         } satisfies CustomerDocumentChangedEvent);
+      }
+
+      return customer;
+    });
+  }
+
+  // --- MI PERFIL (PERFIL, contrato §3.10.4) ---
+  // El cliente edita su teléfono, su correo y su fecha de nacimiento. customerId sale del token.
+  // Si cambia el correo, primero se confirma la contraseña actual (accounts, por evento): si falla,
+  // todavía no se escribió nada, así que tampoco se guardan el teléfono ni la fecha. No se audita
+  // (el actor es el cliente).
+  async updateOwnProfile(customerId: number, dto: UpdateMyProfileDto): Promise<Customer> {
+    // Tiene que venir al menos un dato; currentPassword solo confirma, no es un dato del cliente
+    if (dto.email === undefined && dto.phone === undefined && dto.dateOfBirth === undefined) {
+      throw new BadRequestException('At least one field must be provided');
+    }
+
+    let dateOfBirth: Date | null | undefined;
+    if (dto.dateOfBirth === undefined) {
+      dateOfBirth = undefined;
+    } else if (dto.dateOfBirth === null) {
+      dateOfBirth = null;
+    } else {
+      const checked = checkBirthDate(dto.dateOfBirth, new Date());
+      if ('message' in checked) throw new BadRequestException(checked.message);
+      dateOfBirth = checked.date;
+    }
+
+    return await this.transactionRunner.run(async () => {
+      const customer = await this.findById(customerId);
+      const previousEmail = customer.getEmail();
+
+      // Mismo valor con otras mayúsculas o espacios no es un cambio: no pide contraseña y se ignora
+      const newEmail = dto.email === undefined ? undefined : Mail.create(dto.email).getValue();
+      const emailChanged = newEmail !== undefined && newEmail !== previousEmail;
+
+      if (emailChanged) {
+        if (!dto.currentPassword) {
+          throw new BadRequestException('Ingresá tu contraseña actual para cambiar el correo');
+        }
+        // accounts verifica la contraseña (con el límite de intentos) y que ninguna otra cuenta
+        // activa use el correo. Tira 400 CURRENT_PASSWORD_INCORRECT, 429 o 409 EMAIL_IN_USE.
+        await this.eventEmitter.emitAsync(CUSTOMER_EMAIL_CHANGE_REQUESTED, {
+          customerId,
+          email: newEmail,
+          currentPassword: dto.currentPassword,
+        } satisfies CustomerEmailChangeRequestedEvent);
+
+        if (
+          (await this.customersRepository.existsByEmail(newEmail, { onlyActive: true })) ||
+          (await this.employeesService.existsByEmail(newEmail))
+        ) {
+          throw profileEmailInUse();
+        }
+      }
+
+      try {
+        customer.update({
+          email: emailChanged ? newEmail : undefined,
+          phone: dto.phone,
+          dateOfBirth,
+        });
+      } catch (error) {
+        if (error instanceof DomainError && error.field === 'phone') {
+          throw new BadRequestException('El teléfono tiene que tener entre 8 y 15 números');
+        }
+        throw error;
+      }
+      await this.customersRepository.update(customer);
+
+      // accounts copia el correo nuevo en el email de acceso, en esta misma transacción
+      if (emailChanged) {
+        await this.eventEmitter.emitAsync(CUSTOMER_EMAIL_CHANGED, {
+          customerId,
+          email: customer.getEmail(),
+        } satisfies CustomerEmailChangedEvent);
       }
 
       return customer;

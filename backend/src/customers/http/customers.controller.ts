@@ -15,6 +15,8 @@ import {
 } from "@nestjs/common";
 import { CreateCustomerDto } from "./dto/create-customer.dto.js";
 import { UpdateCustomerDto } from "./dto/update-customer.dto.js";
+import { UpdateMyProfileDto } from "./dto/update-my-profile.dto.js";
+import { MyProfileResponseDto } from "./dto/my-profile-response.dto.js";
 import { ListCustomersQueryDto } from "./dto/list-customers-query.dto.js";
 import { FindCustomerByDocumentQueryDto } from "./dto/find-customer-by-document-query.dto.js";
 import { CustomersService } from "../application/customers.service.js";
@@ -73,6 +75,25 @@ export class CustomersController{
                 page: query.page,
                 limit: query.limit,
             };
+        }
+
+
+    // --- Vista del Cliente (PERFIL, contrato §3.10) ---
+    // Son solo para el rol CUSTOMER y el cliente sale del token, nunca de la URL ni del body.
+    // Tienen que ir ANTES que @Get(':id') y @Patch(':id'), si no "me" se interpretaría como un id.
+    @Get('me')
+    @Roles('CUSTOMER')
+        async getMyProfile(@CurrentUser() user: CurrentUserData){
+            const customer = await this.customersService.findById(user.customerId as number);
+            return MyProfileResponseDto.fromDomain(customer);
+        }
+
+    // PATCH /customers/me -> teléfono, correo y fecha de nacimiento. No se audita: el actor es el cliente.
+    @Patch('me')
+    @Roles('CUSTOMER')
+        async updateMyProfile(@Body() dto: UpdateMyProfileDto, @CurrentUser() user: CurrentUserData){
+            const customer = await this.customersService.updateOwnProfile(user.customerId as number, dto);
+            return MyProfileResponseDto.fromDomain(customer);
         }
 
 
