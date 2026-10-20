@@ -1,0 +1,128 @@
+import {
+  configurationSavedEntries,
+  customerCreatedEntry,
+  customerUpdatedEntry,
+  employeeUpdatedEntry,
+  type CustomerSnapshot,
+  type EmployeeSnapshot,
+  type LoyaltyConfigSnapshot,
+} from './audit-entries.js';
+import { assertValidAuditEntry, type AuditActor } from './audit-entry.js';
+
+const actor: AuditActor = { type: 'EMPLOYEE', accountId: 1 };
+
+const employee: EmployeeSnapshot = {
+  firstName: 'Jorge',
+  lastName: 'Molina',
+  email: 'jorge@vitto.club',
+  role: 'CASHIER',
+  phone: null,
+};
+
+const customer: CustomerSnapshot = {
+  id: 102,
+  firstName: 'Sofía',
+  lastName: 'Ríos',
+  documentType: 'DNI',
+  documentNumber: '30111222',
+  email: 'sofia@mail.com',
+  phone: '3510000000',
+  dateOfBirth: new Date('1990-03-05T00:00:00.000Z'),
+};
+
+const config: LoyaltyConfigSnapshot = {
+  baseAmount: 1000,
+  pointsAwarded: 10,
+  pointsExpirationMonths: 12,
+  bonusType: 'PERCENTAGE',
+  bonusValue: 15,
+};
+
+describe('employeeUpdatedEntry()', () => {
+  it('una fila por campo que cambió, con vacío como "—"', () => {
+    const entry = employeeUpdatedEntry(
+      actor,
+      employee,
+      { ...employee, lastName: 'Molinas', phone: '3510000001', role: 'ADMIN' },
+    );
+
+    expect(entry.description).toBe('Editó al empleado Jorge Molinas');
+    expect(entry.details).toEqual([
+      { label: 'Apellido', value: 'Molina → Molinas' },
+      { label: 'Teléfono', value: '— → 3510000001' },
+      { label: 'Rol', value: 'Cajero → Administrador' },
+    ]);
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+});
+
+describe('customerCreatedEntry()', () => {
+  it('lleva el cliente afectado y nunca guarda el valor de la contraseña inicial', () => {
+    const entry = customerCreatedEntry(actor, customer, 'CASHIER');
+
+    expect(entry.affectedCustomer).toEqual({
+      customerId: 102,
+      name: 'Sofía Ríos',
+      documentType: 'DNI',
+      documentNumber: '30111222',
+    });
+    expect(entry.details).toEqual([
+      { label: 'Mail', value: 'sofia@mail.com' },
+      { label: 'Teléfono', value: '3510000000' },
+      { label: 'Origen', value: 'Caja' },
+      { label: 'Cuenta de acceso', value: 'Creada, contraseña inicial = número de documento' },
+    ]);
+    expect(JSON.stringify(entry.details)).not.toContain('30111222');
+  });
+
+  it('el origen es Administración cuando lo da de alta el Administrador', () => {
+    const entry = customerCreatedEntry(actor, { ...customer, phone: null }, 'ADMIN');
+
+    expect(entry.details).toContainEqual({ label: 'Origen', value: 'Administración' });
+    expect(entry.details).toContainEqual({ label: 'Teléfono', value: '—' });
+  });
+});
+
+describe('customerUpdatedEntry()', () => {
+  it('una fila por campo que cambió, con documento y fecha dd/mm/aaaa', () => {
+    const entry = customerUpdatedEntry(actor, customer, {
+      ...customer,
+      documentNumber: '30111223',
+      dateOfBirth: new Date('1990-03-06T00:00:00.000Z'),
+    });
+
+    expect(entry.details).toEqual([
+      { label: 'Documento', value: 'DNI 30111222 → DNI 30111223' },
+      { label: 'Fecha de nacimiento', value: '05/03/1990 → 06/03/1990' },
+    ]);
+  });
+});
+
+describe('configurationSavedEntries()', () => {
+  it('registra una entrada por cada sección que cambió (CA-57.7)', () => {
+    const entries = configurationSavedEntries(actor, config, {
+      ...config,
+      baseAmount: 2000,
+      bonusValue: 20,
+    });
+
+    expect(entries.map((entry) => entry.action)).toEqual([
+      'POINTS_EQUIVALENCE_UPDATED',
+      'FIRST_PURCHASE_BONUS_UPDATED',
+    ]);
+    expect(entries[0].details).toEqual([
+      { label: 'Monto base ($)', value: '1.000 → 2.000' },
+      { label: 'Puntos por monto', value: '10 → 10' },
+    ]);
+  });
+
+  it('si no cambió nada registra una entrada con "Se guardó sin modificar valores"', () => {
+    const entries = configurationSavedEntries(actor, config, { ...config });
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0].action).toBe('POINTS_EQUIVALENCE_UPDATED');
+    expect(entries[0].details).toEqual([
+      { label: 'Cambios', value: 'Se guardó sin modificar valores' },
+    ]);
+  });
+});

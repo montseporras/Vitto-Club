@@ -18,6 +18,8 @@ const LOYALTY_CONFIG_URL = '/api/loyalty/configuration';
 describe('Loyalty configuration (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let actorAccountId = 0;
+  let actorEmployeeId = 0;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -39,7 +41,7 @@ describe('Loyalty configuration (e2e)', () => {
     app.use(async (request: Request, _response: Response, next: NextFunction) => {
       const role = request.header('x-test-auth-role');
       if (role === 'ADMIN' || role === 'CASHIER') {
-        const token = await issuer.issue({ accountId: 1, role, employeeId: 1 });
+        const token = await issuer.issue({ accountId: actorAccountId, role, employeeId: actorEmployeeId });
         request.headers.authorization = `Bearer ${token}`;
       }
       next();
@@ -50,6 +52,32 @@ describe('Loyalty configuration (e2e)', () => {
   });
 
   beforeEach(async () => {
+    // Actor de las operaciones auditadas (US-57): un empleado real con su cuenta
+    await prisma.session.deleteMany();
+    await prisma.account.deleteMany();
+    await prisma.employee.deleteMany();
+    const actor = await prisma.employee.create({
+      data: {
+        firstName: 'Test',
+        lastName: 'Admin',
+        phone: '3510000000',
+        email: 'actor.loyalty@vitto.club',
+        role: 'ADMIN',
+        isActive: true,
+      },
+    });
+    const actorAccount = await prisma.account.create({
+      data: {
+        email: actor.email,
+        passwordHash: 'hashed:secreta123',
+        role: 'ADMIN',
+        isActive: true,
+        employeeId: actor.id,
+      },
+    });
+    actorEmployeeId = actor.id;
+    actorAccountId = actorAccount.id;
+
     await prisma.loyaltyProgramConfiguration.deleteMany();
     await prisma.loyaltyPointsConfiguration.deleteMany();
     await prisma.loyaltyPointsValidityConfiguration.deleteMany();

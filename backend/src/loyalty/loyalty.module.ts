@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module.js';
 import { LoyaltyService } from './application/loyalty.service.js';
 import { LoyaltyConfigurationRepository } from './domain/port/loyalty-configuration.repository.js';
 import { LoyaltyPrismaRepository } from './infrastructure/loyalty-prisma.repository.js';
@@ -10,6 +11,7 @@ import { FirstPurchaseBonusValueValidator } from './http/validators/first-purcha
 import { LoyaltyProgramConfigurationController } from './http/loyalty-program-configuration.controller.js';
 
 @Module({
+  imports: [AuditModule],
   controllers: [
     LoyaltyController,
     PointsValidityController,

@@ -3,6 +3,9 @@ import { CustomersService } from '../application/customers.service.js';
 import { Customer } from '../domain/customer.js';
 import { ListCustomersQueryDto } from './dto/list-customers-query.dto.js';
 import { FindCustomerByDocumentQueryDto } from './dto/find-customer-by-document-query.dto.js';
+import { createCapturingAuditService } from '../../audit/testing/capturing-audit-service.js';
+import type { AuditEntryInput } from '../../audit/domain/audit-entry.js';
+import type { CurrentUserData } from '../../shared/security/current-user-data.js';
 
 const makeCustomer = (active = true) =>
   Customer.reconstruct({
@@ -22,8 +25,25 @@ describe('CustomersController', () => {
     getStatusHistory: jest.Mock;
     deactivate: jest.Mock;
     activate: jest.Mock;
+    findById: jest.Mock;
+    createWithAccount: jest.Mock;
+    update: jest.Mock;
   };
+  let audit: AuditEntryInput[];
   let controller: CustomersController;
+
+  const cashier: CurrentUserData = { accountId: 9, role: 'CASHIER', employeeId: 9 };
+  const customer = Customer.reconstruct({
+    id: 7,
+    firstName: 'Carlos',
+    lastName: 'Ruiz',
+    documentType: 'DNI',
+    documentNumber: '30111222',
+    email: 'carlos@mail.com',
+    phone: null,
+    dateOfBirth: null,
+    active: true,
+  });
 
   beforeEach(() => {
     service = {
@@ -32,19 +52,120 @@ describe('CustomersController', () => {
       getStatusHistory: jest.fn(),
       deactivate: jest.fn(),
       activate: jest.fn(),
+      findById: jest.fn().mockResolvedValue(customer),
+      createWithAccount: jest.fn(),
+      update: jest.fn(),
     };
-    controller = new CustomersController(service as unknown as CustomersService);
+    const capturing = createCapturingAuditService();
+    audit = capturing.entries;
+    controller = new CustomersController(service as unknown as CustomersService, capturing.service);
   });
 
   const query = (values: Partial<ListCustomersQueryDto> = {}): ListCustomersQueryDto =>
     Object.assign(new ListCustomersQueryDto(), values);
 
+  describe('alta y edición', () => {
+    it('create() audita CUSTOMER_CREATED con origen Caja y sin la contraseña inicial', async () => {
+      service.createWithAccount.mockResolvedValue(customer);
+
+      await controller.create(
+        {
+          firstName: 'Carlos',
+          lastName: 'Ruiz',
+          documentType: 'DNI',
+          documentNumber: '30111222',
+          email: 'carlos@mail.com',
+        } as never,
+        cashier,
+      );
+
+      expect(audit).toHaveLength(1);
+      expect(audit[0]).toMatchObject({
+        actor: { type: 'EMPLOYEE', accountId: 9 },
+        module: 'CUSTOMERS',
+        action: 'CUSTOMER_CREATED',
+        description: 'Registró al cliente Carlos Ruiz',
+        affectedCustomer: { customerId: 7, name: 'Carlos Ruiz' },
+      });
+      expect(audit[0].details).toContainEqual({ label: 'Origen', value: 'Caja' });
+      expect(JSON.stringify(audit[0].details)).not.toContain('30111222');
+    });
+
+    it('create() por el Administrador audita el origen Administración', async () => {
+      service.createWithAccount.mockResolvedValue(customer);
+
+      await controller.create({} as never, { accountId: 1, role: 'ADMIN', employeeId: 1 });
+
+      expect(audit[0].details).toContainEqual({ label: 'Origen', value: 'Administración' });
+    });
+
+    it('update() audita una fila por campo que cambió', async () => {
+      service.update.mockResolvedValue(
+        Customer.reconstruct({
+          id: 7,
+          firstName: 'Carlos',
+          lastName: 'Ruiz',
+          documentType: 'DNI',
+          documentNumber: '30111222',
+          email: 'carlos@mail.com',
+          phone: '3510000000',
+          active: true,
+        }),
+      );
+
+      await controller.update(7, { phone: '3510000000' } as never, cashier);
+
+      expect(audit).toHaveLength(1);
+      expect(audit[0]).toMatchObject({
+        action: 'CUSTOMER_UPDATED',
+        description: 'Editó los datos del cliente Carlos Ruiz',
+        details: [{ label: 'Teléfono', value: '— → 3510000000' }],
+      });
+    });
+
+    it('update() no audita si la edición falla', async () => {
+      service.update.mockRejectedValue(new Error('documento en uso'));
+
+      await expect(controller.update(7, {} as never, cashier)).rejects.toThrow('documento en uso');
+      expect(audit).toEqual([]);
+    });
+  });
+
   describe('baja y reactivación', () => {
     it('deactivate() delega la baja en el servicio con el id recibido', async () => {
       service.deactivate.mockResolvedValue(undefined);
 
-      await expect(controller.deactivate(7)).resolves.toBeUndefined();
+      await expect(controller.deactivate(7, cashier)).resolves.toBeUndefined();
       expect(service.deactivate).toHaveBeenCalledWith(7);
+    });
+
+    it('deactivate() audita CUSTOMER_DEACTIVATED con el cliente afectado', async () => {
+      service.deactivate.mockResolvedValue(undefined);
+
+      await controller.deactivate(7, cashier);
+
+      expect(audit).toEqual([
+        {
+          actor: { type: 'EMPLOYEE', accountId: 9 },
+          module: 'CUSTOMERS',
+          action: 'CUSTOMER_DEACTIVATED',
+          description: 'Dio de baja al cliente Carlos Ruiz',
+          affectedCustomer: {
+            customerId: 7,
+            name: 'Carlos Ruiz',
+            documentType: 'DNI',
+            documentNumber: '30111222',
+          },
+          details: [{ label: 'Estado', value: 'Activo → Inactivo' }],
+        },
+      ]);
+    });
+
+    it('deactivate() no audita si la baja falla', async () => {
+      service.deactivate.mockRejectedValue(new Error('ya está inactivo'));
+
+      await expect(controller.deactivate(7, cashier)).rejects.toThrow('ya está inactivo');
+      expect(audit).toEqual([]);
     });
 
     it('activate() delega la reactivación en el servicio', async () => {

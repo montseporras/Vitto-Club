@@ -43,6 +43,8 @@ class TestPasswordHasherModule {}
 describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let actorAccountId = 0;
+  let actorEmployeeId = 0;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -74,6 +76,13 @@ describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () 
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     );
+    // Este armado no incluye AuthModule: se simula el usuario autenticado que dejaría el guard.
+    // La auditoría (US-57) exige que el actor sea un empleado real; ver beforeEach.
+    app.use((request: { user?: unknown }, _response: unknown, next: () => void) => {
+      request.user = { accountId: actorAccountId, role: 'CASHIER', employeeId: actorEmployeeId };
+      next();
+    });
+
     await app.init();
 
     prisma = app.get(PrismaService);
@@ -90,6 +99,30 @@ describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () 
     await prisma.session.deleteMany();
     await prisma.account.deleteMany();
     await prisma.employee.deleteMany();
+
+    // Actor de las operaciones auditadas. Es CASHIER a propósito: no cuenta como ADMIN en las
+    // reglas del último administrador que prueban estos escenarios.
+    const actor = await prisma.employee.create({
+      data: {
+        firstName: 'Test',
+        lastName: 'Actor',
+        phone: '3510000000',
+        email: 'actor.abmc@vitto.club',
+        role: 'CASHIER',
+        isActive: true,
+      },
+    });
+    const actorAccount = await prisma.account.create({
+      data: {
+        email: actor.email,
+        passwordHash: 'hashed:secreta123',
+        role: 'CASHIER',
+        isActive: true,
+        employeeId: actor.id,
+      },
+    });
+    actorEmployeeId = actor.id;
+    actorAccountId = actorAccount.id;
   });
 
   // Las Accounts se crean directamente con Prisma, no a través de AccountsService: así el

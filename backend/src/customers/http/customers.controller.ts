@@ -21,6 +21,16 @@ import { CustomersService } from "../application/customers.service.js";
 import { CustomerResponseDto } from "./dto/customer-response.dto.js";
 import { CustomerExceptionFilter } from "./filters/customers-exception.filter.js";
 import { Roles } from "../../shared/security/roles.decorator.js";
+import { CurrentUser } from "../../shared/security/current-user.decorator.js";
+import type { CurrentUserData } from "../../shared/security/current-user-data.js";
+import { AuditService } from "../../audit/application/audit.service.js";
+import { actorOf } from "../../audit/domain/audit-entry.js";
+import {
+  customerCreatedEntry,
+  customerDeactivatedEntry,
+  customerUpdatedEntry,
+} from "../../audit/domain/audit-entries.js";
+import { toCustomerSnapshot } from "./customer-audit-snapshot.js";
 
 
 
@@ -38,7 +48,8 @@ import { Roles } from "../../shared/security/roles.decorator.js";
 export class CustomersController{
 
         constructor(
-            private readonly customersService: CustomersService
+            private readonly customersService: CustomersService,
+            private readonly auditService: AuditService,
         ){}
 
 
@@ -93,9 +104,18 @@ export class CustomersController{
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    async create(@Body() createDto: CreateCustomerDto){
-        // Crea también la cuenta del cliente (contraseña inicial = documento)
-        const customer = await this.customersService.createWithAccount(createDto);
+    async create(@Body() createDto: CreateCustomerDto, @CurrentUser() user: CurrentUserData){
+        // Crea también la cuenta del cliente (contraseña inicial = documento).
+        // La auditoría se escribe en la misma transacción (ver AuditService.capture).
+        const customer = await this.auditService.capture(
+            () => this.customersService.createWithAccount(createDto),
+            (created) =>
+                customerCreatedEntry(
+                    actorOf(user),
+                    toCustomerSnapshot(created),
+                    user.role === 'ADMIN' ? 'ADMIN' : 'CASHIER',
+                ),
+        );
         return CustomerResponseDto.fromDomain(customer);
     }
 
@@ -103,16 +123,33 @@ export class CustomersController{
     async update(
         @Param('id', ParseIntPipe) id: number,
         @Body() updateDto: UpdateCustomerDto,
+        @CurrentUser() user: CurrentUserData,
     ){
-        const customer = await this.customersService.update(id, updateDto);
+        const { customer } = await this.auditService.capture(
+            async () => {
+                // La foto de "antes" se toma dentro de la transacción, para comparar con el resultado
+                const before = toCustomerSnapshot(await this.customersService.findById(id));
+                const updated = await this.customersService.update(id, updateDto);
+                return { before, customer: updated };
+            },
+            ({ before, customer: updated }) =>
+                customerUpdatedEntry(actorOf(user), before, toCustomerSnapshot(updated)),
+        );
         return CustomerResponseDto.fromDomain(customer);
     }
 
 
     @Patch(':id/deactivate')
     @HttpCode(HttpStatus.NO_CONTENT)
-    async deactivate(@Param('id', ParseIntPipe) id: number) {
-        await this.customersService.deactivate(id);
+    async deactivate(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserData) {
+        await this.auditService.capture(
+            async () => {
+                const customer = await this.customersService.findById(id);
+                await this.customersService.deactivate(id);
+                return customer;
+            },
+            (customer) => customerDeactivatedEntry(actorOf(user), toCustomerSnapshot(customer)),
+        );
         }
 
     @Patch(':id/activate')

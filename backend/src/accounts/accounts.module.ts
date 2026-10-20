@@ -15,6 +15,7 @@ import { CustomerAccountRepository } from './domain/port/customer-account.reposi
 import { CustomerAccountPrismaRepository } from './infrastructure/customer-accounts.repository.js';
 import { EmployeesModule } from '../employees/employees.module.js';
 import { CustomersModule } from '../customers/customers.module.js';
+import { AuditModule } from '../audit/audit.module.js';
 import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
 
 // accounts es dueño de la tabla Account y de las contraseñas: el adaptador de bcryptjs vive
@@ -25,7 +26,7 @@ import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js'
 // solo sentido (ninguno de los dos importa a Accounts). La integración Employee -> Account
 // es por eventos (EmployeeEventsListener), no por import circular.
 @Module({
-  imports: [EmployeesModule, CustomersModule],
+  imports: [EmployeesModule, CustomersModule, AuditModule],
   controllers: [AccountsController, CustomerRegistrationController],
   providers: [
     AccountsService,
