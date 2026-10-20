@@ -71,7 +71,7 @@ export function EmployeeAccountSection({
                   variant="ghost"
                   onClick={() => onAction('deactivateAccount')}
                 >
-                  Dar de baja usuario
+                  Desactivar cuenta
                 </Button>
               </>
             )}

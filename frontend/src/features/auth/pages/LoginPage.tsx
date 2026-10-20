@@ -7,8 +7,9 @@ import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { AuthShell } from '@/shared/components/ui/AuthShell'
 import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
-import { Page } from '@/shared/components/ui/Page'
 import { PasswordInput } from '@/shared/components/ui/PasswordInput'
+import { cn } from '@/shared/lib/utils'
+import { authShellStyles } from '@/styles/ui'
 import { useLogin } from '../api/auth.queries'
 import { AuthTabs } from '../components/AuthTabs'
 import {
@@ -40,7 +41,7 @@ export function LoginPage() {
 
   // Al recargar con la sesión abierta, no muestra el formulario mientras la recupera
   if (session.status === 'restoring') {
-    return <StatusText className="text-center">Cargando…</StatusText>
+    return <StatusText className="w-full py-8 text-center">Cargando…</StatusText>
   }
 
   // Con sesión, vuelve a la pantalla que se quiso abrir o a la de su rol ("/")
@@ -69,9 +70,10 @@ export function LoginPage() {
   const error = login.error
 
   return (
-    <Page>
+    <AuthShell title="Ingresar">
+      {/* Como en el prototipo, el aviso va arriba de las pestañas */}
       {error && (
-        <Alert variant="error" className="mb-5">
+        <Alert variant="error" className={cn(authShellStyles.narrow, 'mb-5')}>
           {error.code === AUTH_ERROR_CODES.INVALID_CREDENTIALS ? (
             'Los datos de acceso son incorrectos.'
           ) : error.status === 400 ? (
@@ -88,15 +90,19 @@ export function LoginPage() {
         </Alert>
       )}
 
-      <AuthShell title="Ingresar">
-        <AuthTabs />
+      <AuthTabs />
 
-        <form
-          noValidate
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex max-w-md flex-col gap-5"
-        >
-          <FormField id="email" label="Mail" error={errors.email?.message}>
+      <form
+        noValidate
+        onSubmit={handleSubmit(onSubmit)}
+        className={cn(authShellStyles.narrow, 'flex flex-col gap-5')}
+      >
+          <FormField
+            id="email"
+            label="Mail"
+            hideRequiredMark
+            error={errors.email?.message}
+          >
             <Input
               type="email"
               autoFocus
@@ -110,6 +116,7 @@ export function LoginPage() {
           <FormField
             id="password"
             label="Contraseña"
+            hideRequiredMark
             error={errors.password?.message}
           >
             <PasswordInput
@@ -123,13 +130,12 @@ export function LoginPage() {
           <Button
             type="submit"
             size="lg"
-            className="self-start"
+            className="mt-1 w-full"
             disabled={login.isPending}
           >
             {login.isPending ? 'Ingresando…' : 'Ingresar'}
           </Button>
-        </form>
-      </AuthShell>
-    </Page>
+      </form>
+    </AuthShell>
   )
 }

@@ -31,10 +31,10 @@ const MAX_SEARCH_LENGTH = 80;
 type EmployeeModalView = 'edit' | 'deactivate' | AccountAction;
 
 const MODAL_TITLES: Record<Exclude<EmployeeModalView, 'edit'>, string> = {
-  deactivate: 'Dar de baja empleado',
+  deactivate: 'Eliminar empleado',
   createAccount: 'Crear usuario',
   changePassword: 'Cambiar contraseña',
-  deactivateAccount: 'Dar de baja usuario',
+  deactivateAccount: 'Desactivar cuenta',
   reactivateAccount: 'Reactivar usuario',
 };
 
@@ -173,7 +173,7 @@ export function EmployeesPage() {
       </Button>
 
       {creating && (
-        <Modal title="Crear empleado">
+        <Modal title="Crear empleado" onClose={() => setCreating(false)}>
           <CreateEmployeeForm
             onSuccess={() => setCreating(false)}
             onCancel={() => setCreating(false)}
@@ -183,6 +183,7 @@ export function EmployeesPage() {
 
       {selectedEmployee && (
         <Modal
+          onClose={closeEdit}
           title={
             modalView !== 'edit'
               ? MODAL_TITLES[modalView]

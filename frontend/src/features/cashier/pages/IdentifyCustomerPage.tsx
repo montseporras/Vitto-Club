@@ -31,7 +31,7 @@ const DOCUMENT_OPTIONS = DOCUMENT_TYPE_VALUES.map((type) => ({
   label: DOCUMENT_TYPES[type].label,
 }))
 
-/** Cliente: el Cajero busca al cliente por documento y, si hace falta, edita sus datos (RF-016). */
+/** Cliente: se busca al cliente por documento y, si hace falta, se editan sus datos menos el documento (RF-016). */
 export function IdentifyCustomerPage() {
   const {
     register,
@@ -46,13 +46,11 @@ export function IdentifyCustomerPage() {
   const [search, setSearch] = useState<DocumentSearch | null>(null)
   const [editing, setEditing] = useState(false)
   const [saved, setSaved] = useState<Customer | null>(null)
-  const [reactivated, setReactivated] = useState<Customer | null>(null)
   const result = useCustomerByDocument(search)
 
   const onSearch = (data: FindCustomerFormOutput) => {
     setEditing(false)
     setSaved(null)
-    setReactivated(null)
     const sameSearch =
       search?.documentType === data.documentType &&
       search.documentNumber === data.documentNumber
@@ -63,7 +61,6 @@ export function IdentifyCustomerPage() {
 
   const onSaved = (customer: Customer) => {
     setSaved(customer)
-    setReactivated(null)
     setEditing(false)
     // Si cambió el documento, la búsqueda sigue al cliente con el documento nuevo
     setSearch({
@@ -75,7 +72,11 @@ export function IdentifyCustomerPage() {
   }
 
   const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
-  const notFound = result.isError && result.error.status === 404
+  // Un cliente dado de baja se trata como no encontrado: no se reactiva, si
+  // vuelve se inscribe de nuevo (contrato §3.1.1)
+  const inactive = result.data !== undefined && !result.data.active
+  const notFound = (result.isError && result.error.status === 404) || inactive
+  const found = result.data && !result.isError && !inactive
 
   return (
     <Page>
@@ -87,18 +88,6 @@ export function IdentifyCustomerPage() {
               {saved.firstName} {saved.lastName}
             </strong>{' '}
             ({DOCUMENT_TYPES[saved.documentType].label} {saved.documentNumber}).
-          </p>
-        </Alert>
-      )}
-
-      {reactivated && (
-        <Alert variant="success" className="mb-5">
-          <p>
-            Cuenta reactivada:{' '}
-            <strong>
-              {reactivated.firstName} {reactivated.lastName}
-            </strong>{' '}
-            ya puede operar normalmente.
           </p>
         </Alert>
       )}
@@ -163,9 +152,9 @@ export function IdentifyCustomerPage() {
           {search && !result.isFetching && notFound && (
             <Alert variant="error">
               <p>
-                No hay ningún cliente con{' '}
-                {DOCUMENT_TYPES[search.documentType].label}{' '}
-                <strong>{search.documentNumber}</strong>.{' '}
+                {/* Texto del contrato §3.1.1 */}
+                No existe un cliente con ese{' '}
+                {search.documentType === 'DNI' ? 'DNI' : 'pasaporte'}.{' '}
                 {/* Relativo a /caja: un feature no importa de app/ (ver docs/FRONTEND-STRUCTURE.md, sección 02). */}
                 <Link
                   to="../alta-cliente"
@@ -173,7 +162,7 @@ export function IdentifyCustomerPage() {
                   state={search}
                   className="font-semibold underline underline-offset-2"
                 >
-                  Darlo de alta
+                  Registrar cliente
                 </Link>
               </p>
             </Alert>
@@ -186,22 +175,17 @@ export function IdentifyCustomerPage() {
             </Alert>
           )}
 
-          {result.data && !result.isFetching && !result.isError && !editing && (
+          {found && !result.isFetching && !editing && (
             <CustomerSummary
               customer={result.data}
               onEdit={() => {
                 setSaved(null)
-                setReactivated(null)
                 setEditing(true)
-              }}
-              onActivated={(customer) => {
-                setSaved(null)
-                setReactivated(customer)
               }}
             />
           )}
 
-          {result.data && editing && (
+          {found && editing && (
             <EditCustomerForm
               key={result.data.id}
               customer={result.data}

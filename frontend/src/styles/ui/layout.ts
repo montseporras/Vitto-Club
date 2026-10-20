@@ -18,13 +18,23 @@ export const pageCardPlainTitleStyles = 'font-heading text-2xl text-ink sm:text-
 export const pageCardPlainDescriptionStyles = 'mt-1.5 max-w-prose text-sm text-neutral-700'
 
 /** Pantalla de ingreso/registro: panel de marca a la izquierda + formulario a la derecha. */
+// Ocupa todo el alto entre el encabezado y el pie (prototipo v2, vista de ingreso).
+// En celular el panel de marca va arriba, a lo ancho, y la página se desplaza entera.
 export const authShellStyles = {
-  root: 'overflow-hidden rounded-3xl border border-accent-200 bg-surface shadow-xl shadow-accent-800/10 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]',
-  left: 'flex flex-col justify-center gap-3 bg-accent-600 px-8 py-10 text-white sm:px-10 lg:py-14',
-  eyebrow: 'text-xs font-bold uppercase tracking-[0.18em]',
-  title: 'font-heading text-4xl leading-tight sm:text-5xl',
-  tagline: 'mt-2 max-w-sm font-heading text-lg italic text-white/90',
-  right: 'px-6 py-8 sm:px-10 sm:py-10',
+  root: 'flex w-full flex-1 flex-wrap bg-surface md:min-h-0',
+  // #b8653d: color del panel en el prototipo (no hay un tono igual en la paleta)
+  left: 'relative flex min-h-[220px] max-w-full shrink-0 grow-0 basis-full flex-col justify-center overflow-hidden bg-[#b8653d] px-6 py-10 text-white md:px-[clamp(32px,6vw,96px)]',
+  // Ancho del panel: más angosto en el registro, que tiene más campos
+  leftWide: 'md:basis-[60%]',
+  leftNarrow: 'md:basis-[38%]',
+  logo: 'pointer-events-none absolute -right-10 -bottom-10 h-[min(70%,460px)] w-auto opacity-[.12]',
+  eyebrow: 'relative text-xs font-bold uppercase tracking-[0.18em]',
+  title: 'relative mt-2.5 font-heading text-[44px] leading-[1.1] font-bold tracking-[-0.01em] text-white',
+  tagline: 'relative mt-5 max-w-[22ch] font-heading text-[clamp(22px,2.4vw,32px)] leading-[1.3] font-semibold italic',
+  description: 'relative mt-3 max-w-[65ch] text-sm leading-relaxed text-white/90',
+  right: 'flex min-w-0 flex-[1_1_360px] flex-col justify-center-safe px-[clamp(24px,4vw,64px)] py-7 md:max-h-full md:overflow-y-auto',
+  // Ancho del formulario de ingreso, de las pestañas y de los avisos
+  narrow: 'mx-auto w-full max-w-[440px]',
 }
 
 /** Bloque separado del anterior por una línea. */
@@ -66,4 +76,10 @@ export const modalStyles = {
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
   ].join(' '),
   body: 'overflow-y-auto px-5 py-6 sm:px-8',
+  // Cruz en la esquina, para diálogos sin encabezado naranja (ej. cerrar sesión)
+  closeIcon: [
+    'absolute top-4 right-4 grid size-9 cursor-pointer place-items-center rounded-full text-accent-800 transition-colors',
+    'hover:bg-accent-50',
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700',
+  ].join(' '),
 }

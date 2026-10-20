@@ -9,6 +9,7 @@ import {
   usePointsExpiration,
 } from '../api/points.queries';
 import { FirstPurchaseBonusForm } from '../components/FirstPurchaseBonusForm';
+import { LevelsComingSoon } from '../components/LevelsComingSoon';
 import { PointsEquivalenceForm } from '../components/PointsEquivalenceForm';
 import { PointsExpirationForm } from '../components/PointsExpirationForm';
 
@@ -57,6 +58,9 @@ export function PointsSettingsPage() {
           <PointsEquivalenceForm equivalence={equivalence.data} />
         )}
       </Card>
+
+      {/* RF-028 (otra historia): en el prototipo va entre la equivalencia y la vigencia. */}
+      <LevelsComingSoon />
 
       {/* RF-010. */}
       <Card>

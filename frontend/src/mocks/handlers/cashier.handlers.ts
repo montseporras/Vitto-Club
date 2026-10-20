@@ -161,26 +161,6 @@ export const cashierHandlers = [
     return HttpResponse.json(customer)
   }),
 
-  // PATCH /api/customers/:id/activate: 204 / 404 / 409 (ya activo).
-  http.patch<{ id: string }>(
-    `${API_URL}/customers/:id/activate`,
-    async ({ params, request }) => {
-      await delay(400)
-      const path = new URL(request.url).pathname
-      const customer = customers.find((c) => c.id === Number(params.id))
-
-      if (!customer) {
-        return errorResponse(404, `Customer with ID ${params.id} not found`, path)
-      }
-      if (customer.active) {
-        return errorResponse(409, `Customer with ID ${customer.id} is already active`, path)
-      }
-
-      Object.assign(customer, { active: true, deactivatedAt: null })
-      return new HttpResponse(null, { status: 204 })
-    },
-  ),
-
   // PATCH /api/customers/:id: 200 / 400 (sin cambios) / 404 / 409 (inactivo o documento en uso).
   http.patch<{ id: string }, UpdateCustomerBody>(
     `${API_URL}/customers/:id`,

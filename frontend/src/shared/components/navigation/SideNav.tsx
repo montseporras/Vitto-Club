@@ -121,6 +121,7 @@ export function SideNav({
                 className={({ isActive }) =>
                   cn(
                     sideNavStyles.item,
+                    collapsed && sideNavStyles.itemCollapsed,
                     isActive ? sideNavStyles.itemActive : sideNavStyles.itemIdle,
                   )
                 }
@@ -134,6 +135,7 @@ export function SideNav({
                 aria-current={item.active ? 'page' : undefined}
                 className={cn(
                   sideNavStyles.item,
+                  collapsed && sideNavStyles.itemCollapsed,
                   item.active ? sideNavStyles.itemActive : sideNavStyles.itemIdle,
                 )}
               >

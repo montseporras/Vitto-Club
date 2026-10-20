@@ -37,7 +37,7 @@ export const appFooterStyles = {
 
 /** Pestañas que cambian de pantalla (ej. Ingresar / Registrarme): mismo aspecto que el control segmentado. */
 export const tabsStyles = {
-  root: 'mb-7 grid max-w-sm grid-cols-2 gap-1 rounded-xl border border-accent-200 bg-accent-50 p-1',
+  root: 'mx-auto mb-7 grid w-full max-w-[440px] grid-cols-2 gap-1 rounded-xl border border-accent-200 bg-accent-50 p-1',
   item: [
     'block rounded-lg px-3 py-2.5 text-center text-base font-semibold transition-colors',
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700',
@@ -84,7 +84,9 @@ export const sideNavStyles = {
   icon: 'size-5 shrink-0',
   label:
     'ml-3 overflow-hidden whitespace-nowrap transition-[opacity,margin] duration-300',
-  labelCollapsed: 'ml-0 opacity-0',
+  labelCollapsed: 'ml-0 w-0 opacity-0',
+  // Contraído: el ítem es un cuadrado centrado, así el resaltado no se estira a la derecha del ícono
+  itemCollapsed: 'mx-auto size-12 min-h-0 justify-center px-0',
   // Flecha a la derecha, solo visible en expandido (acompaña al ítem activo/hover)
   chevron:
     'ml-auto shrink-0 text-accent-200 transition-[color,transform] duration-150 group-hover/nav:translate-x-0.5',

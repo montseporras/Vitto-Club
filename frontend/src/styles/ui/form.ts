@@ -38,4 +38,21 @@ export const segmentedStyles = {
     'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-700',
     'peer-disabled:opacity-60',
   ].join(' '),
+  // Variante compacta: a la altura de un campo de 40 px (registro)
+  rootCompact: 'gap-1',
+  legendCompact: 'mb-1',
+  optionCompact: 'rounded-md px-2.5 py-1.5 text-sm',
+}
+
+/** Formulario de registro (prototipo v2): bloques más juntos y campos de 40 px. */
+export const authFormStyles = {
+  section: 'mt-3.5 first:mt-0',
+  legend: 'mb-2 w-full border-b border-accent-100 pb-1',
+  title: 'font-heading text-base font-bold text-accent-800',
+  grid: 'grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-x-3 gap-y-4',
+  input: 'h-10 rounded-lg px-3 text-sm',
+  // Sin padding derecho: lo necesita el botón de mostrar la contraseña
+  passwordInput: 'h-10 rounded-lg pl-3 text-sm',
+  note: 'mt-3 text-[13px] text-neutral-700',
+  actions: 'mt-3.5 flex flex-wrap items-center justify-end gap-3 border-t border-accent-100 pt-3',
 }

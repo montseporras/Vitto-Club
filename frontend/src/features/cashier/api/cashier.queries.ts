@@ -7,7 +7,6 @@ import type {
   UpdateCustomerBody,
 } from '../types/customer'
 import {
-  activateCustomer,
   createCustomer,
   findCustomerByDocument,
   updateCustomer,
@@ -44,20 +43,6 @@ export const useUpdateCustomer = () => {
     onSuccess: (customer) => {
       // Si cambió el documento, la búsqueda vieja ya no aplica
       queryClient.removeQueries({ queryKey: ['customers', 'by-document'] })
-      queryClient.setQueryData(customerByDocumentKey(customer), customer)
-    },
-  })
-}
-
-/** La reactivación no devuelve body: se arma el cliente actualizado a mano. */
-export const useActivateCustomer = () => {
-  const queryClient = useQueryClient()
-  return useMutation<Customer, ApiError, Customer>({
-    mutationFn: async (customer) => {
-      await activateCustomer(customer.id)
-      return { ...customer, active: true, deactivatedAt: null }
-    },
-    onSuccess: (customer) => {
       queryClient.setQueryData(customerByDocumentKey(customer), customer)
     },
   })
