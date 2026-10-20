@@ -25,4 +25,13 @@ export abstract class CustomerAccountRepository {
   // Un cliente dado de baja perdió su cuenta (decisión del PO): si vuelve a registrarse con
   // el mismo email, su cuenta vieja se desactiva para liberar ese email
   abstract deactivate(accountId: number): Promise<void>;
+
+  // CLI-ADM: deja inactiva la cuenta ACTIVA del cliente dado de baja. Devuelve el id de la cuenta
+  // (para cerrar sus sesiones) o null si el cliente no tenía cuenta activa.
+  abstract deactivateByCustomerId(customerId: number): Promise<number | null>;
+
+  // CLI-ADM: cambia el hash solo si la cuenta todavía tiene la contraseña inicial
+  // (mustChangePassword = true). Devuelve true si la cambió; si el cliente ya eligió su
+  // contraseña, no la toca.
+  abstract replaceInitialPasswordHash(customerId: number, passwordHash: string): Promise<boolean>;
 }

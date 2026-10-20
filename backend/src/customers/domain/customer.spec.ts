@@ -145,22 +145,5 @@ describe('Customer Entity', () => {
       const customer = Customer.reconstruct({ ...validData, id: 1, active: false });
       expect(() => customer.deactivate()).toThrow('Customer is already inactive');
     });
-
-    it('debería activar un cliente inactivo y limpiar la fecha de baja', () => {
-      const customer = Customer.reconstruct({
-        ...validData,
-        id: 1,
-        active: false,
-        deactivatedAt: new Date(),
-      });
-      customer.activate();
-      expect(customer.isActive()).toBe(true);
-      expect(customer.getDeactivatedAt()).toBeNull();
-    });
-
-    it('debería lanzar un error si se intenta activar un cliente ya activo', () => {
-      const customer = Customer.create(validData);
-      expect(() => customer.activate()).toThrow('Customer is already active');
-    });
   });
 });

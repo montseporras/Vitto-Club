@@ -25,11 +25,13 @@ export type EmployeeRoleChangedEvent = {
 export const ACCOUNT_DEACTIVATED = 'account.deactivated';
 export type AccountDeactivatedEvent = { accountId: number };
 
-// Lo emite customers cuando da de baja un cliente. Lo escucha accounts para dar de baja su cuenta.
+// Lo emite customers cuando da de baja un cliente (CLI-ADM, contrato §3.8.3). Lo escucha accounts
+// para dejar su cuenta inactiva; accounts publica account.deactivated y auth cierra las sesiones.
 export const CUSTOMER_DEACTIVATED = 'customer.deactivated';
 export type CustomerDeactivatedEvent = { customerId: number };
 
 // Lo emite customers cuando reactiva un cliente. Lo escucha accounts para reactivar su cuenta.
+// Sin uso desde CLI-ADM: la reactivación de clientes ya no existe (contrato §1, "se eliminan").
 export const CUSTOMER_REACTIVATED = 'customer.reactivated';
 export type CustomerReactivatedEvent = { customerId: number };
 
@@ -46,3 +48,10 @@ export type CustomerCreatedEvent = { customerId: number; email: string; document
 // tira ConflictException y se deshace el cambio.
 export const CUSTOMER_EMAIL_CHANGED = 'customer.email-changed';
 export type CustomerEmailChangedEvent = { customerId: number; email: string };
+
+// Lo emite customers cuando el Administrador corrige el número de documento de un cliente
+// (CLI-ADM, CA-CLI.7; evento nuevo, decisión a pedido de Magali). Lo escucha accounts: si la cuenta
+// todavía tiene la contraseña inicial (mustChangePassword = true), la contraseña pasa a ser el
+// documento nuevo. documentNumber ya viene normalizado y no se guarda: solo su hash.
+export const CUSTOMER_DOCUMENT_CHANGED = 'customer.document-changed';
+export type CustomerDocumentChangedEvent = { customerId: number; documentNumber: string };

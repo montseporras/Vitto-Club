@@ -194,16 +194,6 @@ export class Customer {
     this._updatedAt = new Date();
   }
 
-  // Alta lógica
-  activate(): void {
-    if (this._active) {
-      throw new DomainError('Customer is already active');
-    }
-    this._active = true;
-    this._deactivatedAt = null;
-    this._updatedAt = new Date();
-  }
-
   // CHANGE METHODS
   setFirstName(firstName: string): void {
     this._firstName = requiredText(firstName, 'firstName', MAX_NAME);

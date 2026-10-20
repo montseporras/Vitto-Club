@@ -24,7 +24,6 @@ describe('CustomersController', () => {
     findByDocument: jest.Mock;
     getStatusHistory: jest.Mock;
     deactivate: jest.Mock;
-    activate: jest.Mock;
     findById: jest.Mock;
     createWithAccount: jest.Mock;
     update: jest.Mock;
@@ -51,7 +50,6 @@ describe('CustomersController', () => {
       findByDocument: jest.fn(),
       getStatusHistory: jest.fn(),
       deactivate: jest.fn(),
-      activate: jest.fn(),
       findById: jest.fn().mockResolvedValue(customer),
       createWithAccount: jest.fn(),
       update: jest.fn(),
@@ -123,6 +121,32 @@ describe('CustomersController', () => {
       });
     });
 
+    // CA-CLI.4: el rol de quien edita llega al servicio y el motivo queda como última fila
+    it('update() le pasa el rol al servicio y audita el motivo al final', async () => {
+      service.update.mockResolvedValue(
+        Customer.reconstruct({
+          id: 7,
+          firstName: 'Carlos',
+          lastName: 'Ruiz',
+          documentType: 'DNI',
+          documentNumber: '30111223',
+          email: 'carlos@mail.com',
+          phone: null,
+          active: true,
+        }),
+      );
+      const admin: CurrentUserData = { accountId: 1, role: 'ADMIN', employeeId: 1 };
+      const dto = { documentNumber: '30111223', reason: 'Error de carga' };
+
+      await controller.update(7, dto as never, admin);
+
+      expect(service.update).toHaveBeenCalledWith(7, dto, 'ADMIN');
+      expect(audit[0].details).toEqual([
+        { label: 'Documento', value: 'DNI 30111222 → DNI 30111223' },
+        { label: 'Motivo', value: 'Error de carga' },
+      ]);
+    });
+
     it('update() no audita si la edición falla', async () => {
       service.update.mockRejectedValue(new Error('documento en uso'));
 
@@ -131,16 +155,16 @@ describe('CustomersController', () => {
     });
   });
 
-  describe('baja y reactivación', () => {
+  describe('baja', () => {
     it('deactivate() delega la baja en el servicio con el id recibido', async () => {
-      service.deactivate.mockResolvedValue(undefined);
+      service.deactivate.mockResolvedValue(0);
 
       await expect(controller.deactivate(7, cashier)).resolves.toBeUndefined();
       expect(service.deactivate).toHaveBeenCalledWith(7);
     });
 
-    it('deactivate() audita CUSTOMER_DEACTIVATED con el cliente afectado', async () => {
-      service.deactivate.mockResolvedValue(undefined);
+    it('deactivate() audita CUSTOMER_DEACTIVATED con el cliente afectado y el saldo perdido', async () => {
+      service.deactivate.mockResolvedValue(150);
 
       await controller.deactivate(7, cashier);
 
@@ -156,7 +180,10 @@ describe('CustomersController', () => {
             documentType: 'DNI',
             documentNumber: '30111222',
           },
-          details: [{ label: 'Estado', value: 'Activo → Inactivo' }],
+          details: [
+            { label: 'Estado', value: 'Activo → Inactivo' },
+            { label: 'Saldo perdido', value: '150 pts' },
+          ],
         },
       ]);
     });
@@ -166,13 +193,6 @@ describe('CustomersController', () => {
 
       await expect(controller.deactivate(7, cashier)).rejects.toThrow('ya está inactivo');
       expect(audit).toEqual([]);
-    });
-
-    it('activate() delega la reactivación en el servicio', async () => {
-      service.activate.mockResolvedValue(undefined);
-
-      await controller.activate(7);
-      expect(service.activate).toHaveBeenCalledWith(7);
     });
   });
 
@@ -186,13 +206,19 @@ describe('CustomersController', () => {
         page: 1,
         limit: 20,
         nameContains: undefined,
+        search: undefined,
+        level: undefined,
+        sort: undefined,
         active: undefined,
       });
       expect(result).toEqual({ items: [], total: 0, page: 1, limit: 20 });
     });
 
     it('convierte active="false" a booleano y arma la respuesta', async () => {
-      service.list.mockResolvedValue({ items: [makeCustomer(false)], total: 1 });
+      service.list.mockResolvedValue({
+        items: [{ customer: makeCustomer(false), balance: 0, lifetimePoints: 0, level: 'BRONZE' }],
+        total: 1,
+      });
 
       const result = await controller.findAll(query({ active: 'false', name: ' juan ' }));
 
@@ -200,9 +226,41 @@ describe('CustomersController', () => {
         page: 1,
         limit: 20,
         nameContains: 'juan',
+        search: undefined,
+        level: undefined,
+        sort: undefined,
         active: false,
       });
       expect(result.items[0]).toMatchObject({ id: 1, active: false });
+    });
+
+    // CA-CLI.1: q, level y sort llegan al servicio; cada ítem suma saldo, acumulados y nivel
+    it('pasa q, level y sort y agrega balance, lifetimePoints y level a cada ítem', async () => {
+      service.list.mockResolvedValue({
+        items: [{ customer: makeCustomer(), balance: -20, lifetimePoints: 350, level: 'SILVER' }],
+        total: 1,
+      });
+
+      const result = await controller.findAll(
+        query({ active: 'true', q: ' 30.111 ', level: 'SILVER', sort: 'lastName' }),
+      );
+
+      expect(service.list).toHaveBeenCalledWith({
+        page: 1,
+        limit: 20,
+        nameContains: undefined,
+        search: '30.111',
+        level: 'SILVER',
+        sort: 'lastName',
+        active: true,
+      });
+      expect(result.items[0]).toMatchObject({
+        id: 1,
+        firstName: 'Juan',
+        balance: -20,
+        lifetimePoints: 350,
+        level: 'SILVER',
+      });
     });
 
     it('convierte active="true" a booleano', async () => {

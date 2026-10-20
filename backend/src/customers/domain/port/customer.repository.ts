@@ -1,15 +1,31 @@
 import { Customer, DocumentType } from '../customer.js';
 import { CustomerStatusAction, CustomerStatusChange } from '../customer-status-change.js';
+import type { Level } from '../../../points/domain/level.js';
+
+export type CustomerListSort = 'id' | 'lastName';
 
 export type CustomerListParams = {
   page: number;
   limit: number;
   nameContains?: string;
+  // q: nombre, apellido o documento normalizado, coincidencia parcial (CLI-ADM)
+  search?: string;
+  level?: Level;
+  // 'id' por defecto; 'lastName' ordena por apellido, nombre e id
+  sort?: CustomerListSort;
   active?: boolean;
 };
 
+// Cada ítem trae lo que el contrato agrega en §3.8.1 (saldo, acumulados y nivel calculado)
+export type CustomerListItem = {
+  customer: Customer;
+  balance: number;
+  lifetimePoints: number;
+  level: Level;
+};
+
 export type CustomerListResult = {
-  items: Customer[];
+  items: CustomerListItem[];
   total: number;
 };
 
@@ -45,4 +61,8 @@ export abstract class CustomerRepository {
   abstract existsByEmail(email: string, options?: { onlyActive?: boolean }): Promise<boolean>;
 
   abstract list(params: CustomerListParams): Promise<CustomerListResult>;
+
+  // Saldo actual del cliente (customer_points). 0 si nunca tuvo movimientos. Se usa para el
+  // "Saldo perdido" de la baja (CLI-ADM).
+  abstract findBalance(customerId: number): Promise<number>;
 }

@@ -93,6 +93,7 @@ class FakeCustomerRepository implements CustomerRepository {
   async findStatusHistory(): Promise<CustomerStatusChange[]> { throw new Error('not implemented'); }
   async existsByDocument(): Promise<boolean> { throw new Error('not implemented'); }
   async list(): Promise<CustomerListResult> { throw new Error('not implemented'); }
+  async findBalance(): Promise<number> { throw new Error('not implemented'); }
 }
 
 class FakeAccountRepository implements AccountRepository {
@@ -1128,15 +1129,13 @@ describe('AccountsService', () => {
         expect(await service.verifyCredentials('lucia@example.com', 'clave-de-lucia')).toBeUndefined();
       });
 
-      it('un cliente reactivado vuelve a entrar con la misma contraseña, sin tocar su cuenta', async () => {
+      it('un cliente dado de baja deja de entrar (no hay reactivación de clientes)', async () => {
         const customer = seedCustomerWithAccount();
+        expect(await service.verifyCredentials('lucia@example.com', 'clave-de-lucia')).toBeDefined();
+
         customer.deactivate();
+
         expect(await service.verifyCredentials('lucia@example.com', 'clave-de-lucia')).toBeUndefined();
-
-        customer.activate();
-
-        const result = await service.verifyCredentials('lucia@example.com', 'clave-de-lucia');
-        expect(result?.role).toBe('CUSTOMER');
       });
 
       it('una cuenta de cliente inactiva no entra', async () => {

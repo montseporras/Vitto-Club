@@ -19,6 +19,7 @@ import { ListCustomersQueryDto } from "./dto/list-customers-query.dto.js";
 import { FindCustomerByDocumentQueryDto } from "./dto/find-customer-by-document-query.dto.js";
 import { CustomersService } from "../application/customers.service.js";
 import { CustomerResponseDto } from "./dto/customer-response.dto.js";
+import { CustomerListItemResponseDto } from "./dto/customer-list-item-response.dto.js";
 import { CustomerExceptionFilter } from "./filters/customers-exception.filter.js";
 import { Roles } from "../../shared/security/roles.decorator.js";
 import { CurrentUser } from "../../shared/security/current-user.decorator.js";
@@ -37,7 +38,7 @@ import { toCustomerSnapshot } from "./customer-audit-snapshot.js";
 
 
 @Controller('customers')
-@Roles('ADMIN', 'CASHIER') // el Cajero gestiona clientes, incluida la baja, la reactivación y el historial
+@Roles('ADMIN', 'CASHIER') // el Cajero gestiona clientes, incluida la baja y el historial (con sus restricciones)
 @UseFilters(CustomerExceptionFilter)
 @UsePipes(
   new ValidationPipe({
@@ -54,16 +55,20 @@ export class CustomersController{
 
 
     // GET /customers?page=1&limit=20&active=true&name=juan
+    // Pantalla del Administrador: ?active=true&sort=lastName&q=...&level=...&page=1&limit=20
     @Get()
         async findAll(@Query() query: ListCustomersQueryDto){
             const { items, total } = await this.customersService.list({
                 page: query.page,
                 limit: query.limit,
                 nameContains: query.name?.trim() || undefined,
+                search: query.q?.trim() || undefined,
+                level: query.level,
+                sort: query.sort,
                 active: query.active === undefined ? undefined : query.active === 'true',
             });
             return {
-                items: items.map((customer) => CustomerResponseDto.fromDomain(customer)),
+                items: items.map((item) => CustomerListItemResponseDto.fromListItem(item)),
                 total,
                 page: query.page,
                 limit: query.limit,
@@ -129,11 +134,16 @@ export class CustomersController{
             async () => {
                 // La foto de "antes" se toma dentro de la transacción, para comparar con el resultado
                 const before = toCustomerSnapshot(await this.customersService.findById(id));
-                const updated = await this.customersService.update(id, updateDto);
+                const updated = await this.customersService.update(id, updateDto, user.role);
                 return { before, customer: updated };
             },
             ({ before, customer: updated }) =>
-                customerUpdatedEntry(actorOf(user), before, toCustomerSnapshot(updated)),
+                customerUpdatedEntry(
+                    actorOf(user),
+                    before,
+                    toCustomerSnapshot(updated),
+                    updateDto.reason || undefined,
+                ),
         );
         return CustomerResponseDto.fromDomain(customer);
     }
@@ -145,17 +155,12 @@ export class CustomersController{
         await this.auditService.capture(
             async () => {
                 const customer = await this.customersService.findById(id);
-                await this.customersService.deactivate(id);
-                return customer;
+                const lostBalance = await this.customersService.deactivate(id);
+                return { customer, lostBalance };
             },
-            (customer) => customerDeactivatedEntry(actorOf(user), toCustomerSnapshot(customer)),
+            ({ customer, lostBalance }) =>
+                customerDeactivatedEntry(actorOf(user), toCustomerSnapshot(customer), lostBalance),
         );
-        }
-
-    @Patch(':id/activate')
-        @HttpCode(HttpStatus.NO_CONTENT)
-        async activate(@Param('id', ParseIntPipe) id: number) {
-            await this.customersService.activate(id);
         }
 
 

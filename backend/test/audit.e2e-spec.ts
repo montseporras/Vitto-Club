@@ -300,7 +300,10 @@ describe('Auditoría — registro (US-57, e2e)', () => {
         { label: 'Cuenta de acceso', value: 'Creada, contraseña inicial = número de documento' },
       ]);
       expect(rows[1].details).toEqual([{ label: 'Teléfono', value: '— → 3510000009' }]);
-      expect(rows[2].details).toEqual([{ label: 'Estado', value: 'Activo → Inactivo' }]);
+      expect(rows[2].details).toEqual([
+        { label: 'Estado', value: 'Activo → Inactivo' },
+        { label: 'Saldo perdido', value: '0 pts' },
+      ]);
     });
 
     it('configuración: el PUT completo registra una entrada por sección que cambió', async () => {

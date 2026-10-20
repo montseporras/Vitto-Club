@@ -61,6 +61,7 @@ class FakeCustomerRepository implements CustomerRepository {
   async updateStatus(): Promise<void> { throw new Error('not implemented'); }
   async findStatusHistory(): Promise<CustomerStatusChange[]> { throw new Error('not implemented'); }
   async list(): Promise<CustomerListResult> { throw new Error('not implemented'); }
+  async findBalance(): Promise<number> { throw new Error('not implemented'); }
 
   // Helper de test: un cliente ya persistido
   seed(data: { id: number; documentNumber: string; email: string; active: boolean }): void {
@@ -104,6 +105,12 @@ class FakeCustomerAccountRepository implements CustomerAccountRepository {
   async deactivate(accountId: number): Promise<void> {
     const row = this.rows.get(accountId);
     if (row) this.rows.set(accountId, { ...row, active: false });
+  }
+  async deactivateByCustomerId(): Promise<number | null> {
+    throw new Error('not implemented');
+  }
+  async replaceInitialPasswordHash(): Promise<boolean> {
+    throw new Error('not implemented');
   }
 
   seed(row: AccountRow): void {

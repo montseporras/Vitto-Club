@@ -68,9 +68,9 @@ describe('Customer - validaciones de dominio', () => {
       expect(error.field).toBe(field);
     });
 
-    it('activar y desactivar lanzan DomainError sin campo', () => {
-      const customer = Customer.create(validData);
-      const error = catchError(() => customer.activate());
+    it('desactivar un cliente inactivo lanza DomainError sin campo', () => {
+      const customer = Customer.reconstruct({ ...validData, id: 1, active: false });
+      const error = catchError(() => customer.deactivate());
       expect(error).toBeInstanceOf(DomainError);
       expect(error.field).toBeUndefined();
     });

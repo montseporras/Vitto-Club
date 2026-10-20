@@ -28,6 +28,12 @@ class FakeCustomerAccountRepository implements CustomerAccountRepository {
   async deactivate(): Promise<void> {
     throw new Error('not implemented');
   }
+  async deactivateByCustomerId(): Promise<number | null> {
+    throw new Error('not implemented');
+  }
+  async replaceInitialPasswordHash(): Promise<boolean> {
+    throw new Error('not implemented');
+  }
 }
 
 class FakePasswordHasher implements PasswordHasher {

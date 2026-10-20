@@ -1,6 +1,7 @@
 import {
   configurationSavedEntries,
   customerCreatedEntry,
+  customerDeactivatedEntry,
   customerUpdatedEntry,
   employeeUpdatedEntry,
   type CustomerSnapshot,
@@ -95,6 +96,39 @@ describe('customerUpdatedEntry()', () => {
       { label: 'Documento', value: 'DNI 30111222 → DNI 30111223' },
       { label: 'Fecha de nacimiento', value: '05/03/1990 → 06/03/1990' },
     ]);
+  });
+});
+
+describe('customerUpdatedEntry() con motivo (CLI-ADM)', () => {
+  it('agrega la fila "Motivo" al final, solo si se mandó reason', () => {
+    const changed = { ...customer, phone: '3510000009' };
+
+    expect(customerUpdatedEntry(actor, customer, changed, 'Error de carga').details).toEqual([
+      { label: 'Teléfono', value: '3510000000 → 3510000009' },
+      { label: 'Motivo', value: 'Error de carga' },
+    ]);
+    expect(customerUpdatedEntry(actor, customer, changed).details).toEqual([
+      { label: 'Teléfono', value: '3510000000 → 3510000009' },
+    ]);
+  });
+});
+
+describe('customerDeactivatedEntry()', () => {
+  it('guarda Estado y Saldo perdido, con puntos de miles', () => {
+    const entry = customerDeactivatedEntry(actor, customer, 1250);
+
+    expect(entry.action).toBe('CUSTOMER_DEACTIVATED');
+    expect(entry.details).toEqual([
+      { label: 'Estado', value: 'Activo → Inactivo' },
+      { label: 'Saldo perdido', value: '1.250 pts' },
+    ]);
+  });
+
+  it('un cliente sin puntos pierde 0 pts', () => {
+    expect(customerDeactivatedEntry(actor, customer, 0).details[1]).toEqual({
+      label: 'Saldo perdido',
+      value: '0 pts',
+    });
   });
 });
 

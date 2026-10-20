@@ -208,39 +208,49 @@ export function customerUpdatedEntry(
   actor: AuditActor,
   before: CustomerSnapshot,
   after: CustomerSnapshot,
+  reason?: string,
 ): AuditEntryInput {
   const document = (customer: CustomerSnapshot) =>
     `${customer.documentType} ${customer.documentNumber}`;
+  const changes = changedRows([
+    { label: 'Nombre', before: before.firstName, after: after.firstName },
+    { label: 'Apellido', before: before.lastName, after: after.lastName },
+    { label: 'Documento', before: document(before), after: document(after) },
+    { label: 'Correo electrónico', before: before.email, after: after.email },
+    { label: 'Teléfono', before: orNone(before.phone), after: orNone(after.phone) },
+    {
+      label: 'Fecha de nacimiento',
+      before: formatDate(before.dateOfBirth),
+      after: formatDate(after.dateOfBirth),
+    },
+  ]);
   return {
     actor,
     module: 'CUSTOMERS',
     action: 'CUSTOMER_UPDATED',
     description: `Editó los datos del cliente ${fullName(after)}`,
     affectedCustomer: affectedCustomerOf(after),
-    details: changedRows([
-      { label: 'Nombre', before: before.firstName, after: after.firstName },
-      { label: 'Apellido', before: before.lastName, after: after.lastName },
-      { label: 'Documento', before: document(before), after: document(after) },
-      { label: 'Correo electrónico', before: before.email, after: after.email },
-      { label: 'Teléfono', before: orNone(before.phone), after: orNone(after.phone) },
-      {
-        label: 'Fecha de nacimiento',
-        before: formatDate(before.dateOfBirth),
-        after: formatDate(after.dateOfBirth),
-      },
-    ]),
+    // "Motivo" va al final y solo si se mandó reason (contrato §3.9.3)
+    details: reason ? [...changes, { label: 'Motivo', value: reason }] : changes,
   };
 }
 
-// La fila "Saldo perdido" queda para cuando se defina cómo customers lee el saldo (pendiente).
-export function customerDeactivatedEntry(actor: AuditActor, customer: CustomerSnapshot): AuditEntryInput {
+// Saldo perdido: el saldo del cliente al darlo de baja (puede ser 0 o negativo)
+export function customerDeactivatedEntry(
+  actor: AuditActor,
+  customer: CustomerSnapshot,
+  lostBalance: number,
+): AuditEntryInput {
   return {
     actor,
     module: 'CUSTOMERS',
     action: 'CUSTOMER_DEACTIVATED',
     description: `Dio de baja al cliente ${fullName(customer)}`,
     affectedCustomer: affectedCustomerOf(customer),
-    details: [{ label: 'Estado', value: change('Activo', 'Inactivo') }],
+    details: [
+      { label: 'Estado', value: change('Activo', 'Inactivo') },
+      { label: 'Saldo perdido', value: `${formatNumber(lostBalance)} pts` },
+    ],
   };
 }
 

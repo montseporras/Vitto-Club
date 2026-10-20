@@ -10,10 +10,19 @@ import { Mail } from '../domain/mail.js';
 import { EmployeesService } from '../../employees/application/employees.service.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import { emailInUse } from '../domain/errors/email-in-use.error.js';
+import { customerInactive } from '../domain/errors/customer-inactive.error.js';
+import { forbiddenField } from '../domain/errors/forbidden-field.error.js';
+import { reasonRequired } from '../domain/errors/reason-required.error.js';
+import { searchConflict } from '../domain/errors/search-conflict.error.js';
+import type { UserRole } from '../../shared/security/current-user-data.js';
 import {
   CUSTOMER_CREATED,
+  CUSTOMER_DEACTIVATED,
+  CUSTOMER_DOCUMENT_CHANGED,
   CUSTOMER_EMAIL_CHANGED,
   type CustomerCreatedEvent,
+  type CustomerDeactivatedEvent,
+  type CustomerDocumentChangedEvent,
   type CustomerEmailChangedEvent,
 } from '../../shared/events/domain-events.js';
 
@@ -94,6 +103,10 @@ export class CustomersService {
     if (params.page < 1 || params.limit < 1) {
       throw new BadRequestException('page and limit must be positive integers');
     }
+    // q busca en nombre, apellido y documento: junto con name es ambiguo (contrato §3.8.1)
+    if (params.search && params.nameContains) {
+      throw searchConflict();
+    }
     return await this.customersRepository.list(params);
   }
 
@@ -117,9 +130,20 @@ export class CustomersService {
   }
 
   // --- ACTUALIZAR ---
-  async update(id: number, dto: UpdateCustomerDto): Promise<Customer> {
-    // 0. Tiene que venir al menos un campo para modificar
-    if (Object.values(dto).every((value) => value === undefined)) {
+  // role: quien edita. Las reglas por rol se validan acá y no solo en la pantalla (contrato §3.8.2).
+  async update(id: number, dto: UpdateCustomerDto, role: UserRole): Promise<Customer> {
+    // 0a. Solo el Administrador corrige el documento (CA-CLI.5)
+    if (role !== 'ADMIN' && (dto.documentType !== undefined || dto.documentNumber !== undefined)) {
+      throw forbiddenField();
+    }
+
+    // 0b. El motivo es obligatorio para el Administrador y opcional para el Cajero (CA-CLI.4)
+    if (role === 'ADMIN' && !dto.reason?.trim()) {
+      throw reasonRequired();
+    }
+
+    // 0c. Tiene que venir al menos un campo para modificar (el motivo no cuenta: no es un dato del cliente)
+    if (!Object.entries(dto).some(([key, value]) => key !== 'reason' && value !== undefined)) {
       throw new BadRequestException('At least one field must be provided');
     }
 
@@ -129,10 +153,11 @@ export class CustomersService {
       // 1. Buscar si el cliente existe
       const customer = await this.findById(id);
       const previousEmail = customer.getEmail();
+      const previousDocumentNumber = customer.getDocumentNumber();
 
-      // Un cliente dado de baja no se modifica: primero hay que reactivarlo
+      // Un cliente dado de baja es de solo lectura: no hay reactivación (CA-CLI.6)
       if (!customer.isActive()) {
-        throw new ConflictException(`Customer with ID ${id} is inactive: reactivate it before modifying`);
+        throw customerInactive();
       }
 
       // 2. Si cambia el documento, verificar que no esté en uso (antes de mutar la entidad)
@@ -187,28 +212,37 @@ export class CustomersService {
         } satisfies CustomerEmailChangedEvent);
       }
 
+      // 6. Si el documento cambió, avisar a accounts: si el cliente todavía tiene la contraseña inicial,
+      // pasa a ser el documento nuevo (CA-CLI.7). Misma transacción que el cambio.
+      if (customer.getDocumentNumber() !== previousDocumentNumber) {
+        await this.eventEmitter.emitAsync(CUSTOMER_DOCUMENT_CHANGED, {
+          customerId: id,
+          documentNumber: customer.getDocumentNumber(),
+        } satisfies CustomerDocumentChangedEvent);
+      }
+
       return customer;
     });
   }
 
   // --- DESACTIVAR (BAJA LÓGICA) ---
-  async deactivate(id: number): Promise<void> {
-    const customer = await this.findById(id);
-    if (!customer.isActive()) {
-      throw new ConflictException(`Customer with ID ${id} is already inactive`);
-    }
-    customer.deactivate();
-    await this.customersRepository.updateStatus(customer, 'DEACTIVATED');
-  }
-
-  // --- ACTIVAR ---
-  async activate(id: number): Promise<void> {
-    const customer = await this.findById(id);
-    if (customer.isActive()) {
-      throw new ConflictException(`Customer with ID ${id} is already active`);
-    }
-    customer.activate();
-    await this.customersRepository.updateStatus(customer, 'ACTIVATED');
+  // Devuelve el saldo que el cliente pierde con la baja (para la auditoría, "Saldo perdido").
+  // Publica customer.deactivated en la misma transacción: accounts deja inactiva la cuenta y se
+  // cierran sus sesiones; si eso falla, el cliente sigue activo (contrato §3.8.3).
+  async deactivate(id: number): Promise<number> {
+    return await this.transactionRunner.run(async () => {
+      const customer = await this.findById(id);
+      if (!customer.isActive()) {
+        throw new ConflictException(`Customer with ID ${id} is already inactive`);
+      }
+      const lostBalance = await this.customersRepository.findBalance(id);
+      customer.deactivate();
+      await this.customersRepository.updateStatus(customer, 'DEACTIVATED');
+      await this.eventEmitter.emitAsync(CUSTOMER_DEACTIVATED, {
+        customerId: id,
+      } satisfies CustomerDeactivatedEvent);
+      return lostBalance;
+    });
   }
 
   // --- HISTORIAL DE BAJAS Y REACTIVACIONES ---
