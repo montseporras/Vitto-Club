@@ -238,6 +238,8 @@ describe('Autenticación de punta a punta (e2e)', () => {
         email: LUCIA.email,
         firstName: 'Lucía',
         lastName: 'Test',
+        // US-17-AJ: una cuenta creada sin pasar por el alta en caja nace con false
+        mustChangePassword: false,
       });
       expect(res.body.user).not.toHaveProperty('employeeId');
     });

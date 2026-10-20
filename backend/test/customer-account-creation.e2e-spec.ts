@@ -329,6 +329,76 @@ describe('Alta de cliente con cuenta y contraseña inicial (e2e)', () => {
     });
   });
 
-  // CA-17AJ.8: depende de US-57 (AuditService.capture), que todavía no existe en develop.
-  it.todo('registra CUSTOMER_CREATED con la fila "Cuenta de acceso" y sin el valor de la contraseña (CA-17AJ.8, pendiente de US-57)');
+  // CA-17AJ.8: la auditoría se escribe en la misma transacción (AuditService.capture, US-57).
+  // audit_logs es de solo inserción (no se puede vaciar), así que cada test lee solo las filas
+  // posteriores a la última que había antes de empezar.
+  describe('auditoría (CA-17AJ.8)', () => {
+    let lastAuditId = 0;
+
+    beforeEach(async () => {
+      const last = await prisma.auditLog.findFirst({ orderBy: { id: 'desc' } });
+      lastAuditId = last?.id ?? 0;
+    });
+
+    const newAuditRows = () =>
+      prisma.auditLog.findMany({ where: { id: { gt: lastAuditId } }, orderBy: { id: 'asc' } });
+
+    it('el alta registra CUSTOMER_CREATED con la fila "Cuenta de acceso", a nombre del Cajero', async () => {
+      const cashier = await tokenOf(CASHIER);
+
+      const created = await createCustomer(cashier, SOFIA).expect(201);
+
+      const rows = await newAuditRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        actorType: 'EMPLOYEE',
+        module: 'CUSTOMERS',
+        actionCode: 'CUSTOMER_CREATED',
+        description: 'Registró al cliente Sofía Ríos',
+        affectedCustomerId: created.body.id,
+        affectedCustomerName: 'Sofía Ríos',
+        documentType: 'DNI',
+        documentNumber: '38456123',
+      });
+      // El actor es el empleado, nunca el cliente cuya cuenta se creó
+      const account = await prisma.account.findFirstOrThrow({ where: { customerId: created.body.id } });
+      expect(rows[0].actorAccountId).not.toBe(account.id);
+      expect(rows[0].details).toEqual([
+        { label: 'Mail', value: 'sofia.rios@test.com' },
+        { label: 'Teléfono', value: '—' },
+        { label: 'Origen', value: 'Caja' },
+        { label: 'Cuenta de acceso', value: 'Creada, contraseña inicial = número de documento' },
+      ]);
+    });
+
+    it('el origen es "Administración" cuando lo da de alta el Administrador', async () => {
+      const admin = await tokenOf(ADMIN);
+
+      await createCustomer(admin, SOFIA).expect(201);
+
+      const [row] = await newAuditRows();
+      expect(row.details).toEqual(
+        expect.arrayContaining([{ label: 'Origen', value: 'Administración' }]),
+      );
+    });
+
+    it('nunca guarda la contraseña ni su hash: el detalle solo dice que la cuenta se creó', async () => {
+      const cashier = await tokenOf(CASHIER);
+      const created = await createCustomer(cashier, SOFIA).expect(201);
+
+      const [row] = await newAuditRows();
+      const account = await prisma.account.findFirstOrThrow({ where: { customerId: created.body.id } });
+
+      expect(JSON.stringify(row.details)).not.toContain(account.passwordHash);
+      expect(JSON.stringify(row.details)).not.toContain('38456123');
+    });
+
+    it('si el email está en uso no queda ninguna fila de auditoría: se deshizo todo', async () => {
+      const cashier = await tokenOf(CASHIER);
+
+      await createCustomer(cashier, { ...SOFIA, email: ADMIN.email }).expect(409);
+
+      expect(await newAuditRows()).toEqual([]);
+    });
+  });
 });
