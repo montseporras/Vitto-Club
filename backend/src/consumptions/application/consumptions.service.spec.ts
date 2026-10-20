@@ -233,7 +233,7 @@ describe('ConsumptionsService', () => {
       expect(result.totalPoints).toBe(15);
       expect(result.isFirstConsumption).toBe(true);
       expect(result.equivalence).toEqual({ baseAmount: 1000, pointsAwarded: 10, configurationVersion: 4 });
-      expect(result.firstPurchaseBonus).toBeNull();
+      expect(result.firstConsumptionBonus).toBeNull();
     });
 
     it('isFirstConsumption es false si el cliente ya tiene un consumo REGISTERED', async () => {

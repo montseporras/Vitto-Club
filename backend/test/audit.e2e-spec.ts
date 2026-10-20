@@ -362,7 +362,7 @@ describe('Auditoría — registro (US-57, e2e)', () => {
         .send({ pointsExpirationMonths: 18 })
         .expect(200);
       await request(app.getHttpServer())
-        .put('/api/loyalty/configuration/first-purchase-bonus')
+        .put('/api/loyalty/configuration/first-consumption-bonus')
         .set(admin)
         .send({ bonusType: 'FIXED_AMOUNT', bonusValue: 30 })
         .expect(200);
@@ -371,7 +371,7 @@ describe('Auditoría — registro (US-57, e2e)', () => {
       expect(rows.map((row) => row.actionCode)).toEqual([
         'POINTS_EQUIVALENCE_UPDATED',
         'POINTS_VALIDITY_UPDATED',
-        'FIRST_PURCHASE_BONUS_UPDATED',
+        'FIRST_CONSUMPTION_BONUS_UPDATED',
       ]);
       expect(rows[2].details).toEqual([
         { label: 'Tipo de bonificación', value: 'Porcentaje → Puntos fijos' },

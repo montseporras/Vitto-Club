@@ -6,8 +6,8 @@ import { LoyaltyPrismaRepository } from './infrastructure/loyalty-prisma.reposit
 import { LoyaltyController } from './http/loyalty.controller.js';
 import { AdminRoleGuard } from './http/guards/admin-role.guard.js';
 import { PointsValidityController } from './http/points-validity.controller.js';
-import { FirstPurchaseBonusController } from './http/first-purchase-bonus.controller.js';
-import { FirstPurchaseBonusValueValidator } from './http/validators/first-purchase-bonus-value.validator.js';
+import { FirstConsumptionBonusController } from './http/first-consumption-bonus.controller.js';
+import { FirstConsumptionBonusValueValidator } from './http/validators/first-consumption-bonus-value.validator.js';
 import { LoyaltyProgramConfigurationController } from './http/loyalty-program-configuration.controller.js';
 
 @Module({
@@ -15,13 +15,13 @@ import { LoyaltyProgramConfigurationController } from './http/loyalty-program-co
   controllers: [
     LoyaltyController,
     PointsValidityController,
-    FirstPurchaseBonusController,
+    FirstConsumptionBonusController,
     LoyaltyProgramConfigurationController,
   ],
   providers: [
     LoyaltyService,
     AdminRoleGuard,
-    FirstPurchaseBonusValueValidator,
+    FirstConsumptionBonusValueValidator,
     {
       provide: LoyaltyConfigurationRepository,
       useClass: LoyaltyPrismaRepository,

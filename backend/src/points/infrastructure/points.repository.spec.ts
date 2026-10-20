@@ -212,7 +212,7 @@ describe('PointsPrismaRepository', () => {
 
       await repo.insertMovement({
         customerId: 101,
-        type: 'PURCHASE_CREDIT',
+        type: 'CONSUMPTION_CREDIT',
         points: 500,
         balanceAfter: 500,
         consumptionId: 141,
@@ -224,7 +224,7 @@ describe('PointsPrismaRepository', () => {
       expect(prisma.pointsMovement.create).toHaveBeenCalledWith({
         data: {
           customerId: 101,
-          type: 'PURCHASE_CREDIT',
+          type: 'CONSUMPTION_CREDIT',
           points: 500,
           balanceAfter: 500,
           consumptionId: 141,

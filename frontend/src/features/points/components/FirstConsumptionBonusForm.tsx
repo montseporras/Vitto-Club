@@ -1,4 +1,4 @@
-// Este archivo es el formulario para configurar la bonificación por primera compra.
+// Este archivo es el formulario para configurar la bonificación por primer consumo.
 // Une las validaciones del schema con el hook que guarda, y muestra errores y aviso de éxito.
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
@@ -9,22 +9,22 @@ import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
-import { useUpdateFirstPurchaseBonus } from '../api/points.queries';
+import { useUpdateFirstConsumptionBonus } from '../api/points.queries';
 import {
-  firstPurchaseBonusSchema,
+  firstConsumptionBonusSchema,
   MAX_FIXED_POINTS,
   MAX_PERCENTAGE,
-  type FirstPurchaseBonusFormValues,
-} from '../schemas/first-purchase-bonus.schema';
+  type FirstConsumptionBonusFormValues,
+} from '../schemas/first-consumption-bonus.schema';
 import {
   BONUS_TYPES,
   type BonusType,
-  type FirstPurchaseBonus,
-} from '../types/first-purchase-bonus';
+  type FirstConsumptionBonus,
+} from '../types/first-consumption-bonus';
 
-interface FirstPurchaseBonusFormProps {
+interface FirstConsumptionBonusFormProps {
   // null: todavía no hay una bonificación guardada y el formulario arranca sin valor.
-  bonus: FirstPurchaseBonus | null;
+  bonus: FirstConsumptionBonus | null;
 }
 
 const BONUS_TYPE_OPTIONS = Object.entries(BONUS_TYPES).map(
@@ -39,17 +39,17 @@ const VALUE_FIELD: Record<
 > = {
   PERCENTAGE: {
     label: 'Porcentaje adicional (%)',
-    hint: `Entre 1 y ${MAX_PERCENTAGE}, con hasta 2 decimales. Se calcula sobre los puntos de la primera compra.`,
+    hint: `Entre 1 y ${MAX_PERCENTAGE}, con hasta 2 decimales. Se calcula sobre los puntos de el primer consumo.`,
     step: 0.01,
   },
   FIXED_AMOUNT: {
     label: 'Puntos adicionales',
-    hint: `Entre 1 y ${MAX_FIXED_POINTS.toLocaleString('es-AR')}, sin decimales. Se suman a los puntos de la primera compra.`,
+    hint: `Entre 1 y ${MAX_FIXED_POINTS.toLocaleString('es-AR')}, sin decimales. Se suman a los puntos de el primer consumo.`,
     step: 1,
   },
 };
 
-// Mensaje según la respuesta del backend (PUT /loyalty/configuration/first-purchase-bonus).
+// Mensaje según la respuesta del backend (PUT /loyalty/configuration/first-consumption-bonus).
 function errorMessage(error: unknown): string {
   const apiError = toApiError(error);
   switch (apiError.status) {
@@ -66,22 +66,22 @@ function errorMessage(error: unknown): string {
   }
 }
 
-export function FirstPurchaseBonusForm({ bonus }: FirstPurchaseBonusFormProps) {
+export function FirstConsumptionBonusForm({ bonus }: FirstConsumptionBonusFormProps) {
   const {
     register,
     handleSubmit,
     reset,
     control,
     formState: { errors, isDirty },
-  } = useForm<FirstPurchaseBonusFormValues>({
-    resolver: zodResolver(firstPurchaseBonusSchema),
+  } = useForm<FirstConsumptionBonusFormValues>({
+    resolver: zodResolver(firstConsumptionBonusSchema),
     defaultValues: {
       bonusType: bonus?.bonusType ?? 'PERCENTAGE',
       bonusValue: bonus?.bonusValue,
     },
   });
 
-  const updateBonus = useUpdateFirstPurchaseBonus();
+  const updateBonus = useUpdateFirstConsumptionBonus();
 
   const bonusType = useWatch({ control, name: 'bonusType' });
   const valueField = VALUE_FIELD[bonusType];
@@ -107,7 +107,7 @@ export function FirstPurchaseBonusForm({ bonus }: FirstPurchaseBonusFormProps) {
 
       {showSuccess && (
         <Alert variant="success" className="mb-6">
-          Bonificación por primera compra guardada. Aplica a las operaciones
+          Bonificación por primer consumo guardada. Aplica a las operaciones
           futuras.
         </Alert>
       )}

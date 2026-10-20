@@ -1,11 +1,11 @@
 import 'reflect-metadata';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { SetFirstPurchaseBonusDto } from './set-first-purchase-bonus.dto.js';
+import { SetFirstConsumptionBonusDto } from './set-first-consumption-bonus.dto.js';
 
-describe('SetFirstPurchaseBonusDto', () => {
+describe('SetFirstConsumptionBonusDto', () => {
   async function validatePayload(payload: object) {
-    return validate(plainToInstance(SetFirstPurchaseBonusDto, payload));
+    return validate(plainToInstance(SetFirstConsumptionBonusDto, payload));
   }
 
   it.each([

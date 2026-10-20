@@ -1,6 +1,6 @@
 import { DomainError } from './errors/domain.error.js';
 
-export const POINTS_LOT_STATUSES = ['ACTIVE', 'CONSUMED', 'EXPIRED'] as const;
+export const POINTS_LOT_STATUSES = ['ACTIVE', 'CONSUMED', 'EXPIRED', 'VOIDED'] as const;
 export type PointsLotStatus = (typeof POINTS_LOT_STATUSES)[number];
 
 function requiredPositiveInt(value: number, field: string): number {

@@ -4,14 +4,14 @@ import { http, HttpResponse } from 'msw';
 import { API_URL } from '@/shared/api/http';
 import { DEFAULT_POINTS_EXPIRATION_MONTHS } from '@/domain/expiration';
 import type {
-  FirstPurchaseBonus,
+  FirstConsumptionBonus,
   PointsEquivalence,
   PointsExpiration,
 } from '@/features/points';
 
-type BonusType = FirstPurchaseBonus['bonusType'];
+type BonusType = FirstConsumptionBonus['bonusType'];
 
-const FIRST_PURCHASE_BONUS_URL = `${API_URL}/loyalty/configuration/first-purchase-bonus`;
+const FIRST_CONSUMPTION_BONUS_URL = `${API_URL}/loyalty/configuration/first-consumption-bonus`;
 const POINTS_EQUIVALENCE_URL = `${API_URL}/loyalty/configuration/points-equivalence`;
 const POINTS_EXPIRATION_URL = `${API_URL}/loyalty/configuration/points-validity`;
 
@@ -19,7 +19,7 @@ const POINTS_EXPIRATION_URL = `${API_URL}/loyalty/configuration/points-validity`
 const now = () => new Date().toISOString();
 
 // Estado en memoria. Arranca con el ejemplo del glosario: 30 puntos adicionales.
-let firstPurchaseBonus: FirstPurchaseBonus = {
+let firstConsumptionBonus: FirstConsumptionBonus = {
   bonusType: 'FIXED_AMOUNT',
   bonusValue: 30,
   updatedAt: now(),
@@ -154,24 +154,24 @@ function validatePointsExpirationBody(body: Record<string, unknown>): string[] {
 }
 
 export const pointsHandlers = [
-  // RF-011: GET /api/loyalty/configuration/first-purchase-bonus
-  http.get(FIRST_PURCHASE_BONUS_URL, () =>
-    HttpResponse.json(firstPurchaseBonus),
+  // RF-011: GET /api/loyalty/configuration/first-consumption-bonus
+  http.get(FIRST_CONSUMPTION_BONUS_URL, () =>
+    HttpResponse.json(firstConsumptionBonus),
   ),
 
-  // RF-011: PUT /api/loyalty/configuration/first-purchase-bonus responde 200 / 400.
-  http.put(FIRST_PURCHASE_BONUS_URL, async ({ request }) => {
+  // RF-011: PUT /api/loyalty/configuration/first-consumption-bonus responde 200 / 400.
+  http.put(FIRST_CONSUMPTION_BONUS_URL, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
 
     const errors = validateBody(body);
     if (errors.length) return badRequest(errors, request);
 
-    firstPurchaseBonus = {
+    firstConsumptionBonus = {
       bonusType: body.bonusType as BonusType,
       bonusValue: body.bonusValue as number,
       updatedAt: now(),
     };
-    return HttpResponse.json(firstPurchaseBonus);
+    return HttpResponse.json(firstConsumptionBonus);
   }),
 
   // RF-09: GET /api/loyalty/configuration/points-equivalence

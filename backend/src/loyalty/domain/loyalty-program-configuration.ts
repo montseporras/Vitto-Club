@@ -1,7 +1,7 @@
 import {
-  FirstPurchaseBonus,
-  FirstPurchaseBonusType,
-} from './first-purchase-bonus.js';
+  FirstConsumptionBonus,
+  FirstConsumptionBonusType,
+} from './first-consumption-bonus.js';
 import { PointsEquivalence } from './points-equivalence.js';
 import { PointsValidity } from './points-validity.js';
 import { DomainError } from './errors/domain.error.js';
@@ -11,7 +11,7 @@ export type LoyaltyProgramConfigurationData = {
   baseAmount: number | null;
   pointsAwarded: number | null;
   pointsExpirationMonths: number;
-  bonusType: FirstPurchaseBonusType | null;
+  bonusType: FirstConsumptionBonusType | null;
   bonusValue: number | null;
   isActive: boolean;
   validFrom: Date;
@@ -23,7 +23,7 @@ export type LoyaltyProgramConfigurationInput = {
   baseAmount: number;
   pointsAwarded: number;
   pointsExpirationMonths: number;
-  bonusType: FirstPurchaseBonusType;
+  bonusType: FirstConsumptionBonusType;
   bonusValue: number;
 };
 
@@ -64,7 +64,7 @@ export class LoyaltyProgramConfiguration {
       );
     }
     if (data.bonusType !== null && data.bonusValue !== null) {
-      FirstPurchaseBonus.define({
+      FirstConsumptionBonus.define({
         bonusType: data.bonusType,
         bonusValue: data.bonusValue,
       });
@@ -117,7 +117,7 @@ export class LoyaltyProgramConfiguration {
     return this.data.pointsExpirationMonths;
   }
 
-  getBonusType(): FirstPurchaseBonusType | null {
+  getBonusType(): FirstConsumptionBonusType | null {
     return this.data.bonusType;
   }
 

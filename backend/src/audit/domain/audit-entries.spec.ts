@@ -142,7 +142,7 @@ describe('configurationSavedEntries()', () => {
 
     expect(entries.map((entry) => entry.action)).toEqual([
       'POINTS_EQUIVALENCE_UPDATED',
-      'FIRST_PURCHASE_BONUS_UPDATED',
+      'FIRST_CONSUMPTION_BONUS_UPDATED',
     ]);
     expect(entries[0].details).toEqual([
       { label: 'Monto base ($)', value: '1.000 → 2.000' },

@@ -136,7 +136,7 @@
 | Modelo | Uso | Estado |
 |---|---|---|
 | `LoyaltyProgramConfiguration` (`loyalty_program_configurations`) | **Fuente actual**. Una versión inmutable por guardado; una sola activa (índice parcial) | ✅ |
-| `LoyaltyPointsConfiguration`, `LoyaltyPointsValidityConfiguration`, `FirstPurchaseBonusConfiguration` | Legado (importado como versión 1) | ⚠️ Confirmar que nadie las lee. Si es así, documentarlas como legado y no tocarlas |
+| `LoyaltyPointsConfiguration`, `LoyaltyPointsValidityConfiguration`, `FirstConsumptionBonusConfiguration` | Legado (importado como versión 1) | ⚠️ Confirmar que nadie las lee. Si es así, documentarlas como legado y no tocarlas |
 
 | Campo | Tipo DB | Backend hoy | Prototipo | Estado |
 |---|---|---|---|---|
@@ -156,7 +156,7 @@
 | `AccountRole` | `ADMIN`, `CASHIER`, `CUSTOMER` | ✅ |
 | `DocumentType` | `DNI`, `PASSPORT` | ✅ (UI: DNI, Pasaporte) |
 | `CustomerStatusAction` | `DEACTIVATED`, `ACTIVATED` | ⚠️ `ACTIVATED` deja de usarse |
-| `FirstPurchaseBonusType` | `PERCENTAGE`, `FIXED_AMOUNT` | ✅ |
+| `FirstConsumptionBonusType` | `PERCENTAGE`, `FIXED_AMOUNT` | ✅ |
 | `AuditCategory` (rama de auditoría) | `SESSION`, `CUSTOMERS`, `EMPLOYEES`, `CONFIGURATION` | ❌ Se reemplaza por `AuditModule` (contrato del Sprint 3, 3.9) |
 
 ### 2.8 Relaciones
@@ -339,14 +339,14 @@ en el código).
 | `PUT /` (completo) | Los 4 obligatorios + `pointsExpirationMonths?` | `200` versión nueva | ✅ |
 | `GET`/`PUT /points-equivalence` | `baseAmount`, `pointsAwarded` | `200 { baseAmount, pointsAwarded, updatedAt }` · `404` si nunca se configuró | ❌ Límites distintos al prototipo ([6.3](#63-configuración-de-puntos)) |
 | `GET`/`PUT /points-validity` | `pointsExpirationMonths?` (vacío → 12) | `200` | ❌ Límite superior distinto |
-| `GET`/`PUT /first-purchase-bonus` | `bonusType`, `bonusValue` | `200` | ✅ |
+| `GET`/`PUT /first-consumption-bonus` | `bonusType`, `bonusValue` | `200` | ✅ |
 
 **Pantalla (Configuración → Puntos):** tres tarjetas, cada una con su botón **Guardar**, deshabilitado si
 no hay cambios. Arriba, el texto "Los cambios se aplican a las operaciones futuras. Los movimientos ya
 registrados no se modifican." Mensajes de éxito:
 - "Equivalencia de puntos guardada. Aplica a las operaciones futuras."
 - "Vigencia de los puntos guardada. …"
-- "Bonificación por primera compra guardada. …"
+- "Bonificación por primer consumo guardada. …"
 
 ⚠️ **Verificar:** `docs/funcionalidades/configuracion-de-puntos.md`, sección "Estado de disponibilidad",
 todavía dice que responde `401` hasta que se integre la autenticación. La autenticación ya está integrada.
@@ -435,7 +435,7 @@ Test de la matriz: `backend/test/endpoint-permissions.e2e-spec.ts`. ⚠️ Agreg
 | P5 | Alta de cliente por Cajero o Administrador | Mensaje "Recibirá un mail para definir su contraseña". **No existe** ni la cuenta ni el mail | **Resuelto (D9):** se crea la cuenta con contraseña inicial = documento. Mensaje: "Cliente registrado. Ingresa con su mail y su número de documento como contraseña; al entrar se le va a pedir que la cambie." Agregar al prototipo la ventana "Cambiá tu contraseña" que aparece al ingresar |
 | P6 | "Ver más" del Administrador | Permite editar **puntos** y documento | Puntos: sacar (contrato 3.8.2). Documento: solo el Administrador |
 | P7 | Configuración → "Niveles de fidelización" (menú "Próx.") | Tabla vieja con "Agregar nivel", "Observaciones" y beneficios | Sacar. Los niveles se configuran en Puntos → Niveles (3 fijos) |
-| P8 | Historial del Cliente | "Historial de compras", "Compra #101" | Cambiar a "Consumo" (D8) |
+| P8 | Historial del Cliente | "Historial de compras", "Compra #101" | Cambiar a "Consumo" (D8). Corregido en el prototipo el 20/10/2026 |
 | P9 | Varias tablas | "DNI" escrito fijo aunque sea pasaporte | Mostrar el tipo real |
 | P10 | Nombre del Cliente | El login ya lo trae (el doc dice que no) | Mi perfil igual usa `GET /customers/me`, que trae también documento, contacto y fecha de alta. Actualizar el doc de autenticación |
 | P11 | Registrar cliente (Administrador) | Faltan "Fecha de nacimiento" y la validación local; documento con input numérico | Unificar con el formulario "Nuevo cliente" de Caja |
@@ -474,7 +474,7 @@ con el backend:
 | Definición del Producto — US-24 | Dice "ajustar los puntos otorgados **por una compra**". El prototipo ajusta el **saldo del cliente** con motivo. Reescribir |
 | Definición del Producto — US-27 | Dice "nombre, puntaje mínimo y beneficios". Ahora son 3 niveles fijos, solo se configuran los umbrales y los beneficios están pendientes |
 | Definición del Producto — Roles del Sistema | Agregar US-59 al Cliente. Sumar al Administrador las historias de consumo y puntos que también hace |
-| Máquinas de estado | Consumo: `Registrado → Anulado` (final). Lote: si se anula su consumo, pasa a `Consumido` (decisión #11, sin estado nuevo) |
+| Máquinas de estado | Consumo: `Registrado → Anulado` (final). Lote: si se anula su consumo, pasa a `Anulado` (decisión #11, revisada el 20/10/2026; antes `Consumido`) |
 | Todos los documentos | Sacar la reactivación de clientes y empleados; dejar la de usuarios (lista en la [sección 4](#4-quitar-la-reactivación-de-clientes-y-empleados)) |
 | Definición del Producto — US-17 | Agregar: el alta crea la cuenta del cliente con contraseña inicial = número de documento, y al ingresar se le pide cambiarla |
 | `docs/` del repo | Unicidad entre activos para empleados y cuentas (actualizar ADR 006 o escribir un ADR 008) |

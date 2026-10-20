@@ -1,6 +1,6 @@
 import { LoyaltyService } from '../application/loyalty.service.js';
-import { FirstPurchaseBonus } from '../domain/first-purchase-bonus.js';
-import { FirstPurchaseBonusController } from './first-purchase-bonus.controller.js';
+import { FirstConsumptionBonus } from '../domain/first-consumption-bonus.js';
+import { FirstConsumptionBonusController } from './first-consumption-bonus.controller.js';
 import { createCapturingAuditService } from '../../audit/testing/capturing-audit-service.js';
 import type { AuditEntryInput } from '../../audit/domain/audit-entry.js';
 import type { CurrentUserData } from '../../shared/security/current-user-data.js';
@@ -28,35 +28,35 @@ const activeConfig = (overrides: Partial<{
     ...overrides,
   });
 
-describe('FirstPurchaseBonusController', () => {
+describe('FirstConsumptionBonusController', () => {
   let service: {
-    setFirstPurchaseBonus: jest.Mock;
-    getCurrentFirstPurchaseBonus: jest.Mock;
+    setFirstConsumptionBonus: jest.Mock;
+    getCurrentFirstConsumptionBonus: jest.Mock;
     getActiveConfiguration: jest.Mock;
   };
   let audit: AuditEntryInput[];
-  let controller: FirstPurchaseBonusController;
+  let controller: FirstConsumptionBonusController;
 
   beforeEach(() => {
     service = {
-      setFirstPurchaseBonus: jest.fn(),
-      getCurrentFirstPurchaseBonus: jest.fn(),
+      setFirstConsumptionBonus: jest.fn(),
+      getCurrentFirstConsumptionBonus: jest.fn(),
       getActiveConfiguration: jest.fn().mockResolvedValue(activeConfig()),
     };
     const capturing = createCapturingAuditService();
     audit = capturing.entries;
-    controller = new FirstPurchaseBonusController(
+    controller = new FirstConsumptionBonusController(
       service as unknown as LoyaltyService,
       capturing.service,
     );
   });
 
   it('saves a percentage bonus and returns its response DTO', async () => {
-    const bonus = FirstPurchaseBonus.define({
+    const bonus = FirstConsumptionBonus.define({
       bonusType: 'PERCENTAGE',
       bonusValue: 15,
     });
-    service.setFirstPurchaseBonus.mockResolvedValue(bonus);
+    service.setFirstConsumptionBonus.mockResolvedValue(bonus);
 
     service.getActiveConfiguration
       .mockResolvedValueOnce(activeConfig({ bonusType: 'FIXED_AMOUNT', bonusValue: 30 }))
@@ -67,7 +67,7 @@ describe('FirstPurchaseBonusController', () => {
       admin,
     );
 
-    expect(service.setFirstPurchaseBonus).toHaveBeenCalledWith({
+    expect(service.setFirstConsumptionBonus).toHaveBeenCalledWith({
       bonusType: 'PERCENTAGE',
       bonusValue: 15,
     });
@@ -77,8 +77,8 @@ describe('FirstPurchaseBonusController', () => {
     });
     expect(audit).toHaveLength(1);
     expect(audit[0]).toMatchObject({
-      action: 'FIRST_PURCHASE_BONUS_UPDATED',
-      description: 'Modificó la bonificación por primera compra',
+      action: 'FIRST_CONSUMPTION_BONUS_UPDATED',
+      description: 'Modificó la bonificación por primer consumo',
       details: [
         { label: 'Tipo de bonificación', value: 'Puntos fijos → Porcentaje' },
         { label: 'Valor de bonificación', value: '30 → 15' },
@@ -87,8 +87,8 @@ describe('FirstPurchaseBonusController', () => {
   });
 
   it('returns the current fixed bonus', async () => {
-    service.getCurrentFirstPurchaseBonus.mockResolvedValue(
-      FirstPurchaseBonus.define({
+    service.getCurrentFirstConsumptionBonus.mockResolvedValue(
+      FirstConsumptionBonus.define({
         bonusType: 'FIXED_AMOUNT',
         bonusValue: 30,
       }),

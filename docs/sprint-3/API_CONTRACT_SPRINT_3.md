@@ -21,6 +21,7 @@
   citan en el texto como "decisión #N".
 - "UI" es el texto que muestra el prototipo. "API" es el valor que viaja en el JSON.
 - En la UI la operación se llama **Consumo**, nunca "Compra". En el código, la entidad es `Consumption`.
+- **Máquinas de estado:** los nombres de los estados y las transiciones salen de la sección 9 ("Diagramas de Transición de Estados") de la *Definición del Producto - Vitto Club - Grupo 11*. Todo enum de estado de este contrato tiene que coincidir con esos nombres: Canje (Confirmado, Utilizado, Rechazado, Cancelado, Vencido; **no existe "Pendiente"**), Movimiento de puntos o lote (Vigente, Consumido, Vencido, Anulado), Recompensa (Activa, Deshabilitada, Inactiva, Eliminada) y Misión mensual (En progreso, Completada, Reclamada, Vencida).
 
 ---
 
@@ -114,7 +115,7 @@ La pantalla traduce con la columna "UI".
 | `DocumentType` | `DNI`, `PASSPORT` | DNI, Pasaporte |
 | `EmployeeRole` | `ADMIN`, `CASHIER` | Administrador, Cajero |
 | `AccountRole` | `ADMIN`, `CASHIER`, `CUSTOMER` | Administrador, Cajero, Cliente |
-| `FirstPurchaseBonusType` | `PERCENTAGE`, `FIXED_AMOUNT` | Porcentaje, Puntos fijos |
+| `FirstConsumptionBonusType` | `PERCENTAGE`, `FIXED_AMOUNT` | Porcentaje, Puntos fijos |
 
 ### 2.2 Nuevos
 
@@ -139,7 +140,7 @@ Los tres niveles son fijos: no se crean, no se borran ni se renombran.
 
 | API | UI (Administrador, filtro y badge) | Signo | Lo genera | Sprint |
 |---|---|---|---|---|
-| `PURCHASE_CREDIT` | Acreditación por consumo | + | Registrar consumo | 3 |
+| `CONSUMPTION_CREDIT` | Acreditación por consumo | + | Registrar consumo | 3 |
 | `VOID_REVERSAL` | Reversión por anulación | − | Anular consumo | 3 |
 | `MANUAL_ADJUSTMENT` | Ajuste manual | + o − | Ajustar puntos (Administrador) | 3 |
 | `EXPIRATION` | Vencimiento | − | Proceso automático (Sistema) | 3 |
@@ -149,7 +150,7 @@ Texto que ve el Cliente en su historial, por tipo (lo arma el frontend):
 
 | Tipo | Texto |
 |---|---|
-| `PURCHASE_CREDIT` | "Sumaste {n} pts por tu consumo" |
+| `CONSUMPTION_CREDIT` | "Sumaste {n} pts por tu consumo" |
 | `VOID_REVERSAL` | "Se descontaron {n} pts por la anulación de un consumo" |
 | `MANUAL_ADJUSTMENT` | "Ajuste del restaurante" |
 | `EXPIRATION` | "Se vencieron {n} pts" |
@@ -157,13 +158,14 @@ Texto que ve el Cliente en su historial, por tipo (lo arma el frontend):
 
 #### `PointsLotStatus` — estado de un lote de puntos
 
-Sale de la máquina de estados *Lotes de puntos*.
+Sale de la máquina de estados *Movimiento de puntos* (Definición del Producto, sección 9).
 
 | API | UI | Significado |
 |---|---|---|
 | `ACTIVE` | Vigente | Tiene saldo disponible y no venció |
 | `CONSUMED` | Consumido | Saldo del lote en 0 |
 | `EXPIRED` | Vencido | Llegó a su fecha de vencimiento con saldo; el saldo restante se venció entero |
+| `VOIDED` | Anulado | Se anuló el consumo que lo creó. **Estado final**. Lo dispara solo US-22 (anular consumo) |
 
 #### `AdjustmentDirection`
 
@@ -205,7 +207,7 @@ El número acepta puntos (`38.456.123`); el backend lo normaliza.
 
 #### 3.1.2 `GET /api/consumos/preview` — vista previa
 
-Calcula los puntos con la **configuración vigente**, incluida la bonificación por primera compra.
+Calcula los puntos con la **configuración vigente**, incluida la bonificación por primer consumo.
 
 **Por qué hace falta este endpoint:** el Cajero no puede leer `/loyalty/configuration/*` (es solo `ADMIN`)
 y, además, la bonificación depende de si es el primer consumo del cliente, cosa que solo sabe el backend.
@@ -229,7 +231,7 @@ Así la pantalla nunca calcula por su cuenta.
   "balanceBefore": 1240,
   "balanceAfter": 1740,
   "equivalence": { "baseAmount": 1000, "pointsAwarded": 10, "configurationVersion": 4 },
-  "firstPurchaseBonus": { "bonusType": "PERCENTAGE", "bonusValue": 15 }
+  "firstConsumptionBonus": { "bonusType": "PERCENTAGE", "bonusValue": 15 }
 }
 ```
 
@@ -241,7 +243,7 @@ Así la pantalla nunca calcula por su cuenta.
 | `isFirstConsumption` | boolean | `true` si el cliente no tiene ningún consumo `REGISTERED`. Los anulados no cuentan: si se anula el primer consumo, el siguiente vuelve a recibir la bonificación (decisión #2) |
 | `balanceBefore` / `balanceAfter` | entero | Saldo antes y después. Puede ser negativo (cliente con deuda) |
 | `equivalence` | objeto | Para el texto "Equivalencia vigente: $1.000 = 10 pts" |
-| `firstPurchaseBonus` | objeto \| `null` | `null` si no hay bonificación configurada |
+| `firstConsumptionBonus` | objeto \| `null` | `null` si no hay bonificación configurada |
 
 **Errores:** `400` (monto inválido), `404` (cliente inexistente), `409 CUSTOMER_INACTIVE`,
 `409 POINTS_EQUIVALENCE_NOT_CONFIGURED`.
@@ -272,7 +274,7 @@ equivalencia. La **fecha y hora** las pone el servidor. El **responsable** sale 
 5. **Acredita los puntos** con `acreditar()`:
    - Si el cliente tiene deuda (saldo negativo), los puntos primero la cancelan.
    - Lo que sobra crea un **lote** `ACTIVE` con `expiresAt = createdAt + pointsExpirationMonths` (snapshot de la vigencia).
-6. Registra un movimiento `PURCHASE_CREDIT` por `totalPoints`, con `balanceAfter`.
+6. Registra un movimiento `CONSUMPTION_CREDIT` por `totalPoints`, con `balanceAfter`.
 7. Suma `totalPoints` (incluida la bonificación, decisión #3) a los **puntos acumulados** (`lifetimePoints`) y recalcula el nivel.
 8. Registra la auditoría `CONSUMPTION_REGISTERED` ([3.9](#39-auditoría-ítem-aparte)).
 
@@ -315,7 +317,7 @@ equivalencia. La **fecha y hora** las pone el servidor. El **responsable** sale 
 | Fecha y hora | 16/10/2026 15:40 | `consumption.createdAt`, en hora de Argentina |
 | Cliente | Carolina Fernández · DNI 38456123 | `consumption.customer` (usar el tipo real; el prototipo dice "DNI" siempre) |
 | Monto | $50.000 | `amount` |
-| Puntos acreditados | +500 pts | `totalPoints`. Si `bonusPoints > 0`, agregar "(incluye N de bonificación por primera compra)" |
+| Puntos acreditados | +500 pts | `totalPoints`. Si `bonusPoints > 0`, agregar "(incluye N de bonificación por primer consumo)" |
 | Observaciones | Texto o "—" | `notes` |
 | Saldo | 1.240 pts → 1.740 pts | `balanceBefore` → `balanceAfter` |
 | Registrado por | Ana Pereyra | `registeredBy.name` |
@@ -346,7 +348,7 @@ Debajo de la tarjeta del cliente hay dos botones:
 
 | Botón | Contenido | Endpoint |
 |---|---|---|
-| "Ver canjes pendientes, recompensas y movimientos de las últimas 24 hs" (Cajero) / "…y últimos movimientos" (Administrador) | Canjes pendientes y recompensas alcanzables (**Sprint 4**: por ahora "No tiene canjes pendientes" y "No tiene puntos suficientes…"), y movimientos | `GET /customers/:id/movimientos?limit=5` ([3.6.1](#361-get-apicustomersidmovimientos)) |
+| "Ver canjes, recompensas y movimientos de las últimas 24 hs" (Cajero) / "…y últimos movimientos" (Administrador) | Canjes y recompensas alcanzables (**Sprint 4**: por ahora "No tiene canjes." y "No tiene puntos suficientes…"), y movimientos | `GET /customers/:id/movimientos?limit=5` ([3.6.1](#361-get-apicustomersidmovimientos)) |
 | "Ver movimientos de las últimas 24 hs" | Tabla de consumos con botón **Anular consumo** | `GET /customers/:id/consumos?last24h=true` ([3.2](#32-anular-consumo-us-22)) |
 
 ---
@@ -412,7 +414,7 @@ anular consumos propios dentro de las 24 hs". Si no hay consumos: "No hay consum
 
 1. Pasa el consumo a `VOIDED` y guarda `voidedAt`, `voidedByAccountId` y `voidReason`.
 2. Revierte **todos** los puntos acreditados, **incluida la bonificación** (US-22):
-   - Del lote de ese consumo se descuenta lo que quede disponible (`min(remaining, totalPoints)`); el lote pasa a `CONSUMED`. No se agrega un estado nuevo a la máquina de estados (decisión #11).
+   - Del lote de ese consumo se descuenta lo que quede disponible (`min(remaining, totalPoints)`); el lote pasa a `VOIDED` (Anulado, estado final; decisión #11). Un lote `VOIDED` no suma al saldo.
    - Lo que ya se había gastado se convierte en **deuda**: el saldo queda **negativo**.
 3. Registra un movimiento `VOID_REVERSAL` por `−totalPoints`, con `balanceAfter`.
 4. Resta `totalPoints` de los acumulados (`lifetimePoints`). Un consumo anulado no suma al nivel, así que **el nivel puede bajar**.
@@ -533,7 +535,7 @@ Debajo de las tarjetas, la pantalla dice: "Monto total y puntos otorgados no inc
 | `customer` | objeto | No | `{ id, firstName, lastName, documentType, documentNumber }` |
 | `amount` | número (2 decimales) | No | Monto del consumo |
 | `points` | entero ≥ 0 | No | Puntos por equivalencia |
-| `bonusPoints` | entero ≥ 0 | No | Bonificación de primera compra (`0` si no aplica) |
+| `bonusPoints` | entero ≥ 0 | No | Bonificación de primer consumo (`0` si no aplica) |
 | `totalPoints` | entero ≥ 0 | No | `points + bonusPoints` |
 | `equivalence` | objeto | No | Snapshot: `{ baseAmount, pointsAwarded, configurationVersion }` |
 | `notes` | string | Sí | Observaciones |
@@ -581,7 +583,7 @@ ajuste.
 |---|---|---|
 | `balance` | entero (puede ser < 0) | Suma de `remaining` de los lotes `ACTIVE` menos la deuda |
 | `negativeBalance` | boolean | `balance < 0` |
-| `lifetimePoints` | entero ≥ 0 | **Puntos acumulados (históricos)**: suma de `PURCHASE_CREDIT` menos `VOID_REVERSAL`. Los canjes, vencimientos y ajustes **no** cuentan |
+| `lifetimePoints` | entero ≥ 0 | **Puntos acumulados (históricos)**: suma de `CONSUMPTION_CREDIT` menos `VOID_REVERSAL`. Los canjes, vencimientos y ajustes **no** cuentan |
 | `level.current` | `Level` | Mayor nivel cuyo mínimo es ≤ `lifetimePoints` |
 | `level.next` | `Level` \| `null` | `null` si es `GOLD` |
 | `level.pointsToNext` | entero ≥ 0 | `nextMinPoints − lifetimePoints`; `0` si es `GOLD` |
@@ -695,9 +697,9 @@ La pantalla también lo valida antes de enviar: con "Restar", si el resultado de
 | `points` | entero con signo | No | `+500`, `−500`, … |
 | `balanceAfter` | entero | No | Saldo del cliente **después** del movimiento |
 | `description` | string | No | "Detalle / origen", armado por el backend: `Consumo C-000131` · `Anulación de C-000131` · `Ajuste: {motivo}` · `Vencimiento de lote del 16/08/2026` · `Canje: {recompensa}` |
-| `consumptionCode` | string | Sí | Para `PURCHASE_CREDIT` y `VOID_REVERSAL` |
+| `consumptionCode` | string | Sí | Para `CONSUMPTION_CREDIT` y `VOID_REVERSAL` |
 | `reason` | string | Sí | Para `MANUAL_ADJUSTMENT` |
-| `lot` | `{ id, accreditedAt, expiresAt, status }` | Sí | Para `PURCHASE_CREDIT`, ajustes `ADD` que crearon lote, y `EXPIRATION`. `status` es el **estado** que pide US-26 |
+| `lot` | `{ id, accreditedAt, expiresAt, status }` | Sí | Para `CONSUMPTION_CREDIT`, ajustes `ADD` que crearon lote, y `EXPIRATION`. `status` es el **estado** que pide US-26 |
 | `performedBy` | `{ actorType, accountId, name }` | No | `actorType` = `EMPLOYEE` o `SYSTEM`. Para `SYSTEM`: `accountId = null` y `name = "Sistema"`. **No se envía en los endpoints del Cliente** |
 
 **Orden:** `createdAt` descendente y, a igual fecha, `id` descendente.
@@ -994,7 +996,7 @@ de la tabla muestra `description`, que arma el backend.
 | MISSIONS | `MISSIONS_EXPIRED` | Venció misiones del mes | Sistema | Venció las misiones del mes | S5 |
 | CONFIGURATION | `POINTS_EQUIVALENCE_UPDATED` | Modificó equivalencia de puntos | Admin | Modificó la equivalencia de puntos | S3 |
 | CONFIGURATION | `POINTS_VALIDITY_UPDATED` | Modificó vigencia de puntos | Admin | Modificó la vigencia de los puntos | S3 |
-| CONFIGURATION | `FIRST_PURCHASE_BONUS_UPDATED` | Modificó bonificación por primera compra | Admin | Modificó la bonificación por primera compra | S3 |
+| CONFIGURATION | `FIRST_CONSUMPTION_BONUS_UPDATED` | Modificó bonificación por primer consumo | Admin | Modificó la bonificación por primer consumo | S3 |
 | CONFIGURATION | `LEVELS_UPDATED` | Modificó niveles | Admin | Modificó niveles | **S3** |
 | CONFIGURATION | `LOGO_AND_MESSAGES_UPDATED` | Modificó logo y mensajes | Admin | Modificó los mensajes automáticos | S5 |
 | CONFIGURATION | `PROMOTIONS_UPDATED` | Modificó promociones | Admin | Modificó las promociones | S5 |
@@ -1024,14 +1026,14 @@ código de operación (`C-000141`, `CJ-00412`) va en `operationCode` **y** como 
 | `CUSTOMER_CREATED` | Sí | — | Mail · Teléfono (o "—") · Origen: Caja / Administración · Cuenta de acceso: Creada, contraseña inicial = número de documento (nunca se guarda el valor) |
 | `CUSTOMER_UPDATED` | Sí | — | Una fila por campo que cambió (Nombre, Apellido, Documento, Correo electrónico, Teléfono, Fecha de nacimiento) · Motivo (si se mandó `reason`) |
 | `CUSTOMER_DEACTIVATED` | Sí | — | Estado: Activo → Inactivo · Saldo perdido: {n} pts |
-| `CONSUMPTION_REGISTERED` | Sí | `C-…` | Código de operación · Monto · Equivalencia aplicada · Puntos acreditados · Bonificación primera compra (solo si > 0) · Saldo resultante |
+| `CONSUMPTION_REGISTERED` | Sí | `C-…` | Código de operación · Monto · Equivalencia aplicada · Puntos acreditados · Bonificación primer consumo (solo si > 0) · Saldo resultante |
 | `CONSUMPTION_VOIDED` | Sí | `C-…` | Código de operación · Monto · Puntos revertidos · Saldo resultante · Motivo |
 | `POINTS_ADJUSTED` | Sí | — | Cantidad (con signo) · Saldo resultante · Motivo |
 | `POINTS_EXPIRED` | Sí | — | Puntos vencidos · Fecha del lote (acreditación) · Saldo resultante |
 | `LEVELS_UPDATED` | — | — | Plata: {antes} → {después} pts · Oro: {antes} → {después} pts |
 | `POINTS_EQUIVALENCE_UPDATED` | — | — | Monto base ($): antes → después · Puntos por monto: antes → después |
 | `POINTS_VALIDITY_UPDATED` | — | — | Vigencia (meses): antes → después |
-| `FIRST_PURCHASE_BONUS_UPDATED` | — | — | Tipo de bonificación: antes → después · Valor de bonificación: antes → después |
+| `FIRST_CONSUMPTION_BONUS_UPDATED` | — | — | Tipo de bonificación: antes → después · Valor de bonificación: antes → después |
 | `REDEMPTION_USED` (S4) | Sí | `CJ-…` | Recompensa · Código del canje · Puntos descontados · Saldo resultante |
 | `REDEMPTION_EXPIRED` (S4) | Sí | `CJ-…` | Recompensa · Código del canje |
 | `REWARD_DISABLED` / `REWARD_ENABLED` (S4) | — | — | Motivo: Sin stock / Vencida / Stock repuesto / Fecha de vencimiento actualizada |
@@ -1185,7 +1187,7 @@ exige siempre.
 | Registro de empleado / Modificación de empleado / Baja lógica de empleado | `EMPLOYEE_CREATED` / `EMPLOYEE_UPDATED` / `EMPLOYEE_DEACTIVATED` |
 | Registro de cuenta de usuario / Modificación de usuario / Baja lógica de cuenta de usuario | `USER_ACCOUNT_CREATED` / `USER_ACCOUNT_UPDATED` / `USER_ACCOUNT_DEACTIVATED` |
 | Registro de cliente / Modificación de cliente / Baja lógica de cliente | `CUSTOMER_CREATED` / `CUSTOMER_UPDATED` / `CUSTOMER_DEACTIVATED` |
-| Modificación de equivalencia de puntos / de vigencia de puntos / de bonificación por primera compra | `POINTS_EQUIVALENCE_UPDATED` / `POINTS_VALIDITY_UPDATED` / `FIRST_PURCHASE_BONUS_UPDATED` |
+| Modificación de equivalencia de puntos / de vigencia de puntos / de bonificación por primer consumo | `POINTS_EQUIVALENCE_UPDATED` / `POINTS_VALIDITY_UPDATED` / `FIRST_CONSUMPTION_BONUS_UPDATED` |
 | Modificación de configuración de puntos (PUT completo) | Una entrada por sección (de acá en adelante); las viejas, `POINTS_EQUIVALENCE_UPDATED` |
 | Categoría `SESSION` (inicio y cierre de sesión) | **Se deja de registrar.** Las filas viejas quedan con `module = NULL` y el listado las excluye |
 | Autorregistro de cliente | **Se deja de registrar** (el actor es un cliente). Filas viejas: `module = NULL` |
@@ -1236,7 +1238,7 @@ Mismos filtros y paginación que las versiones `/customers/:id/…`, sin `last24
 `movimientos` **no traen** `performedBy` ni el objeto `customer`. Los de `consumos` no traen
 `registeredBy`, `voidedBy`, `canVoid` ni `voidableUntil`.
 
-**"Historial de consumos"** (el prototipo dice "Historial de compras": cambiar el texto):
+**"Historial de consumos"** (texto ya corregido en el prototipo el 20/10/2026):
 
 | Dato | Fuente |
 |---|---|
@@ -1253,7 +1255,7 @@ Mismos filtros y paginación que las versiones `/customers/:id/…`, sin `last24
 | Fecha | `createdAt` |
 | Texto | Según el tipo (tabla de [2.2](#22-nuevos)) |
 | Cantidad | `points` con signo |
-| Estado | `lot.status` si viene (Vigente / Consumido / Vencido). Es el dato "estado" que pide US-26 |
+| Estado | `lot.status` si viene (Vigente / Consumido / Vencido / Anulado). Es el dato "estado" que pide US-26 |
 | Sin datos | "Todavía no tenés movimientos." |
 
 #### 3.10.3 Mi perfil — `GET /api/customers/me`
@@ -1588,7 +1590,7 @@ el schema actual.
 | `remaining_points` | `INTEGER` | No | `CHECK 0 <= remaining <= initial` |
 | `accredited_at` | `TIMESTAMP(3)` | No | |
 | `expires_at` | `TIMESTAMP(3)` | No | `accredited_at + vigencia` (snapshot) |
-| `status` | enum `PointsLotStatus` | No | `ACTIVE`, `CONSUMED` o `EXPIRED` |
+| `status` | enum `PointsLotStatus` | No | `ACTIVE`, `CONSUMED`, `EXPIRED` o `VOIDED` |
 | `expired_at` | `TIMESTAMP(3)` | Sí | |
 
 Índice para el vencimiento: `(status, expires_at)`.
@@ -1602,7 +1604,7 @@ el schema actual.
 | `type` | enum `PointsMovementType` | No | |
 | `points` | `INTEGER` | No | `CHECK <> 0`. Signo según el tipo |
 | `balance_after` | `INTEGER` | No | Puede ser negativo |
-| `consumption_id` | `INTEGER` FK | Sí | Para `PURCHASE_CREDIT` y `VOID_REVERSAL` |
+| `consumption_id` | `INTEGER` FK | Sí | Para `CONSUMPTION_CREDIT` y `VOID_REVERSAL` |
 | `lot_id` | `INTEGER` FK | Sí | |
 | `reason` | `VARCHAR(500)` | Sí | Obligatorio para `MANUAL_ADJUSTMENT` (`CHECK`) |
 | `performed_by_account_id` | `INTEGER` FK | Sí | `NULL` = Sistema |
@@ -1789,10 +1791,10 @@ Los existentes siguen igual: `INVALID_CREDENTIALS`, `INVALID_SESSION`, `UNAUTHEN
 
 | # | Prototipo | Contrato |
 |---|---|---|
-| 1 | La vista previa y el registro **no aplican la bonificación por primera compra** (US-21, escenario 2) | Se aplica: `bonusPoints` |
+| 1 | La vista previa y el registro **no aplican la bonificación por primer consumo** (US-21, escenario 2) | Se aplica: `bonusPoints` |
 | 2 | "Ver más" del Administrador permite **editar los puntos** del cliente | Se saca. Los puntos cambian solo con movimientos (ajuste con motivo) |
 | 3 | Tarjetas, consumos y movimientos muestran "DNI" fijo aunque sea pasaporte | Mostrar `documentType` real |
-| 4 | Historial del Cliente: "Historial de compras" | "Historial de consumos" |
+| 4 | Historial del Cliente: "Historial de compras" (corregido en el prototipo el 20/10/2026) | "Historial de consumos" |
 | 5 | Mi perfil valida teléfono "mínimo 6 números" | 8 a 15 dígitos, como el resto |
 | 6 | Mi perfil exige "letras y números"; el registro no | Por ahora, la regla actual del backend en todas las pantallas; la política única queda a futuro ([3.11](#311-cambios-de-contraseña)) |
 | 7 | El panel "Tipos de datos" de Auditoría tiene los campos viejos ("Date", "Empleado", "Filtro: acción") | Actualizar a los de [3.9.4](#394-get-apiauditoria) |
@@ -1827,7 +1829,7 @@ Los existentes siguen igual: `INVALID_CREDENTIALS`, `INVALID_SESSION`, `UNAUTHEN
 | 8 | Usuarios de empleados dados de baja | **Se mantiene la reactivación de usuarios** (no de empleados ni de clientes). `accounts.employee_id` sigue `UNIQUE` | [3.11.4](#3114-reactivación-de-usuarios-de-empleados), [3.9](#39-auditoría-ítem-aparte) |
 | 9 | Foto de perfil del cliente | **Sprint 4** | [3.10](#310-vista-del-cliente-inicio-historial-perfil-y-cerrar-sesión) |
 | 10 | Cambiar el email desde Mi perfil | **Pide la contraseña actual** | [3.10.4](#3104-patch-apicustomersme) |
-| 11 | Estado de un lote cuyo consumo se anuló | `CONSUMED`; no se agrega estado | [3.2.2](#322-patch-apiconsumoscodeanular) |
+| 11 | Estado de un lote cuyo consumo se anuló | `VOIDED` (Anulado). Revisada el 20/10/2026 por la máquina de estados Movimiento de puntos de la Definición del Producto (antes: `CONSUMED`, sin estado nuevo). Lo dispara solo US-22 | [3.2.2](#322-patch-apiconsumoscodeanular) |
 | 12 | Política de contraseña única | **Decisión a futuro.** Mientras tanto rige la regla actual del backend (más "distinta del documento" para clientes) | [3.11](#311-cambios-de-contraseña) |
 
 **Queda abierto (por la decisión #7):** si la ventana de cambio de contraseña se puede postergar ("Ahora no")

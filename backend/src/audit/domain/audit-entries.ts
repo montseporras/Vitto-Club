@@ -282,7 +282,7 @@ export function pointsValidityChanged(before: LoyaltyConfigSnapshot, after: Loya
   return before.pointsExpirationMonths !== after.pointsExpirationMonths;
 }
 
-export function firstPurchaseBonusChanged(before: LoyaltyConfigSnapshot, after: LoyaltyConfigSnapshot): boolean {
+export function firstConsumptionBonusChanged(before: LoyaltyConfigSnapshot, after: LoyaltyConfigSnapshot): boolean {
   return before.bonusType !== after.bonusType || before.bonusValue !== after.bonusValue;
 }
 
@@ -331,7 +331,7 @@ export function pointsValidityUpdatedEntry(
   };
 }
 
-export function firstPurchaseBonusUpdatedEntry(
+export function firstConsumptionBonusUpdatedEntry(
   actor: AuditActor,
   before: LoyaltyConfigSnapshot,
   after: LoyaltyConfigSnapshot,
@@ -339,8 +339,8 @@ export function firstPurchaseBonusUpdatedEntry(
   return {
     actor,
     module: 'CONFIGURATION',
-    action: 'FIRST_PURCHASE_BONUS_UPDATED',
-    description: 'Modificó la bonificación por primera compra',
+    action: 'FIRST_CONSUMPTION_BONUS_UPDATED',
+    description: 'Modificó la bonificación por primer consumo',
     details: configurationRows([
       {
         label: 'Tipo de bonificación',
@@ -371,8 +371,8 @@ export function configurationSavedEntries(
   if (pointsValidityChanged(before, after)) {
     entries.push(pointsValidityUpdatedEntry(actor, before, after));
   }
-  if (firstPurchaseBonusChanged(before, after)) {
-    entries.push(firstPurchaseBonusUpdatedEntry(actor, before, after));
+  if (firstConsumptionBonusChanged(before, after)) {
+    entries.push(firstConsumptionBonusUpdatedEntry(actor, before, after));
   }
   return entries.length > 0 ? entries : [pointsEquivalenceUpdatedEntry(actor, before, after)];
 }

@@ -145,7 +145,7 @@ describe('PointsService', () => {
       expect(repository.movements).toEqual([
         {
           customerId: 101,
-          type: 'PURCHASE_CREDIT',
+          type: 'CONSUMPTION_CREDIT',
           points: 500,
           balanceAfter: 500,
           consumptionId: 141,

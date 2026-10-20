@@ -1,4 +1,4 @@
-import { FirstPurchaseBonusType } from '../../domain/first-purchase-bonus.js';
+import { FirstConsumptionBonusType } from '../../domain/first-consumption-bonus.js';
 import { LoyaltyProgramConfiguration } from '../../domain/loyalty-program-configuration.js';
 
 export class LoyaltyProgramConfigurationResponseDto {
@@ -6,7 +6,7 @@ export class LoyaltyProgramConfigurationResponseDto {
   baseAmount: number | null;
   pointsAwarded: number | null;
   pointsExpirationMonths: number;
-  bonusType: FirstPurchaseBonusType | null;
+  bonusType: FirstConsumptionBonusType | null;
   bonusValue: number | null;
   isActive: boolean;
   validFrom: Date;
