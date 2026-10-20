@@ -7,6 +7,7 @@ Documentos que cambian con el tiempo: estado, pendientes y pedidos entre equipos
 | [estado-actual](./estado-actual.md) | Qué hay, qué no pude verificar e inconsistencias de documentación |
 | [deuda-tecnica](./deuda-tecnica.md) | Deuda, limitaciones aceptadas y riesgos |
 | [pendientes-frontend](./pendientes-frontend.md) | Pendientes del frontend del módulo de clientes |
+| [diferencias-prototipo-frontend](./diferencias-prototipo-frontend.md) | Diferencias entre el prototipo v2 y el frontend tras la alineación visual (sin historia asociada) |
 | [pedidos/](./pedidos/) | Pedidos entre equipos (ver [plantilla](../plantillas/pedido-entre-equipos.md)) |
 | [historico/](./historico/) | Documentos de traspaso y comparación de ramas, ya superados |
 

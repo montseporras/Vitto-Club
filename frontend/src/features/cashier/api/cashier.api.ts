@@ -38,12 +38,3 @@ export async function updateCustomer(id: number, body: UpdateCustomerBody) {
     throw toApiError(error)
   }
 }
-
-/** PATCH /customers/:id/activate: 204 sin body / 404 / 409 (ya activo). */
-export async function activateCustomer(id: number) {
-  try {
-    await http.patch(`/customers/${id}/activate`)
-  } catch (error) {
-    throw toApiError(error)
-  }
-}

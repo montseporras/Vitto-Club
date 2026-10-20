@@ -71,7 +71,7 @@
 
   <sc-if value="{{ m.open }}" hint-placeholder-val="{{ false }}">
     <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000; padding:16px;">
-      <div class="dialog" style="max-width:480px; width:100%;">
+      <div class="dialog" style="position:relative; max-width:480px; width:100%;"><button type="button" onClick="{{ cerrarAn }}" aria-label="Cerrar" title="Cerrar" style="position:absolute; top:16px; right:16px; width:36px; height:36px; display:grid; place-items:center; border:none; border-radius:999px; background:transparent; color:#7e3e20; cursor:pointer; z-index:1;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
         <sc-if value="{{ m.form }}" hint-placeholder-val="{{ true }}"><div>
           <div class="dialog-title">Anular consumo {{ m.codigo }}</div>
           <div class="dialog-body">

@@ -37,7 +37,6 @@ const SECTIONS = [
     icon: ICONS.coins,
     description: 'Reglas con las que los clientes suman puntos en sus compras.',
   },
-  { id: 'levels', label: 'Niveles de fidelización', icon: ICONS.award },
   { id: 'notifications', label: 'Notificaciones', icon: ICONS.bell },
 ] as const;
 
@@ -87,7 +86,8 @@ export function AdminLayout() {
           title={activeSection.label}
           description={'description' in activeSection ? activeSection.description : undefined}
           onClose={() => setSettingsOpen(false)}
-          className="min-h-[70vh] max-w-7xl"
+          // Medidas del prototipo v2: hasta 1280 px de ancho y el 92 % del alto de la ventana
+          className="h-[92vh] max-h-[92vh] max-w-7xl"
           bodyClassName="flex flex-1 gap-6 px-5 py-6 sm:px-6"
         >
           <SideNav
@@ -114,7 +114,7 @@ export function AdminLayout() {
               // "pendiente (otro RF)"; ahora muestra la pantalla nueva.
               <PointsSettingsPage />
             ) : (
-              // Niveles y Notificaciones siguen pendientes (otras historias).
+              // Notificaciones sigue pendiente (otra historia). Los niveles van dentro de Puntos.
               <StatusText>{activeSection.label}: pendiente (otro RF).</StatusText>
             )}
           </section>

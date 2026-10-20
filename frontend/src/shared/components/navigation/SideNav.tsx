@@ -72,12 +72,20 @@ export function SideNav({
     saveCollapsed(storageKey, !collapsed)
   }
 
-  const itemContent = (item: SideNavItem) => (
+  const itemContent = (item: SideNavItem, active: boolean) => (
     <>
       <Icon d={item.icon} className={sideNavStyles.icon} />
       <span className={cn(sideNavStyles.label, collapsed && sideNavStyles.labelCollapsed)}>
         {item.label}
       </span>
+      <Icon
+        d={ICONS.chevronRight}
+        className={cn(
+          sideNavStyles.chevron,
+          active && sideNavStyles.chevronActive,
+          collapsed && sideNavStyles.chevronCollapsed,
+        )}
+      />
     </>
   )
 
@@ -113,11 +121,12 @@ export function SideNav({
                 className={({ isActive }) =>
                   cn(
                     sideNavStyles.item,
+                    collapsed && sideNavStyles.itemCollapsed,
                     isActive ? sideNavStyles.itemActive : sideNavStyles.itemIdle,
                   )
                 }
               >
-                {itemContent(item)}
+                {({ isActive }) => itemContent(item, isActive)}
               </NavLink>
             ) : (
               <button
@@ -126,10 +135,11 @@ export function SideNav({
                 aria-current={item.active ? 'page' : undefined}
                 className={cn(
                   sideNavStyles.item,
+                  collapsed && sideNavStyles.itemCollapsed,
                   item.active ? sideNavStyles.itemActive : sideNavStyles.itemIdle,
                 )}
               >
-                {itemContent(item)}
+                {itemContent(item, item.active)}
               </button>
             )}
 
