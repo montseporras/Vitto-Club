@@ -1,12 +1,12 @@
 # API de configuración de puntos
 
 Esta API administra la configuración global del programa de puntos: la
-equivalencia de compra/puntos, la vigencia y la bonificación de primera compra.
-La configuración es consumible por futuros casos de uso de compras (RF-020);
+equivalencia de consumo/puntos, la vigencia y la bonificación de primer consumo.
+La configuración es consumible por futuros casos de uso de consumos (RF-020);
 este módulo no calcula ni acredita puntos.
 
 El módulo ofrece endpoints independientes para la equivalencia monto/puntos,
-la vigencia de puntos y la bonificación por primera compra, además de un
+la vigencia de puntos y la bonificación por primer consumo, además de un
 recurso agregado para consultar y versionar la configuración completa.
 
 ## Estado de disponibilidad
@@ -42,13 +42,13 @@ de la integración de autenticación.
 
 Este contrato cubre estas cuatro historias de configuración:
 
-1. Definir la equivalencia de monto de compra por puntos otorgados.
+1. Definir la equivalencia de monto de consumo por puntos otorgados.
 2. Definir la vigencia de los puntos, con default RF-010 de 12 meses.
-3. Definir la bonificación de primera compra (porcentaje o puntos fijos).
+3. Definir la bonificación de primer consumo (porcentaje o puntos fijos).
 4. Modificar la configuración sin reescribir versiones anteriores (RF-014).
 
 La API almacena reglas; no calcula ni acredita puntos, aplica bonificaciones a
-compras, ni procesa vencimientos. El prototipo representa tres secciones
+consumos, ni procesa vencimientos. El prototipo representa tres secciones
 independientes con su propio botón Guardar. Esas secciones se corresponden con
 las tres rutas seccionales de abajo.
 
@@ -84,16 +84,16 @@ Para el endpoint de vigencia, el contrato usa:
 `*` El request `PUT` puede omitirlo para activar el default de RF-010; se envía
 cuando se desea guardar un período personalizado.
 
-Para la bonificación por primera compra, el contrato usa:
+Para la bonificación por primer consumo, el contrato usa:
 
 | Campo        | Tipo JSON | Obligatorio | Regla                                                                                    |
 | ------------ | --------- | ----------: | ---------------------------------------------------------------------------------------- |
 | `bonusType`  | enum      |          Sí | `PERCENTAGE` o `FIXED_AMOUNT`.                                                           |
 | `bonusValue` | número    |          Sí | Porcentaje: `1` a `100`, con hasta 2 decimales. Fijo: entero de `1` a `10.000` puntos. |
 
-El monto se expresa en la moneda de compra que maneja el negocio (el prototipo
+El monto se expresa en la moneda de consumo que maneja el negocio (el prototipo
 usa `$`); la API no almacena un código de moneda ni aplica conversión
-cambiaria. La unidad monetaria debe ser consistente en todas las compras que
+cambiaria. La unidad monetaria debe ser consistente en todos los consumos que
 consuman esta equivalencia.
 
 El cuerpo debe ser un objeto JSON con `baseAmount` y `pointsAwarded`. No se
@@ -150,9 +150,9 @@ Request:
 }
 ```
 
-El ejemplo representa la regla “por cada `$996` de compra, se otorgan 10
+El ejemplo representa la regla “por cada `$996` de consumo, se otorgan 10
 puntos”. Este endpoint guarda la equivalencia tal cual: no interpreta
-redondeos, compras acumuladas ni el cálculo final de RF-020.
+redondeos, consumos acumuladas ni el cálculo final de RF-020.
 
 Respuesta `200 OK`:
 
@@ -289,10 +289,10 @@ curl --request PUT \
 Un `PUT` sin body o con body JSON `null` también crea/reemplaza el valor por
 defecto de 12 meses.
 
-## Consultar bonificación de primera compra
+## Consultar bonificación de primer consumo
 
 ```http
-GET /api/loyalty/configuration/first-purchase-bonus
+GET /api/loyalty/configuration/first-consumption-bonus
 ```
 
 No recibe query parameters ni body y, como el resto de la configuración, exige
@@ -309,13 +309,13 @@ Respuesta `200 OK`:
 ```
 
 Si aún no se configuró la bonificación, responde `404 Not Found` con el mensaje
-`First purchase bonus has not been configured`. No se inventa una bonificación
+`First consumption bonus has not been configured`. No se inventa una bonificación
 implícita cuando no existe un valor guardado.
 
-## Configurar bonificación de primera compra
+## Configurar bonificación de primer consumo
 
 ```http
-PUT /api/loyalty/configuration/first-purchase-bonus
+PUT /api/loyalty/configuration/first-consumption-bonus
 Content-Type: application/json
 ```
 
@@ -364,14 +364,14 @@ el valor como `int`, se admite precisión decimal de hasta dos lugares para
 
 Este endpoint guarda la regla como una nueva versión y deja las anteriores
 intactas. No calcula ni acredita puntos. En particular, la aplicación de la
-bonificación a una compra y el tratamiento de redondeos forman parte del caso
-de uso que procese las compras, no de este recurso de configuración.
+bonificación a un consumo y el tratamiento de redondeos forman parte del caso
+de uso que procese los consumos, no de este recurso de configuración.
 
 Ejemplo:
 
 ```sh
 curl --request PUT \
-  --url http://localhost:3000/api/loyalty/configuration/first-purchase-bonus \
+  --url http://localhost:3000/api/loyalty/configuration/first-consumption-bonus \
   --header 'Content-Type: application/json' \
   --data '{"bonusType":"FIXED_AMOUNT","bonusValue":30}'
 ```
@@ -417,7 +417,7 @@ validación de dominio puede incluir `details`:
 |           `400 Bad Request` | JSON inválido, campo requerido ausente (equivalencia/bonificación), campo extra, tipo incorrecto o valor fuera de rango. En vigencia se acepta omitir/null/vacío como 12; se rechazan fracciones y valores no positivos. En bonificación se validan el enum y los rangos/tipos específicos de cada tipo. |
 |          `401 Unauthorized` | No existe `request.user`; actualmente es la respuesta esperada hasta integrar autenticación.                                                                                                                                                                                                             |
 |             `403 Forbidden` | Existe un principal autenticado, pero su `role` no es exactamente `ADMIN`.                                                                                                                                                                                                                               |
-|             `404 Not Found` | Equivalencia o bonificación de primera compra aún no configurada. La consulta de vigencia devuelve el default de 12 meses.                                                                                                                                                                               |
+|             `404 Not Found` | Equivalencia o bonificación de primer consumo aún no configurada. La consulta de vigencia devuelve el default de 12 meses.                                                                                                                                                                               |
 | `500 Internal Server Error` | Error no previsto, por ejemplo una falla de persistencia; se registra en el log del backend sin exponer detalles internos al cliente.                                                                                                                                                                    |
 
 ## Estructura implementada
@@ -427,7 +427,7 @@ backend/src/loyalty/
   domain/
     points-equivalence.ts                 # invariantes y entidad
     points-validity.ts                    # default RF-010 e invariantes de vigencia
-    first-purchase-bonus.ts               # tipo, rangos y entidad de bonificación
+    first-consumption-bonus.ts               # tipo, rangos y entidad de bonificación
     errors/domain.error.ts                # error de validación de dominio
     port/loyalty-configuration.repository.ts
   application/
@@ -437,8 +437,8 @@ backend/src/loyalty/
   http/
     loyalty.controller.ts                 # GET y PUT REST
     points-validity.controller.ts         # GET y PUT de vigencia
-    first-purchase-bonus.controller.ts    # GET y PUT de bonificación
-    validators/first-purchase-bonus-value.validator.ts
+    first-consumption-bonus.controller.ts    # GET y PUT de bonificación
+    validators/first-consumption-bonus-value.validator.ts
     dto/                                   # DTO de request y response
     guards/admin-role.guard.ts              # autorización ADMIN
     filters/loyalty-exception.filter.ts     # formato de errores HTTP
@@ -554,7 +554,7 @@ sigue siendo requisito operativo para consumo por clientes reales.
 
 La nueva versión no ejecuta `UPDATE` sobre una versión anterior y ninguna
 configuración se aplica retroactivamente desde este módulo. Sin embargo, el
-esquema actual no contiene entidades de compra, movimiento ni acreditación de
+esquema actual no contiene entidades de consumo, movimiento ni acreditación de
 puntos; por eso aún no existe un movimiento pasado que esta historia pueda
 consultar o contrastar. Cuando RF-020 implemente esas operaciones, deberá
 leer la versión activa y guardar en cada movimiento el número de versión y los
@@ -590,7 +590,7 @@ recomendado para esa pantalla es:
 | Cargar snapshot completo         | `GET /api/loyalty/configuration/current`                    | Ninguno                                                                                |
 | Guardar equivalencia             | `PUT /api/loyalty/configuration/points-equivalence`         | `baseAmount`, `pointsAwarded`                                                          |
 | Guardar vigencia                 | `PUT /api/loyalty/configuration/points-validity`            | `pointsExpirationMonths` (opcional; ausente/null/vacío aplica 12)                      |
-| Guardar bonificación             | `PUT /api/loyalty/configuration/first-purchase-bonus`       | `bonusType`, `bonusValue`                                                              |
+| Guardar bonificación             | `PUT /api/loyalty/configuration/first-consumption-bonus`       | `bonusType`, `bonusValue`                                                              |
 | Guardar snapshot de todas las secciones | `PUT /api/loyalty/configuration`                    | Equivalencia y bonificación completas; vigencia opcional (recomendado incluirla)      |
 
 También se puede usar `PUT /api/loyalty/configuration` si la interfaz ofrece
@@ -666,7 +666,7 @@ Bonificación porcentual (el botón de tipo “Porcentaje” equivale al enum
 `PERCENTAGE`):
 
 ```http
-PUT /api/loyalty/configuration/first-purchase-bonus
+PUT /api/loyalty/configuration/first-consumption-bonus
 Content-Type: application/json
 ```
 
@@ -764,9 +764,9 @@ documentado.
 - Autenticación, creación/validación de sesiones o tokens y middleware que
   popula `request.user`; depende de la historia de autenticación.
 - Auditoría de qué usuario hizo el cambio o fechas futuras de activación.
-- Interpretación de compras, acumulación, redondeo o acreditación de puntos
+- Interpretación de consumos, acumulación, redondeo o acreditación de puntos
   (RF-020), incluida la aplicación del porcentaje o suma de puntos fijos a una
-  compra concreta.
+  consumo concreta.
 - Cálculo del vencimiento por lote de puntos, proceso periódico que los expire
   o notificaciones previas al vencimiento. Esta API almacena los meses de
   vigencia; RF-010 no implementa el proceso de expiración.

@@ -16,10 +16,11 @@ Carpeta: `backend/prisma/migrations/`. Las descripciones salen de los comentario
 | 2026-10-07 | `customers_unique_email_all` | Documento y email únicos entre **todos** los clientes (decisión del PO del 07/10) |
 | 2026-10-07 | `add_loyalty_points_configuration` | Tabla de equivalencia monto/puntos (sin comentario en el SQL) |
 | 2026-10-07 | `add_points_validity_configuration` | Tabla de vigencia de puntos (sin comentario en el SQL) |
-| 2026-10-07 | `add_first_purchase_bonus_configuration` | Tabla de bonificación de primera compra (sin comentario en el SQL) |
+| 2026-10-07 | `add_first_purchase_bonus_configuration` | Tabla de bonificación de primer consumo (sin comentario en el SQL) |
 | 2026-10-07 | `version_loyalty_program_configuration` | Configuración versionada; conserva los últimos valores singleton como versión 1 sin borrar las filas legado |
 | 2026-10-08 | `customers_unique_among_active_final` | Vuelve a únicos solo entre **activos** (decisión final del PO del 08/10). Reemplaza a `unique_email_all` |
 | 2026-10-08 | `set_percentage_bonus_minimum_to_one` | Exige mínimo 1 % en bonificaciones por porcentaje. **Se aborta con error** si hay valores menores a 1 |
+| 2026-10-20 | `consumption_naming_and_voided_lot` | Renombra "compra" → "consumo" en lo que ya estaba en la base (`FirstConsumptionBonusType`, `CONSUMPTION_CREDIT`, `FIRST_CONSUMPTION_BONUS_UPDATED`, tabla `first_consumption_bonus_configuration` y sus constraints) y agrega `VOIDED` a `PointsLotStatus` |
 
 ## Advertencias que figuran en los docs
 

@@ -1012,7 +1012,7 @@ textarea.input { min-height: 90px; resize: vertical; }
               <button type="button" class="btn btn-secondary" style="height:30px; padding:0 10px; font-size:12px;" sc-camel-on-click="{{ usarDemoCajero }}">Cajero · lucia.fernandez@lavitto.com</button>
               <button type="button" class="btn btn-secondary" style="height:30px; padding:0 10px; font-size:12px;" sc-camel-on-click="{{ usarDemoAdmin }}">Administrador · denise.nagel@lavitto.com</button>
             </div>
-            <details><summary style="cursor:pointer; color:#7a3a1d; font-weight:600;">Notas de consistencia</summary><p style="margin:6px 0 0;">Identificar al cliente y ver su resumen en caja se resolvieron como parte de "Registrar compra" (US-21, RNF-1 / RNF-2). El autorregistro del cliente es una extensión del Plan de Proyecto, que asigna el alta de clientes al Cajero (RF-015, US-17); se mantiene también el alta desde el mostrador.</p></details>
+            <details><summary style="cursor:pointer; color:#7a3a1d; font-weight:600;">Notas de consistencia</summary><p style="margin:6px 0 0;">Identificar al cliente y ver su resumen en caja se resolvieron como parte de "Registrar consumo" (US-21, RNF-1 / RNF-2). El autorregistro del cliente es una extensión del Plan de Proyecto, que asigna el alta de clientes al Cajero (RF-015, US-17); se mantiene también el alta desde el mostrador.</p></details>
           </div></div>
 </div>
           
@@ -1267,7 +1267,7 @@ textarea.input { min-height: 90px; resize: vertical; }
                 </div>
 
                 <div class="hr" style="margin:14px 0;"></div>
-                <h6 style="margin:0 0 8px; font-size:13px;" sc-camel-on-mouse-enter="{{ on_e_cliente_canjes }}" sc-camel-on-mouse-leave="{{ leaveTip }}">Canjes pendientes</h6>
+                <h6 style="margin:0 0 8px; font-size:13px;" sc-camel-on-mouse-enter="{{ on_e_cliente_canjes }}" sc-camel-on-mouse-leave="{{ leaveTip }}">Canjes</h6>
                 <sc-if value="{{ hayCanjesEmpleado }}" hint-placeholder-val="{{ false }}">
                   <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:10px;">
                     <sc-for list="{{ canjesEmpleado }}" as="c" hint-placeholder-count="1">
@@ -1286,7 +1286,7 @@ textarea.input { min-height: 90px; resize: vertical; }
                     </sc-for>
                   </div>
                 </sc-if>
-                <sc-if value="{{ noHayCanjesEmpleado }}" hint-placeholder-val="{{ true }}"><p class="text-muted" style="font-size:13px;">Este cliente no tiene canjes pendientes.</p></sc-if>
+                <sc-if value="{{ noHayCanjesEmpleado }}" hint-placeholder-val="{{ true }}"><p class="text-muted" style="font-size:13px;">Este cliente no tiene canjes.</p></sc-if>
 
                 <div class="hr" style="margin:14px 0;"></div>
                 <h6 style="margin:0 0 8px; font-size:13px;" sc-camel-on-mouse-enter="{{ on_e_cliente_recompensas }}" sc-camel-on-mouse-leave="{{ leaveTip }}">Recompensas a las que puede acceder</h6>
@@ -1311,7 +1311,7 @@ textarea.input { min-height: 90px; resize: vertical; }
                   <p style="font-size:11px; margin:8px 0 0;" class="text-muted">Como cajero solo podés ver y corregir movimientos de las últimas 24 hs. Para casos más antiguos, contactá a un administrador.</p>
                   <div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-3); margin-top:var(--space-3);">
                     <div>
-                      <h6>Compras</h6>
+                      <h6>Consumos</h6>
                       <sc-for list="{{ comprasEmpleado }}" as="c" hint-placeholder-count="2">
                         <div class="card" style="border:2px solid var(--color-divider); padding:8px; margin-bottom:6px; font-size:12px;">
                           <div style="display:flex; justify-content:space-between;"><span>#{{ c.id }} · {{ c.fecha }} · ${{ c.monto }}</span><span class="{{ c.claseTag }}">{{ c.estado }}</span></div>
@@ -1494,7 +1494,7 @@ textarea.input { min-height: 90px; resize: vertical; }
               <h4>Estadísticas y reportes</h4>
               <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:var(--space-3);">
                 <div class="vc-panel"><div class="text-muted" style="font-size:11px;">Clientes activos</div><div style="font-size:18px; font-weight:800; font-family:var(--font-heading);">184</div></div>
-                <div class="vc-panel"><div class="text-muted" style="font-size:11px;">Compras (mes)</div><div style="font-size:18px; font-weight:800; font-family:var(--font-heading);">612</div></div>
+                <div class="vc-panel"><div class="text-muted" style="font-size:11px;">Consumos (mes)</div><div style="font-size:18px; font-weight:800; font-family:var(--font-heading);">612</div></div>
                 <div class="vc-panel"><div class="text-muted" style="font-size:11px;">Puntos otorgados</div><div style="font-size:18px; font-weight:800; font-family:var(--font-heading);">58.900</div></div>
                 <div class="vc-panel"><div class="text-muted" style="font-size:11px;">Recompensas canjeadas</div><div style="font-size:18px; font-weight:800; font-family:var(--font-heading);">37</div></div>
               </div>
@@ -1505,7 +1505,7 @@ textarea.input { min-height: 90px; resize: vertical; }
           <sc-if value="{{ aIsAuditoria }}" hint-placeholder-val="{{ false }}">
             <div class="card" style="padding:22px;" sc-camel-on-mouse-enter="{{ on_a_nav_auditoria }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
               <h4>Auditoría</h4>
-              <div style="border:1px dashed #d9804f; background:#fffaf3; border-radius:12px; padding:10px 14px; margin-bottom:14px; font-size:13px; color:#6b5446;"><strong style="color:#7a3a1d;">Nota del prototipo (no es parte del diseño de la pantalla):</strong> cada movimiento se puede abrir para ver sus detalles internos, como el monto de la compra y los puntos otorgados, el valor anterior y el nuevo de una configuración modificada, o qué puntos vencieron y cuántos.</div>
+              <div style="border:1px dashed #d9804f; background:#fffaf3; border-radius:12px; padding:10px 14px; margin-bottom:14px; font-size:13px; color:#6b5446;"><strong style="color:#7a3a1d;">Nota del prototipo (no es parte del diseño de la pantalla):</strong> cada movimiento se puede abrir para ver sus detalles internos, como el monto del consumo y los puntos otorgados, el valor anterior y el nuevo de una configuración modificada, o qué puntos vencieron y cuántos.</div>
               <dc-import name="Auditoria" registros="{{ auditoriaRegistros }}" empleados="{{ auditoriaEmpleados }}" hint-size="100%,480px"></dc-import>
             </div>
           </sc-if>
@@ -1555,7 +1555,7 @@ textarea.input { min-height: 90px; resize: vertical; }
             <sc-if value="{{ cIsConfig }}" hint-placeholder-val="{{ false }}">
               <div class="vc-r" style="display:flex; flex-direction:column; gap:24px;">
                 <p style="margin:0; font-size:16px; color:#5c5249;">Los cambios se aplican a las operaciones futuras. Los movimientos ya registrados no se modifican.</p>
-                <div sc-camel-on-mouse-enter="{{ on_a_config_equivalencia }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><div class="vc-c-pcard"><h3 class="vc-c-pcard-title">Equivalencia de puntos</h3><p style="margin:0; font-size:16px; color:#5c5249; margin:4px 0 24px;">Cantidad de puntos que suma el cliente según el monto de cada compra.</p><sc-if value="{{ ptsOk.eq }}" hint-placeholder-val="{{ false }}"><div role="status" style="display:flex; align-items:flex-start; gap:12px; border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; line-height:1.5; box-shadow:0 1px 2px rgba(0,0,0,.05); margin-bottom:24px;"><span style="margin-top:1px; display:flex;"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M20 6 9 17l-5-5"></path></svg></span><div style="min-width:0;">Equivalencia de puntos guardada. Aplica a las operaciones futuras.</div></div></sc-if>
+                <div sc-camel-on-mouse-enter="{{ on_a_config_equivalencia }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><div class="vc-c-pcard"><h3 class="vc-c-pcard-title">Equivalencia de puntos</h3><p style="margin:0; font-size:16px; color:#5c5249; margin:4px 0 24px;">Cantidad de puntos que suma el cliente según el monto de cada consumo.</p><sc-if value="{{ ptsOk.eq }}" hint-placeholder-val="{{ false }}"><div role="status" style="display:flex; align-items:flex-start; gap:12px; border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; line-height:1.5; box-shadow:0 1px 2px rgba(0,0,0,.05); margin-bottom:24px;"><span style="margin-top:1px; display:flex;"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M20 6 9 17l-5-5"></path></svg></span><div style="min-width:0;">Equivalencia de puntos guardada. Aplica a las operaciones futuras.</div></div></sc-if>
                   <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;"><span class="vc-label">Por cada $</span><input class="input" type="number" style="width:160px;" aria-invalid="{{ inv.ptsMonto }}" value="{{ config.montoBase }}" sc-camel-on-change="{{ on.ptsMonto }}"><span class="vc-label">se otorgan</span><input class="input" type="number" style="width:112px;" aria-invalid="{{ inv.ptsPuntos }}" value="{{ config.puntosPorMonto }}" sc-camel-on-change="{{ on.ptsPuntos }}"><span class="vc-label">puntos</span></div>
                   <div style="margin-top:8px; display:flex; flex-direction:column; gap:4px;"><sc-if value="{{ err.ptsMonto }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ err.ptsMonto }}</p></sc-if><sc-if value="{{ err.ptsPuntos }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ err.ptsPuntos }}</p></sc-if><sc-if value="{{ ptsHintEq }}" hint-placeholder-val="{{ true }}"><p style="margin:0; font-size:12px; color:#7a6e63;">Monto de hasta $ 1.000.000 (con centavos si hace falta) y entre 1 y 10.000 puntos, sin decimales.</p></sc-if></div>
                   <div class="vc-c-pcard-actions"><button type="button" class="btn btn-primary btn-lg" disabled="{{ ptsDis.eq }}" sc-camel-on-click="{{ guardarEq }}">Guardar</button></div></div></div>
@@ -1570,7 +1570,7 @@ textarea.input { min-height: 90px; resize: vertical; }
                 <div sc-camel-on-mouse-enter="{{ on_a_config_vigencia }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><div class="vc-c-pcard"><h3 class="vc-c-pcard-title">Vigencia de los puntos</h3><p style="margin:0; font-size:16px; color:#5c5249; margin:4px 0 24px;">Meses que los puntos permanecen disponibles desde que se acreditan.</p><sc-if value="{{ ptsOk.vig }}" hint-placeholder-val="{{ false }}"><div role="status" style="display:flex; align-items:flex-start; gap:12px; border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; line-height:1.5; box-shadow:0 1px 2px rgba(0,0,0,.05); margin-bottom:24px;"><span style="margin-top:1px; display:flex;"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M20 6 9 17l-5-5"></path></svg></span><div style="min-width:0;">Vigencia de los puntos guardada. Aplica a las operaciones futuras.</div></div></sc-if>
                   <div class="field"><label>Meses</label><input class="input" type="number" style="width:160px;" aria-invalid="{{ inv.ptsMeses }}" value="{{ config.vigenciaMeses }}" sc-camel-on-change="{{ on.ptsMeses }}"><sc-if value="{{ err.ptsMeses }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ err.ptsMeses }}</p></sc-if><sc-if value="{{ noErr.ptsMeses }}" hint-placeholder-val="{{ true }}"><p style="margin:0; font-size:12px; color:#7a6e63;">Entre 1 y 120 meses, sin decimales. Por defecto, 12 meses.</p></sc-if></div>
                   <div class="vc-c-pcard-actions"><button type="button" class="btn btn-primary btn-lg" disabled="{{ ptsDis.vig }}" sc-camel-on-click="{{ guardarVig }}">Guardar</button></div></div></div>
-                <div sc-camel-on-mouse-enter="{{ on_a_config_bonif }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><div class="vc-c-pcard"><h3 class="vc-c-pcard-title">Bonificación por primera compra</h3><p style="margin:0; font-size:16px; color:#5c5249; margin:4px 0 24px;">Puntos adicionales que recibe el cliente en su primera compra registrada, además de los que le corresponden normalmente.</p><sc-if value="{{ ptsOk.bon }}" hint-placeholder-val="{{ false }}"><div role="status" style="display:flex; align-items:flex-start; gap:12px; border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; line-height:1.5; box-shadow:0 1px 2px rgba(0,0,0,.05); margin-bottom:24px;"><span style="margin-top:1px; display:flex;"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M20 6 9 17l-5-5"></path></svg></span><div style="min-width:0;">Bonificación por primera compra guardada. Aplica a las operaciones futuras.</div></div></sc-if>
+                <div sc-camel-on-mouse-enter="{{ on_a_config_bonif }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><div class="vc-c-pcard"><h3 class="vc-c-pcard-title">Bonificación por primer consumo</h3><p style="margin:0; font-size:16px; color:#5c5249; margin:4px 0 24px;">Puntos adicionales que recibe el cliente en su primer consumo registrada, además de los que le corresponden normalmente.</p><sc-if value="{{ ptsOk.bon }}" hint-placeholder-val="{{ false }}"><div role="status" style="display:flex; align-items:flex-start; gap:12px; border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; line-height:1.5; box-shadow:0 1px 2px rgba(0,0,0,.05); margin-bottom:24px;"><span style="margin-top:1px; display:flex;"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M20 6 9 17l-5-5"></path></svg></span><div style="min-width:0;">Bonificación por primer consumo guardada. Aplica a las operaciones futuras.</div></div></sc-if>
                   <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:20px;"><div style="display:flex; flex-direction:column; gap:6px;"><span class="vc-label" style="margin-bottom:6px;">Tipo de bonificación</span><div class="vc-seg"><button type="button" class="{{ bonifSegPctCls }}" sc-camel-on-click="{{ setBonifPct }}">Porcentaje</button><button type="button" class="{{ bonifSegFijosCls }}" sc-camel-on-click="{{ setBonifFijos }}">Puntos fijos</button></div></div><div class="field"><label>{{ bonifLabel }}</label><input class="input" type="number" aria-invalid="{{ inv.ptsBonif }}" value="{{ config.bonificacionPrimeraCompra }}" sc-camel-on-change="{{ on.ptsBonif }}"><sc-if value="{{ err.ptsBonif }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ err.ptsBonif }}</p></sc-if><sc-if value="{{ noErr.ptsBonif }}" hint-placeholder-val="{{ true }}"><p style="margin:0; font-size:12px; color:#7a6e63;">{{ bonifHint }}</p></sc-if></div></div>
                   <div class="vc-c-pcard-actions"><button type="button" class="btn btn-primary btn-lg" disabled="{{ ptsDis.bon }}" sc-camel-on-click="{{ guardarBon }}">Guardar</button></div></div></div>
               </div>
@@ -1810,9 +1810,9 @@ textarea.input { min-height: 90px; resize: vertical; }
   <sc-if value="{{ anulacion.compraId }}" hint-placeholder-val="{{ false }}">
     <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000;">
       <div class="dialog" style="max-width:420px;">
-        <div class="dialog-title">Anular compra #{{ anulacion.compraId }}</div>
+        <div class="dialog-title">Anular consumo #{{ anulacion.compraId }}</div>
         <div class="dialog-body">
-          <p style="font-size:13px; color:var(--color-accent-700); margin-top:0;">Esta acción revertirá los puntos acreditados por esta compra y quedará registrada en el historial de auditoría. Esta operación no se puede deshacer.</p>
+          <p style="font-size:13px; color:var(--color-accent-700); margin-top:0;">Esta acción revertirá los puntos acreditados por este consumo y quedará registrada en el historial de auditoría. Esta operación no se puede deshacer.</p>
           <div class="field"><label>Motivo de la anulación (obligatorio)</label><textarea class="input vc-input" rows="3" value="{{ anulacion.motivo }}" sc-camel-on-change="{{ setMotivoAnulacion }}" placeholder="Ej: error en el monto ingresado"></textarea></div>
           <sc-if value="{{ anulacionMsg }}" hint-placeholder-val="{{ false }}"><p style="font-size:12px; color:var(--color-accent-700);">{{ anulacionMsg }}</p></sc-if>
         </div>
@@ -1942,8 +1942,8 @@ class Component extends DCLogic {
       nombre: 'Marcos Peralta', dni: '30111222', tipoDocumento: 'DNI', puntos: 480,
       telefono: '3547-555123', email: 'marcos.peralta@mail.com', fechaNacimiento: '',
       compras: [
-        { id: 101, fecha: '08/09/2026', monto: 32000, puntos: 320, estado: 'Registrada', ts: Date.now() - 3 * 60 * 60 * 1000 },
-        { id: 100, fecha: '01/09/2026', monto: 18500, puntos: 185, estado: 'Registrada', ts: Date.now() - 12 * 24 * 60 * 60 * 1000 }
+        { id: 101, fecha: '08/09/2026', monto: 32000, puntos: 320, estado: 'Registrado', ts: Date.now() - 3 * 60 * 60 * 1000 },
+        { id: 100, fecha: '01/09/2026', monto: 18500, puntos: 185, estado: 'Registrado', ts: Date.now() - 12 * 24 * 60 * 60 * 1000 }
       ],
       movimientos: [
         { id: 3, fecha: '08/09/2026', cantidad: 320, motivo: 'Consumo #101', estado: 'Vigente', ts: Date.now() - 3 * 60 * 60 * 1000 },
@@ -1966,12 +1966,12 @@ class Component extends DCLogic {
     ],
     niveles: [
       { id: 1, nombre: 'Bronce', minimo: 0, beneficio: 'Acumulación estándar de puntos' },
-      { id: 2, nombre: 'Plata', minimo: 300, beneficio: '5% de puntos extra por compra' },
+      { id: 2, nombre: 'Plata', minimo: 300, beneficio: '5% de puntos extra por consumo' },
       { id: 3, nombre: 'Oro', minimo: 800, beneficio: '10% de puntos extra + prioridad de reserva' }
     ],
     misionesAdmin: [
       { id: 1, nombre: 'Vení 3 veces esta semana', objetivo: '3 visitas en el mes', recompensa: 50, fechaDesde: '2026-09-01', fechaHasta: '2026-09-30', horaDesde: '', horaHasta: '', periodoTipo: 'Semanas', periodoCantidad: 1, estado: 'Activa' },
-      { id: 2, nombre: 'Probá el brunch de domingo', objetivo: '1 compra en el brunch', recompensa: 100, fechaDesde: '2026-09-01', fechaHasta: '2026-09-30', horaDesde: '09:00', horaHasta: '13:00', periodoTipo: 'Meses', periodoCantidad: 1, estado: 'Activa' }
+      { id: 2, nombre: 'Probá el brunch de domingo', objetivo: '1 consumo en el brunch', recompensa: 100, fechaDesde: '2026-09-01', fechaHasta: '2026-09-30', horaDesde: '09:00', horaHasta: '13:00', periodoTipo: 'Meses', periodoCantidad: 1, estado: 'Activa' }
     ],
     empleados: [
       { id: 1, nombre: 'Ana', apellido: 'Gómez', rol: 'Administrador', email: 'ana.gomez@lavitto.com', telefono: '3510000001', estado: 'Activo' },
@@ -2002,7 +2002,7 @@ class Component extends DCLogic {
     configGuardada: { montoBase: 1000, puntosPorMonto: 10, vigenciaMeses: 12, bonificacionPrimeraCompra: 30, bonificacionTipo: 'fijos' },
     auditoriaDetalle: null,
     auditoria: [
-      { fecha: '08/09/2026 13:02', usuario: 'Lucía Fernández', accion: 'Registró compra #101', detalle: [['Cliente', 'Marcos Peralta (DNI 30111222)'], ['Monto de la compra', '$32.000'], ['Equivalencia aplicada', '10 pts por cada $1.000'], ['Puntos otorgados', '320'], ['Saldo anterior', '160 pts'], ['Saldo nuevo', '480 pts']] },
+      { fecha: '08/09/2026 13:02', usuario: 'Lucía Fernández', accion: 'Registró consumo #101', detalle: [['Cliente', 'Marcos Peralta (DNI 30111222)'], ['Monto del consumo', '$32.000'], ['Equivalencia aplicada', '10 pts por cada $1.000'], ['Puntos otorgados', '320'], ['Saldo anterior', '160 pts'], ['Saldo nuevo', '480 pts']] },
       { fecha: '01/09/2026 10:15', usuario: 'Denise Nagel', accion: 'Modificó configuración de puntos', detalle: [['Puntos por cada $1.000', '8 → 10'], ['Vigencia (meses)', '12 → 12 (sin cambios)']] },
       { fecha: '01/09/2025 00:00', usuario: 'Sistema', accion: 'Venció automáticamente un lote de puntos', detalle: [['Cliente', 'Marcos Peralta (DNI 30111222)'], ['Puntos vencidos', '40'], ['Acreditados el', '01/09/2024'], ['Motivo', 'Vigencia de 12 meses cumplida']] }
     ],
@@ -2034,13 +2034,13 @@ class Component extends DCLogic {
     c_tab_misiones: 'US-33 · RF-036 — Consultar las misiones vigentes y el progreso',
     c_mision_reclamar: 'US-31 · RF-034 — Reclamar la recompensa de una misión completada',
     c_tab_canjes: 'US-45 · RF-049 — Consultar mis canjes y su estado',
-    e_nav_cliente: 'US-46 · RNF-1 / RNF-2 — Identificar cliente, parte del flujo de Registrar compra (US-21)',
+    e_nav_cliente: 'US-46 · RNF-1 / RNF-2 — Identificar cliente, parte del flujo de Registrar consumo (US-21)',
     e_cliente_buscar: 'US-46 · RNF-2 — Identificar cliente por tipo y número de documento en máximo 3 pasos',
     e_cliente_resumen: 'US-46 / US-19 · RNF-1 / RF-017 — Ver el resumen del cliente al identificarlo (puntos, nivel)',
-    e_cliente_compra: 'US-21 · RF-019 / RF-020 / RF-023 — Registrar compra y acreditar puntos',
-    e_compra_registrar: 'US-21 · RF-019 / RF-020 / RF-023 — Registrar compra: calcula y acredita puntos, actualiza nivel',
-    e_compra_anular: 'US-22 · RF-021 — Anular compra revirtiendo los puntos acreditados (requiere motivo)',
-    e_cliente_historial: 'US-23 / US-26 · RF-022 / RF-027 — Ver historial de compras y movimientos de puntos del cliente',
+    e_cliente_compra: 'US-21 · RF-019 / RF-020 / RF-023 — Registrar consumo y acreditar puntos',
+    e_compra_registrar: 'US-21 · RF-019 / RF-020 / RF-023 — Registrar consumo: calcula y acredita puntos, actualiza nivel',
+    e_compra_anular: 'US-22 · RF-021 — Anular consumo revirtiendo los puntos acreditados (requiere motivo)',
+    e_cliente_historial: 'US-23 / US-26 · RF-022 / RF-027 — Ver historial de consumos y movimientos de puntos del cliente',
     e_cliente_canjes: 'US-45 · RF-049 — Consultar y gestionar los canjes del cliente identificado',
     e_cliente_recompensas: 'US-42 (contexto) · RF-042 — Ver a qué recompensas del catálogo alcanzan los puntos del cliente',
     e_nav_canje: 'US-41 · RF-045 — Confirmar canje por código, sin pasar por identificación',
@@ -2055,7 +2055,7 @@ class Component extends DCLogic {
     a_nav_config: 'EP02 · RF-09 a RF-014 — Configuración del programa de fidelización',
     a_config_equivalencia: 'US-11 · RF-09 — Definir puntos otorgados por unidad de monto',
     a_config_vigencia: 'US-12 · RF-010 — Definir el período de vigencia de los puntos',
-    a_config_bonif: 'US-13 · RF-011 — Definir la bonificación por primera compra',
+    a_config_bonif: 'US-13 · RF-011 — Definir la bonificación por primer consumo',
     a_config_guardar: 'US-16 · RF-014 — Modificar configuración sin afectar el historial',
     a_nav_niveles: 'US-27 · RF-028 — Configurar niveles de fidelización, puntaje mínimo y beneficios',
     a_nav_misiones: 'EP05 · RF-030 a RF-036 — Gestión de misiones mensuales',
@@ -2078,7 +2078,7 @@ class Component extends DCLogic {
 
   CFG_T = {
     empleados: ['Empleados', 'Cada empleado ingresa al sistema con su mail, según su rol.'],
-    config: ['Puntos', 'Reglas con las que los clientes suman puntos en sus compras.'],
+    config: ['Puntos', 'Reglas con las que los clientes suman puntos en sus consumos.'],
     niveles: ['Niveles de fidelización', 'Puntaje mínimo y beneficios de cada nivel del programa.'],
     notif: ['Notificaciones', 'Mensajes que el sistema envía automáticamente a los clientes.']
   };
@@ -2094,7 +2094,7 @@ class Component extends DCLogic {
       login: { t: 'Ingresar', c: [['Mail', MAIL, 'si'], ['Contraseña', 'String', 'si'], ['Rol', 'enum', 'auto']] },
       registro: { t: 'Registrarme', c: cli.concat([['Contraseña', 'String', 'si'], ['Rol', 'enum', 'auto']]) },
       c_recompensas: { t: 'Inicio · Recompensas', c: [['Puntos disponibles', 'int', 'auto'], ['Nivel', 'String', 'auto'], ['Recompensa', 'String', 'si'], ['Puntos requeridos', 'int', 'si'], ['Vencimiento', 'Date', 'si'], ['Foto', 'Image', 'no'], ['Filtro', 'enum', 'no']] },
-      c_historial: { t: 'Historial', c: [['Fecha de compra', 'Date', 'auto'], ['Monto', 'float', 'si'], ['Puntos acreditados', 'int', 'auto'], ['Estado de compra', 'enum', 'auto'], ['Fecha de movimiento', 'Date', 'auto'], ['Cantidad de puntos', 'int', 'auto'], ['Motivo', 'String', 'auto'], ['Estado de puntos', 'enum', 'auto']] },
+      c_historial: { t: 'Historial', c: [['Fecha de consumo', 'Date', 'auto'], ['Monto', 'float', 'si'], ['Puntos acreditados', 'int', 'auto'], ['Estado de consumo', 'enum', 'auto'], ['Fecha de movimiento', 'Date', 'auto'], ['Cantidad de puntos', 'int', 'auto'], ['Motivo', 'String', 'auto'], ['Estado de puntos', 'enum', 'auto']] },
       c_misiones: { t: 'Misiones', c: [['Nombre', 'String', 'si'], ['Progreso', 'int', 'auto'], ['Objetivo', 'int', 'si'], ['Recompensa', 'int', 'si'], ['Estado', 'enum', 'auto']] },
       c_canjes: { t: 'Mis canjes', c: [['Recompensa', 'String', 'si'], ['Código', 'String', 'auto'], ['Puntos', 'int', 'auto'], ['Vencimiento del canje', 'DateTime', 'auto'], ['Estado', 'enum', 'auto']] },
       c_perfil: { t: 'Mi perfil', c: [['Nombre y apellido', 'String', 'auto'], ['Documento', 'enum + String', 'auto'], ['Teléfono', 'String', 'no'], ['Mail', MAIL, 'si'], ['Fecha de nacimiento', 'Date', 'no'], ['Contraseña actual · solo si cambia el correo', 'String', 'si']] },
@@ -2104,13 +2104,13 @@ class Component extends DCLogic {
       a_consumo: { t: 'Registrar consumo', c: [['Tipo de documento', DOC, 'si'], ['Número de documento', 'String', 'si'], ['Monto del consumo', 'float', 'si'], ['Observaciones', 'String', 'no']] },
       e_altaCliente: { t: 'Nuevo cliente', c: cli.concat([['Rol', 'enum', 'auto']]) },
       e_canje: { t: 'Gestionar canje por código', c: [['Código de canje', 'String', 'si'], ['Estado', 'enum', 'auto']] },
-      e_anulacion: { t: 'Anular compra', c: [['Motivo de la anulación', 'String', 'si']] },
+      e_anulacion: { t: 'Anular consumo', c: [['Motivo de la anulación', 'String', 'si']] },
       canje_confirm: { t: 'Confirmar canje', c: [['Recompensa', 'String', 'si'], ['Puntos', 'int', 'si'], ['Vencimiento', 'Date', 'si']] },
       a_recompensas: { t: 'Catálogo de recompensas', c: rec },
       a_misiones: { t: 'Misiones', c: mis },
       a_clientes: { t: 'Clientes', c: [['Apellido', 'String', 'si'], ['Nombre', 'String', 'si'], ['Nivel', 'String', 'auto'], ['Saldo', 'int', 'auto'], ['Fecha de alta', 'Date', 'auto'], ['Estado', 'enum', 'auto'], ['Búsqueda', 'String', 'no'], ['Filtro de nivel', 'enum', 'no']] },
       a_cliente_edit: { t: 'Editar cliente', c: [['Nombre', 'String', 'si'], ['Apellido', 'String', 'si'], ['Número de documento', 'String', 'si'], ['Teléfono', 'String', 'no'], ['Mail', MAIL, 'si'], ['Motivo del cambio', 'String', 'si']] },
-      a_stats: { t: 'Estadísticas', c: [['Clientes activos', 'int', 'auto'], ['Compras del mes', 'int', 'auto'], ['Puntos otorgados', 'int', 'auto'], ['Recompensas canjeadas', 'int', 'auto']] },
+      a_stats: { t: 'Estadísticas', c: [['Clientes activos', 'int', 'auto'], ['Consumos del mes', 'int', 'auto'], ['Puntos otorgados', 'int', 'auto'], ['Recompensas canjeadas', 'int', 'auto']] },
       a_auditoria: { t: 'Auditoría', c: [['Fecha y hora', 'DateTime', 'auto'], ['Realizado por', 'String', 'auto'], ['Módulo', 'enum', 'auto'], ['Acción', 'String', 'auto'], ['Cliente afectado', 'String', 'auto'], ['Detalle', 'lista', 'auto'], ['Filtro: realizado por', 'enum', 'no'], ['Filtro: módulo', 'enum', 'no'], ['Filtro: acción', 'enum', 'no'], ['Filtro: tipo y N° de documento', 'enum + String', 'no'], ['Filtro: fecha o rango', 'Date', 'no']] },
       cfg_empleados: { t: 'Empleados', c: emp },
       cfg_config: { t: 'Puntos', c: [['Monto base ($)', 'float', 'si'], ['Puntos por monto', 'int', 'si'], ['Vigencia', 'int', 'si'], ['Tipo de bonificación', 'enum', 'si'], ['Valor de bonificación', 'decimal (porcentaje) / int (fijo)', 'si'], ['Umbral Plata', 'int', 'si'], ['Umbral Oro', 'int', 'si']] },
@@ -2163,8 +2163,8 @@ class Component extends DCLogic {
   }
 
   claseEstado(estado) {
-    const ok = ['Registrada', 'Vigente', 'Completada', 'Activa', 'Activo', 'Confirmado'];
-    const off = ['Anulada', 'Vencido', 'Vencida', 'Agotada', 'Inactiva', 'Inactivo', 'Rechazado', 'Cancelado'];
+    const ok = ['Registrado', 'Vigente', 'Completada', 'Activa', 'Activo', 'Confirmado'];
+    const off = ['Anulado', 'Vencido', 'Vencida', 'Agotada', 'Inactiva', 'Inactivo', 'Rechazado', 'Cancelado'];
     const pend = ['Pendiente', 'En curso'];
     if (ok.includes(estado)) return 'tag tag-ok';
     if (off.includes(estado)) return 'tag tag-off';
@@ -2314,7 +2314,7 @@ class Component extends DCLogic {
   categoriaAccion(a) {
     const x = a.toLowerCase();
     if (x.includes('sesión')) return 'Sesión';
-    if (x.includes('compra')) return 'Compras';
+    if (x.includes('consumo') || x.includes('compra')) return 'Consumos';
     if (x.includes('empleado')) return 'Empleados';
     if (x.includes('cliente') || x.includes('autorregistro')) return 'Clientes';
     if (x.includes('recompensa') || x.includes('misión')) return 'Recompensas y misiones';
@@ -2487,7 +2487,7 @@ class Component extends DCLogic {
     const puntosPorMonto = config.puntosPorMonto || 10;
     const puntosGanados = Math.round(monto / montoBase * puntosPorMonto) || 0;
     const id = Math.max(0, ...cliente.compras.map((c) => c.id)) + 1;
-    const nuevaCompra = { id, fecha: '13/09/2026', monto, puntos: puntosGanados, estado: 'Registrada' };
+    const nuevaCompra = { id, fecha: '13/09/2026', monto, puntos: puntosGanados, estado: 'Registrado' };
     const nuevoMovimiento = { id: Date.now(), fecha: '13/09/2026', cantidad: puntosGanados, motivo: 'Consumo #' + id, estado: 'Vigente' };
     const clienteActualizado = {
       ...cliente, puntos: cliente.puntos + puntosGanados,
@@ -2497,7 +2497,7 @@ class Component extends DCLogic {
       cliente: clienteActualizado,
       mostrador: { ...this.state.mostrador, encontrado: clienteActualizado, mostrarFormCompra: false },
       compraForm: { monto: '', obs: '' },
-      auditoria: this.addAudit('Registró compra #' + id + ' de ' + cliente.nombre, { detalle: [['Cliente', cliente.nombre + ' (' + cliente.tipoDocumento + ' ' + cliente.dni + ')'], ['Monto de la compra', '$' + monto], ['Equivalencia aplicada', puntosPorMonto + ' pts por cada $' + montoBase], ['Puntos otorgados', String(puntosGanados)], ['Saldo anterior', cliente.puntos + ' pts'], ['Saldo nuevo', (cliente.puntos + puntosGanados) + ' pts'], ['Observaciones', compraForm.obs || '—']], clienteTipo: cliente.tipoDocumento, clienteNumero: cliente.dni }), 
+      auditoria: this.addAudit('Registró consumo #' + id + ' de ' + cliente.nombre, { detalle: [['Cliente', cliente.nombre + ' (' + cliente.tipoDocumento + ' ' + cliente.dni + ')'], ['Monto del consumo', '$' + monto], ['Equivalencia aplicada', puntosPorMonto + ' pts por cada $' + montoBase], ['Puntos otorgados', String(puntosGanados)], ['Saldo anterior', cliente.puntos + ' pts'], ['Saldo nuevo', (cliente.puntos + puntosGanados) + ' pts'], ['Observaciones', compraForm.obs || '—']], clienteTipo: cliente.tipoDocumento, clienteNumero: cliente.dni }), 
       accionMsg: 'Consumo registrado: +' + puntosGanados + ' puntos. Nivel recalculado automáticamente.'
     });
   };
@@ -2509,15 +2509,15 @@ class Component extends DCLogic {
     const { anulacion, cliente } = this.state;
     if (!anulacion.motivo || anulacion.motivo.trim().length < 5) { this.setState({ anulacionMsg: 'Indicá un motivo de al menos 5 caracteres.' }); return; }
     const compra = cliente.compras.find((c) => c.id === anulacion.compraId);
-    if (!compra || compra.estado !== 'Registrada') { this.setState({ anulacionMsg: 'Esta compra ya no puede anularse.' }); return; }
-    const compras = cliente.compras.map((c) => (c.id === compra.id ? { ...c, estado: 'Anulada' } : c));
-    const movimientos = [{ id: Date.now(), fecha: '13/09/2026', cantidad: -compra.puntos, motivo: 'Anulación compra #' + compra.id + ' — ' + anulacion.motivo, estado: 'Vigente' }, ...cliente.movimientos];
+    if (!compra || compra.estado !== 'Registrado') { this.setState({ anulacionMsg: 'Este consumo ya no puede anularse.' }); return; }
+    const compras = cliente.compras.map((c) => (c.id === compra.id ? { ...c, estado: 'Anulado' } : c));
+    const movimientos = [{ id: Date.now(), fecha: '13/09/2026', cantidad: -compra.puntos, motivo: 'Anulación consumo #' + compra.id + ' — ' + anulacion.motivo, estado: 'Vigente' }, ...cliente.movimientos];
     const clienteActualizado = { ...cliente, puntos: cliente.puntos - compra.puntos, compras, movimientos };
-    const auditoria = [{ fecha: '13/09/2026', usuario: (this.state.sesion ? this.state.sesion.nombre : 'Lucía Fernández'), accion: 'Anuló compra #' + compra.id, detalle: [['Cliente', cliente.nombre], ['Monto de la compra', '$' + compra.monto], ['Puntos revertidos', String(compra.puntos)], ['Motivo', anulacion.motivo]] }, ...this.state.auditoria];
+    const auditoria = [{ fecha: '13/09/2026', usuario: (this.state.sesion ? this.state.sesion.nombre : 'Lucía Fernández'), accion: 'Anuló consumo #' + compra.id, detalle: [['Cliente', cliente.nombre], ['Monto del consumo', '$' + compra.monto], ['Puntos revertidos', String(compra.puntos)], ['Motivo', anulacion.motivo]] }, ...this.state.auditoria];
     this.setState({
       cliente: clienteActualizado, mostrador: { ...this.state.mostrador, encontrado: clienteActualizado },
       auditoria, anulacion: { compraId: null, motivo: '' }, anulacionMsg: '',
-      accionMsg: 'Compra #' + compra.id + ' anulada. Se revirtieron ' + compra.puntos + ' puntos.'
+      accionMsg: 'Consumo #' + compra.id + ' anulado. Se revirtieron ' + compra.puntos + ' puntos.'
     });
   };
 
@@ -2640,7 +2640,7 @@ class Component extends DCLogic {
     const bonif = c.bonificacionTipo === 'porcentaje' ? (c.bonificacionPrimeraCompra + '%') : (c.bonificacionPrimeraCompra + ' pts fijos');
     const g = this.state.configGuardada || {};
     const det = this.cambios(g, c, { montoBase: 'Monto base ($)', puntosPorMonto: 'Puntos por monto', vigenciaMeses: 'Vigencia (meses)', bonificacionTipo: 'Tipo de bonificación', bonificacionPrimeraCompra: 'Valor de bonificación' });
-    this.setState({ configGuardada: { ...c }, auditoria: this.addAudit('Modificó configuración de puntos', { detalle: det.length ? det : [['Cambios', 'Se guardó sin modificar valores']] }), _x: '$' + c.montoBase + ' = ' + c.puntosPorMonto + ' pts, vigencia ' + c.vigenciaMeses + ' meses, bonificación 1ª compra ' + bonif, accionMsg: 'Configuración actualizada. Se aplica a las compras que se registren desde ahora; los movimientos ya registrados no se modifican (RF-014).' });
+    this.setState({ configGuardada: { ...c }, auditoria: this.addAudit('Modificó configuración de puntos', { detalle: det.length ? det : [['Cambios', 'Se guardó sin modificar valores']] }), _x: '$' + c.montoBase + ' = ' + c.puntosPorMonto + ' pts, vigencia ' + c.vigenciaMeses + ' meses, bonificación 1.er consumo ' + bonif, accionMsg: 'Configuración actualizada. Se aplica a los consumos que se registren desde ahora; los movimientos ya registrados no se modifican (RF-014).' });
   };
   guardarPerfil = () => this.setState({ accionMsg: 'Perfil actualizado.' });
   guardarPerfilDatos = (d) => {
@@ -3077,7 +3077,7 @@ class Component extends DCLogic {
       ptsHintEq: !err.ptsMonto && !err.ptsPuntos,
       guardarEq: this.guardarPts('eq'), guardarVig: this.guardarPts('vig'), guardarBon: this.guardarPts('bon'),
       setBonifPct: () => this.setBonifTipo('porcentaje'), setBonifFijos: () => this.setBonifTipo('fijos'),
-      bonifHint: s.config.bonificacionTipo === 'porcentaje' ? 'Entre 1 y 100, con hasta 2 decimales. Se calcula sobre los puntos de la primera compra.' : 'Entre 1 y 10.000, sin decimales. Se suman a los puntos de la primera compra.',
+      bonifHint: s.config.bonificacionTipo === 'porcentaje' ? 'Entre 1 y 100, con hasta 2 decimales. Se calcula sobre los puntos de el primer consumo.' : 'Entre 1 y 10.000, sin decimales. Se suman a los puntos de el primer consumo.',
       setEmpleadoScreen: this.setEmpleadoScreen,
       drawerAbierto: !!s.drawerAbierto, abrirDrawer: () => this.setState({ drawerAbierto: true, navColapsado: false }), cerrarDrawer: () => this.setState({ drawerAbierto: false }),
       navCol: !!s.navColapsado && !s.drawerAbierto, cfgNavCol: !!s.cfgNavColapsado,
@@ -3253,7 +3253,7 @@ class Component extends DCLogic {
 
     const dentro24h = (ts) => typeof ts === 'number' && (Date.now() - ts) <= 24 * 60 * 60 * 1000;
     const comprasEmpleado = clienteConClase(s.cliente.compras).filter((c) => dentro24h(c.ts)).map((c) => ({
-      ...c, puedeAnular: c.estado === 'Registrada', onAnular: () => this.abrirAnulacion(c.id)
+      ...c, puedeAnular: c.estado === 'Registrado', onAnular: () => this.abrirAnulacion(c.id)
     }));
     const movimientosEmpleado = clienteConClase(s.cliente.movimientos).filter((m) => dentro24h(m.ts));
     const hayMovFueraDe24h = s.cliente.compras.some((c) => !dentro24h(c.ts)) || s.cliente.movimientos.some((m) => !dentro24h(m.ts));
@@ -3443,7 +3443,7 @@ class Component extends DCLogic {
       empleadosConHandler: empleadosVista.map((e2) => ({ ...e2, telefonoTxt: e2.telefono || '—', claseTag: this.claseEstado(e2.estado), bajaLabel: (e2.estado === 'Activo' ? 'Dar de baja' : 'Reactivar'), onToggle: () => this.bajaEmpleado(e2.id), onEditar: () => this.abrirAdminModalEditar('empleado', e2) })),
       notifItems,
       auditoriaAccionFiltro: s.auditoriaAccionFiltro, setAuditoriaAccionFiltro: this.setAuditoriaAccionFiltro,
-      auditoriaAccionOptions: ['Todas', 'Sesión', 'Compras', 'Clientes', 'Empleados', 'Recompensas y misiones', 'Configuración', 'Puntos'],
+      auditoriaAccionOptions: ['Todas', 'Sesión', 'Consumos', 'Clientes', 'Empleados', 'Recompensas y misiones', 'Configuración', 'Puntos'],
       auditoriaBusqueda: s.auditoriaBusqueda, setAuditoriaBusqueda: this.setAuditoriaBusqueda,
       auditoriaUsuarioFiltro: s.auditoriaUsuarioFiltro, setAuditoriaUsuarioFiltro: this.setAuditoriaUsuarioFiltro,
       auditoriaUsuarioOptions: ['todos', ...s.empleados.slice().sort((a, b) => a.apellido.localeCompare(b.apellido, 'es')).map((e2) => e2.nombre + ' ' + e2.apellido), 'Sistema'].map((u) => ({ value: u, label: u === 'todos' ? 'Todos' : u })),
@@ -3508,7 +3508,7 @@ class Component extends DCLogic {
       bonifSegPctCls: this.segCls(s.config.bonificacionTipo === 'porcentaje'), bonifSegFijosCls: this.segCls(s.config.bonificacionTipo !== 'porcentaje'),
       setBonifPct: () => this.setBonifTipo('porcentaje'), setBonifFijos: () => this.setBonifTipo('fijos'),
       bonifLabel: s.config.bonificacionTipo === 'porcentaje' ? 'Porcentaje adicional (%)' : 'Puntos adicionales',
-      bonifHint: s.config.bonificacionTipo === 'porcentaje' ? 'Entre 1 y 100. Se calcula sobre los puntos de la primera compra.' : 'Entre 1 y 10.000. Se suman a los puntos de la primera compra.',
+      bonifHint: s.config.bonificacionTipo === 'porcentaje' ? 'Entre 1 y 100. Se calcula sobre los puntos de el primer consumo.' : 'Entre 1 y 10.000. Se suman a los puntos de el primer consumo.',
       adminSecciones: this.seccionesModal(),
       dataPanelAbierto: s.dataPanelAbierto, toggleDataPanel: this.toggleDataPanel,
       dataPanelBtnLabel: s.dataPanelAbierto ? 'Ocultar tipos de datos' : 'Tipos de datos',

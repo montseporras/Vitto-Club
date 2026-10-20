@@ -8,8 +8,8 @@ type BonusValueRequest = {
   bonusType?: string;
 };
 
-@ValidatorConstraint({ name: 'firstPurchaseBonusValue', async: false })
-export class FirstPurchaseBonusValueValidator implements ValidatorConstraintInterface {
+@ValidatorConstraint({ name: 'firstConsumptionBonusValue', async: false })
+export class FirstConsumptionBonusValueValidator implements ValidatorConstraintInterface {
   validate(value: number, args: ValidationArguments): boolean {
     const request = args.object as BonusValueRequest;
     if (request.bonusType === 'PERCENTAGE') {

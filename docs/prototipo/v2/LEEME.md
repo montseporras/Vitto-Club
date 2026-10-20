@@ -67,3 +67,14 @@ Las clases nuevas del prototipo que copian los estilos de la app empiezan con `v
 `vc-m` (modales), y están en el `<style>` de `pagina-principal.html`.
 
 **Ojo con el paso 2 de arriba:** `scripts/desempaquetar_prototipo.py` no está en el repo.
+
+## Cambios de textos (20/10/2026, a pedido de Magali)
+
+Se editaron los `.html` de esta carpeta para alinear el vocabulario con el contrato:
+
+- "Compra" → **"Consumo"** en los textos visibles (títulos, botones, notas, auditoría, tipos de datos). Los estados del consumo pasan a "Registrado" y "Anulado". Los nombres internos del código del prototipo (`registrarCompra`, `compraForm`, `compras`, etc.) **no se tocaron**: no se ven en pantalla.
+- "Canjes pendientes" → **"Canjes"** en las pantallas de caja, y "No tiene canjes." (el canje no tiene estado "Pendiente").
+
+**Pendiente (se hace en Claude Design y se vuelve a exportar):** el canje del prototipo todavía nace `Pendiente` y el Cajero lo "confirma". Según la Definición del Producto (sección 9) el canje **nace Confirmado** y pasa a Utilizado, Rechazado, Cancelado o Vencido. Esa lógica sigue en `pagina-principal.html`. En los lotes de puntos falta mostrar el estado "Anulado".
+
+**El archivo único (`../Vitto Club Prototipo - archivo unico.html`) NO se actualizó** con estos cambios: guarda los componentes comprimidos y `scripts/desempaquetar_prototipo.py`, que lo arma, no está en el repo. Hasta que se vuelva a exportar, ese archivo y esta carpeta no coinciden.

@@ -1,7 +1,7 @@
 import { DomainError } from './errors/domain.error.js';
-import { FirstPurchaseBonus } from './first-purchase-bonus.js';
+import { FirstConsumptionBonus } from './first-consumption-bonus.js';
 
-describe('FirstPurchaseBonus', () => {
+describe('FirstConsumptionBonus', () => {
   it.each([
     ['PERCENTAGE', 15],
     ['PERCENTAGE', 1],
@@ -9,7 +9,7 @@ describe('FirstPurchaseBonus', () => {
     ['FIXED_AMOUNT', 30],
     ['FIXED_AMOUNT', 10_000],
   ] as const)('accepts %s bonus with value %s', (bonusType, bonusValue) => {
-    const bonus = FirstPurchaseBonus.define({ bonusType, bonusValue });
+    const bonus = FirstConsumptionBonus.define({ bonusType, bonusValue });
 
     expect(bonus.getBonusType()).toBe(bonusType);
     expect(bonus.getBonusValue()).toBe(bonusValue);
@@ -28,7 +28,7 @@ describe('FirstPurchaseBonus', () => {
     ['INVALID', 10],
   ] as const)('rejects %s bonus with value %s', (bonusType, bonusValue) => {
     expect(() =>
-      FirstPurchaseBonus.define({
+      FirstConsumptionBonus.define({
         bonusType: bonusType as 'PERCENTAGE' | 'FIXED_AMOUNT',
         bonusValue,
       }),

@@ -2,13 +2,13 @@
 // puntos. Lo usan los hooks de points.queries.ts; las pantallas no lo llaman directo.
 import { toApiError } from '@/shared/api/ApiError';
 import { http } from '@/shared/api/http';
-import type { FirstPurchaseBonusFormValues } from '../schemas/first-purchase-bonus.schema';
+import type { FirstConsumptionBonusFormValues } from '../schemas/first-consumption-bonus.schema';
 import type { PointsEquivalenceFormValues } from '../schemas/points-equivalence.schema';
 import type { PointsExpirationFormValues } from '../schemas/points-expiration.schema';
 import type {
-  FirstPurchaseBonus,
-  UpdateFirstPurchaseBonusDto,
-} from '../types/first-purchase-bonus';
+  FirstConsumptionBonus,
+  UpdateFirstConsumptionBonusDto,
+} from '../types/first-consumption-bonus';
 import type {
   PointsEquivalence,
   UpdatePointsEquivalenceDto,
@@ -18,7 +18,7 @@ import type {
   UpdatePointsExpirationDto,
 } from '../types/points-expiration';
 
-const FIRST_PURCHASE_BONUS_URL = '/loyalty/configuration/first-purchase-bonus';
+const FIRST_CONSUMPTION_BONUS_URL = '/loyalty/configuration/first-consumption-bonus';
 const POINTS_EQUIVALENCE_URL = '/loyalty/configuration/points-equivalence';
 const POINTS_EXPIRATION_URL = '/loyalty/configuration/points-validity';
 
@@ -35,27 +35,27 @@ async function getOrNullIfNotConfigured<T>(url: string): Promise<T | null> {
 }
 
 // Traduce el formulario al cuerpo que espera la API (contrato del backend).
-export function formToUpdateFirstPurchaseBonusDto(
-  form: FirstPurchaseBonusFormValues,
-): UpdateFirstPurchaseBonusDto {
+export function formToUpdateFirstConsumptionBonusDto(
+  form: FirstConsumptionBonusFormValues,
+): UpdateFirstConsumptionBonusDto {
   return {
     bonusType: form.bonusType,
     bonusValue: form.bonusValue,
   };
 }
 
-// Bonificación por primera compra configurada actualmente (RF-011), o null si
+// Bonificación por primer consumo configurada actualmente (RF-011), o null si
 // todavía no se configuró.
-export function getFirstPurchaseBonus(): Promise<FirstPurchaseBonus | null> {
-  return getOrNullIfNotConfigured<FirstPurchaseBonus>(FIRST_PURCHASE_BONUS_URL);
+export function getFirstConsumptionBonus(): Promise<FirstConsumptionBonus | null> {
+  return getOrNullIfNotConfigured<FirstConsumptionBonus>(FIRST_CONSUMPTION_BONUS_URL);
 }
 
 // Guarda la bonificación (RF-011). El backend crea una versión nueva y conserva la anterior.
-export async function updateFirstPurchaseBonus(
-  body: UpdateFirstPurchaseBonusDto,
-): Promise<FirstPurchaseBonus> {
-  const { data } = await http.put<FirstPurchaseBonus>(
-    FIRST_PURCHASE_BONUS_URL,
+export async function updateFirstConsumptionBonus(
+  body: UpdateFirstConsumptionBonusDto,
+): Promise<FirstConsumptionBonus> {
+  const { data } = await http.put<FirstConsumptionBonus>(
+    FIRST_CONSUMPTION_BONUS_URL,
     body,
   );
   return data;

@@ -1,14 +1,14 @@
 import { DomainError } from './errors/domain.error.js';
 
-export const FIRST_PURCHASE_BONUS_TYPES = [
+export const FIRST_CONSUMPTION_BONUS_TYPES = [
   'PERCENTAGE',
   'FIXED_AMOUNT',
 ] as const;
-export type FirstPurchaseBonusType =
-  (typeof FIRST_PURCHASE_BONUS_TYPES)[number];
+export type FirstConsumptionBonusType =
+  (typeof FIRST_CONSUMPTION_BONUS_TYPES)[number];
 
-export type FirstPurchaseBonusData = {
-  bonusType: FirstPurchaseBonusType;
+export type FirstConsumptionBonusData = {
+  bonusType: FirstConsumptionBonusType;
   bonusValue: number;
   updatedAt?: Date;
 };
@@ -17,17 +17,17 @@ const MIN_PERCENTAGE = 1;
 const MAX_PERCENTAGE = 100;
 const MAX_FIXED_POINTS = 10_000;
 
-export class FirstPurchaseBonus {
+export class FirstConsumptionBonus {
   private constructor(
-    private readonly _bonusType: FirstPurchaseBonusType,
+    private readonly _bonusType: FirstConsumptionBonusType,
     private readonly _bonusValue: number,
     private readonly _updatedAt: Date,
   ) {}
 
-  static define(data: FirstPurchaseBonusData): FirstPurchaseBonus {
-    if (!FIRST_PURCHASE_BONUS_TYPES.includes(data.bonusType)) {
+  static define(data: FirstConsumptionBonusData): FirstConsumptionBonus {
+    if (!FIRST_CONSUMPTION_BONUS_TYPES.includes(data.bonusType)) {
       throw new DomainError(
-        `Bonus type must be one of: ${FIRST_PURCHASE_BONUS_TYPES.join(', ')}`,
+        `Bonus type must be one of: ${FIRST_CONSUMPTION_BONUS_TYPES.join(', ')}`,
         'bonusType',
       );
     }
@@ -63,22 +63,22 @@ export class FirstPurchaseBonus {
       );
     }
 
-    return new FirstPurchaseBonus(
+    return new FirstConsumptionBonus(
       data.bonusType,
       data.bonusValue,
       data.updatedAt ?? new Date(),
     );
   }
 
-  static reconstruct(data: FirstPurchaseBonusData): FirstPurchaseBonus {
-    return new FirstPurchaseBonus(
+  static reconstruct(data: FirstConsumptionBonusData): FirstConsumptionBonus {
+    return new FirstConsumptionBonus(
       data.bonusType,
       data.bonusValue,
       data.updatedAt ?? new Date(),
     );
   }
 
-  getBonusType(): FirstPurchaseBonusType {
+  getBonusType(): FirstConsumptionBonusType {
     return this._bonusType;
   }
 

@@ -65,7 +65,7 @@ Las dependencias van en un solo sentido: `shared/` no conoce a `features/`, y `f
 
 > **Criterio de ubicación**
 >
-> Si un archivo conoce conceptos del negocio (cliente, compra, canje), pertenece a `features/`. Si es independiente del negocio, pertenece a `shared/`.
+> Si un archivo conoce conceptos del negocio (cliente, consumo, canje), pertenece a `features/`. Si es independiente del negocio, pertenece a `shared/`.
 
 ---
 
@@ -118,8 +118,8 @@ frontend/src/
 │
 ├── domain/                     # vocabulario del negocio compartido
 │   ├── roles.ts                # Cliente, Cajero, Administrador
-│   ├── redemption-statuses.ts  # Pendiente, Confirmado, Utilizado, Rechazado, Vencido
-│   ├── statuses.ts             # estados de compra, misión y recompensa
+│   ├── redemption-statuses.ts  # Confirmado, Utilizado, Rechazado, Cancelado, Vencido
+│   ├── statuses.ts             # estados de consumo, misión y recompensa
 │   ├── levels.ts               # Bronce (0) / Plata (300) / Oro (800)
 │   └── expiration.ts           # reglas de vencimiento (puntos, canjes, recompensas)
 │
@@ -216,7 +216,7 @@ Si esa definición viviera dentro de `features/cashier/`, los otros dos módulos
 El Plan de Proyecto fija React + Vite + TypeScript + Tailwind/shadcn para la capa visual. Para la navegación y la comunicación con el backend se incorporan cuatro librerías, cada una con una responsabilidad concreta:
 
 - **React Router** — Gestiona la navegación entre las pantallas de las tres vistas sin recargar la página. Se integra con `lazy()` para cargar cada pantalla bajo demanda y reducir el tamaño inicial de la aplicación.
-- **TanStack Query** — Administra los datos que provienen del servidor: los solicita, los almacena en caché y los vuelve a pedir cuando quedan desactualizados (por ejemplo, luego de registrar una compra). Evita implementar manualmente en cada pantalla la lógica de carga, error y actualización.
+- **TanStack Query** — Administra los datos que provienen del servidor: los solicita, los almacena en caché y los vuelve a pedir cuando quedan desactualizados (por ejemplo, luego de registrar un consumo). Evita implementar manualmente en cada pantalla la lógica de carga, error y actualización.
 - **React Hook Form + Zod** — Resuelven los formularios y su validación. Zod permite definir cada regla una sola vez y utilizarla tanto para validar los datos ingresados como para tipar el formulario.
 - **Axios** — Cliente HTTP para comunicarse con la API de NestJS. Una única instancia, definida en `shared/api/http.ts`, centraliza la URL base, el envío del token JWT y el manejo de sesiones expiradas mediante interceptores, sin repetir esa lógica en cada llamada.
 
@@ -246,7 +246,7 @@ Las pantallas y sus nombres corresponden a las validadas en el prototipo interac
 | Ruta | Pantalla |
 |---|---|
 | `/mi-cuenta` | Inicio — puntos, nivel, catálogo de recompensas con filtros, canjear |
-| `/mi-cuenta/historial` | Historial de compras e historial de movimientos de puntos |
+| `/mi-cuenta/historial` | Historial de consumos e historial de movimientos de puntos |
 | `/mi-cuenta/misiones` | Misiones del mes, progreso, reclamar recompensa |
 | `/mi-cuenta/canjes` | Mis canjes — código y estado |
 | `/mi-cuenta/perfil` | Mi perfil — editar teléfono, correo, fecha de nacimiento |
@@ -255,7 +255,7 @@ Las pantallas y sus nombres corresponden a las validadas en el prototipo interac
 
 | Ruta | Pantalla |
 |---|---|
-| `/caja` | Identificar cliente por documento → resumen (puntos, nivel), registrar compra, ver canjes y recompensas alcanzables |
+| `/caja` | Identificar cliente por documento → resumen (puntos, nivel), registrar consumo, ver canjes y recompensas alcanzables |
 | `/caja/canje` | Gestionar canje por código — cuando el cliente solo tiene el código |
 | `/caja/alta-cliente` | Alta manual de cliente — cuando no se encuentra por documento |
 
@@ -266,7 +266,7 @@ Las pantallas y sus nombres corresponden a las validadas en el prototipo interac
 | `/admin/recompensas` | Catálogo de recompensas — crear, editar, activar/desactivar |
 | `/admin/misiones` | Misiones mensuales — crear, editar/baja |
 | `/admin/clientes` | Clientes — buscar, filtrar por nivel, ver más / editar (con motivo) |
-| `/admin/estadisticas` | Estadísticas y reportes — clientes activos, compras, puntos, canjes; exportar PDF |
+| `/admin/estadisticas` | Estadísticas y reportes — clientes activos, consumos, puntos, canjes; exportar PDF |
 | `/admin/auditoria` | Auditoría — filtro por usuario, cliente y fecha (exacta o rango) |
 
 ### Configuración — modal accesible desde el ícono de engranaje
@@ -274,7 +274,7 @@ Las pantallas y sus nombres corresponden a las validadas en el prototipo interac
 | Sección | Contenido |
 |---|---|
 | Empleados | ABM de Cajeros y Administradores (nombre, usuario, contraseña, rol) |
-| Puntos | Puntos por cada $1000, vigencia en meses, bonificación 1ª compra |
+| Puntos | Puntos por cada $1000, vigencia en meses, bonificación 1.er consumo |
 | Niveles de fidelización | Bronce / Plata / Oro — puntaje mínimo y beneficio |
 | Notificaciones | 4 tipos (vencimiento, cumpleaños, promociones, misiones) — activar/desactivar y editar mensaje |
 
@@ -300,7 +300,7 @@ La pantalla de identificación en caja muestra nombre, documento, puntos y nivel
 
 ### d) Operaciones sensibles con motivo y auditoría
 
-Anular una compra y editar los datos de un cliente desde Administración requieren indicar un motivo antes de confirmarse. Ese motivo se registra en el historial de auditoría junto con el usuario que realizó la acción y la fecha. Ambas acciones comparten el mismo flujo para no reimplementarlo en cada pantalla.
+Anular un consumo y editar los datos de un cliente desde Administración requieren indicar un motivo antes de confirmarse. Ese motivo se registra en el historial de auditoría junto con el usuario que realizó la acción y la fecha. Ambas acciones comparten el mismo flujo para no reimplementarlo en cada pantalla.
 
 ---
 

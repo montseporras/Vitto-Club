@@ -1,5 +1,5 @@
 // Este archivo define las reglas de validación del formulario de bonificación por
-// primera compra. Lo usa el formulario para avisar los errores antes de llamar a la API.
+// primer consumo. Lo usa el formulario para avisar los errores antes de llamar a la API.
 import { z } from 'zod';
 
 // Topes del valor según el tipo de bonificación (los mismos que valida el backend).
@@ -10,7 +10,7 @@ export const MAX_FIXED_POINTS = 10_000;
 const hasAtMostTwoDecimals = (value: number) =>
   Math.abs(value * 100 - Math.round(value * 100)) < 1e-6;
 
-export const firstPurchaseBonusSchema = z
+export const firstConsumptionBonusSchema = z
   .object({
     bonusType: z.enum(['PERCENTAGE', 'FIXED_AMOUNT'], {
       message: 'Seleccioná un tipo de bonificación',
@@ -53,6 +53,6 @@ export const firstPurchaseBonusSchema = z
     },
   );
 
-export type FirstPurchaseBonusFormValues = z.infer<
-  typeof firstPurchaseBonusSchema
+export type FirstConsumptionBonusFormValues = z.infer<
+  typeof firstConsumptionBonusSchema
 >;

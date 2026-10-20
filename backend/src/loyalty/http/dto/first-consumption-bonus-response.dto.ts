@@ -1,20 +1,20 @@
 import {
-  FirstPurchaseBonus,
-  FirstPurchaseBonusType,
-} from '../../domain/first-purchase-bonus.js';
+  FirstConsumptionBonus,
+  FirstConsumptionBonusType,
+} from '../../domain/first-consumption-bonus.js';
 
-export class FirstPurchaseBonusResponseDto {
-  bonusType: FirstPurchaseBonusType;
+export class FirstConsumptionBonusResponseDto {
+  bonusType: FirstConsumptionBonusType;
   bonusValue: number;
   updatedAt: Date;
 
-  private constructor(bonus: FirstPurchaseBonus) {
+  private constructor(bonus: FirstConsumptionBonus) {
     this.bonusType = bonus.getBonusType();
     this.bonusValue = bonus.getBonusValue();
     this.updatedAt = bonus.getUpdatedAt();
   }
 
-  static fromDomain(bonus: FirstPurchaseBonus): FirstPurchaseBonusResponseDto {
-    return new FirstPurchaseBonusResponseDto(bonus);
+  static fromDomain(bonus: FirstConsumptionBonus): FirstConsumptionBonusResponseDto {
+    return new FirstConsumptionBonusResponseDto(bonus);
   }
 }

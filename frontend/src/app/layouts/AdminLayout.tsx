@@ -35,7 +35,7 @@ const SECTIONS = [
     id: 'points',
     label: 'Puntos',
     icon: ICONS.coins,
-    description: 'Reglas con las que los clientes suman puntos en sus compras.',
+    description: 'Reglas con las que los clientes suman puntos en sus consumos.',
   },
   { id: 'notifications', label: 'Notificaciones', icon: ICONS.bell },
 ] as const;

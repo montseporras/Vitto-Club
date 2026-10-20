@@ -2,7 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { LoyaltyConfigurationRepository } from '../domain/port/loyalty-configuration.repository.js';
 import { PointsEquivalence } from '../domain/points-equivalence.js';
 import { PointsValidity } from '../domain/points-validity.js';
-import { FirstPurchaseBonus } from '../domain/first-purchase-bonus.js';
+import { FirstConsumptionBonus } from '../domain/first-consumption-bonus.js';
 import { LoyaltyProgramConfiguration } from '../domain/loyalty-program-configuration.js';
 import { LoyaltyService } from './loyalty.service.js';
 
@@ -12,8 +12,8 @@ describe('LoyaltyService', () => {
     findCurrentPointsEquivalence: jest.Mock;
     savePointsValidity: jest.Mock;
     findCurrentPointsValidity: jest.Mock;
-    saveFirstPurchaseBonus: jest.Mock;
-    findCurrentFirstPurchaseBonus: jest.Mock;
+    saveFirstConsumptionBonus: jest.Mock;
+    findCurrentFirstConsumptionBonus: jest.Mock;
     getActiveConfig: jest.Mock;
     updateFullConfig: jest.Mock;
   };
@@ -25,8 +25,8 @@ describe('LoyaltyService', () => {
       findCurrentPointsEquivalence: jest.fn(),
       savePointsValidity: jest.fn(),
       findCurrentPointsValidity: jest.fn(),
-      saveFirstPurchaseBonus: jest.fn(),
-      findCurrentFirstPurchaseBonus: jest.fn(),
+      saveFirstConsumptionBonus: jest.fn(),
+      findCurrentFirstConsumptionBonus: jest.fn(),
       getActiveConfig: jest.fn(),
       updateFullConfig: jest.fn(),
     };
@@ -124,19 +124,19 @@ describe('LoyaltyService', () => {
     await expect(service.getCurrentPointsValidity()).resolves.toBe(current);
   });
 
-  it('validates and saves a first purchase bonus', async () => {
-    const saved = FirstPurchaseBonus.define({
+  it('validates and saves a first consumption bonus', async () => {
+    const saved = FirstConsumptionBonus.define({
       bonusType: 'PERCENTAGE',
       bonusValue: 15,
     });
-    repository.saveFirstPurchaseBonus.mockResolvedValue(saved);
+    repository.saveFirstConsumptionBonus.mockResolvedValue(saved);
 
-    const result = await service.setFirstPurchaseBonus({
+    const result = await service.setFirstConsumptionBonus({
       bonusType: 'PERCENTAGE',
       bonusValue: 15,
     });
 
-    expect(repository.saveFirstPurchaseBonus).toHaveBeenCalledWith(
+    expect(repository.saveFirstConsumptionBonus).toHaveBeenCalledWith(
       expect.objectContaining({
         getBonusType: expect.any(Function),
         getBonusValue: expect.any(Function),
@@ -145,31 +145,31 @@ describe('LoyaltyService', () => {
     expect(result).toBe(saved);
   });
 
-  it('does not persist an invalid first purchase bonus', async () => {
+  it('does not persist an invalid first consumption bonus', async () => {
     await expect(
-      service.setFirstPurchaseBonus({
+      service.setFirstConsumptionBonus({
         bonusType: 'PERCENTAGE',
         bonusValue: 101,
       }),
     ).rejects.toThrow('Percentage bonus must be between 1 and 100');
 
-    expect(repository.saveFirstPurchaseBonus).not.toHaveBeenCalled();
+    expect(repository.saveFirstConsumptionBonus).not.toHaveBeenCalled();
   });
 
-  it('returns the current first purchase bonus', async () => {
-    const bonus = FirstPurchaseBonus.define({
+  it('returns the current first consumption bonus', async () => {
+    const bonus = FirstConsumptionBonus.define({
       bonusType: 'FIXED_AMOUNT',
       bonusValue: 30,
     });
-    repository.findCurrentFirstPurchaseBonus.mockResolvedValue(bonus);
+    repository.findCurrentFirstConsumptionBonus.mockResolvedValue(bonus);
 
-    await expect(service.getCurrentFirstPurchaseBonus()).resolves.toBe(bonus);
+    await expect(service.getCurrentFirstConsumptionBonus()).resolves.toBe(bonus);
   });
 
-  it('returns not found if no first purchase bonus has been configured', async () => {
-    repository.findCurrentFirstPurchaseBonus.mockResolvedValue(null);
+  it('returns not found if no first consumption bonus has been configured', async () => {
+    repository.findCurrentFirstConsumptionBonus.mockResolvedValue(null);
 
-    await expect(service.getCurrentFirstPurchaseBonus()).rejects.toThrow(
+    await expect(service.getCurrentFirstConsumptionBonus()).rejects.toThrow(
       NotFoundException,
     );
   });
