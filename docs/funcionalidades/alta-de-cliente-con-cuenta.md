@@ -1,6 +1,6 @@
 # Alta de cliente con cuenta y contraseña inicial (US-17-AJ)
 
-> **Estado:** implementado en el backend, salvo la auditoría (CA-17AJ.8), que depende de US-57.
+> **Estado:** implementado en el backend, incluida la auditoría (CA-17AJ.8, vía US-57).
 > **Fuente de verdad:** [`API_CONTRACT_SPRINT_3.md`](../sprint-3/API_CONTRACT_SPRINT_3.md), §3.11.3, §3.8.4, §3.9.3 y §5.
 >
 > Este documento es nuevo a propósito: reúne lo que cambia esta historia para no pisar a quien edite
@@ -112,11 +112,19 @@ No está agregado como script de `package.json` (es configuración compartida); 
 
 | Qué | Por qué |
 |---|---|
-| **CA-17AJ.8 · Auditoría** `CUSTOMER_CREATED`, con la fila "Cuenta de acceso: Creada, contraseña inicial = número de documento" | Depende de US-57: todavía no existe `AuditService` en `develop`. El e2e lo deja como `it.todo` |
-| **Cuenta de un cliente dado de baja** | Hoy nadie publica `customer.deactivated`, así que su cuenta sigue activa y ocupa el email: dar de alta un cliente con ese email da `EMAIL_IN_USE`. Es de CORR |
 | **P2 · Ventana postergable** | Decidido por Magali: **postergable** ("Ahora no"). Falta anotarlo en `HISTORIAS_SPRINT_3.md` |
 | **CA-17AJ.9 · Mensaje en pantalla** | Es del frontend |
-| **Tests e2e** | Escritos en `backend/test/customer-account-creation.e2e-spec.ts` pero **no ejecutados** (sin Docker en el momento de la entrega) |
+| **Cuenta de un cliente dado de baja** | Con CLI-ADM la baja ya deja inactiva la cuenta (`customer.deactivated`), así que el email de un cliente dado de baja queda libre |
+
+Resuelto desde la primera entrega:
+
+- **CA-17AJ.8 · Auditoría:** `POST /customers` registra `CUSTOMER_CREATED` en la misma transacción
+  (`AuditService.capture`, de US-57). El actor es el empleado; "Origen" sale de su rol (Caja si es
+  Cajero, Administración si es Administrador). El detalle dice "Creada, contraseña inicial = número de
+  documento" y nunca incluye la contraseña ni su hash. Si el alta falla (por ejemplo `EMAIL_IN_USE`) no
+  queda ninguna fila de auditoría.
+- **Tests e2e:** `backend/test/customer-account-creation.e2e-spec.ts` (22 casos, ejecutados contra la
+  base de tests) y, aparte, el caso de auditoría de `backend/test/audit.e2e-spec.ts`.
 
 ## 8. Documentos que quedaron desactualizados
 
