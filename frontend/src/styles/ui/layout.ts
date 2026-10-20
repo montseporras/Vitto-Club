@@ -1,17 +1,31 @@
 /** Contenedor centrado de cada pantalla. */
 export const pageStyles = 'mx-auto w-full max-w-4xl'
 
-/** Tarjeta principal de una pantalla: encabezado naranja a la izquierda (xl) + cuerpo. */
+/** Tarjeta principal de una pantalla: tira clara con el título arriba + cuerpo. */
 export const pageCardStyles =
-  'overflow-hidden rounded-3xl border border-accent-200 bg-surface shadow-xl shadow-accent-800/10 xl:grid xl:grid-cols-[17rem_1fr]'
+  'overflow-hidden rounded-3xl border border-accent-200 bg-surface shadow-xl shadow-accent-800/10'
 export const pageCardHeaderStyles =
-  'relative overflow-hidden bg-accent-700 px-6 py-7 text-white sm:px-8 xl:py-10'
+  'relative overflow-hidden border-b border-accent-100 bg-accent-100/70 px-6 py-5 sm:px-8'
 export const pageCardLogoStyles =
-  'pointer-events-none absolute right-6 bottom-8 hidden h-48 w-auto opacity-20 xl:block'
-export const pageCardEyebrowStyles = 'text-xs font-bold uppercase tracking-[0.18em]'
-export const pageCardTitleStyles = 'mt-2 text-3xl leading-tight sm:text-4xl'
-export const pageCardDescriptionStyles = 'mt-3 max-w-prose text-sm leading-relaxed text-white/90'
+  'pointer-events-none absolute right-6 bottom-4 hidden h-16 w-auto opacity-10 sm:block'
+export const pageCardEyebrowStyles = 'text-xs font-bold uppercase tracking-[0.18em] text-accent-700'
+export const pageCardTitleStyles = 'mt-1 text-2xl leading-tight text-ink sm:text-3xl'
+export const pageCardDescriptionStyles = 'mt-2 max-w-prose text-sm leading-relaxed text-neutral-700'
 export const pageCardBodyStyles = 'px-5 py-6 sm:px-8 sm:py-8'
+
+/** Variante de PageCard sin tira de color: título simple arriba del cuerpo. */
+export const pageCardPlainTitleStyles = 'font-heading text-2xl text-ink sm:text-3xl'
+export const pageCardPlainDescriptionStyles = 'mt-1.5 max-w-prose text-sm text-neutral-700'
+
+/** Pantalla de ingreso/registro: panel de marca a la izquierda + formulario a la derecha. */
+export const authShellStyles = {
+  root: 'overflow-hidden rounded-3xl border border-accent-200 bg-surface shadow-xl shadow-accent-800/10 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]',
+  left: 'flex flex-col justify-center gap-3 bg-accent-600 px-8 py-10 text-white sm:px-10 lg:py-14',
+  eyebrow: 'text-xs font-bold uppercase tracking-[0.18em]',
+  title: 'font-heading text-4xl leading-tight sm:text-5xl',
+  tagline: 'mt-2 max-w-sm font-heading text-lg italic text-white/90',
+  right: 'px-6 py-8 sm:px-10 sm:py-10',
+}
 
 /** Bloque separado del anterior por una línea. */
 export const dividedSectionStyles = 'mt-7 border-t border-accent-100 pt-7'

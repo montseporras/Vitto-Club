@@ -4,23 +4,24 @@ export const labelStyles = 'text-sm font-semibold text-ink'
 export const formFieldStyles = {
   root: 'flex flex-col gap-1.5',
   optional: 'ml-1.5 text-xs font-normal text-neutral-600',
+  required: 'ml-0.5 text-accent-700',
   error: 'text-sm font-medium text-accent-700',
   hint: 'text-xs text-neutral-600',
 }
 
-/** Bloque numerado del formulario. */
+/** Bloque del formulario: título en mayúsculas con línea debajo. */
 export const formSectionStyles = {
   root: 'mt-7 first:mt-0',
-  legend: 'mb-4 flex items-center gap-3',
-  step: 'grid size-8 place-items-center rounded-full bg-accent font-heading text-base font-bold text-ink',
-  title: 'font-heading text-xl font-bold text-accent-800',
+  legend: 'mb-4 w-full border-b border-accent-100 pb-1.5',
+  title: 'text-xs font-bold tracking-[0.06em] text-accent-800 uppercase',
   grid: 'grid gap-5 sm:grid-cols-2',
 }
 
 /** Botonera al pie del formulario. */
 export const formActionsStyles = {
-  root: 'mt-8 flex flex-col-reverse items-stretch gap-3 border-t border-accent-100 pt-6 sm:flex-row sm:items-center sm:justify-end',
-  message: 'text-sm text-neutral-700 sm:mr-auto',
+  root: 'mt-8 -mx-5 flex flex-col-reverse items-stretch gap-3 border-t border-accent-100 bg-bg px-5 py-5 sm:-mx-8 sm:flex-row sm:items-center sm:justify-end sm:px-8',
+  rootWithMessage: 'sm:justify-between',
+  message: 'text-sm text-neutral-600',
 }
 
 /** Control segmentado (radios con forma de botones). */

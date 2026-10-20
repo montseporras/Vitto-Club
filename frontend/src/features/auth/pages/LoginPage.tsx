@@ -4,9 +4,10 @@ import { Navigate, useLocation } from 'react-router'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { FormField } from '@/shared/components/forms/FormField'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
+import { AuthShell } from '@/shared/components/ui/AuthShell'
 import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
-import { Page, PageCard } from '@/shared/components/ui/Page'
+import { Page } from '@/shared/components/ui/Page'
 import { PasswordInput } from '@/shared/components/ui/PasswordInput'
 import { useLogin } from '../api/auth.queries'
 import { AuthTabs } from '../components/AuthTabs'
@@ -87,10 +88,7 @@ export function LoginPage() {
         </Alert>
       )}
 
-      <PageCard
-        eyebrow="Vitto Club"
-        title="Ingresar"
-      >
+      <AuthShell title="Ingresar">
         <AuthTabs />
 
         <form
@@ -131,7 +129,7 @@ export function LoginPage() {
             {login.isPending ? 'Ingresando…' : 'Ingresar'}
           </Button>
         </form>
-      </PageCard>
+      </AuthShell>
     </Page>
   )
 }

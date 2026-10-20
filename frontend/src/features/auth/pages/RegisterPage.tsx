@@ -14,10 +14,11 @@ import { FormField } from '@/shared/components/forms/FormField'
 import { FormSection } from '@/shared/components/forms/FormSection'
 import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio'
 import { Alert } from '@/shared/components/ui/Alert'
+import { AuthShell } from '@/shared/components/ui/AuthShell'
 import { Button } from '@/shared/components/ui/Button'
 import { DateInput } from '@/shared/components/ui/DateInput'
 import { Input } from '@/shared/components/ui/Input'
-import { Page, PageCard } from '@/shared/components/ui/Page'
+import { Page } from '@/shared/components/ui/Page'
 import { PasswordInput } from '@/shared/components/ui/PasswordInput'
 import { useLogin, useRegisterCustomer } from '../api/auth.queries'
 import { AuthTabs } from '../components/AuthTabs'
@@ -122,8 +123,7 @@ export function RegisterPage() {
 
   return (
     <Page className="max-w-5xl">
-      <PageCard
-        eyebrow="Vitto Club"
+      <AuthShell
         title="Registrarme"
         description="Creá tu cuenta para sumarte al programa y canjear puntos por recompensas"
       >
@@ -280,7 +280,7 @@ export function RegisterPage() {
             </Button>
           </FormActions>
         </form>
-      </PageCard>
+      </AuthShell>
     </Page>
   )
 }

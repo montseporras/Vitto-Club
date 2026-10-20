@@ -50,6 +50,7 @@ export function CashierLayout() {
           {/* En pantallas chicas el menú va arriba y siempre expandido */}
           <SideNav
             label="Opciones del mostrador"
+            title="Menú de mostrador"
             items={NAV}
             storageKey="vitto:menu-caja"
             collapsibleFrom="(min-width: 64rem)"

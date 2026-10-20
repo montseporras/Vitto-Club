@@ -103,7 +103,7 @@ export function IdentifyCustomerPage() {
         </Alert>
       )}
 
-      <PageCard eyebrow="Clientes" title="Buscar">
+      <PageCard eyebrow="Clientes" title="Buscar" variant="plain">
         <form
           noValidate
           role="search"

@@ -24,8 +24,12 @@ export function FormField({
     <div className={formFieldStyles.root}>
       <Label htmlFor={id}>
         {label}
-        {optional && (
+        {optional ? (
           <span className={formFieldStyles.optional}>(opcional)</span>
+        ) : (
+          <span aria-hidden="true" className={formFieldStyles.required}>
+            *
+          </span>
         )}
       </Label>
       {children}

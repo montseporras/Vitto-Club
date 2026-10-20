@@ -242,7 +242,7 @@ export function ManualCustomerRegistrationPage() {
             </FormField>
           </FormSection>
 
-          <FormActions>
+          <FormActions message="Los campos marcados con * son obligatorios">
             <Button
               type="submit"
               size="lg"

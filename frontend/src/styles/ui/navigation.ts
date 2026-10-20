@@ -48,7 +48,7 @@ export const tabsStyles = {
 
 /** Menú lateral desplegable: expandido muestra ícono + nombre; contraído, solo íconos. */
 export const sideNavVariants = cva(
-  'relative z-10 shrink-0 rounded-2xl border border-accent-200 bg-surface p-3 shadow-sm transition-[width] duration-300 ease-in-out',
+  'relative z-10 shrink-0 transition-[width] duration-300 ease-in-out',
   {
     variants: {
       size: { md: '', lg: '' },
@@ -66,25 +66,30 @@ export const sideNavStyles = {
   header: 'flex h-8 items-center justify-between gap-2 pb-2 pl-2',
   headerCollapsed: 'justify-center pl-0',
   title:
-    'overflow-hidden text-xs font-bold whitespace-nowrap uppercase tracking-[0.18em] text-accent-800 transition-opacity duration-200',
+    'overflow-hidden text-xs font-bold whitespace-nowrap uppercase tracking-[0.16em] text-accent-700 transition-opacity duration-200',
   titleCollapsed: 'w-0 opacity-0',
   toggle: [
     'grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg text-accent-800 transition-colors',
     'hover:bg-accent-100',
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700',
   ].join(' '),
-  list: 'flex flex-col gap-2',
+  list: 'flex flex-col gap-1',
   entry: 'group/nav relative',
   item: [
     'flex min-h-12 w-full cursor-pointer items-center overflow-hidden rounded-xl px-4 py-3 text-left text-base font-semibold transition-colors',
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700',
   ].join(' '),
-  itemActive: 'bg-accent-700 text-white shadow-md shadow-accent-800/25',
-  itemIdle: 'bg-accent-50 text-accent-800 hover:bg-accent-100',
+  itemActive: 'bg-accent-100 text-accent-700',
+  itemIdle: 'bg-transparent text-ink hover:bg-accent-50',
   icon: 'size-5 shrink-0',
   label:
     'ml-3 overflow-hidden whitespace-nowrap transition-[opacity,margin] duration-300',
   labelCollapsed: 'ml-0 opacity-0',
+  // Flecha a la derecha, solo visible en expandido (acompaña al ítem activo/hover)
+  chevron:
+    'ml-auto shrink-0 text-accent-200 transition-[color,transform] duration-150 group-hover/nav:translate-x-0.5',
+  chevronActive: 'text-accent-700',
+  chevronCollapsed: 'hidden',
   // Nombre de la sección al pasar el cursor sobre el ícono (solo con el menú contraído)
   tooltip: [
     'pointer-events-none invisible absolute top-1/2 left-full z-30 ml-3 -translate-x-1 -translate-y-1/2 opacity-0',
