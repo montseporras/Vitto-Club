@@ -56,11 +56,11 @@
 | BASE | Modelo de datos nuevo y módulo `points` | | | — (no tiene pantalla) | — | — | Sin empezar |
 | US-57 | Registrar auditoría (cambios de la auditoría) | | | — (no tiene pantalla) | — | — | Sin empezar |
 | US-58 | Consultar auditoría | | | | | `features/audit` | Sin empezar |
-| US-46 | Identificar cliente en mostrador | | | | | `features/cashier` | Sin empezar |
+| US-46 | Identificar cliente en mostrador | Jazmín | `feature/US-19-consultar-cliente-back` | | | `features/cashier` | En revisión |
 | US-21 | Registrar consumo y cálculo de puntos | | | | | `features/cashier` | Sin empezar |
 | US-22 | Anular consumo | | | | | `features/cashier` | Sin empezar |
 | US-23 | Consultar consumos | | | | | A confirmar (ver P8) | Sin empezar |
-| US-19 | Consultar cliente (ficha e inicio del Cliente) | | | | | `features/cashier` (ficha) y `features/my-account` (inicio) | Sin empezar |
+| US-19 | Consultar cliente (ficha e inicio del Cliente) | Jazmín | `feature/US-19-consultar-cliente-back` | | | `features/cashier` (ficha) y `features/my-account` (inicio) | En revisión |
 | US-24 | Ajustar puntos | | | | | `features/cashier` (modal de la ficha) | Sin empezar |
 | US-25 | Vencimiento automático de puntos | | | — (no tiene pantalla) | — | — | Sin empezar |
 | US-26 | Consultar movimientos de puntos | | | | | A confirmar (ver P8) | Sin empezar |
