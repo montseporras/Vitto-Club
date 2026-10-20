@@ -6,14 +6,18 @@ import { CustomerPrismaRepository } from './infrastructure/customers.repository.
 import { EmployeesModule } from '../employees/employees.module.js';
 import { TransactionRunner } from './domain/port/transaction-runner.js';
 import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
+import { PointsModule } from '../points/points.module.js';
+import { CustomerPointsService } from './application/customer-points.service.js';
 
 // Sin forwardRef: EmployeesModule ya no importa CustomersModule (Customers -> Employees es
 // la única dirección, ver CustomersService). Import plano.
 @Module({
-  imports: [EmployeesModule],
+  // PointsModule: puntos y nivel de la ficha (US-19/US-46). points no importa customers, sin ciclo.
+  imports: [EmployeesModule, PointsModule],
   controllers: [CustomersController],
   providers: [
     CustomersService,
+    CustomerPointsService,
     // Vincular la abstracción (puerto) con la implementación en memoria (adaptador)
     {
       provide: CustomerRepository,
