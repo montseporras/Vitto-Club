@@ -132,8 +132,9 @@ class FakeAccountRepository implements AccountRepository {
   async findAllEmployeeAccounts(): Promise<Account[]> {
     return [...this.items.values()].sort((a, b) => (a.getId() as number) - (b.getId() as number));
   }
-  async findByEmail(_email: string): Promise<Account | null> {
-    throw new Error('not implemented: se reasigna por test en el describe de verifyCredentials');
+  // Como el repositorio real: solo cuentas ACTIVAS (los tests de verifyCredentials lo reasignan).
+  async findByEmail(email: string): Promise<Account | null> {
+    return [...this.items.values()].find((a) => a.getEmail() === email && a.isActive()) ?? null;
   }
   async existsByEmployeeId(employeeId: number): Promise<boolean> {
     return [...this.items.values()].some((a) => a.getEmployeeId() === employeeId);
@@ -568,43 +569,6 @@ describe('AccountsService', () => {
     });
   });
 
-  describe('updateRole (US-06)', () => {
-    it('delega el cambio en employeesService.update(); ya no sincroniza Account.role directamente', async () => {
-      employeeRepo.seed(CASHIER_EMPLOYEE);
-      const account = await service.register({
-        employeeId: 2,
-        email: 'bruno.perez@vitto.club',
-        password: 'secreta123',
-      });
-
-      const profile = await service.updateRole(account.getId() as number, 'ADMIN');
-
-      expect(profile.role).toBe('ADMIN');
-      expect(employeeRepo.items.get(2)?.getRole()).toBe('ADMIN');
-      // La sincronización de Account.role ahora la hace el listener de
-      // employee.role-changed (ver employees.service.spec.ts), no updateRole() directo.
-      expect(accountRepo.syncedRoles).toHaveLength(0);
-    });
-
-    it('404 si la cuenta no existe', async () => {
-      await expect(service.updateRole(999, 'ADMIN')).rejects.toThrow(NotFoundException);
-    });
-
-    it('rechaza si la cuenta está inactiva', async () => {
-      employeeRepo.seed(CASHIER_EMPLOYEE);
-      const account = await service.register({
-        employeeId: 2,
-        email: 'bruno.perez@vitto.club',
-        password: 'secreta123',
-      });
-      await service.deactivate(account.getId() as number);
-
-      await expect(service.updateRole(account.getId() as number, 'ADMIN')).rejects.toThrow(
-        ConflictException,
-      );
-    });
-  });
-
   describe('deactivate (US-07, llamada directa por HTTP)', () => {
     it('da de baja una cuenta de un CASHIER sin restricciones y publica account.deactivated', async () => {
       employeeRepo.seed(CASHIER_EMPLOYEE);
@@ -708,6 +672,58 @@ describe('AccountsService', () => {
 
       await expect(service.reactivate(account.getId() as number)).rejects.toThrow(ConflictException);
       expect(accountRepo.items.get(account.getId() as number)?.isActive()).toBe(false);
+    });
+
+    it('409 EMAIL_IN_USE si otra cuenta de empleado activa ya usa el email (contrato §3.11.4)', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+      await service.deactivate(account.getId() as number);
+      accountRepo.findByEmail = async () => account;
+
+      await expect(service.reactivate(account.getId() as number)).rejects.toMatchObject({
+        response: {
+          code: 'EMAIL_IN_USE',
+          message: 'El mail de este usuario ya lo usa otra cuenta activa.',
+        },
+      });
+      expect(accountRepo.items.get(account.getId() as number)?.isActive()).toBe(false);
+    });
+
+    it('409 EMAIL_IN_USE si una cuenta de cliente activa ya usa el email', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+      await service.deactivate(account.getId() as number);
+      accountRepo.customerLogins.set(50, {
+        accountId: 50,
+        customerId: 20,
+        email: 'bruno.perez@vitto.club',
+        passwordHash: 'hashed:x',
+        active: true,
+        mustChangePassword: false,
+      });
+
+      await expect(service.reactivate(account.getId() as number)).rejects.toMatchObject({
+        response: { code: 'EMAIL_IN_USE' },
+      });
+      expect(accountRepo.items.get(account.getId() as number)?.isActive()).toBe(false);
+    });
+
+    it('reactiva si el email solo lo usa una cuenta de cliente dada de baja', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+      await service.deactivate(account.getId() as number);
+      accountRepo.customerLogins.set(50, {
+        accountId: 50,
+        customerId: 20,
+        email: 'bruno.perez@vitto.club',
+        passwordHash: 'hashed:x',
+        active: false,
+        mustChangePassword: false,
+      });
+
+      await service.reactivate(account.getId() as number);
+
+      expect(accountRepo.items.get(account.getId() as number)?.isActive()).toBe(true);
     });
 
     it('404 si la cuenta no existe', async () => {

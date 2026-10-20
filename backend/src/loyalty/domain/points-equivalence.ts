@@ -6,8 +6,8 @@ export type PointsEquivalenceData = {
   updatedAt?: Date;
 };
 
-const MAX_BASE_AMOUNT = 9_999_999_999.99;
-const MAX_POINTS = 2_147_483_647;
+const MAX_BASE_AMOUNT = 1_000_000;
+const MAX_POINTS = 10_000;
 
 export class PointsEquivalence {
   private constructor(

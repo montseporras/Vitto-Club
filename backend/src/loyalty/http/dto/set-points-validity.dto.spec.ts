@@ -26,7 +26,7 @@ describe('SetPointsValidityDto', () => {
     expect(dto.pointsExpirationMonths).toBe(18);
   });
 
-  it.each(['abc', '12months', 1.5, 0, -1, 2_147_483_648])(
+  it.each(['abc', '12months', 1.5, 0, -1, 121])(
     'rejects invalid month input %s',
     async (pointsExpirationMonths) => {
       const dto = plainToInstance(SetPointsValidityDto, {

@@ -16,3 +16,10 @@ export const PROFILE_EMAIL_IN_USE_MESSAGE = 'Ese correo ya está registrado';
 export function profileEmailInUse(): ConflictException {
   return new ConflictException({ message: PROFILE_EMAIL_IN_USE_MESSAGE, code: EMAIL_IN_USE });
 }
+
+// Texto del contrato para la reactivación de un usuario de empleado (§3.11.4)
+export const REACTIVATION_EMAIL_IN_USE_MESSAGE = 'El mail de este usuario ya lo usa otra cuenta activa.';
+
+export function reactivationEmailInUse(): ConflictException {
+  return new ConflictException({ message: REACTIVATION_EMAIL_IN_USE_MESSAGE, code: EMAIL_IN_USE });
+}

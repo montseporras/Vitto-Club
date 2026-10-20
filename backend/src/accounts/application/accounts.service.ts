@@ -11,6 +11,7 @@ import { AccountRepository } from '../domain/port/account.repository.js';
 import { PasswordHasher } from '../domain/port/password-hasher.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import { AccountAlreadyExists } from '../domain/errors/account-already-exists.error.js';
+import { emailInUse, reactivationEmailInUse } from '../domain/errors/email-in-use.error.js';
 import {
   ACCOUNT_DEACTIVATED,
   type AccountDeactivatedEvent,
@@ -84,7 +85,7 @@ export class AccountsService {
     const employee = await this.employeesService.findById(input.employeeId);
     if (!employee.isActive()) {
       throw new ConflictException(
-        `Employee with ID ${input.employeeId} is inactive and cannot have an account`,
+        'El empleado está dado de baja y no puede tener un usuario.',
       );
     }
 
@@ -98,13 +99,13 @@ export class AccountsService {
     // incorrecto, no un conflicto de recursos).
     const normalizedEmail = input.email.trim().toLowerCase();
     if (normalizedEmail !== employee.getEmail()) {
-      throw new BadRequestException("The email must match the associated employee's email");
+      throw new BadRequestException('El mail tiene que ser el del empleado.');
     }
 
-    // 4. Unicidad global de email: contra otros empleados ya está garantizada (se valida
-    // al crear el Employee). Falta la verificación cruzada contra customers.
-    if (await this.customersService.existsByEmail(employee.getEmail())) {
-      throw new ConflictException(`Email "${employee.getEmail()}" is already registered as a customer`);
+    // 4. Unicidad de email entre activos: contra otros empleados ya está garantizada (se valida
+    // al crear el Employee). Falta la verificación cruzada contra clientes ACTIVOS.
+    if (await this.customersService.existsActiveByEmail(employee.getEmail())) {
+      throw emailInUse();
     }
 
     // 5. Password: longitud 8-64, y nunca igual al email (mismo criterio en reset).
@@ -126,7 +127,7 @@ export class AccountsService {
     return accounts.map((account) => {
       const employee = employeesById.get(account.getEmployeeId());
       if (!employee) {
-        throw new NotFoundException(`Employee with ID ${account.getEmployeeId()} not found`);
+        throw new NotFoundException('No existe el empleado.');
       }
       return this.toProfile(account, employee);
     });
@@ -136,7 +137,7 @@ export class AccountsService {
   async findProfileByEmployeeId(employeeId: number): Promise<AccountProfile> {
     const account = await this.accountsRepository.findByEmployeeId(employeeId);
     if (!account) {
-      throw new NotFoundException(`Employee with ID ${employeeId} has no account`);
+      throw new NotFoundException('El empleado no tiene usuario.');
     }
     const employee = await this.employeesService.findById(employeeId);
     return this.toProfile(account, employee);
@@ -148,36 +149,11 @@ export class AccountsService {
     return this.toProfile(account, employee);
   }
 
-  // --- US-06: EDITAR USUARIO (cambio de rol) ---
-  // El rol vive en Employee (fuente de verdad); esta operación dispara el cambio ahí.
-  // La protección del último ADMIN y la sincronización de Account.role ya NO se hacen acá:
-  // employeesService.update() emite employee.role-changed (si el rol realmente cambió)
-  // dentro de su propia transacción, y el listener de este módulo (ver
-  // employee-events.listener.ts) hace ambas cosas. Si el listener rechaza, el error se
-  // propaga y deshace el cambio de rol en Employee también.
-  async updateRole(accountId: number, newRole: AccountRole): Promise<AccountProfile> {
-    const account = await this.findAccountOrFail(accountId);
-    if (!account.isActive()) {
-      throw new ConflictException(`Account with ID ${accountId} is inactive and cannot be modified`);
-    }
-
-    const employee = await this.employeesService.findById(account.getEmployeeId());
-
-    const updatedEmployee = await this.employeesService.update(employee.getId() as number, {
-      firstName: employee.getFirstName(),
-      lastName: employee.getLastName(),
-      phone: employee.getPhone(),
-      role: newRole,
-    });
-
-    return this.toProfile(account, updatedEmployee);
-  }
-
   // --- US-06: EDITAR USUARIO (resetear contraseña) ---
   async resetPassword(accountId: number, newPassword: string): Promise<Account> {
     const account = await this.findAccountOrFail(accountId);
     if (!account.isActive()) {
-      throw new ConflictException(`Account with ID ${accountId} is inactive and cannot be modified`);
+      throw new ConflictException('El usuario está dado de baja y no se puede modificar.');
     }
 
     const employee = await this.employeesService.findById(account.getEmployeeId());
@@ -195,7 +171,7 @@ export class AccountsService {
     return await this.transactionRunner.run(async () => {
       const account = await this.findAccountOrFail(accountId);
       if (!account.isActive()) {
-        throw new ConflictException(`Account with ID ${accountId} is already inactive`);
+        throw new ConflictException('El usuario ya está dado de baja.');
       }
 
       const employee = await this.employeesService.findById(account.getEmployeeId());
@@ -222,14 +198,23 @@ export class AccountsService {
   async reactivate(accountId: number): Promise<void> {
     const account = await this.findAccountOrFail(accountId);
     if (account.isActive()) {
-      throw new ConflictException(`Account with ID ${accountId} is already active`);
+      throw new ConflictException('El usuario ya está activo.');
     }
 
     const employee = await this.employeesService.findById(account.getEmployeeId());
     if (!employee.isActive()) {
       throw new ConflictException(
-        `Employee with ID ${employee.getId()} is inactive and cannot have its account reactivated`,
+        'El empleado está dado de baja: no se puede reactivar su usuario.',
       );
+    }
+
+    // Mientras el usuario estuvo de baja, otra cuenta activa (por ejemplo, un cliente nuevo)
+    // pudo tomar su email. Sin este control, el índice parcial rechazaría el UPDATE con un 500.
+    const email = account.getEmail() as string;
+    const employeeAccount = await this.accountsRepository.findByEmail(email);
+    const customerAccount = await this.accountsRepository.findCustomerLoginByEmail(email);
+    if (employeeAccount !== null || customerAccount?.active) {
+      throw reactivationEmailInUse();
     }
 
     account.reactivate();
@@ -440,7 +425,7 @@ export class AccountsService {
     const availableAdmins = await this.countAvailableAdmins();
     if (availableAdmins <= 1) {
       throw new ConflictException({
-        message: 'This operation would leave the system without an available administrator',
+        message: 'Esta operación dejaría al sistema sin un administrador disponible.',
         code: 'LAST_ADMIN',
       });
     }
@@ -467,7 +452,7 @@ export class AccountsService {
 
     if (availableAdmins === 0) {
       throw new ConflictException({
-        message: 'This operation would leave the system without an available administrator',
+        message: 'Esta operación dejaría al sistema sin un administrador disponible.',
         code: 'LAST_ADMIN',
       });
     }
@@ -490,14 +475,14 @@ export class AccountsService {
   // alguna normalización. Solo se rechaza la igualdad literal, byte a byte.
   private assertPasswordIsNotEmail(password: Password, employee: Employee): void {
     if (password.getValue() === employee.getEmail()) {
-      throw new BadRequestException('Password cannot be the same as the email');
+      throw new BadRequestException('La contraseña no puede ser igual al mail');
     }
   }
 
   private async findAccountOrFail(accountId: number): Promise<Account> {
     const account = await this.accountsRepository.findById(accountId);
     if (!account) {
-      throw new NotFoundException(`Account with ID ${accountId} not found`);
+      throw new NotFoundException('No existe el usuario.');
     }
     return account;
   }

@@ -11,6 +11,7 @@ import { PrismaModule } from '../src/prisma/prisma.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { EmployeesModule } from '../src/employees/employees.module.js';
 import { AccountsModule } from '../src/accounts/accounts.module.js';
+import { AccountRepository } from '../src/accounts/domain/port/account.repository.js';
 import { PasswordHasher } from '../src/accounts/domain/port/password-hasher.js';
 
 // PasswordHasher FALSO, solo para este e2e: determinista y simple, nunca bcrypt real.
@@ -274,6 +275,107 @@ describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () 
       expect(byId.get(accountActive.id)).toMatchObject({ employeeId: accountActive.employeeId, active: true });
       expect(byId.get(accountInactive.id)).toMatchObject({ employeeId: accountInactive.employeeId, active: false });
       expect(response.body.every((p: object) => !('passwordHash' in p))).toBe(true);
+    });
+  });
+
+  // CORR (VERIFICACION_SPRINTS_1_2 §3, §6): el email es único solo entre registros ACTIVOS.
+  describe('F. CORR — unicidad de email entre activos y PATCH /api/usuarios sin role', () => {
+    it('PATCH /api/usuarios/:id con role responde 400 y no cambia el rol (contrato §3.11.2)', async () => {
+      const { employee, account } = await seedEmployeeWithAccount({
+        email: 'cashier.f1@vitto.club',
+        role: 'CASHIER',
+        lastName: 'Rol',
+      });
+
+      const withRole = await request(app.getHttpServer())
+        .patch(`/api/usuarios/${account.id}`)
+        .send({ role: 'ADMIN', password: 'OtraClave456' });
+      const onlyRole = await request(app.getHttpServer()).patch(`/api/usuarios/${account.id}`).send({ role: 'ADMIN' });
+
+      expect(withRole.status).toBe(400);
+      expect(onlyRole.status).toBe(400);
+      const fresh = await prisma.employee.findUniqueOrThrow({ where: { id: employee.id } });
+      expect(fresh.role).toBe('CASHIER');
+    });
+
+    it('POST /api/empleados con el email de un empleado dado de baja responde 201; con uno activo, 409', async () => {
+      const { employee } = await seedEmployeeWithAccount({
+        email: 'baja.f2@vitto.club',
+        role: 'CASHIER',
+        lastName: 'Baja',
+      });
+      await request(app.getHttpServer()).delete(`/api/empleados/${employee.id}`).expect(200);
+      const body = { firstName: 'Nuevo', lastName: 'Empleado', email: 'baja.f2@vitto.club', role: 'CASHIER' };
+
+      await request(app.getHttpServer()).post('/api/empleados').send(body).expect(201);
+      const repeated = await request(app.getHttpServer()).post('/api/empleados').send(body);
+
+      expect(repeated.status).toBe(409);
+      expect(repeated.body.message).toBe('Ya existe un empleado registrado con ese mail.');
+    });
+
+    it('la búsqueda de login resuelve la cuenta ACTIVA cuando el email también está en una cuenta dada de baja', async () => {
+      const { employee: oldEmployee } = await seedEmployeeWithAccount({
+        email: 'repetido.f3@vitto.club',
+        role: 'CASHIER',
+        lastName: 'Viejo',
+      });
+      await request(app.getHttpServer()).delete(`/api/empleados/${oldEmployee.id}`).expect(200);
+      const { employee: newEmployee } = await seedEmployeeWithAccount({
+        email: 'repetido.f3@vitto.club',
+        role: 'CASHIER',
+        lastName: 'Nuevo',
+      });
+
+      const found = await app.get(AccountRepository).findByEmail('repetido.f3@vitto.club');
+
+      expect(found?.getEmployeeId()).toBe(newEmployee.id);
+    });
+
+    it('reactivar un usuario con el email tomado por otra cuenta activa responde 409 EMAIL_IN_USE', async () => {
+      const { employee, account } = await seedEmployeeWithAccount({
+        email: 'tomado.f4@vitto.club',
+        role: 'CASHIER',
+        lastName: 'Tomado',
+      });
+      await request(app.getHttpServer()).patch(`/api/usuarios/${account.id}/deactivate`).expect(204);
+      const customer = await prisma.customer.create({
+        data: {
+          firstName: 'Cli',
+          lastName: 'Ente',
+          documentType: 'DNI',
+          documentNumber: '30111222',
+          email: 'tomado.f4@vitto.club',
+        },
+      });
+      const customerAccount = await prisma.account.create({
+        data: {
+          email: 'tomado.f4@vitto.club',
+          passwordHash: 'hashed:x',
+          role: 'CUSTOMER',
+          isActive: true,
+          customerId: customer.id,
+        },
+      });
+
+      try {
+        const blocked = await request(app.getHttpServer()).patch(`/api/usuarios/${account.id}/reactivate`);
+
+        expect(blocked.status).toBe(409);
+        expect(blocked.body.code).toBe('EMAIL_IN_USE');
+        expect(blocked.body.message).toBe('El mail de este usuario ya lo usa otra cuenta activa.');
+        const still = await prisma.account.findUniqueOrThrow({ where: { id: account.id } });
+        expect(still.isActive).toBe(false);
+
+        await prisma.account.update({ where: { id: customerAccount.id }, data: { isActive: false } });
+        await request(app.getHttpServer()).patch(`/api/usuarios/${account.id}/reactivate`).expect(204);
+        const reactivated = await prisma.account.findUniqueOrThrow({ where: { id: account.id } });
+        expect(reactivated.isActive).toBe(true);
+        expect(employee.isActive).toBe(true);
+      } finally {
+        await prisma.account.deleteMany({ where: { customerId: customer.id } });
+        await prisma.customer.delete({ where: { id: customer.id } });
+      }
     });
   });
 });

@@ -264,7 +264,7 @@ describe('Loyalty configuration (e2e)', () => {
     }
   });
 
-  it.each(['abc', '12months', 1.5, 0, -2, 2_147_483_648])(
+  it.each(['abc', '12months', 1.5, 0, -2, 121])(
     'rejects invalid points validity %s without persisting it',
     async (pointsExpirationMonths) => {
       await request(app.getHttpServer())

@@ -1,7 +1,7 @@
 export const BIRTH_DATE_INVALID_MESSAGE = 'Esa fecha no existe';
 export const BIRTH_DATE_FUTURE_MESSAGE = 'La fecha no puede ser futura';
 
-const MIN_BIRTH_YEAR = 1900;
+export const MIN_BIRTH_YEAR = 1900;
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 export type BirthDateCheck = { date: Date } | { message: string };

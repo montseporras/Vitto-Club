@@ -1,4 +1,3 @@
-import { BadRequestException } from '@nestjs/common';
 import { AccountsController } from './accounts.controller.js';
 import { AccountsService, AccountProfile } from '../application/accounts.service.js';
 import { Account } from '../domain/account.js';
@@ -13,7 +12,6 @@ import type { CurrentUserData } from '../../shared/security/current-user-data.js
 describe('AccountsController', () => {
   let service: {
     register: jest.Mock;
-    updateRole: jest.Mock;
     resetPassword: jest.Mock;
     deactivate: jest.Mock;
     reactivate: jest.Mock;
@@ -47,7 +45,6 @@ describe('AccountsController', () => {
   beforeEach(() => {
     service = {
       register: jest.fn(),
-      updateRole: jest.fn(),
       resetPassword: jest.fn(),
       deactivate: jest.fn(),
       reactivate: jest.fn(),
@@ -129,50 +126,14 @@ describe('AccountsController', () => {
   });
 
   describe('update() — US-06', () => {
-    it('rechaza con 400 si no viene ni role ni password', async () => {
-      await expect(controller.update(7, new UpdateAccountDto(), admin)).rejects.toThrow(
-        BadRequestException,
-      );
-      expect(service.updateRole).not.toHaveBeenCalled();
-      expect(service.resetPassword).not.toHaveBeenCalled();
-    });
-
-    it('con solo role: llama updateRole y no resetPassword', async () => {
-      service.findProfileById
-        .mockResolvedValueOnce(profile)
-        .mockResolvedValueOnce({ ...profile, role: 'ADMIN' });
-      const dto = Object.assign(new UpdateAccountDto(), { role: 'ADMIN' });
-
-      const result = await controller.update(7, dto, admin);
-
-      expect(service.updateRole).toHaveBeenCalledWith(7, 'ADMIN');
-      expect(service.resetPassword).not.toHaveBeenCalled();
-      expect(result.role).toBe('ADMIN');
-      expect(audit).toHaveLength(1);
-      expect(audit[0]).toMatchObject({
-        action: 'USER_ACCOUNT_UPDATED',
-        description: 'Cambió el rol de Bruno Pérez',
-        details: [{ label: 'Rol', value: 'Cajero → Administrador' }],
-      });
-    });
-
-    it('con el mismo role y sin password no cambia nada: no audita', async () => {
-      service.findProfileById.mockResolvedValue(profile);
-      const dto = Object.assign(new UpdateAccountDto(), { role: 'CASHIER' });
-
-      await controller.update(7, dto, admin);
-
-      expect(audit).toEqual([]);
-    });
-
-    it('con solo password: llama resetPassword y no updateRole', async () => {
+    it('resetea la contraseña y audita sin guardar la contraseña', async () => {
       service.findProfileById.mockResolvedValue(profile);
       const dto = Object.assign(new UpdateAccountDto(), { password: 'nueva456' });
 
-      await controller.update(7, dto, admin);
+      const result = await controller.update(7, dto, admin);
 
       expect(service.resetPassword).toHaveBeenCalledWith(7, 'nueva456');
-      expect(service.updateRole).not.toHaveBeenCalled();
+      expect(result.role).toBe('CASHIER');
       expect(audit).toHaveLength(1);
       expect(audit[0]).toMatchObject({
         action: 'USER_ACCOUNT_UPDATED',
@@ -180,25 +141,6 @@ describe('AccountsController', () => {
         details: [{ label: 'Contraseña', value: 'Modificada' }],
       });
       expect(JSON.stringify(audit)).not.toContain('nueva456');
-    });
-
-    it('con ambos: llama a los dos', async () => {
-      service.findProfileById
-        .mockResolvedValueOnce(profile)
-        .mockResolvedValueOnce({ ...profile, role: 'ADMIN' });
-      const dto = Object.assign(new UpdateAccountDto(), { role: 'ADMIN', password: 'nueva456' });
-
-      await controller.update(7, dto, admin);
-
-      expect(service.updateRole).toHaveBeenCalledWith(7, 'ADMIN');
-      expect(service.resetPassword).toHaveBeenCalledWith(7, 'nueva456');
-      expect(audit[0]).toMatchObject({
-        description: 'Editó el usuario de Bruno Pérez',
-        details: [
-          { label: 'Rol', value: 'Cajero → Administrador' },
-          { label: 'Contraseña', value: 'Modificada' },
-        ],
-      });
     });
   });
 

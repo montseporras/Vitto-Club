@@ -15,17 +15,19 @@ export class UpdateLoyaltyConfigurationDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @IsPositive()
-  @Max(9_999_999_999.99)
+  @Max(1_000_000)
   baseAmount!: number;
 
   @Type(() => Number)
   @IsInt()
   @IsPositive()
+  @Max(10_000)
   pointsAwarded!: number;
 
   @Type(() => Number)
   @IsInt()
   @IsPositive()
+  @Max(120)
   pointsExpirationMonths = 12;
 
   @IsEnum(FIRST_PURCHASE_BONUS_TYPES)

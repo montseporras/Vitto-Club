@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -84,43 +83,22 @@ export class AccountsController {
     return AccountResponseDto.fromProfile(profile);
   }
 
-  // PATCH /api/usuarios/:id -> US-06 Editar usuario (rol y/o password)
+  // PATCH /api/usuarios/:id -> US-06 Editar usuario (contraseña). El rol no viaja: se cambia
+  // desde PATCH /empleados/:id (contrato §3.11.2).
   @Patch(':id')
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateAccountDto,
     @CurrentUser() user: CurrentUserData,
   ): Promise<AccountResponseDto> {
-    // No es una regla de negocio, es la traducción de "body sin ningún campo" a 400. Qué
-    // constituye un cambio inválido (rol permitido, protección del último ADMIN, longitud
-    // de password) sigue decidido entero por AccountsService.
-    if (dto.role === undefined && dto.password === undefined) {
-      throw new BadRequestException('At least one of role or password must be provided');
-    }
-
     const { profile } = await this.auditService.capture(
       async () => {
-        const before = await this.accountsService.findProfileById(id);
-        if (dto.role !== undefined) {
-          await this.accountsService.updateRole(id, dto.role);
-        }
-        if (dto.password !== undefined) {
-          await this.accountsService.resetPassword(id, dto.password);
-        }
+        await this.accountsService.resetPassword(id, dto.password);
         const updated = await this.accountsService.findProfileById(id);
         const employee = await this.employeesService.findById(updated.employeeId);
-        return { before, profile: updated, employee };
+        return { profile: updated, employee };
       },
-      ({ before, profile: updated, employee }) => {
-        const passwordChanged = dto.password !== undefined;
-        // Mandar el mismo rol que ya tenía no cambia nada: si tampoco hay contraseña, no se audita
-        if (!passwordChanged && before.role === updated.role) return null;
-        return userAccountUpdatedEntry(actorOf(user), nameOf(employee), {
-          previousRole: before.role,
-          newRole: updated.role,
-          passwordChanged,
-        });
-      },
+      ({ employee }) => userAccountUpdatedEntry(actorOf(user), nameOf(employee), { passwordChanged: true }),
     );
     return AccountResponseDto.fromProfile(profile);
   }

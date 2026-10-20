@@ -79,21 +79,21 @@ describe('AccountsExceptionFilter', () => {
     filter.catch(Object.assign(new Error('Record not found'), { code: 'P2025' }), host);
 
     expect(status).toHaveBeenCalledWith(404);
-    expect(body().message).toBe('Account not found');
+    expect(body().message).toBe('No existe el usuario.');
   });
 
   it('una violación de unicidad de Prisma (P2002) responde 409', () => {
     filter.catch(Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }), host);
 
     expect(status).toHaveBeenCalledWith(409);
-    expect(body().message).toBe('An account with that identifier already exists');
+    expect(body().message).toBe('Ya existe un usuario con ese mail.');
   });
 
   it('un error inesperado responde 500 genérico y NO filtra el mensaje interno', () => {
     filter.catch(new Error('connect ECONNREFUSED 127.0.0.1:5433 (password=secreto)'), host);
 
     expect(status).toHaveBeenCalledWith(500);
-    expect(body().message).toBe('Unexpected error.');
+    expect(body().message).toBe('Ocurrió un error inesperado.');
     expect(JSON.stringify(body())).not.toContain('ECONNREFUSED');
     expect(Logger.prototype.error).toHaveBeenCalled();
   });
