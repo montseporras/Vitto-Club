@@ -41,6 +41,16 @@ export const router = createBrowserRouter([
         ),
       }
     },
+    children: [
+      {
+        // US-19: Inicio del Cliente
+        index: true,
+        lazy: async () => {
+          const { CustomerHomePage } = await import('@/features/my-account')
+          return { Component: CustomerHomePage }
+        },
+      },
+    ],
   },
   {
     path: PATHS.cashier.root,
