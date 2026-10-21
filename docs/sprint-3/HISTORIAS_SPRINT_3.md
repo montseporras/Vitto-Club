@@ -65,7 +65,7 @@
 | US-25 | Vencimiento automático de puntos | | | — (no tiene pantalla) | — | — | Sin empezar |
 | US-26 | Consultar movimientos de puntos | | | | | A confirmar (ver P8) | Sin empezar |
 | US-27 | Configurar niveles | | | | | `features/points` (tarjeta en Configuración → Puntos) | Sin empezar |
-| US-17-AJ | Alta de cliente con cuenta y contraseña inicial | | | | | `features/cashier` y `features/customers` | Sin empezar |
+| US-17-AJ | Alta de cliente con cuenta y contraseña inicial | | | Maga | `frontend-maga` | `features/cashier` y `features/customers` | En curso |
 | CLI-ADM | Clientes del Administrador | | | | | `features/customers` | Sin empezar |
 | PERFIL | Mi perfil, contraseña y cerrar sesión del Cliente (número de US a confirmar, ver P1) | | | | | `features/my-account` | Sin empezar |
 | EMP-PASS | Contraseña y reactivación de usuarios de empleados | | | | | `features/employees` | Sin empezar |
