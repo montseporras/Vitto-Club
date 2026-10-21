@@ -211,6 +211,9 @@ Las aplica el backend al crear una cuenta (`POST /api/usuarios` y `POST /api/aut
 - **Distinta del email.** Se compara tal cual, sin ignorar mayúsculas ni espacios.
 - La contraseña **no se normaliza**: los espacios cuentan y las mayúsculas importan.
 
+Cuando el Administrador cambia la contraseña de un empleado (`PATCH /api/usuarios/:id`), el backend cierra
+todas las sesiones de esa cuenta: quien estaba conectado tiene que volver a ingresar con la contraseña nueva.
+
 ---
 
 ## 11. Acordado con el frontend, pendiente de implementar

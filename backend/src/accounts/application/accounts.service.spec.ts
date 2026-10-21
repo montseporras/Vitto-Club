@@ -5,7 +5,7 @@ import { AccountRepository, type CustomerLoginRecord } from '../domain/port/acco
 import { PasswordHasher } from '../domain/port/password-hasher.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import { DomainError } from '../domain/errors/domain.error.js';
-import { ACCOUNT_DEACTIVATED } from '../../shared/events/domain-events.js';
+import { ACCOUNT_DEACTIVATED, ACCOUNT_PASSWORD_CHANGED } from '../../shared/events/domain-events.js';
 import { EmployeesService } from '../../employees/application/employees.service.js';
 import { Employee, EmployeeData } from '../../employees/domain/employee.js';
 import { EmployeeListFilters, EmployeeRepository } from '../../employees/domain/port/employee.repository.js';
@@ -505,6 +505,37 @@ describe('AccountsService', () => {
       const updated = await service.resetPassword(account.getId() as number, 'nueva456');
 
       expect(updated.getPasswordHash()).toBe('hashed:nueva456');
+    });
+
+    it('publica account.password-changed sin refresh token para cerrar todas las sesiones (§3.11.2)', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({
+        employeeId: 2,
+        email: 'bruno.perez@vitto.club',
+        password: 'vieja123',
+      });
+
+      await service.resetPassword(account.getId() as number, 'nueva456');
+
+      expect(eventEmitter.emitted).toEqual([
+        { event: ACCOUNT_PASSWORD_CHANGED, payload: { accountId: account.getId() } },
+      ]);
+    });
+
+    it('no publica el evento si la cuenta está inactiva', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({
+        employeeId: 2,
+        email: 'bruno.perez@vitto.club',
+        password: 'vieja123',
+      });
+      await service.deactivate(account.getId() as number);
+      eventEmitter.emitted.length = 0;
+
+      await expect(service.resetPassword(account.getId() as number, 'nueva456')).rejects.toThrow(
+        ConflictException,
+      );
+      expect(eventEmitter.emitted).toHaveLength(0);
     });
 
     it('rechaza si la cuenta está inactiva', async () => {

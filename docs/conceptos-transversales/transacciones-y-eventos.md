@@ -319,7 +319,7 @@ Es la lista de avisos que existen y qué datos lleva cada uno.
 | `customer.email-changed` | `customers` | `accounts` | Actualizar el email de acceso del cliente |
 | `customer.document-changed` | `customers` | `accounts` | Si el cliente no cambió la contraseña inicial, que pase a ser el documento nuevo (CLI-ADM) |
 | `customer.email-change-requested` | `customers` | `accounts` | El cliente cambia su correo desde Mi perfil: verificar su contraseña actual (con el límite de intentos) y que ninguna otra cuenta activa use el correo, **antes** de escribir nada. Si falla, tira el error y se deshace todo (PERFIL) |
-| `account.password-changed` | `accounts` | `auth` | Cerrar las otras sesiones de la cuenta, dejando abierta la de la cookie del pedido (PERFIL) |
+| `account.password-changed` | `accounts` | `auth` | Cerrar las sesiones de la cuenta. Si el evento trae `currentRefreshToken` (el usuario cambia su propia contraseña, PERFIL), deja abierta la de la cookie del pedido. Si no lo trae (el Administrador cambia la contraseña de un empleado con `PATCH /usuarios/:id`, EMP-PASS), cierra todas |
 
 **Por qué está en una carpeta compartida (`shared/events/`) y no dentro de un
 módulo:** si `accounts` importara el evento desde `employees/domain`, se
@@ -453,7 +453,9 @@ Al escribir una operación que toca más de un módulo:
   sin uso desde CLI-ADM. PERFIL suma `customer.email-change-requested` (customers →
   accounts) y `account.password-changed` (accounts → auth), ambos en la
   transacción de quien los publica. El primero se publica **antes** de escribir:
-  si la contraseña es incorrecta, tira y no queda nada guardado.
+  si la contraseña es incorrecta, tira y no queda nada guardado. EMP-PASS reutiliza
+  `account.password-changed` desde `AccountsService.resetPassword` (sin
+  `currentRefreshToken`) para cerrar todas las sesiones del empleado.
 - **Test de la cadena completa por HTTP** (degradar al último administrador
   desde `PATCH /api/empleados/:id` tiene que responder 409 y no cambiar nada):
   sigue sin existir — lo que hay es el equivalente a nivel de servicio (con
@@ -494,3 +496,4 @@ Al escribir una operación que toca más de un módulo:
 | 2026-10-06 | Sección 10 actualizada: `employee.deactivated`/`employee.role-changed` ya están implementados y probados (rollback incluido) en `employees`/`accounts`, con `client` en ambos repositorios. Sigue pendiente el test e2e por HTTP y los eventos de clientes |
 | 2026-10-20 | CLI-ADM: `customer.deactivated` ya se publica (baja de la cuenta y cierre de sesiones) y se suma `customer.document-changed`. `customer.reactivated` queda sin uso |
 | 2026-10-20 | PERFIL: se suman `customer.email-change-requested` (el cliente cambia su correo; `accounts` verifica la contraseña antes de que `customers` escriba) y `account.password-changed` (`auth` cierra las otras sesiones) |
+| 2026-10-20 | EMP-PASS: `AccountsService.resetPassword` (`PATCH /usuarios/:id`) corre en la transacción ambiente y publica `account.password-changed` sin `currentRefreshToken`, así que `auth` cierra todas las sesiones de la cuenta |

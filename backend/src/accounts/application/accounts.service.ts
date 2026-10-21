@@ -14,7 +14,9 @@ import { AccountAlreadyExists } from '../domain/errors/account-already-exists.er
 import { emailInUse, reactivationEmailInUse } from '../domain/errors/email-in-use.error.js';
 import {
   ACCOUNT_DEACTIVATED,
+  ACCOUNT_PASSWORD_CHANGED,
   type AccountDeactivatedEvent,
+  type AccountPasswordChangedEvent,
   type CustomerEmailChangedEvent,
   type EmployeeRoleChangedEvent,
 } from '../../shared/events/domain-events.js';
@@ -151,19 +153,28 @@ export class AccountsService {
 
   // --- US-06: EDITAR USUARIO (resetear contraseña) ---
   async resetPassword(accountId: number, newPassword: string): Promise<Account> {
-    const account = await this.findAccountOrFail(accountId);
-    if (!account.isActive()) {
-      throw new ConflictException('El usuario está dado de baja y no se puede modificar.');
-    }
+    return await this.transactionRunner.run(async () => {
+      const account = await this.findAccountOrFail(accountId);
+      if (!account.isActive()) {
+        throw new ConflictException('El usuario está dado de baja y no se puede modificar.');
+      }
 
-    const employee = await this.employeesService.findById(account.getEmployeeId());
-    const password = Password.create(newPassword);
-    this.assertPasswordIsNotEmail(password, employee);
+      const employee = await this.employeesService.findById(account.getEmployeeId());
+      const password = Password.create(newPassword);
+      this.assertPasswordIsNotEmail(password, employee);
 
-    const passwordHash = await this.passwordHasher.hash(password.getValue());
-    account.changePasswordHash(passwordHash);
-    await this.accountsRepository.updatePasswordHash(account);
-    return account;
+      const passwordHash = await this.passwordHasher.hash(password.getValue());
+      account.changePasswordHash(passwordHash);
+      await this.accountsRepository.updatePasswordHash(account);
+
+      // Contrato §3.11.2: se cierran TODAS las sesiones de la cuenta. Sin currentRefreshToken
+      // el listener de auth no conserva ninguna (quien cambia la contraseña es el Administrador,
+      // no el dueño de la cuenta).
+      await this.eventEmitter.emitAsync(ACCOUNT_PASSWORD_CHANGED, {
+        accountId: account.getId() as number,
+      } satisfies AccountPasswordChangedEvent);
+      return account;
+    });
   }
 
   // --- US-07: DAR DE BAJA USUARIO (disparada directo por HTTP, no por evento) ---
