@@ -5,8 +5,8 @@ Reglas de negocio, sin HTTP. Para el contrato REST y la guía de integración ve
 
 ## Alcance
 
-El módulo **almacena reglas**. **No** calcula ni acredita puntos, no aplica bonificaciones a compras ni
-procesa vencimientos: eso queda para futuros casos de uso de compras (RF-020).
+El módulo **almacena reglas**. **No** calcula ni acredita puntos, no aplica bonificaciones a consumos ni
+procesa vencimientos: eso queda para futuros casos de uso de consumos (RF-020).
 
 ## Las tres reglas
 
@@ -14,7 +14,7 @@ procesa vencimientos: eso queda para futuros casos de uso de compras (RF-020).
 |---|---|---|
 | Equivalencia monto/puntos | `baseAmount`, `pointsAwarded` | `baseAmount` > 0, máximo 2 decimales, máximo 9.999.999.999,99. `pointsAwarded` entero > 0, máximo 2.147.483.647 |
 | Vigencia de puntos | `pointsExpirationMonths` | Entero entre 1 y 2.147.483.647. Omitido, `null` o vacío se normaliza al **default de 12 meses (RF-010)**. Se mide desde que los puntos se acreditan |
-| Bonificación de primera compra | `bonusType`, `bonusValue` | `PERCENTAGE`: 1 a 100, hasta 2 decimales. `FIXED_AMOUNT`: entero de 1 a 10.000 puntos |
+| Bonificación de primer consumo | `bonusType`, `bonusValue` | `PERCENTAGE`: 1 a 100, hasta 2 decimales. `FIXED_AMOUNT`: entero de 1 a 10.000 puntos |
 
 El mínimo de 1 % para porcentajes es reciente (migración `set_percentage_bonus_minimum_to_one`).
 
@@ -28,7 +28,7 @@ El mínimo de 1 % para porcentajes es reciente (migración `set_percentage_bonus
 
 ## Moneda
 
-La API no guarda código de moneda ni convierte. La unidad debe ser consistente en todas las compras que
+La API no guarda código de moneda ni convierte. La unidad debe ser consistente en todos los consumos que
 usen la equivalencia.
 
 ## Auditoría

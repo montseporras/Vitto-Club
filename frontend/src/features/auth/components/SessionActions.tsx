@@ -51,7 +51,16 @@ export function SessionActions() {
             aria-labelledby="logout-title"
             aria-describedby="logout-description"
           >
-            <div className={cn(modalStyles.panel, 'max-w-md p-6 sm:p-8')}>
+            <div className={cn(modalStyles.panel, 'relative max-w-md p-6 sm:p-8')}>
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                aria-label="Cerrar"
+                title="Cerrar"
+                className={modalStyles.closeIcon}
+              >
+                <Icon d={ICONS.close} className="size-5" />
+              </button>
               <h3
                 id="logout-title"
                 className="text-2xl leading-tight text-accent-800"

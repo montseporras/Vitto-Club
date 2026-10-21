@@ -23,9 +23,9 @@ export function customerConflict(error: ApiError): CustomerConflict | undefined 
   }
 
   const { message } = error
-  // 'Customer with ID … is inactive: reactivate it before modifying'
+  // 'Customer with ID … is inactive…': los clientes dados de baja no se reactivan
   if (/\bis inactive\b/i.test(message)) {
-    return { message: 'El cliente está dado de baja: reactivalo antes de modificarlo.' }
+    return { message: 'El cliente está dado de baja: no se puede modificar.' }
   }
   // 'Email "…" is already registered as an employee'
   if (/registered as an employee/i.test(message)) {

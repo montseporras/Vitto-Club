@@ -1,37 +1,37 @@
 import { LoyaltyService } from '../application/loyalty.service.js';
-import { FirstPurchaseBonus } from '../domain/first-purchase-bonus.js';
-import { FirstPurchaseBonusController } from './first-purchase-bonus.controller.js';
+import { FirstConsumptionBonus } from '../domain/first-consumption-bonus.js';
+import { FirstConsumptionBonusController } from './first-consumption-bonus.controller.js';
 
-describe('FirstPurchaseBonusController', () => {
+describe('FirstConsumptionBonusController', () => {
   let service: {
-    setFirstPurchaseBonus: jest.Mock;
-    getCurrentFirstPurchaseBonus: jest.Mock;
+    setFirstConsumptionBonus: jest.Mock;
+    getCurrentFirstConsumptionBonus: jest.Mock;
   };
-  let controller: FirstPurchaseBonusController;
+  let controller: FirstConsumptionBonusController;
 
   beforeEach(() => {
     service = {
-      setFirstPurchaseBonus: jest.fn(),
-      getCurrentFirstPurchaseBonus: jest.fn(),
+      setFirstConsumptionBonus: jest.fn(),
+      getCurrentFirstConsumptionBonus: jest.fn(),
     };
-    controller = new FirstPurchaseBonusController(
+    controller = new FirstConsumptionBonusController(
       service as unknown as LoyaltyService,
     );
   });
 
   it('saves a percentage bonus and returns its response DTO', async () => {
-    const bonus = FirstPurchaseBonus.define({
+    const bonus = FirstConsumptionBonus.define({
       bonusType: 'PERCENTAGE',
       bonusValue: 15,
     });
-    service.setFirstPurchaseBonus.mockResolvedValue(bonus);
+    service.setFirstConsumptionBonus.mockResolvedValue(bonus);
 
     const response = await controller.set({
       bonusType: 'PERCENTAGE',
       bonusValue: 15,
     });
 
-    expect(service.setFirstPurchaseBonus).toHaveBeenCalledWith({
+    expect(service.setFirstConsumptionBonus).toHaveBeenCalledWith({
       bonusType: 'PERCENTAGE',
       bonusValue: 15,
     });
@@ -42,8 +42,8 @@ describe('FirstPurchaseBonusController', () => {
   });
 
   it('returns the current fixed bonus', async () => {
-    service.getCurrentFirstPurchaseBonus.mockResolvedValue(
-      FirstPurchaseBonus.define({
+    service.getCurrentFirstConsumptionBonus.mockResolvedValue(
+      FirstConsumptionBonus.define({
         bonusType: 'FIXED_AMOUNT',
         bonusValue: 30,
       }),

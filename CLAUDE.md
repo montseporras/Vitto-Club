@@ -67,6 +67,7 @@ datos que el contrato no tenga.
 | **Frontend:** qué endpoint llamar, qué campos llegan, qué `code` puede devolver y qué hacer con cada uno | **Contrato de API del Sprint 3** | `docs/sprint-3/API_CONTRACT_SPRINT_3.md` |
 | **Las dos capas:** qué hay que hacer en cada historia, criterios de aceptación y quién la hace | Historias del sprint | `docs/sprint-3/HISTORIAS_SPRINT_3.md` |
 | **Las dos capas:** cómo se escribe el código (arquitectura, errores, roles, transacciones, eventos) | Documentación del repo | `docs/architecture/`, `docs/conceptos-transversales/`, `docs/decisions/` |
+| **Las dos capas:** nombres de los estados y transiciones (Canje, lote de puntos, Recompensa, Misión) | **Definición del Producto, sección 9** ("Diagramas de Transición de Estados"). Todo enum de estado tiene que coincidir con esos nombres | Documento *Definición del Producto - Vitto Club - Grupo 11* (fuera del repo) |
 
 ### 1.1 Qué hacer cuando dos fuentes no coinciden
 
@@ -89,7 +90,7 @@ datos que el contrato no tenga.
   los componentes del proyecto; no se copia.
 - **Las versiones viejas del prototipo:** `Vitto Club Prototipo.dc.html`, `Vitto Club Prototipo (anterior).dc.html`
   y `Vitto Club Prototipo-print.dc.html`. Se usa solo `Vitto Club Prototipo v2.dc.html` y sus componentes.
-- **La Definición del Producto y el documento de Historias de Usuario**, en lo que el contrato ya cambió.
+- **La Definición del Producto y el documento de Historias de Usuario**, en lo que el contrato ya cambió (salvo los nombres y transiciones de estados, sección 9, que sí mandan).
   Por ejemplo: "Compra" ahora es **Consumo**; la contraseña con mayúscula y carácter especial quedó como
   decisión a futuro; la reactivación de clientes ya no existe.
 - **Lo que recuerdes de otras conversaciones o de otros proyectos.**
@@ -220,7 +221,7 @@ Si dudás de alguna, el contrato manda. La sección está entre paréntesis.
   - el modal de ajuste (§3.5);
   - el saldo resultante en el modal de anulación (§3.2.2).
 - **Puntos** = `floor(monto / base × puntos)`. Se trunca (§3.1.2).
-- **Bonificación por primera compra:** se aplica si el cliente no tiene **ningún** consumo `REGISTERED`.
+- **Bonificación por primer consumo:** se aplica si el cliente no tiene **ningún** consumo `REGISTERED`.
   Si el primero se anula, el siguiente vuelve a recibirla. La bonificación **suma** a los acumulados
   (decisiones #2 y #3).
 - **Anulación:**

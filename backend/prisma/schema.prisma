@@ -34,7 +34,7 @@ enum CustomerStatusAction {
   ACTIVATED
 }
 
-enum FirstPurchaseBonusType {
+enum FirstConsumptionBonusType {
   PERCENTAGE
   FIXED_AMOUNT
 }
@@ -48,10 +48,11 @@ enum PointsLotStatus {
   ACTIVE
   CONSUMED
   EXPIRED
+  VOIDED // its consumption was voided; final state
 }
 
 enum PointsMovementType {
-  PURCHASE_CREDIT
+  CONSUMPTION_CREDIT
   VOID_REVERSAL
   MANUAL_ADJUSTMENT
   EXPIRATION
@@ -116,7 +117,7 @@ enum AuditAction {
   // CONFIGURATION
   POINTS_EQUIVALENCE_UPDATED
   POINTS_VALIDITY_UPDATED
-  FIRST_PURCHASE_BONUS_UPDATED
+  FIRST_CONSUMPTION_BONUS_UPDATED
   LEVELS_UPDATED
   LOGO_AND_MESSAGES_UPDATED // Sprint 5
   PROMOTIONS_UPDATED // Sprint 5
@@ -295,14 +296,14 @@ model LoyaltyPointsValidityConfiguration {
 }
 
 /// LEGACY (imported as version 1 of LoyaltyProgramConfiguration). Not read by the app.
-model FirstPurchaseBonusConfiguration {
+model FirstConsumptionBonusConfiguration {
   id         Int                    @id @default(1)
-  bonusType  FirstPurchaseBonusType @map("bonus_type")
+  bonusType  FirstConsumptionBonusType @map("bonus_type")
   bonusValue Decimal                @map("bonus_value") @db.Decimal(12, 2)
   createdAt  DateTime               @default(now()) @map("created_at")
   updatedAt  DateTime               @updatedAt @map("updated_at")
 
-  @@map("first_purchase_bonus_configuration")
+  @@map("first_consumption_bonus_configuration")
 }
 
 /// Immutable version of all loyalty program settings. Exactly one version is active at a time.
@@ -313,7 +314,7 @@ model LoyaltyProgramConfiguration {
   baseAmount             Decimal?                @map("base_amount") @db.Decimal(12, 2)
   pointsAwarded          Int?                    @map("points_awarded")
   pointsExpirationMonths Int                     @default(12) @map("points_expiration_months")
-  bonusType              FirstPurchaseBonusType? @map("bonus_type")
+  bonusType              FirstConsumptionBonusType? @map("bonus_type")
   bonusValue             Decimal?                @map("bonus_value") @db.Decimal(12, 2)
   // CHECK: silver > 0 and gold > silver (written by hand in the migration)
   silverMinPoints        Int                     @default(300) @map("silver_min_points")
@@ -334,7 +335,7 @@ model LoyaltyProgramConfiguration {
 // CONSUMPTIONS
 // =====================================================================
 
-/// A purchase registered at checkout. Never edited: if wrong, it is voided and registered again.
+/// A consumption registered at checkout. Never edited: if wrong, it is voided and registered again.
 /// Visible code "C-000141" is derived from the id (not stored).
 model Consumption {
   id         Int @id @default(autoincrement())
@@ -392,7 +393,7 @@ model CustomerPoints {
   balance        Int      @default(0)
   // CHECK >= 0
   debt           Int      @default(0)
-  // CHECK >= 0. PURCHASE_CREDIT - VOID_REVERSAL; defines the level
+  // CHECK >= 0. CONSUMPTION_CREDIT - VOID_REVERSAL; defines the level
   lifetimePoints Int      @default(0) @map("lifetime_points")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -433,7 +434,7 @@ model PointsLot {
 model PointsMovement {
   id            Int  @id @default(autoincrement())
   customerId    Int  @map("customer_id")
-  // Required for PURCHASE_CREDIT and VOID_REVERSAL (CHECK)
+  // Required for CONSUMPTION_CREDIT and VOID_REVERSAL (CHECK)
   consumptionId Int? @map("consumption_id")
   lotId         Int? @map("lot_id")
 

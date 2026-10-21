@@ -4,11 +4,12 @@ import { StatusText } from '@/shared/components/feedback/StatusText';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Card, CardTitle } from '@/shared/components/ui/Card';
 import {
-  useFirstPurchaseBonus,
+  useFirstConsumptionBonus,
   usePointsEquivalence,
   usePointsExpiration,
 } from '../api/points.queries';
-import { FirstPurchaseBonusForm } from '../components/FirstPurchaseBonusForm';
+import { FirstConsumptionBonusForm } from '../components/FirstConsumptionBonusForm';
+import { LevelsComingSoon } from '../components/LevelsComingSoon';
 import { PointsEquivalenceForm } from '../components/PointsEquivalenceForm';
 import { PointsExpirationForm } from '../components/PointsExpirationForm';
 
@@ -16,7 +17,7 @@ import { PointsExpirationForm } from '../components/PointsExpirationForm';
 export function PointsSettingsPage() {
   const equivalence = usePointsEquivalence();
   const expiration = usePointsExpiration();
-  const { data: bonus, isLoading, isError, refetch } = useFirstPurchaseBonus();
+  const { data: bonus, isLoading, isError, refetch } = useFirstConsumptionBonus();
 
   return (
     <div className="space-y-6">
@@ -30,7 +31,7 @@ export function PointsSettingsPage() {
       <Card>
         <CardTitle>Equivalencia de puntos</CardTitle>
         <StatusText className="mt-1 mb-6">
-          Cantidad de puntos que suma el cliente según el monto de cada compra.
+          Cantidad de puntos que suma el cliente según el monto de cada consumo.
         </StatusText>
 
         {equivalence.isLoading && (
@@ -57,6 +58,9 @@ export function PointsSettingsPage() {
           <PointsEquivalenceForm equivalence={equivalence.data} />
         )}
       </Card>
+
+      {/* RF-028 (otra historia): en el prototipo va entre la equivalencia y la vigencia. */}
+      <LevelsComingSoon />
 
       {/* RF-010. */}
       <Card>
@@ -89,9 +93,9 @@ export function PointsSettingsPage() {
 
       {/* RF-011. */}
       <Card>
-        <CardTitle>Bonificación por primera compra</CardTitle>
+        <CardTitle>Bonificación por primer consumo</CardTitle>
         <StatusText className="mt-1 mb-6">
-          Puntos adicionales que recibe el cliente en su primera compra
+          Puntos adicionales que recibe el cliente en su primer consumo
           registrada, además de los que le corresponden normalmente.
         </StatusText>
 
@@ -114,7 +118,7 @@ export function PointsSettingsPage() {
 
         {/* bonus es null si todavía no se configuró: el formulario arranca sin valor. */}
         {bonus !== undefined && !isError && (
-          <FirstPurchaseBonusForm bonus={bonus} />
+          <FirstConsumptionBonusForm bonus={bonus} />
         )}
       </Card>
     </div>
