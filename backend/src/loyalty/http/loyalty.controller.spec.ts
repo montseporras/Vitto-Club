@@ -21,6 +21,8 @@ const activeConfig = (overrides: Partial<{
     pointsExpirationMonths: 12,
     bonusType: 'PERCENTAGE',
     bonusValue: 15,
+    silverMinPoints: 300,
+    goldMinPoints: 800,
     isActive: true,
     validFrom: new Date(),
     validTo: null,

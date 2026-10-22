@@ -9,5 +9,7 @@ export function toLoyaltySnapshot(configuration: LoyaltyProgramConfiguration): L
     pointsExpirationMonths: configuration.getPointsExpirationMonths(),
     bonusType: configuration.getBonusType(),
     bonusValue: configuration.getBonusValue(),
+    silverMinPoints: configuration.getSilverMinPoints(),
+    goldMinPoints: configuration.getGoldMinPoints(),
   };
 }

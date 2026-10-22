@@ -1,5 +1,6 @@
 import {
   configurationSavedEntries,
+  levelsUpdatedEntry,
   customerCreatedEntry,
   customerDeactivatedEntry,
   customerUpdatedEntry,
@@ -37,6 +38,8 @@ const config: LoyaltyConfigSnapshot = {
   pointsExpirationMonths: 12,
   bonusType: 'PERCENTAGE',
   bonusValue: 15,
+  silverMinPoints: 300,
+  goldMinPoints: 800,
 };
 
 describe('employeeUpdatedEntry()', () => {
@@ -132,6 +135,29 @@ describe('customerDeactivatedEntry()', () => {
   });
 });
 
+describe('levelsUpdatedEntry() — US-27', () => {
+  it('Plata y Oro con antes → después en pts, con puntos de miles', () => {
+    const entry = levelsUpdatedEntry(actor, config, { ...config, silverMinPoints: 400, goldMinPoints: 1500 });
+
+    assertValidAuditEntry(entry);
+    expect(entry).toMatchObject({
+      module: 'CONFIGURATION',
+      action: 'LEVELS_UPDATED',
+      description: 'Modificó niveles',
+    });
+    expect(entry.details).toEqual([
+      { label: 'Plata', value: '300 → 400 pts' },
+      { label: 'Oro', value: '800 → 1.500 pts' },
+    ]);
+  });
+
+  it('sin cambios: la fila fija "Cambios"', () => {
+    const entry = levelsUpdatedEntry(actor, config, { ...config });
+
+    expect(entry.details).toEqual([{ label: 'Cambios', value: 'Se guardó sin modificar valores' }]);
+  });
+});
+
 describe('configurationSavedEntries()', () => {
   it('registra una entrada por cada sección que cambió (CA-57.7)', () => {
     const entries = configurationSavedEntries(actor, config, {
@@ -157,6 +183,18 @@ describe('configurationSavedEntries()', () => {
     expect(entries[0].action).toBe('POINTS_EQUIVALENCE_UPDATED');
     expect(entries[0].details).toEqual([
       { label: 'Cambios', value: 'Se guardó sin modificar valores' },
+    ]);
+  });
+});
+
+describe('configurationSavedEntries() con niveles — US-27', () => {
+  it('si cambian los umbrales, agrega LEVELS_UPDATED', () => {
+    const entries = configurationSavedEntries(actor, config, { ...config, goldMinPoints: 1000 });
+
+    expect(entries.map((entry) => entry.action)).toEqual(['LEVELS_UPDATED']);
+    expect(entries[0].details).toEqual([
+      { label: 'Plata', value: '300 → 300 pts' },
+      { label: 'Oro', value: '800 → 1.000 pts' },
     ]);
   });
 });

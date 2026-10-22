@@ -3,6 +3,7 @@ import {
   IsEnum,
   IsInt,
   IsNumber,
+  IsOptional,
   IsPositive,
   Max,
   Validate,
@@ -10,6 +11,7 @@ import {
 import { FIRST_CONSUMPTION_BONUS_TYPES } from '../../domain/first-consumption-bonus.js';
 import type { FirstConsumptionBonusType } from '../../domain/first-consumption-bonus.js';
 import { FirstConsumptionBonusValueValidator } from '../validators/first-consumption-bonus-value.validator.js';
+import { LevelThresholdValidator } from '../validators/level-threshold.validator.js';
 
 export class UpdateLoyaltyConfigurationDto {
   @Type(() => Number)
@@ -38,4 +40,13 @@ export class UpdateLoyaltyConfigurationDto {
   @IsPositive()
   @Validate(FirstConsumptionBonusValueValidator)
   bonusValue!: number;
+
+  // US-27 (§3.7.2): opcionales; si se omiten se copian de la versión vigente
+  @IsOptional()
+  @Validate(LevelThresholdValidator, ['silver'])
+  silverMinPoints?: number;
+
+  @IsOptional()
+  @Validate(LevelThresholdValidator, ['gold'])
+  goldMinPoints?: number;
 }
