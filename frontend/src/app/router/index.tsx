@@ -50,20 +50,15 @@ export const router = createBrowserRouter([
           return { Component: CustomerHomePage }
         },
       },
+      {
+        // US-23: Historial del Cliente
+        path: PATHS.customer.history,
+        lazy: async () => {
+          const { CustomerHistoryPage } = await import('@/features/consumptions')
+          return { Component: CustomerHistoryPage }
+        },
+      },
     ],
-  },
-  {
-    path: PATHS.customer.history,
-    lazy: async () => {
-      const { CustomerHistoryPage } = await import('@/features/consumptions')
-      return {
-        element: (
-          <RoleRoute allowed={['CUSTOMER']}>
-            <CustomerHistoryPage />
-          </RoleRoute>
-        ),
-      }
-    },
   },
   {
     path: PATHS.cashier.root,

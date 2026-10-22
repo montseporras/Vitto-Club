@@ -69,8 +69,14 @@ export function CustomerLayout() {
           >
             Inicio
           </NavLink>
-          {/* Historial es de US-23: se habilita cuando exista su pantalla */}
-          <DisabledTab label="Historial" />
+          <NavLink
+            to={PATHS.customer.history}
+            className={({ isActive }) =>
+              cn(tabStyles, isActive ? 'bg-accent text-bg' : 'text-text')
+            }
+          >
+            Historial
+          </NavLink>
           <DisabledTab label="Misiones" comingSoon />
           <DisabledTab label="Canjes" comingSoon />
         </div>

@@ -6,7 +6,7 @@ const dateTime = new Intl.DateTimeFormat('es-AR', {
   year: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
-  hour12: false,
+  hourCycle: 'h23',
 });
 
 // ISO UTC → 'dd/mm/aaaa hh:mm' (hora de Argentina).

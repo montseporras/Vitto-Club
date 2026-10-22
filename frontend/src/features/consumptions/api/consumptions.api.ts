@@ -3,14 +3,17 @@
 import { http } from '@/shared/api/http';
 import type { PaginatedConsumptions } from '../types/consumption';
 
-// La pantalla del Cliente no tiene paginador (prototipo): pide el máximo que permite el contrato.
-const HISTORY_LIMIT = 100;
+// Consumos que se piden por vez; el "Ver más" de la pantalla trae la página siguiente.
+export const HISTORY_PAGE_SIZE = 20;
 
-// Historial de consumos del cliente que inició sesión (US-23, §3.10.2). Más nuevos primero.
-export async function getMyConsumptions(): Promise<PaginatedConsumptions> {
+// Una página del historial de consumos del cliente que inició sesión (US-23, §3.10.2).
+// Vienen ordenados del más nuevo al más viejo.
+export async function getMyConsumptions(
+  page: number,
+): Promise<PaginatedConsumptions> {
   const { data } = await http.get<PaginatedConsumptions>(
     '/customers/me/consumos',
-    { params: { page: 1, limit: HISTORY_LIMIT } },
+    { params: { page, limit: HISTORY_PAGE_SIZE } },
   );
   return data;
 }
