@@ -5,6 +5,8 @@ export const PATHS = {
   register: '/registro',
   customer: {
     root: '/mi-cuenta',
+    history: '/mi-cuenta/historial',
+    profile: '/mi-cuenta/perfil',
   },
   cashier: {
     root: '/caja',

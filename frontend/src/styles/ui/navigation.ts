@@ -102,3 +102,18 @@ export const sideNavStyles = {
     'group-focus-within/nav:visible group-focus-within/nav:translate-x-0 group-focus-within/nav:opacity-100',
   ].join(' '),
 }
+
+/** Barra inferior fija de la vista del Cliente (celular): Inicio · Historial · Misiones · Canjes. */
+export const bottomNavStyles = {
+  root: 'fixed inset-x-0 bottom-0 z-20 border-t border-accent-200 bg-surface/95 shadow-[0_-4px_12px] shadow-accent-900/10 backdrop-blur',
+  list: 'mx-auto grid max-w-xl grid-cols-4 gap-1 px-2 py-2',
+  item: [
+    'flex min-h-12 flex-col items-center justify-center rounded-xl px-1 text-sm font-semibold transition-colors',
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700',
+  ].join(' '),
+  itemActive: 'bg-accent-700 text-white',
+  itemIdle: 'text-ink hover:bg-accent-50',
+  // Pestañas de otros sprints: visibles pero sin acción
+  itemSoon: 'cursor-default text-ink opacity-50',
+  soon: 'text-[10px] font-bold uppercase tracking-wide',
+}

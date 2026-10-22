@@ -9,15 +9,26 @@ import { customers, errorResponse as customerErrorResponse } from './cashier.han
 
 const PASSWORD = 'vitto2026'
 
-const accounts: AuthUser[] = [
-  { accountId: 1, role: 'ADMIN', email: 'ana.gomez@vitto.club', employeeId: 1, firstName: 'Ana', lastName: 'Gómez' },
-  { accountId: 2, role: 'CASHIER', email: 'bruno.perez@vitto.club', employeeId: 2, firstName: 'Bruno', lastName: 'Pérez' },
-  { accountId: 3, role: 'CUSTOMER', email: 'lucia@example.com', customerId: 1, firstName: 'Lucía', lastName: 'Fernández' },
-  { accountId: 4, role: 'CASHIER', email: 'diego.sosa@vitto.club', employeeId: 4, firstName: 'Diego', lastName: 'Sosa' },
+// Se exporta para que Mi perfil (my-account.handlers.ts) cambie el correo y mustChangePassword
+export const accounts: AuthUser[] = [
+  { accountId: 1, role: 'ADMIN', email: 'ana.gomez@vitto.club', employeeId: 1, firstName: 'Ana', lastName: 'Gómez', mustChangePassword: false },
+  { accountId: 2, role: 'CASHIER', email: 'bruno.perez@vitto.club', employeeId: 2, firstName: 'Bruno', lastName: 'Pérez', mustChangePassword: false },
+  { accountId: 3, role: 'CUSTOMER', email: 'lucia@example.com', customerId: 1, firstName: 'Lucía', lastName: 'Fernández', mustChangePassword: false },
+  { accountId: 4, role: 'CASHIER', email: 'diego.sosa@vitto.club', employeeId: 4, firstName: 'Diego', lastName: 'Sosa', mustChangePassword: false },
+  // Cliente cargado en caja: contraseña inicial = su documento y cambio pendiente (§3.11.3)
+  { accountId: 5, role: 'CUSTOMER', email: 'martin@example.com', customerId: 2, firstName: 'Martín', lastName: 'Suárez', mustChangePassword: true },
 ]
 
-// Contraseñas de las cuentas creadas por el autorregistro (el resto usa PASSWORD)
-const registeredPasswords = new Map<number, string>()
+// Contraseñas propias: autorregistro, contraseña inicial y cambios desde Mi perfil
+// (el resto usa PASSWORD)
+const registeredPasswords = new Map<number, string>([[5, '38987654']])
+
+export const passwordOf = (accountId: number) =>
+  registeredPasswords.get(accountId) ?? PASSWORD
+
+export function setPassword(accountId: number, password: string) {
+  registeredPasswords.set(accountId, password)
+}
 
 // Cuentas dadas de baja: responden igual que un mail inexistente
 const inactiveAccountIds = new Set([4])
@@ -80,7 +91,7 @@ export const authHandlers = [
     const email = String(body.email).trim().toLowerCase()
     const account = accounts.find((item) => item.email === email)
     // Mismo mensaje para cualquier causa, a propósito
-    const password = account && (registeredPasswords.get(account.accountId) ?? PASSWORD)
+    const password = account && passwordOf(account.accountId)
     if (!account || inactiveAccountIds.has(account.accountId) || body.password !== password) {
       return errorResponse(401, 'Los datos de acceso son incorrectos', request, 'INVALID_CREDENTIALS')
     }
@@ -185,6 +196,8 @@ export const authHandlers = [
         customerId: created.id,
         firstName: created.firstName,
         lastName: created.lastName,
+        // El autorregistro elige su contraseña: no tiene cambio pendiente
+        mustChangePassword: false,
       })
       registeredPasswords.set(accountId, password)
       // Misma respuesta que el backend: sin tokens (docs/registro-api.md, sección 3)

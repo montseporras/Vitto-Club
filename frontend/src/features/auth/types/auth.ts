@@ -11,6 +11,9 @@ export type AuthUser = {
   // no lleguen, se muestra el email.
   firstName?: string
   lastName?: string
+  // true mientras el cliente cargado en caja no cambió la contraseña inicial
+  // (contrato §3.11.3). Siempre false para empleados y autorregistrados.
+  mustChangePassword: boolean
 }
 
 export type AuthResponse = {
