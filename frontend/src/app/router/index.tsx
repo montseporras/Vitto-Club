@@ -86,6 +86,16 @@ export const router = createBrowserRouter([
         ),
       }
     },
+    children: [
+      { index: true, element: <Navigate to={PATHS.admin.audit} replace /> },
+      {
+        path: 'auditoria',
+        lazy: async () => {
+          const { AuditPage } = await import('@/features/audit')
+          return { Component: AuditPage }
+        },
+      },
+    ],
   },
   { path: '*', element: <Navigate to="/" replace /> },
 ])

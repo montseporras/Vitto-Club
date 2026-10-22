@@ -5,7 +5,7 @@
 // a otros RF. Acá se cablean las secciones de Configuración ya implementadas:
 // Empleados (RF-01) y Puntos (RF-011).
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, Outlet } from 'react-router';
 import { PATHS } from '@/app/router/paths';
 import { SessionActions } from '@/features/auth';
 import { EmployeesPage } from '@/features/employees';
@@ -72,9 +72,26 @@ export function AdminLayout() {
         </button>
       </AppHeader>
 
-      {/* Fondo del admin: fuera del alcance de RF-01. */}
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:py-8">
-        <StatusText>Área de administración (pantallas de otros RF).</StatusText>
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 lg:flex-row lg:py-8">
+        <SideNav
+          label="Navegación de administración"
+          title="Secciones"
+          size="lg"
+          collapsibleFrom="lg"
+          storageKey="vitto:menu-admin"
+          className="self-start"
+          items={[
+            {
+              id: 'audit',
+              label: 'Auditoría',
+              icon: ICONS.eye,
+              to: PATHS.admin.audit,
+            },
+          ]}
+        />
+        <div className="min-w-0 flex-1">
+          <Outlet />
+        </div>
       </main>
 
       <AppFooter />

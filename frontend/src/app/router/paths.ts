@@ -14,6 +14,7 @@ export const PATHS = {
   },
   admin: {
     root: '/admin',
+    audit: '/admin/auditoria',
   },
 } as const
 
