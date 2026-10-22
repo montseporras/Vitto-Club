@@ -43,6 +43,19 @@ export const router = createBrowserRouter([
     },
   },
   {
+    path: PATHS.customer.history,
+    lazy: async () => {
+      const { CustomerHistoryPage } = await import('@/features/consumptions')
+      return {
+        element: (
+          <RoleRoute allowed={['CUSTOMER']}>
+            <CustomerHistoryPage />
+          </RoleRoute>
+        ),
+      }
+    },
+  },
+  {
     path: PATHS.cashier.root,
     element: (
       <RoleRoute allowed={['CASHIER', 'ADMIN']}>
