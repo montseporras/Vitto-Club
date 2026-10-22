@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Consumption, ConsumptionStatus, ConsumptionViewerRole } from '../domain/consumption.js';
-import { calculateConsumptionPoints, FirstPurchaseBonus } from '../domain/calculate-consumption-points.js';
+import { calculateConsumptionPoints, FirstConsumptionBonus } from '../domain/calculate-consumption-points.js';
 import { ConsumptionRepository } from '../domain/port/consumption.repository.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import { CustomersService } from '../../customers/application/customers.service.js';
@@ -29,7 +29,7 @@ export type PreviewResult = {
   balanceBefore: number;
   balanceAfter: number;
   equivalence: { baseAmount: number; pointsAwarded: number; configurationVersion: number };
-  firstPurchaseBonus: FirstPurchaseBonus | null;
+  firstConsumptionBonus: FirstConsumptionBonus | null;
 };
 
 export type RegisterInput = {
@@ -126,7 +126,7 @@ export class ConsumptionsService {
         pointsAwarded: config.getPointsAwarded() as number,
         configurationVersion: config.getVersion(),
       },
-      firstPurchaseBonus: bonus,
+      firstConsumptionBonus: bonus,
     };
   }
 
@@ -276,7 +276,7 @@ export class ConsumptionsService {
     }
   }
 
-  private resolveBonus(config: LoyaltyProgramConfiguration): FirstPurchaseBonus | null {
+  private resolveBonus(config: LoyaltyProgramConfiguration): FirstConsumptionBonus | null {
     const bonusType = config.getBonusType();
     const bonusValue = config.getBonusValue();
     if (bonusType === null || bonusValue === null) return null;
