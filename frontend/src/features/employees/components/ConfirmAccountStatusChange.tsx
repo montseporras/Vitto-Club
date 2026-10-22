@@ -48,6 +48,9 @@ function errorMessage(change: StatusChange, error: unknown): string {
   if (apiError.code === 'LAST_ADMIN') {
     return 'No se puede desactivar: es el único administrador que puede ingresar al sistema.';
   }
+  if (apiError.code === 'EMAIL_IN_USE') {
+    return 'El mail de este usuario ya lo usa otra cuenta activa.';
+  }
   switch (apiError.status) {
     case undefined:
       return apiError.message;

@@ -15,6 +15,9 @@ const employees: EmployeeResponse[] = [
   { id: 4, firstName: 'Diego', lastName: 'Sosa', phone: null, email: 'diego.sosa@vitto.club', role: 'CASHIER', isActive: false },
   // Activa con el usuario dado de baja (no está en el seed): sirve para probar la reactivación
   { id: 5, firstName: 'Lucía', lastName: 'Fernández', phone: '3510000005', email: 'lucia.fernandez@vitto.club', role: 'CASHIER', isActive: true },
+  // Activa con el usuario dado de baja y el mail repetido con la cuenta activa de Ana (no
+  // está en el seed): sirve para probar EMP-PASS CA-EMP.5/CA-EMP.6, 409 EMAIL_IN_USE al reactivar.
+  { id: 6, firstName: 'Emilia', lastName: 'Ríos', phone: '3510000006', email: 'ana.gomez@vitto.club', role: 'CASHIER', isActive: true },
 ];
 
 let nextId = employees.length + 1;
@@ -23,6 +26,7 @@ let nextId = employees.length + 1;
 const accounts: Account[] = [
   { accountId: 1, employeeId: 1, email: 'ana.gomez@vitto.club', role: 'ADMIN', active: true },
   { accountId: 2, employeeId: 5, email: 'lucia.fernandez@vitto.club', role: 'CASHIER', active: false },
+  { accountId: 3, employeeId: 6, email: 'ana.gomez@vitto.club', role: 'CASHIER', active: false },
 ];
 
 let nextAccountId = accounts.length + 1;
@@ -511,6 +515,19 @@ export const employeesHandlers = [
         409,
         `Employee with ID ${account.employeeId} is inactive and cannot have its account reactivated`,
         request,
+      );
+    }
+    // Contrato §3.11.4: el mail no puede estar en uso por otra cuenta activa.
+    const emailTaken = accounts.some(
+      (a) => a.accountId !== account.accountId && a.active && a.email === account.email,
+    );
+    if (emailTaken) {
+      return errorResponse(
+        409,
+        'This email is already in use by another active account',
+        request,
+        undefined,
+        'EMAIL_IN_USE',
       );
     }
     account.active = true;
