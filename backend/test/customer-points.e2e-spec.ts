@@ -47,21 +47,15 @@ describe('Puntos del cliente (e2e)', () => {
     prisma = app.get(PrismaService);
   });
 
+  // Limpia al terminar: los lotes y saldos referencian clientes (onDelete Restrict), y las suites
+  // que corren después borran esas tablas sin saber de puntos.
   afterAll(async () => {
+    await cleanDatabase();
     await app.close();
   });
 
   beforeEach(async () => {
-    await prisma.pointsMovement.deleteMany();
-    await prisma.pointsLot.deleteMany();
-    await prisma.customerPoints.deleteMany();
-    await prisma.consumption.deleteMany();
-    await prisma.session.deleteMany();
-    await prisma.account.deleteMany();
-    await prisma.employee.deleteMany();
-    await prisma.customer.deleteMany();
-    await prisma.loyaltyProgramConfiguration.deleteMany();
-
+    await cleanDatabase();
     await prisma.loyaltyProgramConfiguration.create({
       data: {
         version: 1,
@@ -74,6 +68,18 @@ describe('Puntos del cliente (e2e)', () => {
       },
     });
   });
+
+  async function cleanDatabase() {
+    await prisma.pointsMovement.deleteMany();
+    await prisma.pointsLot.deleteMany();
+    await prisma.customerPoints.deleteMany();
+    await prisma.consumption.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.account.deleteMany();
+    await prisma.employee.deleteMany();
+    await prisma.customer.deleteMany();
+    await prisma.loyaltyProgramConfiguration.deleteMany();
+  }
 
   async function seedCustomer(documentNumber: string, active = true) {
     return await prisma.customer.create({
