@@ -63,8 +63,8 @@
 | US-19 | Consultar cliente (ficha e inicio del Cliente) | Jazmín | `feature/US-19-consultar-cliente-back` | | | `features/cashier` (ficha) y `features/my-account` (inicio) | En revisión |
 | US-24 | Ajustar puntos | | | | | `features/cashier` (modal de la ficha) | Sin empezar |
 | US-25 | Vencimiento automático de puntos | | | — (no tiene pantalla) | — | — | Sin empezar |
-| US-26 | Consultar movimientos de puntos | | | | | A confirmar (ver P8) | Sin empezar |
-| US-27 | Configurar niveles | | | | | `features/points` (tarjeta en Configuración → Puntos) | Sin empezar |
+| US-26 | Consultar movimientos de puntos | Jazmín | `feature/US-26-movimientos-puntos-back` | | | A confirmar (ver P8) | En curso |
+| US-27 | Configurar niveles | Jazmín | `feature/US-27-configurar-niveles-back` | | | `features/points` (tarjeta en Configuración → Puntos) | En revisión |
 | US-17-AJ | Alta de cliente con cuenta y contraseña inicial | | | | | `features/cashier` y `features/customers` | Sin empezar |
 | CLI-ADM | Clientes del Administrador | | | | | `features/customers` | Sin empezar |
 | PERFIL | Mi perfil, contraseña y cerrar sesión del Cliente (número de US a confirmar, ver P1) | | | | | `features/my-account` | Sin empezar |
