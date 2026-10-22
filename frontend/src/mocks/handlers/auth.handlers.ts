@@ -45,6 +45,12 @@ const errorResponse = (
     { status: statusCode },
   )
 
+/** Cuenta de la sesión simulada (la que recupera /auth/refresh): los demás mocks la usan para saber quién llama. */
+export const currentMockAccount = () => {
+  const accountId = Number(sessionStorage.getItem(SESSION_KEY))
+  return accounts.find((item) => item.accountId === accountId)
+}
+
 const authResponse = (user: AuthUser): AuthResponse => ({
   accessToken: `mock-access-token-${user.accountId}-${Date.now()}`,
   user,

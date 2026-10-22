@@ -19,6 +19,7 @@ import {
 } from '../api/cashier.queries'
 import { CustomerSummary } from '../components/CustomerSummary'
 import { EditCustomerForm } from '../components/EditCustomerForm'
+import { Last24hConsumptions } from '../components/Last24hConsumptions'
 import {
   findCustomerSchema,
   type FindCustomerFormInput,
@@ -176,13 +177,22 @@ export function IdentifyCustomerPage() {
           )}
 
           {found && !result.isFetching && !editing && (
-            <CustomerSummary
-              customer={result.data}
-              onEdit={() => {
-                setSaved(null)
-                setEditing(true)
-              }}
-            />
+            <>
+              <CustomerSummary
+                customer={result.data}
+                onEdit={() => {
+                  setSaved(null)
+                  setEditing(true)
+                }}
+              />
+              {/* Sin onRegisterNew: la pantalla de Registrar consumo (US-21) todavía no existe */}
+              <div className="mt-4">
+                <Last24hConsumptions
+                  key={result.data.id}
+                  customerId={result.data.id}
+                />
+              </div>
+            </>
           )}
 
           {found && editing && (
