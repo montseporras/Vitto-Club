@@ -4,6 +4,7 @@ import { authHandlers } from './auth.handlers'
 import { cashierHandlers } from './cashier.handlers'
 import { consumptionsHandlers } from './consumptions.handlers'
 import { employeesHandlers } from './employees.handlers'
+import { myAccountHandlers } from './my-account.handlers'
 import { pointsHandlers } from './points.handlers'
 
 export const handlers = [
@@ -11,5 +12,6 @@ export const handlers = [
   ...cashierHandlers,
   ...consumptionsHandlers,
   ...employeesHandlers,
+  ...myAccountHandlers,
   ...pointsHandlers,
 ]
