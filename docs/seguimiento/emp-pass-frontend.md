@@ -39,14 +39,17 @@ Se cambió a **"Entre 8 y 64 caracteres. No puede ser igual al mail."** (misma r
 reglas que el schema sí exige). Afecta a las tres pantallas que usan `PasswordField`: alta de cuenta, alta
 de empleado y cambio de contraseña.
 
+**El generador de contraseñas queda en 8 caracteres, no en 12.** `generatePassword()`
+(`shared/lib/password.ts`) usa `PASSWORD_MIN_LENGTH` (8) como largo por defecto, y los tres formularios
+que la llaman (`ChangePasswordForm.tsx`, `CreateAccountForm.tsx`, `CreateEmployeeForm.tsx`) ya lo hacen sin
+pasarle ningún largo, así que hoy genera 8 caracteres. El contrato (§3.11, "Ayudas de pantalla") y
+`HISTORIAS_SPRINT_3.md` (CA-EMP.4) dicen "el generador de 12 caracteres queda igual", pero Montse pidió
+dejarlo en 8. **No se tocó código** (el comportamiento actual ya es ese); queda sin cambios en
+`shared/lib/password.ts`, `CreateAccountForm.tsx` y `CreateEmployeeForm.tsx`. Avisar al equipo para que, si
+corresponde, actualicen esa frase en el contrato y en la historia (son fuente de verdad; no las edité).
+
 ## No se tocó (y por qué)
 
-- **`shared/lib/password.ts`:** `generatePassword()` usa `PASSWORD_MIN_LENGTH` (8) como largo por
-  defecto, y los tres formularios que la llaman (`ChangePasswordForm.tsx`, `CreateAccountForm.tsx`,
-  `CreateEmployeeForm.tsx`) lo hacen sin pasarle `12`, aunque el contrato y la historia dicen "el
-  generador de 12 caracteres queda igual". O sea que hoy genera 8 caracteres, no 12. Esto afecta a
-  `CreateAccountForm.tsx` y `CreateEmployeeForm.tsx` también (no son de EMP-PASS, son de SCRUM-21/24, de
-  un sprint anterior), así que no se corrigió: queda anotado para que lo tome quien corresponda.
 - **`docs/sprint-3/CAMBIOS_PROPUESTOS_AL_CONTRATO_EMP_PASS.md`:** el pedido lo citaba como la fuente de
   los 3 datos de respuesta del backend que el contrato no escribe (200 con el perfil en
   `PATCH /usuarios/:id`, 204 sin cuerpo en `/reactivate`, y qué 409 llevan `code`). **Ese archivo no existe
@@ -63,10 +66,10 @@ de empleado y cambio de contraseña.
 
 ## Preguntas abiertas
 
-- Quién toma el bug del generador de contraseñas (8 vs. 12 caracteres): afecta a SCRUM-21/24 además de
-  EMP-PASS, así que no es solo mío para decidir ni para arreglar.
 - Si alguien recrea `docs/sprint-3/CAMBIOS_PROPUESTOS_AL_CONTRATO_EMP_PASS.md`, confirmar que los 3 datos
   que usé (200 con perfil, 204 sin cuerpo, qué 409 llevan `code`) coincidan con lo que quede escrito ahí.
+- Quién actualiza, en el contrato y en `HISTORIAS_SPRINT_3.md`, la frase "el generador de 12 caracteres
+  queda igual" para que diga 8 (ver decisión arriba) — son fuente de verdad, así que no las edité yo.
 
 ## Verificación
 
