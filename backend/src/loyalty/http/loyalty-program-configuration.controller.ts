@@ -12,6 +12,12 @@ import { UpdateLoyaltyConfigurationDto } from './dto/update-loyalty-configuratio
 import { LoyaltyExceptionFilter } from './filters/loyalty-exception.filter.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 import { Roles } from '../../shared/security/roles.decorator.js';
+import { CurrentUser } from '../../shared/security/current-user.decorator.js';
+import type { CurrentUserData } from '../../shared/security/current-user-data.js';
+import { AuditService } from '../../audit/application/audit.service.js';
+import { actorOf } from '../../audit/domain/audit-entry.js';
+import { configurationSavedEntries } from '../../audit/domain/audit-entries.js';
+import { toLoyaltySnapshot } from './loyalty-audit-snapshot.js';
 
 @Controller('loyalty/configuration')
 // RolesGuard (global) cierra todo endpoint sin @Roles: solo el Administrador configura el programa
@@ -19,7 +25,10 @@ import { Roles } from '../../shared/security/roles.decorator.js';
 @UseGuards(AdminRoleGuard)
 @UseFilters(LoyaltyExceptionFilter)
 export class LoyaltyProgramConfigurationController {
-  constructor(private readonly loyaltyService: LoyaltyService) {}
+  constructor(
+    private readonly loyaltyService: LoyaltyService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Get('current')
   async getCurrent(): Promise<LoyaltyProgramConfigurationResponseDto> {
@@ -30,14 +39,23 @@ export class LoyaltyProgramConfigurationController {
   @Put()
   async update(
     @Body() dto: UpdateLoyaltyConfigurationDto,
+    @CurrentUser() user: CurrentUserData,
   ): Promise<LoyaltyProgramConfigurationResponseDto> {
-    const configuration = await this.loyaltyService.updateConfiguration({
-      baseAmount: dto.baseAmount,
-      pointsAwarded: dto.pointsAwarded,
-      pointsExpirationMonths: dto.pointsExpirationMonths,
-      bonusType: dto.bonusType,
-      bonusValue: dto.bonusValue,
-    });
+    const { configuration } = await this.auditService.capture(
+      async () => {
+        const before = toLoyaltySnapshot(await this.loyaltyService.getActiveConfiguration());
+        const saved = await this.loyaltyService.updateConfiguration({
+          baseAmount: dto.baseAmount,
+          pointsAwarded: dto.pointsAwarded,
+          pointsExpirationMonths: dto.pointsExpirationMonths,
+          bonusType: dto.bonusType,
+          bonusValue: dto.bonusValue,
+        });
+        return { before, configuration: saved };
+      },
+      ({ before, configuration: saved }) =>
+        configurationSavedEntries(actorOf(user), before, toLoyaltySnapshot(saved)),
+    );
     return LoyaltyProgramConfigurationResponseDto.fromDomain(configuration);
   }
 }

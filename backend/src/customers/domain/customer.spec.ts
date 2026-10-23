@@ -80,7 +80,14 @@ describe('Customer Entity', () => {
       const future = new Date();
       future.setFullYear(future.getFullYear() + 1);
       expect(() => Customer.create({ ...validData, dateOfBirth: future }))
-        .toThrow('Customer dateOfBirth is invalid');
+        .toThrow('La fecha no puede ser futura');
+    });
+
+    it('debería lanzar un error si la fecha de nacimiento es anterior a 1900 (contrato §3.10.4)', () => {
+      expect(() => Customer.create({ ...validData, dateOfBirth: new Date('1899-12-31') }))
+        .toThrow('Esa fecha no existe');
+      expect(Customer.create({ ...validData, dateOfBirth: new Date('1900-01-01') }).getDateOfBirth())
+        .toEqual(new Date('1900-01-01'));
     });
   });
 
@@ -144,23 +151,6 @@ describe('Customer Entity', () => {
     it('debería lanzar un error si se intenta desactivar un cliente ya inactivo', () => {
       const customer = Customer.reconstruct({ ...validData, id: 1, active: false });
       expect(() => customer.deactivate()).toThrow('Customer is already inactive');
-    });
-
-    it('debería activar un cliente inactivo y limpiar la fecha de baja', () => {
-      const customer = Customer.reconstruct({
-        ...validData,
-        id: 1,
-        active: false,
-        deactivatedAt: new Date(),
-      });
-      customer.activate();
-      expect(customer.isActive()).toBe(true);
-      expect(customer.getDeactivatedAt()).toBeNull();
-    });
-
-    it('debería lanzar un error si se intenta activar un cliente ya activo', () => {
-      const customer = Customer.create(validData);
-      expect(() => customer.activate()).toThrow('Customer is already active');
     });
   });
 });

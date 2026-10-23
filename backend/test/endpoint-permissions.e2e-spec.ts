@@ -22,7 +22,6 @@ const CUSTOMER_ENDPOINTS: Endpoint[] = [
   { method: 'post', path: '/api/customers' },
   { method: 'patch', path: '/api/customers/999999' },
   { method: 'patch', path: '/api/customers/999999/deactivate' },
-  { method: 'patch', path: '/api/customers/999999/activate' },
 ];
 
 const EMPLOYEE_ENDPOINTS: Endpoint[] = [

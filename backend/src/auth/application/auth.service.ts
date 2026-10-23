@@ -16,6 +16,8 @@ export type AuthenticatedUser = AuthenticatedAccount & {
   // Solo si accounts los conoce (hoy, empleados). Nunca van dentro del access token.
   firstName?: string;
   lastName?: string;
+  // Para que el front abra la ventana "Cambiá tu contraseña". Tampoco va dentro del access token.
+  mustChangePassword: boolean;
 };
 
 // Lo que devuelven el login y la renovación: exactamente lo mismo, para que el front
@@ -136,6 +138,14 @@ export class AuthService {
     await this.sessions.revokeAllForAccount(accountId, new Date());
   }
 
+  // --- Cambio de contraseña (PERFIL): se cierran todas las sesiones menos la actual ---
+  // La actual se identifica por el refresh token de la cookie del pedido. Sin cookie no se conserva
+  // ninguna.
+  async revokeOtherSessionsOfAccount(accountId: number, currentRefreshToken: string | undefined): Promise<void> {
+    const keepTokenHash = currentRefreshToken ? this.refreshTokens.hash(currentRefreshToken) : null;
+    await this.sessions.revokeAllForAccountExcept(accountId, keepTokenHash, new Date());
+  }
+
   private async toResult(verified: VerifiedAccount, refreshToken: string, session: Session): Promise<AuthResult> {
     return {
       accessToken: await this.accessTokens.issue(verified.account),
@@ -144,6 +154,7 @@ export class AuthService {
       user: {
         ...verified.account,
         email: verified.email,
+        mustChangePassword: verified.mustChangePassword ?? false,
         ...(verified.firstName !== undefined ? { firstName: verified.firstName } : {}),
         ...(verified.lastName !== undefined ? { lastName: verified.lastName } : {}),
       },

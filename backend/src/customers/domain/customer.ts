@@ -1,6 +1,11 @@
 import { CustomerId } from './customer-id.js';
 import { Mail } from './mail.js';
 import { DomainError } from './errors/domain.error.js';
+import {
+  BIRTH_DATE_FUTURE_MESSAGE,
+  BIRTH_DATE_INVALID_MESSAGE,
+  MIN_BIRTH_YEAR,
+} from './profile-birth-date.js';
 
 export const DOCUMENT_TYPES = ['DNI', 'PASSPORT'] as const;
 export type DocumentType = (typeof DOCUMENT_TYPES)[number];
@@ -105,8 +110,12 @@ function validDocumentNumberFormat(documentType: DocumentType, documentNumber: s
 
 function validBirthDate(date: Date | null | undefined): Date | null {
   if (!date) return null;
-  if (Number.isNaN(date.getTime()) || date > new Date()) {
-    throw new DomainError('Customer dateOfBirth is invalid', 'dateOfBirth');
+  // Contrato §3.10.4: la fecha existe, el año es >= 1900 y no es futura
+  if (Number.isNaN(date.getTime()) || date.getUTCFullYear() < MIN_BIRTH_YEAR) {
+    throw new DomainError(BIRTH_DATE_INVALID_MESSAGE, 'dateOfBirth');
+  }
+  if (date > new Date()) {
+    throw new DomainError(BIRTH_DATE_FUTURE_MESSAGE, 'dateOfBirth');
   }
   return date;
 }
@@ -191,16 +200,6 @@ export class Customer {
     }
     this._active = false;
     this._deactivatedAt = new Date();
-    this._updatedAt = new Date();
-  }
-
-  // Alta lógica
-  activate(): void {
-    if (this._active) {
-      throw new DomainError('Customer is already active');
-    }
-    this._active = true;
-    this._deactivatedAt = null;
     this._updatedAt = new Date();
   }
 

@@ -135,7 +135,7 @@ function findById(idParam: unknown, request: Request) {
   const employee = employees.find((e) => e.id === id);
   if (!employee) {
     return {
-      error: errorResponse(404, `Employee with ID ${id} not found`, request),
+      error: errorResponse(404, 'No existe el empleado.', request),
     };
   }
   return { employee };
@@ -156,7 +156,7 @@ const isLastAvailableAdmin = (account: Account) =>
 const lastAdminError = (request: Request) =>
   errorResponse(
     409,
-    'This operation would leave the system without an available administrator',
+    'Esta operación dejaría al sistema sin un administrador disponible.',
     request,
     undefined,
     'LAST_ADMIN',
@@ -177,7 +177,7 @@ function findAccount(idParam: unknown, request: Request) {
   const account = accounts.find((a) => a.accountId === id);
   if (!account) {
     return {
-      error: errorResponse(404, `Account with ID ${id} not found`, request),
+      error: errorResponse(404, 'No existe el usuario.', request),
     };
   }
   return { account };
@@ -254,7 +254,7 @@ export const employeesHandlers = [
     if (employees.some((e) => e.email.toLowerCase() === email)) {
       return errorResponse(
         409,
-        `Employee with email "${email}" already exists`,
+        'Ya existe un empleado registrado con ese mail.',
         request,
       );
     }
@@ -286,7 +286,7 @@ export const employeesHandlers = [
     if (!employee.isActive) {
       return errorResponse(
         409,
-        `Employee with ID ${employee.id} is inactive and cannot be modified`,
+        'El empleado está dado de baja y no se puede modificar.',
         request,
       );
     }
@@ -321,7 +321,7 @@ export const employeesHandlers = [
     if (!employee.isActive) {
       return errorResponse(
         409,
-        `Employee with ID ${employee.id} is already inactive`,
+        'El empleado ya está dado de baja.',
         request,
       );
     }
@@ -366,14 +366,14 @@ export const employeesHandlers = [
     if (!employee.isActive) {
       return errorResponse(
         409,
-        `Employee with ID ${employee.id} is inactive and cannot have an account`,
+        'El empleado está dado de baja y no puede tener un usuario.',
         request,
       );
     }
     if (accounts.some((a) => a.employeeId === employee.id)) {
       return errorResponse(
         409,
-        `Employee with ID ${employee.id} already has an account`,
+        'El empleado ya tiene un usuario.',
         request,
       );
     }
@@ -387,7 +387,7 @@ export const employeesHandlers = [
     if (password === employee.email) {
       return errorResponse(
         400,
-        'Password cannot be the same as the email',
+        'La contraseña no puede ser igual al mail',
         request,
       );
     }
@@ -418,7 +418,7 @@ export const employeesHandlers = [
     if (!account) {
       return errorResponse(
         404,
-        `Employee with ID ${employee.id} has no account`,
+        'El empleado no tiene usuario.',
         request,
       );
     }
@@ -426,8 +426,8 @@ export const employeesHandlers = [
   }),
 
   // SCRUM-24: PATCH /api/usuarios/:id responde 200 / 400 / 404 / 409, en el
-  // mismo orden que AccountsService.resetPassword. El backend también acepta
-  // `role`, pero el front no lo manda: el rol se cambia desde el empleado.
+  // mismo orden que AccountsService.resetPassword. Solo acepta `password`
+  // (obligatoria): `role` da 400, el rol se cambia desde el empleado (§3.11.2).
   http.patch(`${API_URL}/usuarios/:id`, async ({ params, request }) => {
     if (typeof params.id !== 'string' || !/^-?\d+$/.test(params.id)) {
       return errorResponse(
@@ -443,7 +443,7 @@ export const employeesHandlers = [
       .map((key) => `property ${key} should not exist`);
     const { password } = body;
     if (password === undefined) {
-      errors.push('At least one of role or password must be provided');
+      errors.push('password must be a string');
     } else if (typeof password !== 'string' || password.length < 8) {
       errors.push('password must be longer than or equal to 8 characters');
     } else if (password.length > 64) {
@@ -454,19 +454,19 @@ export const employeesHandlers = [
     const id = Number(params.id);
     const account = accounts.find((a) => a.accountId === id);
     if (!account) {
-      return errorResponse(404, `Account with ID ${id} not found`, request);
+      return errorResponse(404, 'No existe el usuario.', request);
     }
     if (!account.active) {
       return errorResponse(
         409,
-        `Account with ID ${id} is inactive and cannot be modified`,
+        'El usuario está dado de baja y no se puede modificar.',
         request,
       );
     }
     if (password === account.email) {
       return errorResponse(
         400,
-        'Password cannot be the same as the email',
+        'La contraseña no puede ser igual al mail',
         request,
       );
     }
@@ -483,7 +483,7 @@ export const employeesHandlers = [
     if (!account.active) {
       return errorResponse(
         409,
-        `Account with ID ${account.accountId} is already inactive`,
+        'El usuario ya está dado de baja.',
         request,
       );
     }
@@ -501,7 +501,7 @@ export const employeesHandlers = [
     if (account.active) {
       return errorResponse(
         409,
-        `Account with ID ${account.accountId} is already active`,
+        'El usuario ya está activo.',
         request,
       );
     }
@@ -509,8 +509,21 @@ export const employeesHandlers = [
     if (!employee?.isActive) {
       return errorResponse(
         409,
-        `Employee with ID ${account.employeeId} is inactive and cannot have its account reactivated`,
+        'El empleado está dado de baja: no se puede reactivar su usuario.',
         request,
+      );
+    }
+    // Contrato §3.11.4: el email no puede estar en uso por otra cuenta activa.
+    const emailTaken = accounts.some(
+      (a) => a.active && a.accountId !== account.accountId && a.email === account.email,
+    );
+    if (emailTaken) {
+      return errorResponse(
+        409,
+        'El mail de este usuario ya lo usa otra cuenta activa.',
+        request,
+        undefined,
+        'EMAIL_IN_USE',
       );
     }
     account.active = true;

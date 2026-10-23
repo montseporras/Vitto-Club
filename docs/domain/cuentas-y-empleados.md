@@ -22,7 +22,7 @@ Reglas de negocio, sin HTTP. Para el contrato REST ver [empleados](../funcionali
 | Alta de cuenta de empleado | El empleado existe (404) y está activo (409); no tiene cuenta previa (409); el email coincide con `Employee.email` (400); único frente a clientes (409) |
 | Contraseña | 8 a 64 caracteres, máximo 72 bytes, distinta del email. Ver [ADR 007](../decisions/007-bcrypt-y-limite-de-72-bytes.md) |
 | Email no editable | Desde ningún lado del módulo `accounts` |
-| Reset de contraseña | Mismas reglas que el alta |
+| Reset de contraseña | Mismas reglas que el alta. Solo sobre cuentas activas (409 si está inactiva). Cierra todas las sesiones de la cuenta y se audita `USER_ACCOUNT_UPDATED` ("Contraseña: Modificada") |
 | Consulta | Devuelve `{ accountId, employeeId, email, role, active }`, nunca `passwordHash` |
 
 ## Baja y reactivación
@@ -31,7 +31,7 @@ Reglas de negocio, sin HTTP. Para el contrato REST ver [empleados](../funcionali
   ingresar y se cierran sus sesiones; el empleado sigue activo. Publica `account.deactivated`.
 - **Baja de empleado**: publica `employee.deactivated` dentro de su transacción; `accounts` da de baja la
   cuenta asociada. Si eso dejara al sistema sin administrador, **toda la transacción se deshace**.
-- **Reactivación**: conserva la contraseña. Solo si el empleado está activo.
+- **Reactivación** (`PATCH /usuarios/:id/reactivate`): conserva la contraseña. 409 si la cuenta ya está activa o si el empleado está dado de baja. 409 `EMAIL_IN_USE` si otra cuenta activa usa el mail. Se audita `USER_ACCOUNT_REACTIVATED`.
 
 ## Regla del último administrador
 
@@ -61,6 +61,7 @@ darlo de baja y cargarlo de nuevo.
 | `employee.deactivated` | `employees` | `accounts` | Da de baja la cuenta (con protección del último admin) |
 | `employee.role-changed` | `employees` | `accounts` | Sincroniza `Account.role`; protección del último admin si degrada |
 | `account.deactivated` | `accounts` | `auth` | Revoca las sesiones de esa cuenta |
+| `account.password-changed` | `accounts` | `auth` | Revoca las sesiones de esa cuenta (todas, o todas menos la actual si el evento trae el refresh token) |
 | `customer.deactivated`, `customer.reactivated`, `customer.email-changed` | `customers` | `accounts` | Están en el contrato (`shared/events/domain-events.ts`). **No determinado** si `customers` ya los publica |
 
 Detalle del mecanismo: [transacciones y eventos](../conceptos-transversales/transacciones-y-eventos.md).

@@ -51,3 +51,21 @@ export function todayIso() {
     .toISOString()
     .slice(0, 10)
 }
+
+const ARGENTINA_DATE_TIME = new Intl.DateTimeFormat('es-AR', {
+  timeZone: 'America/Argentina/Cordoba',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
+
+/** ISO UTC de la API → 'dd/mm/aaaa hh:mm' en hora de Argentina. */
+export function isoToDisplayDateTime(value: string) {
+  const parts = Object.fromEntries(
+    ARGENTINA_DATE_TIME.formatToParts(new Date(value)).map((p) => [p.type, p.value]),
+  )
+  return `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}`
+}

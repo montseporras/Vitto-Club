@@ -7,7 +7,12 @@ import { AuthConfig } from '../infrastructure/auth.config.js';
 import { AuthResponseDto } from './dto/auth-response.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { AuthExceptionFilter } from './filters/auth-exception.filter.js';
-import { REFRESH_COOKIE, REFRESH_COOKIE_PATH, readCookie } from './refresh-cookie.js';
+import {
+  LEGACY_REFRESH_COOKIE_PATH,
+  REFRESH_COOKIE,
+  REFRESH_COOKIE_PATH,
+  readCookie,
+} from '../../shared/security/refresh-cookie.js';
 
 // Los tres endpoints son públicos: al login se llega sin sesión, y la renovación y el
 // cierre se identifican por la cookie, no por el access token (que puede estar vencido).
@@ -47,11 +52,12 @@ export class AuthController {
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
     await this.authService.logout(readCookie(req.headers.cookie, REFRESH_COOKIE));
     res.clearCookie(REFRESH_COOKIE, this.cookieOptions());
+    res.clearCookie(REFRESH_COOKIE, { ...this.cookieOptions(), path: LEGACY_REFRESH_COOKIE_PATH });
   }
 
   // httpOnly: el JavaScript del front no puede leerla.
   // sameSite lax: no viaja en pedidos POST hechos desde otro sitio.
-  // path: solo viaja a las rutas de auth.
+  // path: viaja a la API, no al resto del sitio (ver REFRESH_COOKIE_PATH).
   private cookieOptions(): CookieOptions {
     return {
       httpOnly: true,
@@ -66,5 +72,7 @@ export class AuthController {
       ...this.cookieOptions(),
       expires: result.refreshTokenExpiresAt,
     });
+    // Borra la cookie con el path viejo (si el navegador la tiene) para que no tape a la nueva
+    res.clearCookie(REFRESH_COOKIE, { ...this.cookieOptions(), path: LEGACY_REFRESH_COOKIE_PATH });
   }
 }
