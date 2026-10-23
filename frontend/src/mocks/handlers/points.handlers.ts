@@ -5,6 +5,7 @@ import { API_URL } from '@/shared/api/http';
 import { DEFAULT_POINTS_EXPIRATION_MONTHS } from '@/domain/expiration';
 import type {
   FirstConsumptionBonus,
+  LoyaltyLevelsConfiguration,
   PointsEquivalence,
   PointsExpiration,
 } from '@/features/points';
@@ -14,6 +15,7 @@ type BonusType = FirstConsumptionBonus['bonusType'];
 const FIRST_CONSUMPTION_BONUS_URL = `${API_URL}/loyalty/configuration/first-consumption-bonus`;
 const POINTS_EQUIVALENCE_URL = `${API_URL}/loyalty/configuration/points-equivalence`;
 const POINTS_EXPIRATION_URL = `${API_URL}/loyalty/configuration/points-validity`;
+const LOYALTY_LEVELS_URL = `${API_URL}/loyalty/configuration/levels`;
 
 // Fecha de la versión guardada, como la devuelve el backend en updatedAt.
 const now = () => new Date().toISOString();
@@ -37,6 +39,18 @@ let pointsExpiration: PointsExpiration = {
   pointsExpirationMonths: DEFAULT_POINTS_EXPIRATION_MONTHS,
   updatedAt: now(),
 };
+
+let loyaltyLevels: LoyaltyLevelsConfiguration = {
+  levels: [
+    { level: 'BRONZE', minPoints: 0, editable: false },
+    { level: 'SILVER', minPoints: 300, editable: true },
+    { level: 'GOLD', minPoints: 800, editable: true },
+  ],
+  configurationVersion: 5,
+  updatedAt: now(),
+};
+
+const MAX_LEVEL_MIN_POINTS = 2_147_483_647;
 
 // Mismos topes que el schema de Zod del formulario de equivalencia.
 const MAX_BASE_AMOUNT = 1_000_000;
@@ -71,6 +85,62 @@ const badRequest = (message: string[], request: Request) => {
     { status: 400 },
   );
 };
+
+function isAdminRequest(request: Request): boolean {
+  return /^Bearer mock-access-token-1-/.test(
+    request.headers.get('authorization') ?? '',
+  );
+}
+
+const forbidden = (request: Request) => {
+  const { pathname, search } = new URL(request.url);
+  return HttpResponse.json(
+    {
+      statusCode: 403,
+      error: 'Forbidden',
+      message: 'Forbidden resource',
+      path: pathname + search,
+      timestamp: now(),
+    },
+    { status: 403 },
+  );
+};
+
+function validateLoyaltyLevelsBody(body: Record<string, unknown>): string[] {
+  const allowedFields = ['silverMinPoints', 'goldMinPoints'];
+  const errors = Object.keys(body)
+    .filter((key) => !allowedFields.includes(key))
+    .map((key) => `property ${key} should not exist`);
+
+  for (const field of allowedFields) {
+    const value = body[field];
+    if (typeof value !== 'number' || !Number.isInteger(value)) {
+      errors.push(`${field} must be an integer number`);
+    } else if (value > MAX_LEVEL_MIN_POINTS) {
+      errors.push(`${field} must not be greater than ${MAX_LEVEL_MIN_POINTS}`);
+    }
+  }
+
+  if (
+    typeof body.silverMinPoints === 'number' &&
+    Number.isInteger(body.silverMinPoints) &&
+    body.silverMinPoints <= 0
+  ) {
+    errors.push('silverMinPoints must be greater than 0');
+  }
+
+  if (
+    typeof body.silverMinPoints === 'number' &&
+    Number.isInteger(body.silverMinPoints) &&
+    typeof body.goldMinPoints === 'number' &&
+    Number.isInteger(body.goldMinPoints) &&
+    body.goldMinPoints <= body.silverMinPoints
+  ) {
+    errors.push('goldMinPoints must be greater than silverMinPoints');
+  }
+
+  return errors;
+}
 
 // Equivalente al ValidationPipe global del backend. Devuelve la lista de
 // mensajes; vacía si el body es válido.
@@ -154,6 +224,31 @@ function validatePointsExpirationBody(body: Record<string, unknown>): string[] {
 }
 
 export const pointsHandlers = [
+  // US-27: solo el Administrador puede consultar y modificar los umbrales.
+  http.get(LOYALTY_LEVELS_URL, ({ request }) => {
+    if (!isAdminRequest(request)) return forbidden(request);
+    return HttpResponse.json(loyaltyLevels);
+  }),
+
+  http.put(LOYALTY_LEVELS_URL, async ({ request }) => {
+    if (!isAdminRequest(request)) return forbidden(request);
+
+    const body = (await request.json()) as Record<string, unknown>;
+    const errors = validateLoyaltyLevelsBody(body);
+    if (errors.length) return badRequest(errors, request);
+
+    loyaltyLevels = {
+      levels: [
+        { level: 'BRONZE', minPoints: 0, editable: false },
+        { level: 'SILVER', minPoints: body.silverMinPoints as number, editable: true },
+        { level: 'GOLD', minPoints: body.goldMinPoints as number, editable: true },
+      ],
+      configurationVersion: loyaltyLevels.configurationVersion + 1,
+      updatedAt: now(),
+    };
+    return HttpResponse.json(loyaltyLevels);
+  }),
+
   // RF-011: GET /api/loyalty/configuration/first-consumption-bonus
   http.get(FIRST_CONSUMPTION_BONUS_URL, () =>
     HttpResponse.json(firstConsumptionBonus),
