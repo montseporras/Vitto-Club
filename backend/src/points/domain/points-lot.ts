@@ -89,7 +89,7 @@ export class PointsLot {
   // disponible y el lote se invalida entero, aunque no llegue a 0 por sí solo.
   voidOrigin(amount: number): void {
     this.consume(amount);
-    this._status = 'CONSUMED';
+    this._status = 'VOIDED';
   }
 
   // GETTERS
