@@ -9,11 +9,12 @@ import { Link } from 'react-router';
 import { PATHS } from '@/app/router/paths';
 import { SessionActions } from '@/features/auth';
 import { EmployeesPage } from '@/features/employees';
+import { PointsMovementsPage } from '@/features/points-movements'
 // NUEVO (cambio 1): la pantalla de puntos, importada desde la API pública del
 // feature (su index.ts, archivo 10), nunca desde sus carpetas internas.
-import { PointsSettingsPage } from '@/features/points';
-import { StatusText } from '@/shared/components/feedback/StatusText';
-import { AppFooter, AppHeader } from '@/shared/components/navigation/AppHeader';
+import { PointsSettingsPage } from '@/features/points'
+import { StatusText } from '@/shared/components/feedback/StatusText'
+import { AppFooter, AppHeader } from '@/shared/components/navigation/AppHeader'
 import { SideNav } from '@/shared/components/navigation/SideNav';
 import { Icon } from '@/shared/components/ui/Icon';
 import { ICONS } from '@/shared/components/ui/icons';
@@ -72,9 +73,9 @@ export function AdminLayout() {
         </button>
       </AppHeader>
 
-      {/* Fondo del admin: fuera del alcance de RF-01. */}
+      {/* El listado de movimientos es la pantalla administrativa implementada en US-26. */}
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:py-8">
-        <StatusText>Área de administración (pantallas de otros RF).</StatusText>
+        <PointsMovementsPage />
       </main>
 
       <AppFooter />

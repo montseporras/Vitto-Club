@@ -25,6 +25,11 @@ const inactiveAccountIds = new Set([4])
 // Hace de la cookie httpOnly del refresh: sobrevive a recargar la página
 const SESSION_KEY = 'vitto:mock-session'
 
+export function getMockCurrentUser() {
+  const accountId = Number(sessionStorage.getItem(SESSION_KEY))
+  return accounts.find((account) => account.accountId === accountId) ?? null
+}
+
 const STATUS_NAMES = { 400: 'Bad Request', 401: 'Unauthorized' }
 
 const errorResponse = (

@@ -12,6 +12,22 @@ export function maskDate(value: string) {
 export const isoToDisplayDate = (value: string | null) =>
   value ? value.split('-').reverse().join('/') : ''
 
+/** ISO UTC → 'DD/MM/AAAA HH:mm' en hora de Argentina. */
+export function isoToArgentinaDateTime(value: string) {
+  const parts = new Intl.DateTimeFormat('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(value))
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((entry) => entry.type === type)?.value ?? ''
+  return `${part('day')}/${part('month')}/${part('year')} ${part('hour')}:${part('minute')}`
+}
+
 /**
  * 'DD/MM/AAAA' → 'YYYY-MM-DD', o null si la fecha no existe (31/02, mes 13…).
  * Se arma en UTC para que la zona horaria no corra el día.

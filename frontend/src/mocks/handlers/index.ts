@@ -4,10 +4,12 @@ import { authHandlers } from './auth.handlers'
 import { cashierHandlers } from './cashier.handlers'
 import { employeesHandlers } from './employees.handlers'
 import { pointsHandlers } from './points.handlers'
+import { pointsMovementsHandlers } from './points-movements.handlers'
 
 export const handlers = [
   ...authHandlers,
   ...cashierHandlers,
   ...employeesHandlers,
   ...pointsHandlers,
+  ...pointsMovementsHandlers,
 ]
