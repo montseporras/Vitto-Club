@@ -13,6 +13,7 @@ import { AccountsModule } from './accounts/accounts.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { LoyaltyModule } from './loyalty/loyalty.module.js';
 import { ConsumptionsModule } from './consumptions/consumptions.module.js';
+import { AuditModule } from './audit/audit.module.js';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ConsumptionsModule } from './consumptions/consumptions.module.js';
     AuthModule,
     LoyaltyModule,
     ConsumptionsModule,
+    AuditModule,
   ],
 })
 export class AppModule {}

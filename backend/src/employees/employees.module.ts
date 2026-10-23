@@ -4,6 +4,7 @@ import { EmployeesService } from './application/employees.service.js';
 import { EmployeeRepository } from './domain/port/employee.repository.js';
 import { TransactionRunner } from './domain/port/transaction-runner.js';
 import { EmployeePrismaRepository } from './infrastructure/employees.repository.js';
+import { AuditModule } from '../audit/audit.module.js';
 import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
 
 // Employees NO importa CustomersModule ni AccountsModule, ni conoce a ninguno de los dos
@@ -12,6 +13,7 @@ import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js'
 // (employee.deactivated / employee.role-changed). Ver docs/ARCHITECTURE.md y
 // src/accounts/application/employee-events.listener.ts.
 @Module({
+  imports: [AuditModule],
   controllers: [EmployeesController],
   providers: [
     EmployeesService,
