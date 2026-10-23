@@ -20,7 +20,8 @@ export function Page({ className, ...props }: ComponentProps<'section'>) {
 }
 
 type PageCardProps = {
-  eyebrow: string
+  /** Título chico arriba del título. Opcional en 'plain'. */
+  eyebrow?: string
   title: string
   /** Texto corto debajo del título. */
   description?: string
@@ -43,7 +44,7 @@ export function PageCard({
     return (
       <div className={cn(pageCardStyles, className)}>
         <div className={pageCardBodyStyles}>
-          <p className={pageCardEyebrowStyles}>{eyebrow}</p>
+          {eyebrow && <p className={pageCardEyebrowStyles}>{eyebrow}</p>}
           <h2 className={pageCardPlainTitleStyles}>{title}</h2>
           {description && (
             <p className={pageCardPlainDescriptionStyles}>{description}</p>
@@ -63,7 +64,7 @@ export function PageCard({
           aria-hidden="true"
           className={pageCardLogoStyles}
         />
-        <p className={pageCardEyebrowStyles}>{eyebrow}</p>
+        {eyebrow && <p className={pageCardEyebrowStyles}>{eyebrow}</p>}
         <h2 className={pageCardTitleStyles}>{title}</h2>
         {description && (
           <p className={pageCardDescriptionStyles}>{description}</p>

@@ -72,6 +72,18 @@ const errorResponse = (
     { status: statusCode },
   )
 
+/**
+ * Cuenta que hace la llamada, sacada del token de los mocks
+ * (`mock-access-token-{accountId}-{fecha}`). Sirve para simular las reglas por rol.
+ */
+export function accountFromRequest(request: Request): AuthUser | null {
+  const match = /^Bearer mock-access-token-(\d+)-/.exec(
+    request.headers.get('Authorization') ?? '',
+  )
+  if (!match) return null
+  return accounts.find((account) => account.accountId === Number(match[1])) ?? null
+}
+
 const authResponse = (user: AuthUser): AuthResponse => ({
   accessToken: `mock-access-token-${user.accountId}-${Date.now()}`,
   user,

@@ -12,7 +12,7 @@ const NAV: SideNavItem[] = [
   {
     id: 'customer',
     to: PATHS.cashier.customer,
-    label: 'Buscar clientes',
+    label: 'Buscar cliente',
     icon: ICONS.user,
   },
   {

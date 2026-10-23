@@ -56,6 +56,12 @@ export const dataListTermStyles =
   'text-xs font-bold uppercase tracking-wide text-accent-800'
 export const dataListValueStyles = 'text-base break-words text-text'
 
+/** Puntos con signo: verdes si suman, rojos si restan o si el saldo es negativo. */
+export const pointsToneStyles = {
+  positive: 'text-olive-800',
+  negative: 'text-negative',
+}
+
 /** Texto de estado o ayuda (ej. "Buscando…", "No hay resultados"). */
 export const statusTextStyles = 'text-base text-neutral-700'
 
