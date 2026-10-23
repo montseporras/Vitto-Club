@@ -4,6 +4,9 @@ import { Employee } from '../domain/employee.js';
 import { CreateEmployeeDto } from './dto/create-employee.dto.js';
 import { UpdateEmployeeDto } from './dto/update-employee.dto.js';
 import { ListEmployeesQueryDto } from './dto/list-employees-query.dto.js';
+import { createCapturingAuditService } from '../../audit/testing/capturing-audit-service.js';
+import type { AuditEntryInput } from '../../audit/domain/audit-entry.js';
+import type { CurrentUserData } from '../../shared/security/current-user-data.js';
 
 describe('EmployeesController', () => {
   let service: {
@@ -13,7 +16,10 @@ describe('EmployeesController', () => {
     findById: jest.Mock;
     deactivate: jest.Mock;
   };
+  let audit: AuditEntryInput[];
   let controller: EmployeesController;
+
+  const admin: CurrentUserData = { accountId: 1, role: 'ADMIN', employeeId: 1 };
 
   beforeEach(() => {
     service = {
@@ -23,7 +29,9 @@ describe('EmployeesController', () => {
       findById: jest.fn(),
       deactivate: jest.fn(),
     };
-    controller = new EmployeesController(service as unknown as EmployeesService);
+    const capturing = createCapturingAuditService();
+    audit = capturing.entries;
+    controller = new EmployeesController(service as unknown as EmployeesService, capturing.service);
   });
 
   const dto = (values: Partial<CreateEmployeeDto> = {}): CreateEmployeeDto =>
@@ -49,7 +57,7 @@ describe('EmployeesController', () => {
         }),
       );
 
-      const result = await controller.create(dto({ phone: '3510000002' }));
+      const result = await controller.create(dto({ phone: '3510000002' }), admin);
 
       expect(service.create).toHaveBeenCalledWith({
         firstName: 'Bruno',
@@ -67,6 +75,18 @@ describe('EmployeesController', () => {
         role: 'CASHIER',
         isActive: true,
       });
+      expect(audit).toEqual([
+        {
+          actor: { type: 'EMPLOYEE', accountId: 1 },
+          module: 'EMPLOYEES',
+          action: 'EMPLOYEE_CREATED',
+          description: 'Registró al empleado Bruno Pérez',
+          details: [
+            { label: 'Mail', value: 'bruno.perez@vitto.club' },
+            { label: 'Rol', value: 'Cajero' },
+          ],
+        },
+      ]);
     });
 
     it('devuelve phone null si el empleado no tiene teléfono', async () => {
@@ -81,7 +101,7 @@ describe('EmployeesController', () => {
         }),
       );
 
-      const result = await controller.create(dto());
+      const result = await controller.create(dto(), admin);
 
       expect(result.phone).toBeNull();
     });
@@ -187,7 +207,7 @@ describe('EmployeesController', () => {
         }),
       );
 
-      const result = await controller.deactivate(3);
+      const result = await controller.deactivate(3, admin);
 
       expect(service.deactivate).toHaveBeenCalledWith(3);
       expect({ ...result }).toEqual({
@@ -199,11 +219,27 @@ describe('EmployeesController', () => {
         role: 'CASHIER',
         isActive: false,
       });
+      expect(audit).toHaveLength(1);
+      expect(audit[0]).toMatchObject({
+        action: 'EMPLOYEE_DEACTIVATED',
+        description: 'Dio de baja al empleado Carla Martínez',
+        details: [{ label: 'Estado', value: 'Activo → Inactivo' }],
+      });
     });
   });
 
   describe('update()', () => {
     it('delega la edición en el servicio con el id y devuelve el contrato del frontend', async () => {
+      service.findById.mockResolvedValue(
+        Employee.reconstruct({
+          id: 2,
+          firstName: 'Bruno',
+          lastName: 'Pérez',
+          email: 'bruno.perez@vitto.club',
+          role: 'CASHIER',
+          active: true,
+        }),
+      );
       service.update.mockResolvedValue(
         Employee.reconstruct({
           id: 2,
@@ -220,7 +256,7 @@ describe('EmployeesController', () => {
         role: 'ADMIN',
       });
 
-      const result = await controller.update(2, body);
+      const result = await controller.update(2, body, admin);
 
       expect(service.update).toHaveBeenCalledWith(2, {
         firstName: 'Bruno',
@@ -236,6 +272,12 @@ describe('EmployeesController', () => {
         email: 'bruno.perez@vitto.club',
         role: 'ADMIN',
         isActive: true,
+      });
+      expect(audit).toHaveLength(1);
+      expect(audit[0]).toMatchObject({
+        action: 'EMPLOYEE_UPDATED',
+        description: 'Editó al empleado Bruno Pérez',
+        details: [{ label: 'Rol', value: 'Cajero → Administrador' }],
       });
     });
   });

@@ -62,7 +62,7 @@ export class EmployeesService {
   async findById(id: number): Promise<Employee> {
     const employee = await this.employeesRepository.findById(id);
     if (!employee) {
-      throw new NotFoundException(`Employee with ID ${id} not found`);
+      throw new NotFoundException('No existe el empleado.');
     }
     return employee;
   }
@@ -75,7 +75,7 @@ export class EmployeesService {
 
       // 2. Un empleado dado de baja no se modifica
       if (!employee.isActive()) {
-        throw new ConflictException(`Employee with ID ${id} is inactive and cannot be modified`);
+        throw new ConflictException('El empleado está dado de baja y no se puede modificar.');
       }
 
       const previousRole = employee.getRole();
@@ -108,7 +108,7 @@ export class EmployeesService {
     return await this.transactionRunner.run(async () => {
       const employee = await this.findById(id);
       if (!employee.isActive()) {
-        throw new ConflictException(`Employee with ID ${id} is already inactive`);
+        throw new ConflictException('El empleado ya está dado de baja.');
       }
 
       employee.deactivate();

@@ -16,4 +16,8 @@ export abstract class SessionRepository {
 
   // Revoca todas las sesiones vigentes de una cuenta (baja de la cuenta)
   abstract revokeAllForAccount(accountId: number, now: Date): Promise<void>;
+
+  // Revoca las sesiones vigentes de una cuenta salvo la del tokenHash dado (cambio de contraseña:
+  // la sesión actual sigue abierta). Con keepTokenHash null revoca todas.
+  abstract revokeAllForAccountExcept(accountId: number, keepTokenHash: string | null, now: Date): Promise<void>;
 }

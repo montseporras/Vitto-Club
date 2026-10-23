@@ -3,7 +3,13 @@ import { CustomersService } from './customers.service.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EmployeesService } from '../../employees/application/employees.service.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
-import { CUSTOMER_EMAIL_CHANGED } from '../../shared/events/domain-events.js';
+import {
+  CUSTOMER_CREATED,
+  CUSTOMER_DEACTIVATED,
+  CUSTOMER_DOCUMENT_CHANGED,
+  CUSTOMER_EMAIL_CHANGED,
+  CUSTOMER_EMAIL_CHANGE_REQUESTED,
+} from '../../shared/events/domain-events.js';
 import { Customer, DocumentType } from '../domain/customer.js';
 import { CustomerStatusAction, CustomerStatusChange } from '../domain/customer-status-change.js';
 import {
@@ -31,6 +37,8 @@ class FakeCustomerRepository implements CustomerRepository {
   private nextHistoryId = 1;
   readonly update_ = jest.fn();
   readonly list_ = jest.fn();
+  // Saldo por cliente (customer_points); sin entrada = 0
+  readonly balances = new Map<number, number>();
 
   async save(customer: Customer): Promise<Customer> {
     const id = this.nextId++;
@@ -96,7 +104,18 @@ class FakeCustomerRepository implements CustomerRepository {
   }
   async list(params: CustomerListParams): Promise<CustomerListResult> {
     this.list_(params);
-    return { items: [...this.items.values()], total: this.items.size };
+    return {
+      items: [...this.items.values()].map((customer) => ({
+        customer,
+        balance: 0,
+        lifetimePoints: 0,
+        level: 'BRONZE' as const,
+      })),
+      total: this.items.size,
+    };
+  }
+  async findBalance(customerId: number): Promise<number> {
+    return this.balances.get(customerId) ?? 0;
   }
 }
 
@@ -178,39 +197,66 @@ describe('CustomersService', () => {
     });
   });
 
-  describe('activate()', () => {
-    it('reactiva un cliente inactivo y limpia la fecha de baja', async () => {
-      await service.deactivate(id);
-      await service.activate(id);
+  // CLI-ADM: la baja publica customer.deactivated y devuelve el saldo perdido
+  describe('deactivate(): cuenta y saldo perdido (CA-CLI.9)', () => {
+    it('publica customer.deactivated después de guardar la baja, en la misma transacción', async () => {
+      const order: string[] = [];
+      const runner: TransactionRunner = {
+        run: async (fn) => {
+          order.push('begin');
+          const result = await fn();
+          order.push('commit');
+          return result;
+        },
+      };
+      emitAsync.mockImplementationOnce(async () => {
+        order.push('event');
+        return [];
+      });
+      const transactional = new CustomersService(
+        repo,
+        employeesService as unknown as EmployeesService,
+        runner,
+        { emitAsync } as unknown as EventEmitter2,
+      );
 
-      const customer = await service.findById(id);
-      expect(customer.isActive()).toBe(true);
-      expect(customer.getDeactivatedAt()).toBeNull();
+      await transactional.deactivate(id);
+
+      expect(emitAsync).toHaveBeenCalledWith(CUSTOMER_DEACTIVATED, { customerId: id });
+      expect(order).toEqual(['begin', 'event', 'commit']);
+      expect((await repo.findById(id))?.isActive()).toBe(false);
     });
 
-    it('lanza 409 si el cliente ya está activo', async () => {
-      await expect(service.activate(id)).rejects.toThrow(ConflictException);
-      await expect(service.activate(id)).rejects.toThrow('already active');
+    it('devuelve el saldo que el cliente pierde (puede ser negativo)', async () => {
+      repo.balances.set(id, 120);
+      await expect(service.deactivate(id)).resolves.toBe(120);
+    });
+
+    it('un cliente sin movimientos pierde 0', async () => {
+      await expect(service.deactivate(id)).resolves.toBe(0);
+    });
+
+    it('si accounts falla, el error se propaga y no se publica nada más', async () => {
+      emitAsync.mockRejectedValueOnce(new Error('cuenta no se pudo dar de baja'));
+
+      await expect(service.deactivate(id)).rejects.toThrow('cuenta no se pudo dar de baja');
+    });
+
+    it('una baja repetida (409) no publica el evento', async () => {
+      await service.deactivate(id);
+      emitAsync.mockClear();
+
+      await expect(service.deactivate(id)).rejects.toThrow(ConflictException);
+      expect(emitAsync).not.toHaveBeenCalled();
     });
   });
 
-  describe('historial de bajas y reactivaciones', () => {
-    it('registra cada baja y reactivación, la más reciente primero', async () => {
-      await service.deactivate(id);
-      await service.activate(id);
+  describe('historial de bajas', () => {
+    it('registra la baja', async () => {
       await service.deactivate(id);
 
       const history = await service.getStatusHistory(id);
-      expect(history.map((h) => h.action)).toEqual(['DEACTIVATED', 'ACTIVATED', 'DEACTIVATED']);
-    });
-
-    it('conserva las bajas anteriores aunque el cliente se reactive', async () => {
-      await service.deactivate(id);
-      await service.activate(id);
-
-      const history = await service.getStatusHistory(id);
-      expect(history).toHaveLength(2);
-      expect((await service.findById(id)).getDeactivatedAt()).toBeNull();
+      expect(history.map((h) => h.action)).toEqual(['DEACTIVATED']);
     });
 
     it('un cliente sin cambios de estado tiene el historial vacío', async () => {
@@ -273,7 +319,7 @@ describe('CustomersService', () => {
         return [];
       });
 
-      await service.update(id, { email: ' Nuevo@Example.com ' });
+      await service.update(id, { email: ' Nuevo@Example.com ' }, 'CASHIER');
 
       expect(emitAsync).toHaveBeenCalledWith(CUSTOMER_EMAIL_CHANGED, {
         customerId: id,
@@ -283,13 +329,13 @@ describe('CustomersService', () => {
     });
 
     it('no lo publica si el email no cambia (aunque cambien mayúsculas o espacios)', async () => {
-      await service.update(id, { email: ' JUAN@example.com', firstName: 'Juan Carlos' });
+      await service.update(id, { email: ' JUAN@example.com', firstName: 'Juan Carlos' }, 'CASHIER');
 
       expect(emitAsync).not.toHaveBeenCalled();
     });
 
     it('no lo publica si se modifican otros datos', async () => {
-      await service.update(id, { phone: '1144444444' });
+      await service.update(id, { phone: '1144444444' }, 'CASHIER');
 
       expect(emitAsync).not.toHaveBeenCalled();
     });
@@ -297,14 +343,14 @@ describe('CustomersService', () => {
     it('no lo publica si la modificación se rechaza (email de otro cliente activo)', async () => {
       await otherCustomer();
 
-      await expect(service.update(id, { email: 'otro@example.com' })).rejects.toThrow(ConflictException);
+      await expect(service.update(id, { email: 'otro@example.com' }, 'CASHIER')).rejects.toThrow(ConflictException);
       expect(emitAsync).not.toHaveBeenCalled();
     });
 
     it('si accounts rechaza el email (ya lo usa otra cuenta), el error llega a quien llamó', async () => {
       emitAsync.mockRejectedValueOnce(new ConflictException('Email "x" is already used by another account'));
 
-      await expect(service.update(id, { email: 'nuevo@example.com' })).rejects.toThrow(
+      await expect(service.update(id, { email: 'nuevo@example.com' }, 'CASHIER')).rejects.toThrow(
         'already used by another account',
       );
     });
@@ -312,41 +358,41 @@ describe('CustomersService', () => {
 
   describe('update()', () => {
     it('lanza 400 si no se envía ningún campo', async () => {
-      await expect(service.update(id, {})).rejects.toThrow(BadRequestException);
-      await expect(service.update(id, { firstName: undefined })).rejects.toThrow(BadRequestException);
+      await expect(service.update(id, {}, 'CASHIER')).rejects.toThrow(BadRequestException);
+      await expect(service.update(id, { firstName: undefined }, 'CASHIER')).rejects.toThrow(BadRequestException);
     });
 
     it('no permite modificar un cliente inactivo', async () => {
       await service.deactivate(id);
 
-      await expect(service.update(id, { phone: '1144444444' })).rejects.toThrow(ConflictException);
+      await expect(service.update(id, { phone: '1144444444' }, 'CASHIER')).rejects.toThrow(ConflictException);
       const customer = await service.findById(id);
       expect(customer.getPhone()).toBe('1155555555');
     });
 
     it('permite borrar el teléfono con null', async () => {
-      const customer = await service.update(id, { phone: null });
+      const customer = await service.update(id, { phone: null }, 'CASHIER');
       expect(customer.getPhone()).toBeNull();
     });
 
     it('lanza 409 si el nuevo email ya lo usa otro cliente', async () => {
       await otherCustomer();
 
-      await expect(service.update(id, { email: 'otro@example.com' })).rejects.toThrow(ConflictException);
+      await expect(service.update(id, { email: 'otro@example.com' }, 'CASHIER')).rejects.toThrow(ConflictException);
       expect((await service.findById(id)).getEmail()).toBe('juan@example.com');
     });
 
     it('compara el email normalizado (mayúsculas y espacios)', async () => {
       await otherCustomer();
 
-      await expect(service.update(id, { email: '  OTRO@Example.com ' })).rejects.toThrow(ConflictException);
+      await expect(service.update(id, { email: '  OTRO@Example.com ' }, 'CASHIER')).rejects.toThrow(ConflictException);
     });
 
     it('permite usar el email de un cliente dado de baja', async () => {
       const other = await otherCustomer();
       await service.deactivate(other.getId() as number);
 
-      const customer = await service.update(id, { email: 'otro@example.com' });
+      const customer = await service.update(id, { email: 'otro@example.com' }, 'CASHIER');
       expect(customer.getEmail()).toBe('otro@example.com');
     });
 
@@ -354,12 +400,12 @@ describe('CustomersService', () => {
       const other = await otherCustomer();
       await service.deactivate(other.getId() as number);
 
-      const customer = await service.update(id, { documentNumber: '87654321' });
+      const customer = await service.update(id, { documentNumber: '87654321', reason: 'Error de carga' }, 'ADMIN');
       expect(customer.getDocumentNumber()).toBe('87654321');
     });
 
     it('permite reenviar su propio email, aunque cambien mayúsculas o espacios', async () => {
-      const customer = await service.update(id, { email: ' JUAN@example.com', firstName: 'Juan Carlos' });
+      const customer = await service.update(id, { email: ' JUAN@example.com', firstName: 'Juan Carlos' }, 'CASHIER');
       expect(customer.getFirstName()).toBe('Juan Carlos');
       expect(customer.getEmail()).toBe('juan@example.com');
     });
@@ -367,7 +413,7 @@ describe('CustomersService', () => {
     it('lanza 409 si el nuevo documento ya lo usa otro cliente', async () => {
       await otherCustomer();
 
-      await expect(service.update(id, { documentNumber: '87654321' })).rejects.toThrow(ConflictException);
+      await expect(service.update(id, { documentNumber: '87654321', reason: 'Error de carga' }, 'ADMIN')).rejects.toThrow(ConflictException);
     });
 
     // Nuevo (Customers -> Employees también al editar, no solo al crear): cambiar el
@@ -375,7 +421,7 @@ describe('CustomersService', () => {
     it('lanza 409 si se cambia el email a uno ya registrado como employee', async () => {
       employeesService.emails.add('empleado@vitto.club');
 
-      await expect(service.update(id, { email: 'empleado@vitto.club' })).rejects.toThrow(
+      await expect(service.update(id, { email: 'empleado@vitto.club' }, 'CASHIER')).rejects.toThrow(
         ConflictException,
       );
       const customer = await service.findById(id);
@@ -386,16 +432,111 @@ describe('CustomersService', () => {
       employeesService.emails.add('empleado@vitto.club');
 
       await expect(
-        service.update(id, { email: '  Empleado@Vitto.Club  ' }),
+        service.update(id, { email: '  Empleado@Vitto.Club  ' }, 'CASHIER'),
       ).rejects.toThrow(ConflictException);
     });
 
     it('permite cambiar el email si no está registrado como employee', async () => {
       employeesService.emails.add('otro.distinto@vitto.club');
 
-      const customer = await service.update(id, { email: 'nuevo.email@example.com' });
+      const customer = await service.update(id, { email: 'nuevo.email@example.com' }, 'CASHIER');
 
       expect(customer.getEmail()).toBe('nuevo.email@example.com');
+    });
+  });
+
+  // US-17-AJ: alta por el Cajero o el Administrador (crea también la cuenta, vía customer.created)
+  describe('createWithAccount()', () => {
+    const newCustomer = {
+      firstName: 'Sofía',
+      lastName: 'Ríos',
+      documentType: 'DNI' as const,
+      documentNumber: '38.456.123',
+      email: ' Sofia.Rios@Gmail.com ',
+    };
+
+    it('crea el cliente y publica customer.created con el documento normalizado (CA-17AJ.1)', async () => {
+      emitAsync.mockClear();
+
+      const customer = await service.createWithAccount(newCustomer);
+
+      expect(customer.getId()).not.toBeNull();
+      expect(emitAsync).toHaveBeenCalledTimes(1);
+      expect(emitAsync).toHaveBeenCalledWith(CUSTOMER_CREATED, {
+        customerId: customer.getId(),
+        email: 'sofia.rios@gmail.com',
+        documentNumber: '38456123',
+      });
+    });
+
+    it('en un pasaporte el documento viaja en mayúsculas (CA-17AJ.1)', async () => {
+      emitAsync.mockClear();
+
+      await service.createWithAccount({
+        ...newCustomer,
+        documentType: 'PASSPORT',
+        documentNumber: 'ab-123 456',
+      });
+
+      expect(emitAsync).toHaveBeenCalledWith(
+        CUSTOMER_CREATED,
+        expect.objectContaining({ documentNumber: 'AB123456' }),
+      );
+    });
+
+    it('corre todo dentro de una transacción: el evento se publica con la transacción abierta', async () => {
+      const order: string[] = [];
+      const runner: TransactionRunner = {
+        run: async (fn) => {
+          order.push('begin');
+          const result = await fn();
+          order.push('commit');
+          return result;
+        },
+      };
+      emitAsync.mockImplementationOnce(async () => {
+        order.push('event');
+        return [];
+      });
+      const transactional = new CustomersService(
+        repo,
+        employeesService as unknown as EmployeesService,
+        runner,
+        { emitAsync } as unknown as EventEmitter2,
+      );
+
+      await transactional.createWithAccount(newCustomer);
+
+      expect(order).toEqual(['begin', 'event', 'commit']);
+    });
+
+    // CA-17AJ.2: si accounts rechaza (email en uso por otra cuenta activa), el error llega a quien
+    // publicó y la transacción real se deshace; acá se comprueba que el error se propaga tal cual.
+    it('si el listener falla con EMAIL_IN_USE, el error se propaga con su code (CA-17AJ.2)', async () => {
+      emitAsync.mockRejectedValueOnce(
+        new ConflictException({ message: 'Ya hay un cliente o una cuenta activa con ese mail.', code: 'EMAIL_IN_USE' }),
+      );
+
+      await expect(service.createWithAccount(newCustomer)).rejects.toMatchObject({
+        response: { code: 'EMAIL_IN_USE' },
+      });
+    });
+
+    it('si el email ya lo usa un cliente activo, rechaza sin publicar el evento', async () => {
+      emitAsync.mockClear();
+
+      await expect(
+        service.createWithAccount({ ...newCustomer, documentNumber: '87654321', email: 'juan@example.com' }),
+      ).rejects.toMatchObject({ response: { code: 'EMAIL_IN_USE' } });
+      expect(emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('create() a secas no publica customer.created: el autorregistro elige su propia contraseña (CA-17AJ.6)', async () => {
+      emitAsync.mockClear();
+
+      await otherCustomer();
+
+      expect(emitAsync).not.toHaveBeenCalled();
     });
   });
 
@@ -420,7 +561,10 @@ describe('CustomersService', () => {
 
     it('lanza 409 si otro cliente ya tiene el email (normalizado)', async () => {
       await expect(otherCustomer({ email: ' JUAN@example.com' })).rejects.toThrow(ConflictException);
-      await expect(otherCustomer({ email: ' JUAN@example.com' })).rejects.toThrow(/email "juan@example.com"/);
+      // Contrato §5: lleva el code EMAIL_IN_USE (el front decide por el code, no por el texto)
+      await expect(otherCustomer({ email: ' JUAN@example.com' })).rejects.toMatchObject({
+        response: { code: 'EMAIL_IN_USE', message: 'Ya hay un cliente o una cuenta activa con ese mail.' },
+      });
     });
 
     it('permite dar de alta otro cliente con el email de uno dado de baja', async () => {
@@ -448,7 +592,7 @@ describe('CustomersService', () => {
           documentNumber: '87654321',
           email: 'empleado@vitto.club',
         }),
-      ).rejects.toThrow(ConflictException);
+      ).rejects.toMatchObject({ response: { code: 'EMAIL_IN_USE' } });
     });
 
     it('permite crear el cliente si el email no está en uso por ningún employee', async () => {
@@ -474,6 +618,259 @@ describe('CustomersService', () => {
 
     it('lanza 400 si page o limit no son positivos', async () => {
       await expect(service.list({ page: 0, limit: 10 })).rejects.toThrow(BadRequestException);
+    });
+
+    // CA-CLI.1
+    it('pasa q, level y sort al repositorio', async () => {
+      await service.list({ page: 1, limit: 20, active: true, search: '3011', level: 'GOLD', sort: 'lastName' });
+
+      expect(repo.list_).toHaveBeenCalledWith({
+        page: 1,
+        limit: 20,
+        active: true,
+        search: '3011',
+        level: 'GOLD',
+        sort: 'lastName',
+      });
+    });
+
+    it('q junto con name es un 400 con su mensaje', async () => {
+      const call = service.list({ page: 1, limit: 20, search: 'perez', nameContains: 'juan' });
+
+      await expect(call).rejects.toThrow(BadRequestException);
+      await expect(call).rejects.toThrow('No se puede buscar por q y por name a la vez.');
+      expect(repo.list_).not.toHaveBeenCalled();
+    });
+  });
+
+  // CA-CLI.4, CA-CLI.5 y CA-CLI.6: reglas por rol de PATCH /customers/:id
+  describe('update(): reglas por rol (CLI-ADM)', () => {
+    it('el Cajero que manda el número de documento recibe 403 FORBIDDEN_FIELD y no se guarda nada', async () => {
+      const call = service.update(id, { documentNumber: '87654321' }, 'CASHIER');
+
+      await expect(call).rejects.toMatchObject({
+        status: 403,
+        response: { code: 'FORBIDDEN_FIELD', message: 'El documento no se puede modificar.' },
+      });
+      expect(repo.update_).not.toHaveBeenCalled();
+    });
+
+    it('el Cajero que manda el tipo de documento también recibe 403 FORBIDDEN_FIELD', async () => {
+      await expect(service.update(id, { documentType: 'PASSPORT' }, 'CASHIER')).rejects.toMatchObject({
+        response: { code: 'FORBIDDEN_FIELD' },
+      });
+    });
+
+    it('el Administrador sin motivo recibe 400 con el mensaje del contrato', async () => {
+      const call = service.update(id, { phone: '1144444444' }, 'ADMIN');
+
+      await expect(call).rejects.toThrow(BadRequestException);
+      await expect(call).rejects.toThrow('Indicá el motivo del cambio para continuar.');
+      expect(repo.update_).not.toHaveBeenCalled();
+    });
+
+    it('un motivo en blanco cuenta como sin motivo', async () => {
+      await expect(service.update(id, { phone: '1144444444', reason: '   ' }, 'ADMIN')).rejects.toThrow(
+        'Indicá el motivo del cambio para continuar.',
+      );
+    });
+
+    it('el Administrador con motivo puede corregir el documento', async () => {
+      const customer = await service.update(
+        id,
+        { documentNumber: '87654321', reason: 'Error de carga' },
+        'ADMIN',
+      );
+
+      expect(customer.getDocumentNumber()).toBe('87654321');
+    });
+
+    it('el Cajero puede editar sin motivo', async () => {
+      const customer = await service.update(id, { phone: '1144444444' }, 'CASHIER');
+
+      expect(customer.getPhone()).toBe('1144444444');
+    });
+
+    it('un motivo solo, sin ningún dato para cambiar, es un 400', async () => {
+      await expect(service.update(id, { reason: 'Sin cambios' }, 'ADMIN')).rejects.toThrow(
+        'At least one field must be provided',
+      );
+    });
+
+    it('un cliente inactivo no se edita: 409 CUSTOMER_INACTIVE', async () => {
+      await service.deactivate(id);
+
+      await expect(service.update(id, { phone: '1144444444' }, 'CASHIER')).rejects.toMatchObject({
+        status: 409,
+        response: { code: 'CUSTOMER_INACTIVE', message: 'El cliente está dado de baja.' },
+      });
+      expect(repo.update_).not.toHaveBeenCalled();
+    });
+  });
+
+  // CA-CLI.7: accounts cambia la contraseña inicial al documento nuevo
+  describe('update(): evento customer.document-changed', () => {
+    it('lo publica con el documento nuevo normalizado, después de guardar', async () => {
+      const order: string[] = [];
+      repo.update_.mockImplementation(() => order.push('update'));
+      emitAsync.mockImplementation(async () => {
+        order.push('emit');
+        return [];
+      });
+
+      await service.update(id, { documentNumber: ' 87.654.321 ', reason: 'Error de carga' }, 'ADMIN');
+
+      expect(emitAsync).toHaveBeenCalledWith(CUSTOMER_DOCUMENT_CHANGED, {
+        customerId: id,
+        documentNumber: '87654321',
+      });
+      expect(order).toEqual(['update', 'emit']);
+    });
+
+    it('no lo publica si el documento queda igual', async () => {
+      await service.update(id, { documentNumber: '12.345.678', phone: '1144444444', reason: 'x' }, 'ADMIN');
+
+      expect(emitAsync).not.toHaveBeenCalledWith(CUSTOMER_DOCUMENT_CHANGED, expect.anything());
+    });
+
+    it('si accounts falla, el error se propaga', async () => {
+      emitAsync.mockRejectedValueOnce(new Error('sin cuenta'));
+
+      await expect(
+        service.update(id, { documentNumber: '87654321', reason: 'x' }, 'ADMIN'),
+      ).rejects.toThrow('sin cuenta');
+    });
+  });
+
+  // PERFIL: el cliente edita su propio perfil (contrato §3.10.4)
+  describe('updateOwnProfile()', () => {
+    const profileEvents = () => emitAsync.mock.calls.map(([name]) => name);
+
+    it('actualiza solo el teléfono, sin pedir contraseña ni publicar eventos', async () => {
+      emitAsync.mockClear();
+
+      const customer = await service.updateOwnProfile(id, { phone: '3547-555123' });
+
+      expect(customer.getPhone()).toBe('3547-555123');
+      expect(customer.getEmail()).toBe('juan@example.com');
+      expect(emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('borra el teléfono y la fecha de nacimiento con null', async () => {
+      await service.updateOwnProfile(id, { dateOfBirth: '1990-05-14' });
+
+      const customer = await service.updateOwnProfile(id, { phone: null, dateOfBirth: null });
+
+      expect(customer.getPhone()).toBeNull();
+      expect(customer.getDateOfBirth()).toBeNull();
+    });
+
+    it('rechaza un body sin ningún dato (currentPassword solo no cuenta)', async () => {
+      await expect(service.updateOwnProfile(id, {})).rejects.toThrow(BadRequestException);
+      await expect(service.updateOwnProfile(id, { currentPassword: 'x' })).rejects.toThrow(BadRequestException);
+    });
+
+    it('rechaza un teléfono inválido con el mensaje del contrato', async () => {
+      await expect(service.updateOwnProfile(id, { phone: '123' })).rejects.toThrow(
+        'El teléfono tiene que tener entre 8 y 15 números',
+      );
+    });
+
+    it('rechaza una fecha futura y una inexistente con los mensajes del contrato', async () => {
+      await expect(service.updateOwnProfile(id, { dateOfBirth: '2999-01-01' })).rejects.toThrow(
+        'La fecha no puede ser futura',
+      );
+      await expect(service.updateOwnProfile(id, { dateOfBirth: '1990-02-31' })).rejects.toThrow(
+        'Esa fecha no existe',
+      );
+    });
+
+    it('cambiar el correo sin contraseña actual responde 400 y no guarda nada', async () => {
+      repo.update_.mockClear();
+
+      await expect(
+        service.updateOwnProfile(id, { email: 'nuevo@example.com', phone: '3547-555123' }),
+      ).rejects.toThrow('Ingresá tu contraseña actual para cambiar el correo');
+
+      expect(repo.update_).not.toHaveBeenCalled();
+    });
+
+    it('cambiar el correo: primero confirma la contraseña, después guarda y por último avisa el cambio', async () => {
+      const order: string[] = [];
+      emitAsync.mockImplementation(async (name: string) => {
+        order.push(name);
+        return [];
+      });
+      repo.update_.mockImplementation(() => order.push('update'));
+
+      const customer = await service.updateOwnProfile(id, {
+        email: ' Nuevo@Example.com ',
+        currentPassword: 'MiClave2026',
+      });
+
+      expect(customer.getEmail()).toBe('nuevo@example.com');
+      expect(order).toEqual([CUSTOMER_EMAIL_CHANGE_REQUESTED, 'update', CUSTOMER_EMAIL_CHANGED]);
+      expect(emitAsync).toHaveBeenCalledWith(CUSTOMER_EMAIL_CHANGE_REQUESTED, {
+        customerId: id,
+        email: 'nuevo@example.com',
+        currentPassword: 'MiClave2026',
+      });
+    });
+
+    it('si accounts rechaza la contraseña, no se guarda nada (tampoco el teléfono)', async () => {
+      repo.update_.mockClear();
+      emitAsync.mockRejectedValueOnce(new BadRequestException('La contraseña actual es incorrecta'));
+
+      await expect(
+        service.updateOwnProfile(id, { email: 'nuevo@example.com', currentPassword: 'mala', phone: '3547-555123' }),
+      ).rejects.toThrow('La contraseña actual es incorrecta');
+
+      expect(repo.update_).not.toHaveBeenCalled();
+      expect((await service.findById(id)).getPhone()).toBe('1155555555');
+    });
+
+    it('el mismo correo con otras mayúsculas o espacios no es un cambio: no pide contraseña y se ignora', async () => {
+      emitAsync.mockClear();
+
+      const customer = await service.updateOwnProfile(id, {
+        email: '  JUAN@example.com ',
+        phone: '3547-555123',
+        currentPassword: 'cualquiera',
+      });
+
+      expect(customer.getEmail()).toBe('juan@example.com');
+      expect(profileEvents()).toEqual([]);
+    });
+
+    it('409 EMAIL_IN_USE si otro cliente activo ya usa el correo', async () => {
+      await otherCustomer({ email: 'ocupado@example.com' });
+      repo.update_.mockClear();
+
+      await expect(
+        service.updateOwnProfile(id, { email: 'ocupado@example.com', currentPassword: 'MiClave2026' }),
+      ).rejects.toMatchObject({ response: { code: 'EMAIL_IN_USE', message: 'Ese correo ya está registrado' } });
+
+      expect(repo.update_).not.toHaveBeenCalled();
+    });
+
+    it('409 EMAIL_IN_USE si un empleado ya usa el correo', async () => {
+      employeesService.emails.add('mozo@vitto.club');
+
+      await expect(
+        service.updateOwnProfile(id, { email: 'mozo@vitto.club', currentPassword: 'MiClave2026' }),
+      ).rejects.toMatchObject({ response: { code: 'EMAIL_IN_USE' } });
+    });
+
+    it('el correo de un cliente dado de baja no cuenta como ocupado', async () => {
+      const baja = await otherCustomer({ email: 'baja@example.com' });
+      await service.deactivate(baja.getId() as number);
+
+      const customer = await service.updateOwnProfile(id, {
+        email: 'baja@example.com',
+        currentPassword: 'MiClave2026',
+      });
+
+      expect(customer.getEmail()).toBe('baja@example.com');
     });
   });
 });

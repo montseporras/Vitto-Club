@@ -28,7 +28,12 @@ export class CustomerAccountPrismaRepository implements CustomerAccountRepositor
     };
   }
 
-  async create(data: { customerId: number; email: string; passwordHash: string }): Promise<{ accountId: number }> {
+  async create(data: {
+    customerId: number;
+    email: string;
+    passwordHash: string;
+    mustChangePassword: boolean;
+  }): Promise<{ accountId: number }> {
     const created = await this.prisma.account.create({
       data: {
         customerId: data.customerId,
@@ -36,6 +41,7 @@ export class CustomerAccountPrismaRepository implements CustomerAccountRepositor
         passwordHash: data.passwordHash,
         role: 'CUSTOMER',
         isActive: true,
+        mustChangePassword: data.mustChangePassword,
       },
       select: { id: true },
     });
@@ -47,5 +53,24 @@ export class CustomerAccountPrismaRepository implements CustomerAccountRepositor
       where: { id: accountId, customerId: { not: null } },
       data: { isActive: false },
     });
+  }
+
+  async deactivateByCustomerId(customerId: number): Promise<number | null> {
+    const account = await this.prisma.account.findFirst({
+      where: { customerId, isActive: true },
+      select: { id: true },
+    });
+    if (!account) return null;
+
+    await this.prisma.account.update({ where: { id: account.id }, data: { isActive: false } });
+    return account.id;
+  }
+
+  async replaceInitialPasswordHash(customerId: number, passwordHash: string): Promise<boolean> {
+    const result = await this.prisma.account.updateMany({
+      where: { customerId, isActive: true, mustChangePassword: true },
+      data: { passwordHash },
+    });
+    return result.count > 0;
   }
 }

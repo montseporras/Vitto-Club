@@ -88,8 +88,9 @@ datos que el contrato no tenga.
   la pantalla porque no tiene backend. La aplicación real se los pide al backend.
 - **El código del prototipo.** No es React (usa `dc-import`, `sc-if`, plantillas `{{ }}`). Se reproduce con
   los componentes del proyecto; no se copia.
-- **Las versiones viejas del prototipo:** `Vitto Club Prototipo.dc.html`, `Vitto Club Prototipo (anterior).dc.html`
-  y `Vitto Club Prototipo-print.dc.html`. Se usa solo `Vitto Club Prototipo v2.dc.html` y sus componentes.
+- **El archivo único del prototipo** (`docs/prototipo/Vitto Club Prototipo - archivo unico.html`): guarda
+  los componentes comprimidos y no se puede buscar. Se usan los `.html` de `docs/prototipo/v2/`
+  (`pagina-principal.html` y sus componentes).
 - **La Definición del Producto y el documento de Historias de Usuario**, en lo que el contrato ya cambió (salvo los nombres y transiciones de estados, sección 9, que sí mandan).
   Por ejemplo: "Compra" ahora es **Consumo**; la contraseña con mayúscula y carácter especial quedó como
   decisión a futuro; la reactivación de clientes ya no existe.

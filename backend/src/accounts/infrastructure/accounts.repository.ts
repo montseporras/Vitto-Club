@@ -38,6 +38,7 @@ function toCustomerLogin(record: PrismaAccountRecord): CustomerLoginRecord | nul
     email: record.email,
     passwordHash: record.passwordHash,
     active: record.isActive,
+    mustChangePassword: record.mustChangePassword,
   };
 }
 
@@ -98,8 +99,10 @@ export class AccountPrismaRepository implements AccountRepository {
   // Login: todos los roles usan email + password. Si la fila encontrada es de un customer
   // (employeeId null), se trata como "no encontrada" en vez de lanzar: ese caso está fuera
   // de este dominio (todavía no modelado), no es un dato inconsistente.
+  // Solo busca entre cuentas ACTIVAS: el email puede repetirse con una cuenta dada de baja
+  // (contrato §1, unicidad de email entre activos), así que hay como mucho una.
   async findByEmail(email: string): Promise<Account | null> {
-    const record = await this.prisma.account.findUnique({ where: { email } });
+    const record = await this.prisma.account.findFirst({ where: { email, isActive: true } });
     if (!record || record.employeeId === null) return null;
     return toDomain(record);
   }
@@ -158,7 +161,11 @@ export class AccountPrismaRepository implements AccountRepository {
   // --- Cuentas de CLIENTE (login) ---
 
   async findCustomerLoginByEmail(email: string): Promise<CustomerLoginRecord | null> {
-    const record = await this.prisma.account.findUnique({ where: { email } });
+    // Con el mismo email en una cuenta inactiva y otra activa, gana la activa.
+    const record = await this.prisma.account.findFirst({
+      where: { email },
+      orderBy: { isActive: 'desc' },
+    });
     return record ? toCustomerLogin(record) : null;
   }
 

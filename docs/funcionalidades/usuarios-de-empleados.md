@@ -19,9 +19,9 @@ baja y US-08 Consultar.
 |---|---|---|
 | `GET /usuarios` | Lista todas las cuentas de **empleados**, activas e inactivas | Ordenadas por `accountId` ascendente. No incluye cuentas de clientes. Responde `AccountResponseDto[]` (`[]` si no hay) |
 | `POST /usuarios` | Registra la cuenta de un empleado | Reglas en [dominio](../domain/cuentas-y-empleados.md) |
-| `PATCH /usuarios/:id` | Edita datos de acceso (reset de contraseña) | El **rol ya no se cambia acá**: es `PATCH /empleados/:id`. Verificar que `role` haya salido del DTO |
+| `PATCH /usuarios/:id` | Reset de contraseña (solo `password`) | 400 (política), 404, 409 (cuenta inactiva). Cierra todas las sesiones de la cuenta y audita `USER_ACCOUNT_UPDATED`. El **rol no se cambia acá**: es `PATCH /empleados/:id` |
 | `PATCH /usuarios/:id/deactivate` | Baja lógica de la cuenta | 409 si ya está inactiva o si es el último administrador (`LAST_ADMIN`) |
-| `PATCH /usuarios/:id/reactivate` | Reactiva la cuenta, conserva la contraseña | 409 si ya está activa o si el empleado está inactivo |
+| `PATCH /usuarios/:id/reactivate` | Reactiva la cuenta, conserva la contraseña | 409 si ya está activa o si el empleado está inactivo; 409 `EMAIL_IN_USE` si otra cuenta activa usa el mail. Audita `USER_ACCOUNT_REACTIVATED` |
 | `GET /usuarios/empleado/:employeeId` | Consulta la cuenta de un empleado | Nunca devuelve `passwordHash` |
 
 ## Respuesta de cuenta

@@ -37,6 +37,26 @@ describe('UpdateCustomerDto', () => {
   it('rechaza campos que no existen', () => {
     expect(errorsOf(UpdateCustomerDto, { foo: 1 })).toContain('foo');
   });
+
+  // CLI-ADM: reason sin espacios en los extremos, de 1 a 500 caracteres
+  describe('reason', () => {
+    it('lo acepta y le recorta los espacios de los extremos', () => {
+      const dto = plainToInstance(UpdateCustomerDto, { phone: '3510000000', reason: '  Error de carga  ' });
+
+      expect(dto.reason).toBe('Error de carga');
+      expect(errorsOf(UpdateCustomerDto, { phone: '3510000000', reason: '  Error de carga  ' })).toEqual([]);
+    });
+
+    it('acepta 500 caracteres y rechaza 501 con el mensaje en castellano', () => {
+      expect(errorsOf(UpdateCustomerDto, { reason: 'x'.repeat(500) })).toEqual([]);
+      const errors = validateSync(plainToInstance(UpdateCustomerDto, { reason: 'x'.repeat(501) }));
+      expect(errors[0].constraints?.maxLength).toBe('El motivo no puede superar los 500 caracteres.');
+    });
+
+    it('rechaza un motivo que no es texto', () => {
+      expect(errorsOf(UpdateCustomerDto, { reason: 5 })).toContain('reason');
+    });
+  });
 });
 
 describe('ListCustomersQueryDto', () => {
@@ -62,8 +82,27 @@ describe('ListCustomersQueryDto', () => {
     ['page', '1.5'],
     ['active', 'abc'],
     ['active', '1'],
+    ['level', 'PLATINUM'],
+    ['level', 'bronze'],
+    ['sort', 'email'],
+    ['q', 'x'.repeat(81)],
   ])('rechaza %s=%s', (field, value) => {
     expect(errorsOf(ListCustomersQueryDto, { [field]: value })).toContain(field);
+  });
+
+  // CLI-ADM: la pantalla llama con active=true&sort=lastName&q=...&level=...
+  it('acepta q (hasta 80), level y sort', () => {
+    expect(
+      errorsOf(ListCustomersQueryDto, { active: 'true', sort: 'lastName', q: 'x'.repeat(80), level: 'GOLD' }),
+    ).toEqual([]);
+    expect(errorsOf(ListCustomersQueryDto, { sort: 'id', level: 'BRONZE' })).toEqual([]);
+  });
+
+  it('sort, level y q son opcionales: sin ellos quedan sin valor', () => {
+    const dto = plainToInstance(ListCustomersQueryDto, {});
+    expect(dto.sort).toBeUndefined();
+    expect(dto.level).toBeUndefined();
+    expect(dto.q).toBeUndefined();
   });
 
   it('acepta active=true, active=false y name', () => {
