@@ -105,7 +105,13 @@ export class CustomerRegistrationService {
         });
         const customerId = customer.getId() as number;
 
-        await this.customerAccounts.create({ customerId, email: customer.getEmail(), passwordHash });
+        // El cliente eligió su contraseña: no hay nada que cambiar al ingresar
+        await this.customerAccounts.create({
+          customerId,
+          email: customer.getEmail(),
+          passwordHash,
+          mustChangePassword: false,
+        });
 
         return {
           customerId,

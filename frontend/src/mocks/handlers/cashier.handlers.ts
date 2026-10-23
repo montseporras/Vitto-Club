@@ -96,6 +96,19 @@ export const errorResponse = (
     { status: statusCode },
   )
 
+// Empleados activos del mock de empleados: su mail también cuenta como "en uso" (contrato §5).
+const STAFF_EMAILS = [
+  'ana.gomez@vitto.club',
+  'bruno.perez@vitto.club',
+  'carla.martinez@vitto.club',
+  'lucia.fernandez@vitto.club',
+]
+
+// US-17-AJ (§3.11.3): el alta en Caja crea también la cuenta del cliente, con su documento
+// como contraseña inicial. Acá queda la contraseña de cada una (id del cliente -> documento);
+// el login de auth.handlers.ts la usa y responde mustChangePassword: true.
+export const initialPasswords = new Map<number, string>()
+
 // Igual que normalizeDocumentNumber del backend
 const normalizeDocument = (value: string) =>
   value.replace(/[\s.-]/g, '').toUpperCase()
@@ -323,22 +336,27 @@ export const cashierHandlers = [
           path,
         )
       }
-      const emailTaken = customers.some(
-        (customer) =>
-          customer.active &&
-          customer.email.toLowerCase() === body.email.toLowerCase(),
-      )
+      // §5: EMAIL_IN_USE cuando el mail lo usa otro cliente activo, un empleado u otra cuenta activa
+      const email = body.email.trim().toLowerCase()
+      const emailTaken =
+        STAFF_EMAILS.includes(email) ||
+        customers.some(
+          (customer) =>
+            customer.active && customer.email.toLowerCase() === email,
+        )
       if (emailTaken) {
         return errorResponse(
           409,
-          `An active customer with email "${body.email.toLowerCase()}" already exists`,
+          'Ya hay un cliente o una cuenta activa con ese mail.',
           path,
+          'EMAIL_IN_USE',
         )
       }
 
       const created: Customer = {
         id: customers.length + 1,
         ...body,
+        email,
         phone: body.phone ?? null,
         dateOfBirth: body.dateOfBirth ?? null,
         active: true,
@@ -346,6 +364,8 @@ export const cashierHandlers = [
         createdAt: new Date().toISOString(),
       }
       customers.push(created)
+      // Se crea también su cuenta: contraseña inicial = documento normalizado (§3.11.3)
+      initialPasswords.set(created.id, normalizeDocument(created.documentNumber))
       return HttpResponse.json(created, { status: 201 })
     },
   ),

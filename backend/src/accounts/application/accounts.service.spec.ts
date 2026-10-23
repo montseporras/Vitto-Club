@@ -5,7 +5,7 @@ import { AccountRepository, type CustomerLoginRecord } from '../domain/port/acco
 import { PasswordHasher } from '../domain/port/password-hasher.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import { DomainError } from '../domain/errors/domain.error.js';
-import { ACCOUNT_DEACTIVATED } from '../../shared/events/domain-events.js';
+import { ACCOUNT_DEACTIVATED, ACCOUNT_PASSWORD_CHANGED } from '../../shared/events/domain-events.js';
 import { EmployeesService } from '../../employees/application/employees.service.js';
 import { Employee, EmployeeData } from '../../employees/domain/employee.js';
 import { EmployeeListFilters, EmployeeRepository } from '../../employees/domain/port/employee.repository.js';
@@ -93,6 +93,7 @@ class FakeCustomerRepository implements CustomerRepository {
   async findStatusHistory(): Promise<CustomerStatusChange[]> { throw new Error('not implemented'); }
   async existsByDocument(): Promise<boolean> { throw new Error('not implemented'); }
   async list(): Promise<CustomerListResult> { throw new Error('not implemented'); }
+  async findBalance(): Promise<number> { throw new Error('not implemented'); }
 }
 
 class FakeAccountRepository implements AccountRepository {
@@ -131,8 +132,9 @@ class FakeAccountRepository implements AccountRepository {
   async findAllEmployeeAccounts(): Promise<Account[]> {
     return [...this.items.values()].sort((a, b) => (a.getId() as number) - (b.getId() as number));
   }
-  async findByEmail(_email: string): Promise<Account | null> {
-    throw new Error('not implemented: se reasigna por test en el describe de verifyCredentials');
+  // Como el repositorio real: solo cuentas ACTIVAS (los tests de verifyCredentials lo reasignan).
+  async findByEmail(email: string): Promise<Account | null> {
+    return [...this.items.values()].find((a) => a.getEmail() === email && a.isActive()) ?? null;
   }
   async existsByEmployeeId(employeeId: number): Promise<boolean> {
     return [...this.items.values()].some((a) => a.getEmployeeId() === employeeId);
@@ -505,6 +507,37 @@ describe('AccountsService', () => {
       expect(updated.getPasswordHash()).toBe('hashed:nueva456');
     });
 
+    it('publica account.password-changed sin refresh token para cerrar todas las sesiones (§3.11.2)', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({
+        employeeId: 2,
+        email: 'bruno.perez@vitto.club',
+        password: 'vieja123',
+      });
+
+      await service.resetPassword(account.getId() as number, 'nueva456');
+
+      expect(eventEmitter.emitted).toEqual([
+        { event: ACCOUNT_PASSWORD_CHANGED, payload: { accountId: account.getId() } },
+      ]);
+    });
+
+    it('no publica el evento si la cuenta está inactiva', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({
+        employeeId: 2,
+        email: 'bruno.perez@vitto.club',
+        password: 'vieja123',
+      });
+      await service.deactivate(account.getId() as number);
+      eventEmitter.emitted.length = 0;
+
+      await expect(service.resetPassword(account.getId() as number, 'nueva456')).rejects.toThrow(
+        ConflictException,
+      );
+      expect(eventEmitter.emitted).toHaveLength(0);
+    });
+
     it('rechaza si la cuenta está inactiva', async () => {
       employeeRepo.seed(CASHIER_EMPLOYEE);
       const account = await service.register({
@@ -564,43 +597,6 @@ describe('AccountsService', () => {
       await expect(
         service.resetPassword(account.getId() as number, 'bruno.perez@vitto.club'),
       ).rejects.toThrow(BadRequestException);
-    });
-  });
-
-  describe('updateRole (US-06)', () => {
-    it('delega el cambio en employeesService.update(); ya no sincroniza Account.role directamente', async () => {
-      employeeRepo.seed(CASHIER_EMPLOYEE);
-      const account = await service.register({
-        employeeId: 2,
-        email: 'bruno.perez@vitto.club',
-        password: 'secreta123',
-      });
-
-      const profile = await service.updateRole(account.getId() as number, 'ADMIN');
-
-      expect(profile.role).toBe('ADMIN');
-      expect(employeeRepo.items.get(2)?.getRole()).toBe('ADMIN');
-      // La sincronización de Account.role ahora la hace el listener de
-      // employee.role-changed (ver employees.service.spec.ts), no updateRole() directo.
-      expect(accountRepo.syncedRoles).toHaveLength(0);
-    });
-
-    it('404 si la cuenta no existe', async () => {
-      await expect(service.updateRole(999, 'ADMIN')).rejects.toThrow(NotFoundException);
-    });
-
-    it('rechaza si la cuenta está inactiva', async () => {
-      employeeRepo.seed(CASHIER_EMPLOYEE);
-      const account = await service.register({
-        employeeId: 2,
-        email: 'bruno.perez@vitto.club',
-        password: 'secreta123',
-      });
-      await service.deactivate(account.getId() as number);
-
-      await expect(service.updateRole(account.getId() as number, 'ADMIN')).rejects.toThrow(
-        ConflictException,
-      );
     });
   });
 
@@ -707,6 +703,58 @@ describe('AccountsService', () => {
 
       await expect(service.reactivate(account.getId() as number)).rejects.toThrow(ConflictException);
       expect(accountRepo.items.get(account.getId() as number)?.isActive()).toBe(false);
+    });
+
+    it('409 EMAIL_IN_USE si otra cuenta de empleado activa ya usa el email (contrato §3.11.4)', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+      await service.deactivate(account.getId() as number);
+      accountRepo.findByEmail = async () => account;
+
+      await expect(service.reactivate(account.getId() as number)).rejects.toMatchObject({
+        response: {
+          code: 'EMAIL_IN_USE',
+          message: 'El mail de este usuario ya lo usa otra cuenta activa.',
+        },
+      });
+      expect(accountRepo.items.get(account.getId() as number)?.isActive()).toBe(false);
+    });
+
+    it('409 EMAIL_IN_USE si una cuenta de cliente activa ya usa el email', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+      await service.deactivate(account.getId() as number);
+      accountRepo.customerLogins.set(50, {
+        accountId: 50,
+        customerId: 20,
+        email: 'bruno.perez@vitto.club',
+        passwordHash: 'hashed:x',
+        active: true,
+        mustChangePassword: false,
+      });
+
+      await expect(service.reactivate(account.getId() as number)).rejects.toMatchObject({
+        response: { code: 'EMAIL_IN_USE' },
+      });
+      expect(accountRepo.items.get(account.getId() as number)?.isActive()).toBe(false);
+    });
+
+    it('reactiva si el email solo lo usa una cuenta de cliente dada de baja', async () => {
+      employeeRepo.seed(CASHIER_EMPLOYEE);
+      const account = await service.register({ employeeId: 2, email: 'bruno.perez@vitto.club', password: 'secreta123' });
+      await service.deactivate(account.getId() as number);
+      accountRepo.customerLogins.set(50, {
+        accountId: 50,
+        customerId: 20,
+        email: 'bruno.perez@vitto.club',
+        passwordHash: 'hashed:x',
+        active: false,
+        mustChangePassword: false,
+      });
+
+      await service.reactivate(account.getId() as number);
+
+      expect(accountRepo.items.get(account.getId() as number)?.isActive()).toBe(true);
     });
 
     it('404 si la cuenta no existe', async () => {
@@ -887,6 +935,7 @@ describe('AccountsService', () => {
         email: 'bruno.perez@vitto.club',
         firstName: 'Bruno',
         lastName: 'Pérez',
+        mustChangePassword: false,
       });
     });
 
@@ -1004,6 +1053,7 @@ describe('AccountsService', () => {
         email: 'bruno.perez@vitto.club',
         firstName: 'Bruno',
         lastName: 'Pérez',
+        mustChangePassword: false,
       });
     });
 
@@ -1051,7 +1101,9 @@ describe('AccountsService', () => {
     };
 
     // Un cliente ya persistido, con su cuenta (la contraseña es "clave-de-lucia")
-    function seedCustomerWithAccount(opts: { active?: boolean; accountActive?: boolean } = {}) {
+    function seedCustomerWithAccount(
+      opts: { active?: boolean; accountActive?: boolean; mustChangePassword?: boolean } = {},
+    ) {
       const customer = Customer.reconstruct({ ...LUCIA, active: opts.active ?? true });
       customerRepo.items.set(LUCIA.id, customer);
       accountRepo.customerLogins.set(7, {
@@ -1060,6 +1112,7 @@ describe('AccountsService', () => {
         email: LUCIA.email,
         passwordHash: 'hashed:clave-de-lucia',
         active: opts.accountActive ?? true,
+        mustChangePassword: opts.mustChangePassword ?? false,
       });
       return customer;
     }
@@ -1082,7 +1135,17 @@ describe('AccountsService', () => {
           email: 'lucia@example.com',
           firstName: 'Lucía',
           lastName: 'Fernández',
+          mustChangePassword: false,
         });
+      });
+
+      // US-17-AJ: el cliente dado de alta en caja entra con su documento y debe cambiarla
+      it('devuelve mustChangePassword = true para un cliente con la contraseña inicial', async () => {
+        seedCustomerWithAccount({ mustChangePassword: true });
+
+        const result = await service.verifyCredentials('lucia@example.com', 'clave-de-lucia');
+
+        expect(result?.mustChangePassword).toBe(true);
       });
 
       it('normaliza el email: mayúsculas y espacios no impiden entrar', async () => {
@@ -1113,15 +1176,13 @@ describe('AccountsService', () => {
         expect(await service.verifyCredentials('lucia@example.com', 'clave-de-lucia')).toBeUndefined();
       });
 
-      it('un cliente reactivado vuelve a entrar con la misma contraseña, sin tocar su cuenta', async () => {
+      it('un cliente dado de baja deja de entrar (no hay reactivación de clientes)', async () => {
         const customer = seedCustomerWithAccount();
+        expect(await service.verifyCredentials('lucia@example.com', 'clave-de-lucia')).toBeDefined();
+
         customer.deactivate();
+
         expect(await service.verifyCredentials('lucia@example.com', 'clave-de-lucia')).toBeUndefined();
-
-        customer.activate();
-
-        const result = await service.verifyCredentials('lucia@example.com', 'clave-de-lucia');
-        expect(result?.role).toBe('CUSTOMER');
       });
 
       it('una cuenta de cliente inactiva no entra', async () => {
@@ -1173,7 +1234,14 @@ describe('AccountsService', () => {
           email: 'lucia@example.com',
           firstName: 'Lucía',
           lastName: 'Fernández',
+          mustChangePassword: false,
         });
+      });
+
+      it('mantiene mustChangePassword = true al renovar mientras no cambie la contraseña inicial', async () => {
+        seedCustomerWithAccount({ mustChangePassword: true });
+
+        expect((await service.findActiveById(7))?.mustChangePassword).toBe(true);
       });
 
       it('si dan de baja al cliente, la sesión deja de renovarse', async () => {
@@ -1234,6 +1302,7 @@ describe('AccountsService', () => {
           email: 'martin@example.com',
           passwordHash: 'hashed:otra',
           active: true,
+          mustChangePassword: false,
         });
 
         await expect(

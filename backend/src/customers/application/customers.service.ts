@@ -5,11 +5,31 @@ import { CustomerStatusChange } from '../domain/customer-status-change.js';
 import { CustomerRepository, CustomerListParams, CustomerListResult } from '../domain/port/customer.repository.js';
 import { CreateCustomerDto } from '../http/dto/create-customer.dto.js';
 import { UpdateCustomerDto } from '../http/dto/update-customer.dto.js';
+import { UpdateMyProfileDto } from '../http/dto/update-my-profile.dto.js';
+import { DomainError } from '../domain/errors/domain.error.js';
+import { checkBirthDate } from '../domain/profile-birth-date.js';
 import { CustomerAlreadyExists } from '../domain/errors/customer-already-exists.error.js';
 import { Mail } from '../domain/mail.js';
 import { EmployeesService } from '../../employees/application/employees.service.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
-import { CUSTOMER_EMAIL_CHANGED, type CustomerEmailChangedEvent } from '../../shared/events/domain-events.js';
+import { emailInUse, profileEmailInUse } from '../domain/errors/email-in-use.error.js';
+import { customerInactive } from '../domain/errors/customer-inactive.error.js';
+import { forbiddenField } from '../domain/errors/forbidden-field.error.js';
+import { reasonRequired } from '../domain/errors/reason-required.error.js';
+import { searchConflict } from '../domain/errors/search-conflict.error.js';
+import type { UserRole } from '../../shared/security/current-user-data.js';
+import {
+  CUSTOMER_CREATED,
+  CUSTOMER_DEACTIVATED,
+  CUSTOMER_DOCUMENT_CHANGED,
+  CUSTOMER_EMAIL_CHANGED,
+  CUSTOMER_EMAIL_CHANGE_REQUESTED,
+  type CustomerCreatedEvent,
+  type CustomerDeactivatedEvent,
+  type CustomerDocumentChangedEvent,
+  type CustomerEmailChangedEvent,
+  type CustomerEmailChangeRequestedEvent,
+} from '../../shared/events/domain-events.js';
 
 // Dirección única de la unicidad global de email: Customers -> Employees. Employees ya NO
 // consulta a Customers (ver employees.service.ts) — por eso esta dependencia ya no forma
@@ -40,22 +60,42 @@ export class CustomersService {
       dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
     });
 
-    // 2. Verificar que el documento y el email no estén ya registrados (por un cliente activo o no)
+    // 2. Verificar que el documento no esté ya registrado por un cliente activo
     await this.assertDocumentAvailable(
       customer.getDocumentType(),
       customer.getDocumentNumber(),
     );
-    await this.assertEmailAvailable(customer.getEmail());
 
-    // 3. El email debe ser único en todo el sistema, no solo entre customers.
-    if (await this.employeesService.existsByEmail(customer.getEmail())) {
-      throw new ConflictException(
-        `Email "${customer.getEmail()}" is already registered as an employee`,
-      );
+    // 3. El email no puede usarlo otro cliente activo ni un empleado (contrato §5: EMAIL_IN_USE)
+    if (
+      (await this.customersRepository.existsByEmail(customer.getEmail(), { onlyActive: true })) ||
+      (await this.employeesService.existsByEmail(customer.getEmail()))
+    ) {
+      throw emailInUse();
     }
 
     // 4. Persistir
     return await this.customersRepository.save(customer);
+  }
+
+  // --- ALTA POR EL CAJERO O EL ADMINISTRADOR (US-17-AJ) ---
+  // Crea el cliente y publica customer.created en la misma transacción: accounts escucha el
+  // evento y crea la cuenta (contraseña inicial = documento, mustChangePassword = true). Si la
+  // cuenta no se puede crear (email en uso por otra cuenta activa), accounts tira 409
+  // EMAIL_IN_USE y se deshace también el cliente. El autorregistro NO pasa por acá: sigue
+  // usando create(), porque ahí el cliente elige su contraseña.
+  async createWithAccount(dto: CreateCustomerDto): Promise<Customer> {
+    return await this.transactionRunner.run(async () => {
+      const customer = await this.create(dto);
+
+      await this.eventEmitter.emitAsync(CUSTOMER_CREATED, {
+        customerId: customer.getId() as number,
+        email: customer.getEmail(),
+        documentNumber: customer.getDocumentNumber(),
+      } satisfies CustomerCreatedEvent);
+
+      return customer;
+    });
   }
 
   // --- LISTAR TODOS ---
@@ -67,6 +107,10 @@ export class CustomersService {
   async list(params: CustomerListParams): Promise<CustomerListResult> {
     if (params.page < 1 || params.limit < 1) {
       throw new BadRequestException('page and limit must be positive integers');
+    }
+    // q busca en nombre, apellido y documento: junto con name es ambiguo (contrato §3.8.1)
+    if (params.search && params.nameContains) {
+      throw searchConflict();
     }
     return await this.customersRepository.list(params);
   }
@@ -91,9 +135,20 @@ export class CustomersService {
   }
 
   // --- ACTUALIZAR ---
-  async update(id: number, dto: UpdateCustomerDto): Promise<Customer> {
-    // 0. Tiene que venir al menos un campo para modificar
-    if (Object.values(dto).every((value) => value === undefined)) {
+  // role: quien edita. Las reglas por rol se validan acá y no solo en la pantalla (contrato §3.8.2).
+  async update(id: number, dto: UpdateCustomerDto, role: UserRole): Promise<Customer> {
+    // 0a. Solo el Administrador corrige el documento (CA-CLI.5)
+    if (role !== 'ADMIN' && (dto.documentType !== undefined || dto.documentNumber !== undefined)) {
+      throw forbiddenField();
+    }
+
+    // 0b. El motivo es obligatorio para el Administrador y opcional para el Cajero (CA-CLI.4)
+    if (role === 'ADMIN' && !dto.reason?.trim()) {
+      throw reasonRequired();
+    }
+
+    // 0c. Tiene que venir al menos un campo para modificar (el motivo no cuenta: no es un dato del cliente)
+    if (!Object.entries(dto).some(([key, value]) => key !== 'reason' && value !== undefined)) {
       throw new BadRequestException('At least one field must be provided');
     }
 
@@ -103,10 +158,11 @@ export class CustomersService {
       // 1. Buscar si el cliente existe
       const customer = await this.findById(id);
       const previousEmail = customer.getEmail();
+      const previousDocumentNumber = customer.getDocumentNumber();
 
-      // Un cliente dado de baja no se modifica: primero hay que reactivarlo
+      // Un cliente dado de baja es de solo lectura: no hay reactivación (CA-CLI.6)
       if (!customer.isActive()) {
-        throw new ConflictException(`Customer with ID ${id} is inactive: reactivate it before modifying`);
+        throw customerInactive();
       }
 
       // 2. Si cambia el documento, verificar que no esté en uso (antes de mutar la entidad)
@@ -161,28 +217,113 @@ export class CustomersService {
         } satisfies CustomerEmailChangedEvent);
       }
 
+      // 6. Si el documento cambió, avisar a accounts: si el cliente todavía tiene la contraseña inicial,
+      // pasa a ser el documento nuevo (CA-CLI.7). Misma transacción que el cambio.
+      if (customer.getDocumentNumber() !== previousDocumentNumber) {
+        await this.eventEmitter.emitAsync(CUSTOMER_DOCUMENT_CHANGED, {
+          customerId: id,
+          documentNumber: customer.getDocumentNumber(),
+        } satisfies CustomerDocumentChangedEvent);
+      }
+
+      return customer;
+    });
+  }
+
+  // --- MI PERFIL (PERFIL, contrato §3.10.4) ---
+  // El cliente edita su teléfono, su correo y su fecha de nacimiento. customerId sale del token.
+  // Si cambia el correo, primero se confirma la contraseña actual (accounts, por evento): si falla,
+  // todavía no se escribió nada, así que tampoco se guardan el teléfono ni la fecha. No se audita
+  // (el actor es el cliente).
+  async updateOwnProfile(customerId: number, dto: UpdateMyProfileDto): Promise<Customer> {
+    // Tiene que venir al menos un dato; currentPassword solo confirma, no es un dato del cliente
+    if (dto.email === undefined && dto.phone === undefined && dto.dateOfBirth === undefined) {
+      throw new BadRequestException('At least one field must be provided');
+    }
+
+    let dateOfBirth: Date | null | undefined;
+    if (dto.dateOfBirth === undefined) {
+      dateOfBirth = undefined;
+    } else if (dto.dateOfBirth === null) {
+      dateOfBirth = null;
+    } else {
+      const checked = checkBirthDate(dto.dateOfBirth, new Date());
+      if ('message' in checked) throw new BadRequestException(checked.message);
+      dateOfBirth = checked.date;
+    }
+
+    return await this.transactionRunner.run(async () => {
+      const customer = await this.findById(customerId);
+      const previousEmail = customer.getEmail();
+
+      // Mismo valor con otras mayúsculas o espacios no es un cambio: no pide contraseña y se ignora
+      const newEmail = dto.email === undefined ? undefined : Mail.create(dto.email).getValue();
+      const emailChanged = newEmail !== undefined && newEmail !== previousEmail;
+
+      if (emailChanged) {
+        if (!dto.currentPassword) {
+          throw new BadRequestException('Ingresá tu contraseña actual para cambiar el correo');
+        }
+        // accounts verifica la contraseña (con el límite de intentos) y que ninguna otra cuenta
+        // activa use el correo. Tira 400 CURRENT_PASSWORD_INCORRECT, 429 o 409 EMAIL_IN_USE.
+        await this.eventEmitter.emitAsync(CUSTOMER_EMAIL_CHANGE_REQUESTED, {
+          customerId,
+          email: newEmail,
+          currentPassword: dto.currentPassword,
+        } satisfies CustomerEmailChangeRequestedEvent);
+
+        if (
+          (await this.customersRepository.existsByEmail(newEmail, { onlyActive: true })) ||
+          (await this.employeesService.existsByEmail(newEmail))
+        ) {
+          throw profileEmailInUse();
+        }
+      }
+
+      try {
+        customer.update({
+          email: emailChanged ? newEmail : undefined,
+          phone: dto.phone,
+          dateOfBirth,
+        });
+      } catch (error) {
+        if (error instanceof DomainError && error.field === 'phone') {
+          throw new BadRequestException('El teléfono tiene que tener entre 8 y 15 números');
+        }
+        throw error;
+      }
+      await this.customersRepository.update(customer);
+
+      // accounts copia el correo nuevo en el email de acceso, en esta misma transacción
+      if (emailChanged) {
+        await this.eventEmitter.emitAsync(CUSTOMER_EMAIL_CHANGED, {
+          customerId,
+          email: customer.getEmail(),
+        } satisfies CustomerEmailChangedEvent);
+      }
+
       return customer;
     });
   }
 
   // --- DESACTIVAR (BAJA LÓGICA) ---
-  async deactivate(id: number): Promise<void> {
-    const customer = await this.findById(id);
-    if (!customer.isActive()) {
-      throw new ConflictException(`Customer with ID ${id} is already inactive`);
-    }
-    customer.deactivate();
-    await this.customersRepository.updateStatus(customer, 'DEACTIVATED');
-  }
-
-  // --- ACTIVAR ---
-  async activate(id: number): Promise<void> {
-    const customer = await this.findById(id);
-    if (customer.isActive()) {
-      throw new ConflictException(`Customer with ID ${id} is already active`);
-    }
-    customer.activate();
-    await this.customersRepository.updateStatus(customer, 'ACTIVATED');
+  // Devuelve el saldo que el cliente pierde con la baja (para la auditoría, "Saldo perdido").
+  // Publica customer.deactivated en la misma transacción: accounts deja inactiva la cuenta y se
+  // cierran sus sesiones; si eso falla, el cliente sigue activo (contrato §3.8.3).
+  async deactivate(id: number): Promise<number> {
+    return await this.transactionRunner.run(async () => {
+      const customer = await this.findById(id);
+      if (!customer.isActive()) {
+        throw new ConflictException(`Customer with ID ${id} is already inactive`);
+      }
+      const lostBalance = await this.customersRepository.findBalance(id);
+      customer.deactivate();
+      await this.customersRepository.updateStatus(customer, 'DEACTIVATED');
+      await this.eventEmitter.emitAsync(CUSTOMER_DEACTIVATED, {
+        customerId: id,
+      } satisfies CustomerDeactivatedEvent);
+      return lostBalance;
+    });
   }
 
   // --- HISTORIAL DE BAJAS Y REACTIVACIONES ---

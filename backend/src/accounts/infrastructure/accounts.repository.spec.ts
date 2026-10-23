@@ -36,6 +36,7 @@ const BASE_RECORD = {
   passwordHash: 'hashed:secreta123',
   role: 'CASHIER' as const,
   isActive: true,
+  mustChangePassword: false,
   employeeId: 2,
   customerId: null,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -197,22 +198,22 @@ describe('AccountPrismaRepository', () => {
   });
 
   describe('findByEmail()', () => {
-    it('busca por el unique email y mapea el resultado (login de todos los roles)', async () => {
+    it('busca solo entre cuentas activas y mapea el resultado (login de todos los roles)', async () => {
       const prisma = fakePrisma();
-      (prisma.account.findUnique as jest.Mock).mockResolvedValue(BASE_RECORD);
+      (prisma.account.findFirst as jest.Mock).mockResolvedValue(BASE_RECORD);
       const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
 
       const account = await repo.findByEmail('bruno.perez@vitto.club');
 
-      expect(prisma.account.findUnique).toHaveBeenCalledWith({
-        where: { email: 'bruno.perez@vitto.club' },
+      expect(prisma.account.findFirst).toHaveBeenCalledWith({
+        where: { email: 'bruno.perez@vitto.club', isActive: true },
       });
       expect(account?.getEmployeeId()).toBe(2);
     });
 
     it('devuelve null si no existe ninguna cuenta con ese email', async () => {
       const prisma = fakePrisma();
-      (prisma.account.findUnique as jest.Mock).mockResolvedValue(null);
+      (prisma.account.findFirst as jest.Mock).mockResolvedValue(null);
       const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
 
       expect(await repo.findByEmail('nadie@vitto.club')).toBeNull();
@@ -220,7 +221,7 @@ describe('AccountPrismaRepository', () => {
 
     it('devuelve null (no lanza) si el email encontrado es de una cuenta de customer', async () => {
       const prisma = fakePrisma();
-      (prisma.account.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.account.findFirst as jest.Mock).mockResolvedValue({
         ...BASE_RECORD,
         employeeId: null,
         customerId: 9,
@@ -374,12 +375,15 @@ describe('AccountPrismaRepository', () => {
 
     it('findCustomerLoginByEmail busca por email y mapea la fila a una cuenta de cliente', async () => {
       const prisma = fakePrisma();
-      (prisma.account.findUnique as jest.Mock).mockResolvedValue(CUSTOMER_RECORD);
+      (prisma.account.findFirst as jest.Mock).mockResolvedValue(CUSTOMER_RECORD);
       const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
 
       const result = await repo.findCustomerLoginByEmail('lucia@example.com');
 
-      expect(prisma.account.findUnique).toHaveBeenCalledWith({ where: { email: 'lucia@example.com' } });
+      expect(prisma.account.findFirst).toHaveBeenCalledWith({
+        where: { email: 'lucia@example.com' },
+        orderBy: { isActive: 'desc' },
+      });
       expect(result).toEqual({
         accountId: 9,
         customerId: 20,
@@ -391,7 +395,7 @@ describe('AccountPrismaRepository', () => {
 
     it('findCustomerLoginByEmail devuelve null si el email no existe', async () => {
       const prisma = fakePrisma();
-      (prisma.account.findUnique as jest.Mock).mockResolvedValue(null);
+      (prisma.account.findFirst as jest.Mock).mockResolvedValue(null);
       const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
 
       expect(await repo.findCustomerLoginByEmail('nadie@example.com')).toBeNull();
@@ -399,7 +403,7 @@ describe('AccountPrismaRepository', () => {
 
     it('findCustomerLoginByEmail devuelve null si la fila es de un empleado, no de un cliente', async () => {
       const prisma = fakePrisma();
-      (prisma.account.findUnique as jest.Mock).mockResolvedValue(BASE_RECORD);
+      (prisma.account.findFirst as jest.Mock).mockResolvedValue(BASE_RECORD);
       const repo = new AccountPrismaRepository(fakeTransactionRunner(prisma));
 
       expect(await repo.findCustomerLoginByEmail('bruno.perez@vitto.club')).toBeNull();

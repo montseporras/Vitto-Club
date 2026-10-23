@@ -1,11 +1,11 @@
 import { DomainError } from './errors/domain.error.js';
 
-const MIN_PASSWORD_LENGTH = 8;
-const MAX_PASSWORD_LENGTH = 64;
+export const MIN_PASSWORD_LENGTH = 8;
+export const MAX_PASSWORD_LENGTH = 64;
 // bcrypt solo mira los primeros 72 BYTES y descarta el resto sin avisar: con letras con tilde
 // (2 bytes cada una), 64 caracteres pueden ser 128 bytes y dos contraseñas distintas
 // verificarían igual. Se limita también el largo en bytes (UTF-8).
-const MAX_PASSWORD_BYTES = 72;
+export const MAX_PASSWORD_BYTES = 72;
 
 // Value object transitorio: valida la contraseña en texto plano ANTES de hashearla.
 // Nunca se persiste ni se loguea — Account solo conoce el passwordHash resultante

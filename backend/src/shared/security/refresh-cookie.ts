@@ -2,8 +2,14 @@
 // que un script malicioso tampoco. El navegador la manda sola, y solo a las rutas de auth.
 export const REFRESH_COOKIE = 'refresh_token';
 
-// Incluye el prefijo global "api" de main.ts. La cookie no viaja al resto de la API.
-export const REFRESH_COOKIE_PATH = '/api/auth';
+// Incluye el prefijo global "api" de main.ts. Antes era '/api/auth'; PERFIL lo amplió a '/api': la
+// cookie tiene que llegar también a PATCH /api/mi-cuenta/password, que necesita saber cuál es la
+// sesión actual para dejarla abierta al cerrar las otras. Sigue siendo httpOnly y SameSite=Lax.
+export const REFRESH_COOKIE_PATH = '/api';
+
+// Path con el que se emitía antes. Un navegador que todavía la tiene la manda junto a la nueva
+// y la más específica va primero: hay que borrarla al emitir la nueva.
+export const LEGACY_REFRESH_COOKIE_PATH = '/api/auth';
 
 // Lee una cookie del encabezado "Cookie" del pedido (formato "a=1; b=2").
 export function readCookie(header: string | undefined, name: string): string | undefined {

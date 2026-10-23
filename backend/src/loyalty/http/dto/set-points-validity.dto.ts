@@ -13,6 +13,6 @@ export class SetPointsValidityDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(2_147_483_647)
+  @Max(120)
   pointsExpirationMonths: number = DEFAULT_POINTS_EXPIRATION_MONTHS;
 }

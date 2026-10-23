@@ -5,16 +5,43 @@ import { delay, http, HttpResponse } from 'msw'
 import type { AuthResponse, AuthUser, RegisterCustomerBody } from '@/features/auth'
 import type { Customer } from '@/features/cashier'
 import { API_URL } from '@/shared/api/http'
-import { customers, errorResponse as customerErrorResponse } from './cashier.handlers'
+import {
+  customers,
+  errorResponse as customerErrorResponse,
+  initialPasswords,
+} from './cashier.handlers'
 
 const PASSWORD = 'vitto2026'
 
 const accounts: AuthUser[] = [
-  { accountId: 1, role: 'ADMIN', email: 'ana.gomez@vitto.club', employeeId: 1, firstName: 'Ana', lastName: 'Gómez' },
-  { accountId: 2, role: 'CASHIER', email: 'bruno.perez@vitto.club', employeeId: 2, firstName: 'Bruno', lastName: 'Pérez' },
-  { accountId: 3, role: 'CUSTOMER', email: 'lucia@example.com', customerId: 1, firstName: 'Lucía', lastName: 'Fernández' },
-  { accountId: 4, role: 'CASHIER', email: 'diego.sosa@vitto.club', employeeId: 4, firstName: 'Diego', lastName: 'Sosa' },
+  { accountId: 1, role: 'ADMIN', email: 'ana.gomez@vitto.club', employeeId: 1, firstName: 'Ana', lastName: 'Gómez', mustChangePassword: false },
+  { accountId: 2, role: 'CASHIER', email: 'bruno.perez@vitto.club', employeeId: 2, firstName: 'Bruno', lastName: 'Pérez', mustChangePassword: false },
+  { accountId: 3, role: 'CUSTOMER', email: 'lucia@example.com', customerId: 1, firstName: 'Lucía', lastName: 'Fernández', mustChangePassword: false },
+  { accountId: 4, role: 'CASHIER', email: 'diego.sosa@vitto.club', employeeId: 4, firstName: 'Diego', lastName: 'Sosa', mustChangePassword: false },
 ]
+
+// Cliente dado de alta en Caja (US-17-AJ): su cuenta nace con el documento como contraseña y
+// mustChangePassword = true. Se arma al ingresar, a partir de lo que dejó el alta en el mock.
+function accountOfCheckoutCustomer(
+  matches: (customer: Customer) => boolean,
+): { user: AuthUser; password: string } | undefined {
+  const customer = customers.find(
+    (item) => item.active && initialPasswords.has(item.id) && matches(item),
+  )
+  if (!customer) return undefined
+  return {
+    user: {
+      accountId: 1000 + customer.id,
+      role: 'CUSTOMER',
+      email: customer.email,
+      customerId: customer.id,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      mustChangePassword: true,
+    },
+    password: initialPasswords.get(customer.id)!,
+  }
+}
 
 // Contraseñas de las cuentas creadas por el autorregistro (el resto usa PASSWORD)
 const registeredPasswords = new Map<number, string>()
@@ -90,9 +117,11 @@ export const authHandlers = [
     if (messages.length > 0) return errorResponse(400, messages, request)
 
     const email = String(body.email).trim().toLowerCase()
-    const account = accounts.find((item) => item.email === email)
+    const checkout = accountOfCheckoutCustomer((item) => item.email.toLowerCase() === email)
+    const account = accounts.find((item) => item.email === email) ?? checkout?.user
     // Mismo mensaje para cualquier causa, a propósito
-    const password = account && (registeredPasswords.get(account.accountId) ?? PASSWORD)
+    const password =
+      account && (checkout?.password ?? registeredPasswords.get(account.accountId) ?? PASSWORD)
     if (!account || inactiveAccountIds.has(account.accountId) || body.password !== password) {
       return errorResponse(401, 'Los datos de acceso son incorrectos', request, 'INVALID_CREDENTIALS')
     }
@@ -104,7 +133,9 @@ export const authHandlers = [
   http.post(`${API_URL}/auth/refresh`, async ({ request }) => {
     await delay(200)
     const accountId = Number(sessionStorage.getItem(SESSION_KEY))
-    const account = accounts.find((item) => item.accountId === accountId)
+    const account =
+      accounts.find((item) => item.accountId === accountId) ??
+      accountOfCheckoutCustomer((item) => 1000 + item.id === accountId)?.user
     if (!account || inactiveAccountIds.has(account.accountId)) {
       return errorResponse(401, 'La sesión no es válida', request, 'INVALID_SESSION')
     }
@@ -197,6 +228,8 @@ export const authHandlers = [
         customerId: created.id,
         firstName: created.firstName,
         lastName: created.lastName,
+        // El cliente elige su contraseña al registrarse (§3.11.3)
+        mustChangePassword: false,
       })
       registeredPasswords.set(accountId, password)
       // Misma respuesta que el backend: sin tokens (docs/registro-api.md, sección 3)
