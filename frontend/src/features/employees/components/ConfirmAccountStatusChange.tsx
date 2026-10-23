@@ -41,6 +41,10 @@ const TEXTS = {
   },
 } as const;
 
+// Contrato §3.11.4: al reactivar, el email lo usa otra cuenta activa.
+const EMAIL_IN_USE_MESSAGE =
+  'El mail de este usuario ya lo usa otra cuenta activa.';
+
 // Mensaje según la respuesta del backend
 // (PATCH /usuarios/:id/deactivate o /usuarios/:id/reactivate).
 function errorMessage(change: StatusChange, error: unknown): string {
@@ -48,6 +52,7 @@ function errorMessage(change: StatusChange, error: unknown): string {
   if (apiError.code === 'LAST_ADMIN') {
     return 'No se puede desactivar: es el único administrador que puede ingresar al sistema.';
   }
+  if (apiError.code === 'EMAIL_IN_USE') return EMAIL_IN_USE_MESSAGE;
   switch (apiError.status) {
     case undefined:
       return apiError.message;
