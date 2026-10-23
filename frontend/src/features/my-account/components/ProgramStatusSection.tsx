@@ -9,8 +9,9 @@ import { ProfileSection } from './ProfileSection'
 const formatPoints = (value: number) => Math.abs(value).toLocaleString('es-AR')
 
 /**
- * "Mi situación en el programa" (§3.10.3): saldo, nivel y acumulados de
- * /customers/me/puntos. El cálculo es del backend; acá solo se muestra.
+ * "Mi situación en el programa" (§3.10.3): saldo y nivel de /customers/me/puntos.
+ * Los acumulados no se muestran (pedido del equipo, se aparta del contrato).
+ * El cálculo es del backend; acá solo se muestra.
  */
 export function ProgramStatusSection() {
   const points = useMyPoints()
@@ -47,7 +48,6 @@ export function ProgramStatusSection() {
                 ),
               },
               { label: 'Nivel', value: LEVELS[points.data.level.current] },
-              { label: 'Acumulados', value: formatPoints(points.data.lifetimePoints) },
             ]}
           />
         </>

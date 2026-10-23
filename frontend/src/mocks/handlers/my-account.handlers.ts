@@ -76,6 +76,29 @@ function recordFailure(accountId: number) {
   failedAttempts.set(accountId, [...recentFailures(accountId), Date.now()])
 }
 
+// Contraseñas cambiadas desde Mi perfil: se guardan en sessionStorage (como la
+// sesión del mock) para que una recarga no vuelva a la inicial ni reabra la
+// ventana "Cambiá tu contraseña"
+const CHANGED_PASSWORDS_KEY = 'vitto-mock-changed-passwords'
+
+function readChangedPasswords(): Record<string, string> {
+  try {
+    return JSON.parse(sessionStorage.getItem(CHANGED_PASSWORDS_KEY) ?? '{}') as Record<string, string>
+  } catch {
+    return {}
+  }
+}
+
+function applyPasswordChange(accountId: number, password: string) {
+  setPassword(accountId, password)
+  const account = accounts.find((item) => item.accountId === accountId)
+  if (account) account.mustChangePassword = false
+}
+
+Object.entries(readChangedPasswords()).forEach(([accountId, password]) =>
+  applyPasswordChange(Number(accountId), password),
+)
+
 const TOO_MANY_ATTEMPTS = 'Hiciste demasiados intentos. Probá de nuevo en unos minutos.'
 const CURRENT_PASSWORD_INCORRECT = 'La contraseña actual es incorrecta'
 
@@ -188,7 +211,7 @@ export const myAccountHandlers = [
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : undefined
     if ('email' in body) {
       if (!email) return errorResponse(400, 'Este campo es obligatorio', request)
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      if (email.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
         return errorResponse(400, 'Ingresá un correo válido, por ejemplo nombre@mail.com', request)
       }
     }
@@ -258,8 +281,11 @@ export const myAccountHandlers = [
       return errorResponse(400, 'La contraseña no puede ser tu número de documento', request, 'PASSWORD_SAME_AS_DOCUMENT')
     }
 
-    setPassword(account.accountId, newPassword)
-    account.mustChangePassword = false
+    applyPasswordChange(account.accountId, newPassword)
+    sessionStorage.setItem(
+      CHANGED_PASSWORDS_KEY,
+      JSON.stringify({ ...readChangedPasswords(), [account.accountId]: newPassword }),
+    )
     return new HttpResponse(null, { status: 204 })
   }),
 ]

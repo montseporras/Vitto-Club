@@ -6,6 +6,8 @@ import { displayDateToIso, todayIso } from '@/shared/lib/dates'
 export const CONTACT_MESSAGES = {
   required: 'Este campo es obligatorio',
   invalidEmail: 'Ingresá un correo válido, por ejemplo nombre@mail.com',
+  // Mismo texto que el alta de clientes (create-customer.schema)
+  emailTooLong: 'Máximo 150 caracteres',
   invalidPhone: 'El teléfono tiene que tener entre 8 y 15 números',
   futureDate: 'La fecha no puede ser futura',
   invalidDate: 'Esa fecha no existe',
@@ -13,6 +15,7 @@ export const CONTACT_MESSAGES = {
 } as const
 
 const MIN_BIRTH_YEAR = 1900
+const EMAIL_MAX_LENGTH = 150
 
 /** Mismo criterio que el backend para saber si el correo cambió (mayúsculas y espacios no cuentan). */
 export const normalizeEmail = (value: string) => value.trim().toLowerCase()
@@ -44,6 +47,7 @@ export const contactSchema = (savedEmail: string) =>
 
       const email = form.email.trim()
       if (!email) issue('email', CONTACT_MESSAGES.required)
+      else if (email.length > EMAIL_MAX_LENGTH) issue('email', CONTACT_MESSAGES.emailTooLong)
       else if (!z.email().safeParse(email).success)
         issue('email', CONTACT_MESSAGES.invalidEmail)
 

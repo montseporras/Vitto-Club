@@ -6,7 +6,6 @@ import { useToast } from '@/shared/components/feedback/useToast'
 import { FormField } from '@/shared/components/forms/FormField'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
-import { DateInput } from '@/shared/components/ui/DateInput'
 import { Input } from '@/shared/components/ui/Input'
 import { PasswordInput } from '@/shared/components/ui/PasswordInput'
 import { displayDateToIso, isoToDisplayDate } from '@/shared/lib/dates'
@@ -22,6 +21,7 @@ import {
   type MyProfile,
   type UpdateMyProfileBody,
 } from '../types/my-account'
+import { BirthDateInput } from './BirthDateInput'
 import { ProfileSection } from './ProfileSection'
 
 type ContactField = keyof ContactFormValues
@@ -171,7 +171,7 @@ export function ContactForm({ profile }: { profile: MyProfile }) {
           optional
           error={errors.dateOfBirth?.message}
         >
-          <DateInput {...a11y('dateOfBirth')} {...register('dateOfBirth')} />
+          <BirthDateInput {...a11y('dateOfBirth')} {...register('dateOfBirth')} />
         </FormField>
 
         <div className="flex flex-wrap justify-end gap-2.5">
