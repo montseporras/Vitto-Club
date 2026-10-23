@@ -5,6 +5,7 @@ import { PointsLot } from '../domain/points-lot.js';
 import {
   ActiveLoyaltyConfiguration,
   CustomerPointsBalance,
+  InsertedMovement,
   InsertMovementData,
   PointsRepository,
 } from '../domain/port/points.repository.js';
@@ -133,8 +134,8 @@ export class PointsPrismaRepository implements PointsRepository {
     });
   }
 
-  async insertMovement(data: InsertMovementData): Promise<void> {
-    await this.prisma.pointsMovement.create({
+  async insertMovement(data: InsertMovementData): Promise<InsertedMovement> {
+    return await this.prisma.pointsMovement.create({
       data: {
         customerId: data.customerId,
         type: data.type,
@@ -146,6 +147,7 @@ export class PointsPrismaRepository implements PointsRepository {
         performedByAccountId: data.performedByAccountId,
         performedByName: data.performedByName,
       },
+      select: { id: true, createdAt: true },
     });
   }
 

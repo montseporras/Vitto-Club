@@ -68,7 +68,10 @@ function toArgentinaDisplayDate(date: Date): string {
   return `${day}/${month}/${year}`;
 }
 
-function requireConsumptionId(record: PointsMovementRecord): number {
+// Lo único que necesita describeMovement: así también lo usa la respuesta del ajuste (US-24)
+type DescribableMovement = Pick<PointsMovementRecord, 'id' | 'type' | 'consumptionId' | 'reason' | 'lot'>;
+
+function requireConsumptionId(record: DescribableMovement): number {
   if (record.consumptionId === null) {
     throw new Error(`Points movement ${record.id} of type ${record.type} has no consumption`);
   }
@@ -77,7 +80,7 @@ function requireConsumptionId(record: PointsMovementRecord): number {
 
 // CA-26.2: "Detalle / origen" que arma el backend (§3.6). En el vencimiento, la fecha es la de
 // acreditación del lote (decisión de Jazmín: "el lote que ganaste ese día").
-export function describeMovement(record: PointsMovementRecord): string {
+export function describeMovement(record: DescribableMovement): string {
   switch (record.type) {
     case 'CONSUMPTION_CREDIT':
       return `Consumo ${formatConsumptionCode(requireConsumptionId(record))}`;
@@ -100,6 +103,15 @@ export function describeMovement(record: PointsMovementRecord): string {
 // no lo expone (decisión de Jazmín: null). Un ajuste SUBTRACT ya no tiene lote.
 const TYPES_WITH_LOT: readonly PointsMovementType[] = ['CONSUMPTION_CREDIT', 'MANUAL_ADJUSTMENT', 'EXPIRATION'];
 const TYPES_WITH_CONSUMPTION: readonly PointsMovementType[] = ['CONSUMPTION_CREDIT', 'VOID_REVERSAL'];
+
+// "Realizado por" (§3.6): el empleado guardado en el movimiento, o "Sistema" si no hay cuenta
+export function toPerformedBy(
+  record: Pick<PointsMovementRecord, 'performedByAccountId' | 'performedByName'>,
+): PointsMovementView['performedBy'] {
+  return record.performedByAccountId === null
+    ? { actorType: 'SYSTEM', accountId: null, name: SYSTEM_NAME }
+    : { actorType: 'EMPLOYEE', accountId: record.performedByAccountId, name: record.performedByName };
+}
 
 export function toMovementView(record: PointsMovementRecord): PointsMovementView {
   const lot = TYPES_WITH_LOT.includes(record.type) && record.lot ? record.lot : null;
@@ -124,9 +136,6 @@ export function toMovementView(record: PointsMovementRecord): PointsMovementView
           status: lot.status,
         }
       : null,
-    performedBy:
-      record.performedByAccountId === null
-        ? { actorType: 'SYSTEM', accountId: null, name: SYSTEM_NAME }
-        : { actorType: 'EMPLOYEE', accountId: record.performedByAccountId, name: record.performedByName },
+    performedBy: toPerformedBy(record),
   };
 }
