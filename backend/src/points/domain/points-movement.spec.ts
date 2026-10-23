@@ -4,7 +4,7 @@ const baseRecord = (overrides: Partial<PointsMovementRecord> = {}): PointsMoveme
   id: 10,
   createdAt: new Date('2026-10-16T18:40:00.000Z'),
   customer: { id: 3, firstName: 'Carolina', lastName: 'Fernández', documentType: 'DNI', documentNumber: '38456001' },
-  type: 'PURCHASE_CREDIT',
+  type: 'CONSUMPTION_CREDIT',
   points: 500,
   balanceAfter: 500,
   consumptionId: 131,
@@ -28,7 +28,7 @@ describe('formatConsumptionCode()', () => {
 });
 
 describe('describeMovement() — CA-26.2', () => {
-  it('PURCHASE_CREDIT → Consumo C-000131', () => {
+  it('CONSUMPTION_CREDIT → Consumo C-000131', () => {
     expect(describeMovement(baseRecord())).toBe('Consumo C-000131');
   });
 

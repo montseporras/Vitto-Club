@@ -8,7 +8,7 @@ const record: PointsMovementRecord = {
   id: 1,
   createdAt: new Date('2026-10-16T18:40:00.000Z'),
   customer: { id: 3, firstName: 'Carolina', lastName: 'Fernández', documentType: 'DNI', documentNumber: '38456001' },
-  type: 'PURCHASE_CREDIT',
+  type: 'CONSUMPTION_CREDIT',
   points: 500,
   balanceAfter: 500,
   consumptionId: 131,
@@ -58,13 +58,13 @@ describe('PointsMovementsService', () => {
       const result = await service.listByCustomer({
         customerId: 3,
         viewerRole: 'ADMIN',
-        type: 'PURCHASE_CREDIT',
+        type: 'CONSUMPTION_CREDIT',
         page: 2,
         limit: 5,
       });
 
       expect(repository.list).toHaveBeenCalledWith(
-        expect.objectContaining({ customerId: 3, type: 'PURCHASE_CREDIT', page: 2, limit: 5 }),
+        expect.objectContaining({ customerId: 3, type: 'CONSUMPTION_CREDIT', page: 2, limit: 5 }),
       );
       expect(result).toMatchObject({ total: 1, page: 2, limit: 5 });
       expect(result.items[0].description).toBe('Consumo C-000131');

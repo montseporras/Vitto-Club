@@ -1,8 +1,11 @@
 import { toArgentinaDateString } from './argentina-date.js';
+import type { PointsLotStatus } from './points-lot.js';
+
+export type { PointsLotStatus };
 
 // §2.2 PointsMovementType y PointsLotStatus. REDEMPTION ya existe para el filtro (Sprint 4).
 export const POINTS_MOVEMENT_TYPES = [
-  'PURCHASE_CREDIT',
+  'CONSUMPTION_CREDIT',
   'VOID_REVERSAL',
   'MANUAL_ADJUSTMENT',
   'EXPIRATION',
@@ -10,7 +13,6 @@ export const POINTS_MOVEMENT_TYPES = [
 ] as const;
 export type PointsMovementType = (typeof POINTS_MOVEMENT_TYPES)[number];
 
-export type PointsLotStatus = 'ACTIVE' | 'CONSUMED' | 'EXPIRED';
 
 // Un movimiento tal como sale de la base, antes de armar lo que ve cada rol
 export type PointsMovementRecord = {
@@ -77,7 +79,7 @@ function requireConsumptionId(record: PointsMovementRecord): number {
 // acreditación del lote (decisión de Jazmín: "el lote que ganaste ese día").
 export function describeMovement(record: PointsMovementRecord): string {
   switch (record.type) {
-    case 'PURCHASE_CREDIT':
+    case 'CONSUMPTION_CREDIT':
       return `Consumo ${formatConsumptionCode(requireConsumptionId(record))}`;
     case 'VOID_REVERSAL':
       return `Anulación de ${formatConsumptionCode(requireConsumptionId(record))}`;
@@ -96,8 +98,8 @@ export function describeMovement(record: PointsMovementRecord): string {
 
 // Tipos que llevan lote según §3.6. VOID_REVERSAL guarda el lotId en la base, pero el contrato
 // no lo expone (decisión de Jazmín: null). Un ajuste SUBTRACT ya no tiene lote.
-const TYPES_WITH_LOT: readonly PointsMovementType[] = ['PURCHASE_CREDIT', 'MANUAL_ADJUSTMENT', 'EXPIRATION'];
-const TYPES_WITH_CONSUMPTION: readonly PointsMovementType[] = ['PURCHASE_CREDIT', 'VOID_REVERSAL'];
+const TYPES_WITH_LOT: readonly PointsMovementType[] = ['CONSUMPTION_CREDIT', 'MANUAL_ADJUSTMENT', 'EXPIRATION'];
+const TYPES_WITH_CONSUMPTION: readonly PointsMovementType[] = ['CONSUMPTION_CREDIT', 'VOID_REVERSAL'];
 
 export function toMovementView(record: PointsMovementRecord): PointsMovementView {
   const lot = TYPES_WITH_LOT.includes(record.type) && record.lot ? record.lot : null;

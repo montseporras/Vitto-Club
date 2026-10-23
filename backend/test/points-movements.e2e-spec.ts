@@ -230,8 +230,8 @@ describe('Movimientos de puntos (e2e)', () => {
       const items = response.body.items;
       expect(items.map((item: { type: string }) => item.type)).toEqual([
         'VOID_REVERSAL',
-        'PURCHASE_CREDIT',
-        'PURCHASE_CREDIT',
+        'CONSUMPTION_CREDIT',
+        'CONSUMPTION_CREDIT',
         'MANUAL_ADJUSTMENT',
         'EXPIRATION',
       ]);
@@ -267,12 +267,12 @@ describe('Movimientos de puntos (e2e)', () => {
         performedBy: cashierActor,
       });
 
-      // Crédito anulado: el lote quedó CONSUMED (decisión #11)
+      // Crédito anulado: el lote quedó VOIDED, Anulado (decisión #11, revisada el 20/10/2026)
       expect(items[1]).toMatchObject({
         points: 200,
         consumptionCode: s.secondConsumption.code,
         reason: null,
-        lot: { status: 'CONSUMED', expiresAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
+        lot: { status: 'VOIDED', expiresAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
         performedBy: cashierActor,
       });
 
@@ -365,7 +365,7 @@ describe('Movimientos de puntos (e2e)', () => {
       const s = await seedScenario();
 
       const response = await request(app.getHttpServer())
-        .get(`/api/customers/${s.carolina.id}/movimientos?type=PURCHASE_CREDIT&page=2&limit=1`)
+        .get(`/api/customers/${s.carolina.id}/movimientos?type=CONSUMPTION_CREDIT&page=2&limit=1`)
         .set(staffHeaders('ADMIN', s.admin));
 
       expect(response.status).toBe(200);
