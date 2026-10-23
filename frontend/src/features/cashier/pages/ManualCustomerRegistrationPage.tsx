@@ -100,7 +100,7 @@ export function ManualCustomerRegistrationPage() {
     'aria-describedby': errors[field] ? `${field}-error` : undefined,
   })
 
-  const created = createCustomer.isSuccess ? createCustomer.data : undefined
+  const created = createCustomer.isSuccess
   // Un conflicto con campo se muestra en ese campo; el resto de los errores, arriba.
   const conflict = createCustomer.isError
     ? customerConflict(createCustomer.error)
@@ -116,12 +116,8 @@ export function ManualCustomerRegistrationPage() {
       {created && (
         <Alert variant="success" className="mb-5">
           <p>
-            Cliente registrado correctamente:{' '}
-            <strong>
-              {created.firstName} {created.lastName}
-            </strong>{' '}
-            ({DOCUMENT_TYPES[created.documentType].label}{' '}
-            {created.documentNumber}).
+            Cliente registrado. Ingresa con su mail y su número de documento
+            como contraseña; al entrar se le va a pedir que la cambie.
           </p>
         </Alert>
       )}

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { Link } from 'react-router'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
+import { useSession } from '@/features/auth'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { FormField } from '@/shared/components/forms/FormField'
 import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio'
@@ -12,31 +13,30 @@ import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
 import { Input } from '@/shared/components/ui/Input'
 import { Page, PageCard } from '@/shared/components/ui/Page'
-import { dividedSectionStyles } from '@/styles/ui'
+import { dividedSectionStyles, formSectionTitleStyles } from '@/styles/ui'
 import {
   useCustomerByDocument,
+  useCustomerPoints,
   type DocumentSearch,
 } from '../api/cashier.queries'
-import { CustomerSummary } from '../components/CustomerSummary'
-import { EditCustomerForm } from '../components/EditCustomerForm'
+import { CustomerActivityPanel } from '../components/CustomerActivityPanel'
+import { CustomerPointsCard } from '../components/CustomerPointsCard'
 import {
   findCustomerSchema,
   type FindCustomerFormInput,
   type FindCustomerFormOutput,
 } from '../schemas/find-customer.schema'
-import type { Customer } from '../types/customer'
 
 const DOCUMENT_OPTIONS = DOCUMENT_TYPE_VALUES.map((type) => ({
   value: type,
   label: DOCUMENT_TYPES[type].label,
 }))
 
-/** Cliente: se busca al cliente por documento y, si hace falta, se editan sus datos menos el documento (RF-016). */
+/** Buscar cliente: se identifica al cliente por documento y se ven su nivel y saldo (US-46). */
 export function IdentifyCustomerPage() {
   const {
     register,
     handleSubmit,
-    setValue,
     control,
     formState: { errors },
   } = useForm<FindCustomerFormInput, unknown, FindCustomerFormOutput>({
@@ -44,55 +44,37 @@ export function IdentifyCustomerPage() {
     defaultValues: { documentType: 'DNI', documentNumber: '' },
   })
   const [search, setSearch] = useState<DocumentSearch | null>(null)
-  const [editing, setEditing] = useState(false)
-  const [saved, setSaved] = useState<Customer | null>(null)
+  const session = useSession()
   const result = useCustomerByDocument(search)
 
-  const onSearch = (data: FindCustomerFormOutput) => {
-    setEditing(false)
-    setSaved(null)
-    const sameSearch =
-      search?.documentType === data.documentType &&
-      search.documentNumber === data.documentNumber
-    // Misma búsqueda: se vuelve a pedir para no mostrar datos viejos
-    if (sameSearch) result.refetch()
-    else setSearch(data)
-  }
-
-  const onSaved = (customer: Customer) => {
-    setSaved(customer)
-    setEditing(false)
-    // Si cambió el documento, la búsqueda sigue al cliente con el documento nuevo
-    setSearch({
-      documentType: customer.documentType,
-      documentNumber: customer.documentNumber,
-    })
-    setValue('documentType', customer.documentType)
-    setValue('documentNumber', customer.documentNumber)
-  }
-
-  const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
   // Un cliente dado de baja se trata como no encontrado: no se reactiva, si
   // vuelve se inscribe de nuevo (contrato §3.1.1)
   const inactive = result.data !== undefined && !result.data.active
   const notFound = (result.isError && result.error.status === 404) || inactive
-  const found = result.data && !result.isError && !inactive
+  const customer = result.data && !result.isError && !inactive ? result.data : null
+  // El saldo y el nivel salen de GET /customers/:id/puntos (CA-46.2)
+  const points = useCustomerPoints(customer?.id ?? null)
+
+  const onSearch = (data: FindCustomerFormOutput) => {
+    const sameSearch =
+      search?.documentType === data.documentType &&
+      search.documentNumber === data.documentNumber
+    // Misma búsqueda: se vuelve a pedir para no mostrar datos viejos
+    if (sameSearch) {
+      result.refetch()
+      if (customer) points.refetch()
+    } else setSearch(data)
+  }
+
+  const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
+  const loading = result.isFetching || (customer !== null && points.isFetching)
 
   return (
     <Page>
-      {saved && (
-        <Alert variant="success" className="mb-5">
-          <p>
-            Datos actualizados:{' '}
-            <strong>
-              {saved.firstName} {saved.lastName}
-            </strong>{' '}
-            ({DOCUMENT_TYPES[saved.documentType].label} {saved.documentNumber}).
-          </p>
-        </Alert>
-      )}
-
-      <PageCard eyebrow="Clientes" title="Buscar" variant="plain">
+      <PageCard title="Buscar cliente" variant="plain">
+        <div className={formSectionTitleStyles.root}>
+          <h3 className={formSectionTitleStyles.title}>Cliente</h3>
+        </div>
         <form
           noValidate
           role="search"
@@ -115,7 +97,7 @@ export function IdentifyCustomerPage() {
                 id="search-documentNumber"
                 autoFocus
                 inputMode={isDni ? 'numeric' : 'text'}
-                placeholder="30111222"
+                placeholder={isDni ? '38.456.123' : 'AAB123456'}
                 autoComplete="off"
                 aria-invalid={errors.documentNumber ? true : undefined}
                 aria-describedby={
@@ -128,7 +110,7 @@ export function IdentifyCustomerPage() {
               <Button
                 type="submit"
                 size="lg"
-                disabled={result.isFetching}
+                disabled={loading}
                 className="shrink-0 px-5"
               >
                 <Icon d={ICONS.search} />
@@ -138,62 +120,56 @@ export function IdentifyCustomerPage() {
           </FormField>
         </form>
 
-        <div className={dividedSectionStyles} aria-live="polite">
-          {!search && (
-            <StatusText>
-              Ingresá el tipo y número de documento para buscar al cliente.
-            </StatusText>
-          )}
+        {search && (
+          <div className={dividedSectionStyles} aria-live="polite">
+            {loading && <StatusText>Buscando cliente…</StatusText>}
 
-          {search && result.isFetching && !editing && (
-            <StatusText>Buscando cliente…</StatusText>
-          )}
+            {!loading && notFound && (
+              <Alert variant="error">
+                <p>
+                  {/* Texto del contrato §3.1.1 */}
+                  No existe un cliente con ese{' '}
+                  {search.documentType === 'DNI' ? 'DNI' : 'pasaporte'}.{' '}
+                  {/* Relativo a /caja: un feature no importa de app/ (ver docs/FRONTEND-STRUCTURE.md, sección 02). */}
+                  <Link
+                    to="../alta-cliente"
+                    // El alta arranca con el documento que se buscó
+                    state={search}
+                    className="font-semibold underline underline-offset-2"
+                  >
+                    Registrar cliente
+                  </Link>
+                </p>
+              </Alert>
+            )}
 
-          {search && !result.isFetching && notFound && (
-            <Alert variant="error">
-              <p>
-                {/* Texto del contrato §3.1.1 */}
-                No existe un cliente con ese{' '}
-                {search.documentType === 'DNI' ? 'DNI' : 'pasaporte'}.{' '}
-                {/* Relativo a /caja: un feature no importa de app/ (ver docs/FRONTEND-STRUCTURE.md, sección 02). */}
-                <Link
-                  to="../alta-cliente"
-                  // El alta arranca con el documento que se buscó
-                  state={search}
-                  className="font-semibold underline underline-offset-2"
-                >
-                  Registrar cliente
-                </Link>
-              </p>
-            </Alert>
-          )}
+            {!loading && result.isError && !notFound && (
+              <Alert variant="error">
+                No se pudo buscar el cliente.
+                <AlertMessages messages={result.error.messages} />
+              </Alert>
+            )}
 
-          {search && !result.isFetching && result.isError && !notFound && (
-            <Alert variant="error">
-              No se pudo buscar el cliente.
-              <AlertMessages messages={result.error.messages} />
-            </Alert>
-          )}
+            {!loading && customer && points.isError && (
+              <Alert variant="error">
+                No se pudo buscar el cliente.
+                <AlertMessages messages={points.error.messages} />
+              </Alert>
+            )}
 
-          {found && !result.isFetching && !editing && (
-            <CustomerSummary
-              customer={result.data}
-              onEdit={() => {
-                setSaved(null)
-                setEditing(true)
-              }}
-            />
-          )}
-
-          {found && editing && (
-            <EditCustomerForm
-              key={result.data.id}
-              customer={result.data}
-              onSaved={onSaved}
-              onCancel={() => setEditing(false)}
-            />
-          )}
-        </div>
+            {!loading && customer && points.data && session.user && (
+              <div className="flex flex-col gap-4">
+                <CustomerPointsCard customer={customer} points={points.data} />
+                <CustomerActivityPanel
+                  // Al cambiar de cliente, el panel vuelve a arrancar cerrado
+                  key={customer.id}
+                  customerId={customer.id}
+                  role={session.user.role}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </PageCard>
     </Page>
   )

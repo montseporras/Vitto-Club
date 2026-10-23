@@ -33,7 +33,7 @@ export class EmployeesExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message: string | string[] = 'Unexpected error.';
+    let message: string | string[] = 'Ocurrió un error inesperado.';
     let details: { field: string; message: string }[] | undefined;
     let code: string | undefined;
 
@@ -57,10 +57,10 @@ export class EmployeesExceptionFilter implements ExceptionFilter {
       }
     } else if (hasErrorCode(exception, PRISMA_UNIQUE_VIOLATION)) {
       statusCode = HttpStatus.CONFLICT;
-      message = 'An employee with that email already exists';
+      message = 'Ya existe un empleado registrado con ese mail.';
     } else if (hasErrorCode(exception, PRISMA_RECORD_NOT_FOUND)) {
       statusCode = HttpStatus.NOT_FOUND;
-      message = 'Employee not found';
+      message = 'No existe el empleado.';
     } else {
       // Error inesperado (base caída, bug): se registra y se responde genérico, sin filtrar detalles internos
       this.logger.error(

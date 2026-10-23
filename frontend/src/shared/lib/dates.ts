@@ -73,3 +73,8 @@ export function formatDateTimeInTimeZone(value: string, timeZone: string) {
   const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
   return `${values.day}/${values.month}/${values.year} ${values.hour}:${values.minute}`
 }
+
+/** ISO UTC de la API → 'dd/mm/aaaa hh:mm' en hora de Argentina. */
+export function isoToDisplayDateTime(value: string) {
+  return formatDateTimeInTimeZone(value, 'America/Argentina/Cordoba')
+}

@@ -1,6 +1,6 @@
 export class AccountAlreadyExists extends Error {
   constructor(public readonly employeeId: number) {
-    super(`Employee with ID ${employeeId} already has an account`);
+    super('El empleado ya tiene un usuario.');
     this.name = 'AccountAlreadyExists';
   }
 }

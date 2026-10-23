@@ -12,6 +12,8 @@ export const badgeVariants = cva(
         alert: 'border-accent-600 bg-accent-600 text-white',
         // Dato informativo, sin connotación buena o mala (ej. "Sin usuario")
         neutral: 'border-neutral-300 bg-neutral-100 text-neutral-700',
+        // Dato destacado de la marca, sin connotación buena o mala (ej. "Nivel Plata")
+        accent: 'border-accent-300 bg-accent-100 text-accent-800',
       },
     },
     defaultVariants: { variant: 'success' },

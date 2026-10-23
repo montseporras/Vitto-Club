@@ -33,7 +33,8 @@ export const segmentedStyles = {
   label: 'cursor-pointer has-disabled:pointer-events-none',
   option: [
     'block rounded-lg px-3 py-2.5 text-center text-base font-semibold text-accent-800 transition-colors',
-    'hover:bg-accent-100',
+    // El hover aclara solo la opción no elegida: la elegida queda igual (prototipo .vc-seg-on:hover)
+    'peer-not-checked:hover:bg-accent-100',
     'peer-checked:bg-accent-700 peer-checked:text-white peer-checked:shadow-sm',
     'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-700',
     'peer-disabled:opacity-60',
@@ -42,6 +43,12 @@ export const segmentedStyles = {
   rootCompact: 'gap-1',
   legendCompact: 'mb-1',
   optionCompact: 'rounded-md px-2.5 py-1.5 text-sm',
+}
+
+/** Título de un bloque del formulario, con una línea debajo (ej. "Cliente" en Buscar cliente). */
+export const formSectionTitleStyles = {
+  root: 'mb-5 border-b border-accent-100 pb-1',
+  title: 'font-heading text-base font-bold text-accent-800',
 }
 
 /** Formulario de registro (prototipo v2): bloques más juntos y campos de 40 px. */
