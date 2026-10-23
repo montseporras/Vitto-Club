@@ -12,12 +12,22 @@ describe('PointsEquivalence', () => {
     expect(equivalence.getPointsAwarded()).toBe(10);
   });
 
+  it('accepts the maximum allowed values (1.000.000 and 10.000)', () => {
+    const equivalence = PointsEquivalence.define({
+      baseAmount: 1_000_000,
+      pointsAwarded: 10_000,
+    });
+
+    expect(equivalence.getBaseAmount()).toBe(1_000_000);
+    expect(equivalence.getPointsAwarded()).toBe(10_000);
+  });
+
   it.each([
     0,
     -1,
     Number.NaN,
     Number.POSITIVE_INFINITY,
-    10_000_000_000,
+    1_000_000.01,
     10.123,
     0.001,
   ])('rejects invalid base amount %s', (baseAmount) => {
@@ -26,7 +36,7 @@ describe('PointsEquivalence', () => {
     ).toThrow(DomainError);
   });
 
-  it.each([0, -1, 1.5, Number.NaN, 2_147_483_648])(
+  it.each([0, -1, 1.5, Number.NaN, 10_001])(
     'rejects invalid points %s',
     (pointsAwarded) => {
       expect(() =>

@@ -219,6 +219,114 @@ describe('Autenticación de punta a punta (e2e)', () => {
     });
   });
 
+  // EMP-PASS (contrato §3.11.2 y §3.11.4)
+  describe('contraseña y reactivación de usuarios de empleados (EMP-PASS)', () => {
+    const NEW_PASSWORD = 'NuevaClave456';
+
+    it('el Administrador cambia la contraseña: se cierran las sesiones, la vieja deja de servir y la nueva sirve', async () => {
+      const brunoSession = await login(BRUNO.email, BRUNO.password).expect(200);
+      const admin = await tokenOf(ANA);
+
+      await request(app.getHttpServer())
+        .patch(`/api/usuarios/${bruno.accountId}`)
+        .set(as(admin))
+        .send({ password: NEW_PASSWORD })
+        .expect(200);
+
+      const res = await request(app.getHttpServer())
+        .post('/api/auth/refresh')
+        .set('Cookie', cookiePair(brunoSession))
+        .expect(401);
+      expect(res.body.code).toBe('INVALID_SESSION');
+      await login(BRUNO.email, BRUNO.password).expect(401);
+      await login(BRUNO.email, NEW_PASSWORD).expect(200);
+    });
+
+    it('cambiar la contraseña de una cuenta inactiva responde 409 y no toca las sesiones', async () => {
+      const admin = await tokenOf(ANA);
+      await request(app.getHttpServer()).patch(`/api/usuarios/${bruno.accountId}/deactivate`).set(as(admin)).expect(204);
+
+      await request(app.getHttpServer())
+        .patch(`/api/usuarios/${bruno.accountId}`)
+        .set(as(admin))
+        .send({ password: NEW_PASSWORD })
+        .expect(409);
+    });
+
+    it('una contraseña que no cumple la política responde 400 y no cierra las sesiones', async () => {
+      const brunoSession = await login(BRUNO.email, BRUNO.password).expect(200);
+      const admin = await tokenOf(ANA);
+
+      await request(app.getHttpServer())
+        .patch(`/api/usuarios/${bruno.accountId}`)
+        .set(as(admin))
+        .send({ password: 'corta' })
+        .expect(400);
+
+      await request(app.getHttpServer()).post('/api/auth/refresh').set('Cookie', cookiePair(brunoSession)).expect(200);
+    });
+
+    it('cambiar la contraseña de una cuenta inexistente responde 404', async () => {
+      const admin = await tokenOf(ANA);
+
+      await request(app.getHttpServer())
+        .patch('/api/usuarios/999999')
+        .set(as(admin))
+        .send({ password: NEW_PASSWORD })
+        .expect(404);
+    });
+
+    it('solo el Administrador: el Cajero recibe 403 y sin token 401, en cambio de contraseña y en reactivación', async () => {
+      const cashier = await tokenOf(BRUNO);
+
+      await request(app.getHttpServer())
+        .patch(`/api/usuarios/${ana.accountId}`)
+        .set(as(cashier))
+        .send({ password: NEW_PASSWORD })
+        .expect(403);
+      await request(app.getHttpServer()).patch(`/api/usuarios/${ana.accountId}/reactivate`).set(as(cashier)).expect(403);
+      await request(app.getHttpServer()).patch(`/api/usuarios/${bruno.accountId}`).send({ password: NEW_PASSWORD }).expect(401);
+      await request(app.getHttpServer()).patch(`/api/usuarios/${bruno.accountId}/reactivate`).expect(401);
+    });
+
+    it('reactivar una cuenta ya activa responde 409', async () => {
+      const admin = await tokenOf(ANA);
+
+      await request(app.getHttpServer()).patch(`/api/usuarios/${bruno.accountId}/reactivate`).set(as(admin)).expect(409);
+    });
+
+    it('reactivar el usuario de un empleado dado de baja responde 409', async () => {
+      const admin = await tokenOf(ANA);
+      await request(app.getHttpServer()).delete(`/api/empleados/${bruno.employeeId}`).set(as(admin)).expect(200);
+
+      await request(app.getHttpServer()).patch(`/api/usuarios/${bruno.accountId}/reactivate`).set(as(admin)).expect(409);
+    });
+
+    it('reactivar con el email tomado por otra cuenta activa responde 409 EMAIL_IN_USE', async () => {
+      const admin = await tokenOf(ANA);
+      await request(app.getHttpServer()).patch(`/api/usuarios/${bruno.accountId}/deactivate`).set(as(admin)).expect(204);
+      await createCustomerWithAccount(BRUNO.email, 'clave-del-cliente');
+
+      const res = await request(app.getHttpServer())
+        .patch(`/api/usuarios/${bruno.accountId}/reactivate`)
+        .set(as(admin))
+        .expect(409);
+
+      expect(res.body.code).toBe('EMAIL_IN_USE');
+      expect(res.body.message).toBe('El mail de este usuario ya lo usa otra cuenta activa.');
+    });
+
+    it('reactivar conserva la contraseña: se ingresa con la que tenía', async () => {
+      const admin = await tokenOf(ANA);
+      await request(app.getHttpServer()).patch(`/api/usuarios/${bruno.accountId}/deactivate`).set(as(admin)).expect(204);
+      await login(BRUNO.email, BRUNO.password).expect(401);
+
+      await request(app.getHttpServer()).patch(`/api/usuarios/${bruno.accountId}/reactivate`).set(as(admin)).expect(204);
+
+      await login(BRUNO.email, BRUNO.password).expect(200);
+    });
+  });
+
   // SCRUM-159: el cliente entra con el mismo endpoint y el mismo tipo de credencial que un
   // empleado (email y contraseña); lo que cambia es el rol y de quién es la cuenta.
   describe('login de clientes (SCRUM-159)', () => {
@@ -238,6 +346,8 @@ describe('Autenticación de punta a punta (e2e)', () => {
         email: LUCIA.email,
         firstName: 'Lucía',
         lastName: 'Test',
+        // US-17-AJ: una cuenta creada sin pasar por el alta en caja nace con false
+        mustChangePassword: false,
       });
       expect(res.body.user).not.toHaveProperty('employeeId');
     });

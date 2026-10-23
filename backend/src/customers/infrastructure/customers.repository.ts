@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Customer as PrismaCustomerRecord } from '@prisma/client';
+import type { Customer as PrismaCustomerRecord, Prisma } from '@prisma/client';
+import { calculateLevel, type Level } from '../../points/domain/level.js';
 import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import { Customer, DocumentType } from '../domain/customer.js';
 import { CustomerStatusAction, CustomerStatusChange } from '../domain/customer-status-change.js';
@@ -24,6 +25,30 @@ function toDomain(record: PrismaCustomerRecord): Customer {
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   });
+}
+
+// Umbrales por defecto de los niveles (CLAUDE.md raíz, §6; coinciden con los defaults del esquema)
+const DEFAULT_SILVER_MIN_POINTS = 300;
+const DEFAULT_GOLD_MIN_POINTS = 800;
+
+const splitTerms = (text: string | undefined): string[] => text?.split(/\s+/).filter(Boolean) ?? [];
+
+// Clientes cuyo lifetimePoints cae en el rango del nivel. Sin fila en customer_points = 0 puntos.
+function levelFilter(
+  level: Level,
+  config: { silverMinPoints: number; goldMinPoints: number },
+): Prisma.CustomerWhereInput {
+  if (level === 'GOLD') {
+    return { points: { is: { lifetimePoints: { gte: config.goldMinPoints } } } };
+  }
+  if (level === 'SILVER') {
+    return {
+      points: { is: { lifetimePoints: { gte: config.silverMinPoints, lt: config.goldMinPoints } } },
+    };
+  }
+  return {
+    OR: [{ points: { is: null } }, { points: { is: { lifetimePoints: { lt: config.silverMinPoints } } } }],
+  };
 }
 
 @Injectable()
@@ -170,35 +195,80 @@ export class CustomerPrismaRepository implements CustomerRepository {
   }
 
   async list(params: CustomerListParams): Promise<CustomerListResult> {
-    const { page, limit, nameContains, active } = params;
+    const { page, limit, nameContains, search, level, sort, active } = params;
+
+    // El nivel no se guarda por cliente: se calcula con lifetimePoints contra los umbrales vigentes
+    // (contrato §3.7). Se leen acá, igual que hace points, para poder filtrar por nivel en la consulta.
+    // Sin configuración activa rigen los umbrales por defecto: el listado no tiene que caerse por eso.
+    const config = (await this.prisma.loyaltyProgramConfiguration.findFirst({
+      where: { isActive: true },
+      select: { silverMinPoints: true, goldMinPoints: true },
+    })) ?? { silverMinPoints: DEFAULT_SILVER_MIN_POINTS, goldMinPoints: DEFAULT_GOLD_MIN_POINTS };
 
     // Cada palabra buscada debe aparecer en el nombre o en el apellido ("juan perez" encuentra a Juan Pérez)
-    const terms = nameContains?.split(/\s+/).filter(Boolean) ?? [];
+    const nameTerms = splitTerms(nameContains).map((term) => ({
+      OR: [
+        { firstName: { contains: term, mode: 'insensitive' as const } },
+        { lastName: { contains: term, mode: 'insensitive' as const } },
+      ],
+    }));
 
-    const where = {
-      ...(active !== undefined ? { isActive: active } : {}),
-      ...(terms.length > 0
-        ? {
-            AND: terms.map((term) => ({
-              OR: [
-                { firstName: { contains: term, mode: 'insensitive' as const } },
-                { lastName: { contains: term, mode: 'insensitive' as const } },
-              ],
-            })),
-          }
-        : {}),
+    // q: cada palabra debe aparecer en el nombre, el apellido o el documento (normalizado, parcial)
+    const searchTerms = splitTerms(search).map((term) => {
+      const normalizedDocument = term.replace(/[\s.-]/g, '').toUpperCase();
+      return {
+        OR: [
+          { firstName: { contains: term, mode: 'insensitive' as const } },
+          { lastName: { contains: term, mode: 'insensitive' as const } },
+          ...(normalizedDocument ? [{ documentNumber: { contains: normalizedDocument } }] : []),
+        ],
+      };
+    });
+
+    const where: Prisma.CustomerWhereInput = {
+      AND: [
+        ...(active !== undefined ? [{ isActive: active }] : []),
+        ...nameTerms,
+        ...searchTerms,
+        ...(level ? [levelFilter(level, config)] : []),
+      ],
     };
 
     const [records, total] = await Promise.all([
       this.prisma.customer.findMany({
         where,
-        orderBy: { id: 'asc' },
+        include: { points: { select: { balance: true, lifetimePoints: true } } },
+        orderBy:
+          sort === 'lastName'
+            ? [{ lastName: 'asc' }, { firstName: 'asc' }, { id: 'asc' }]
+            : { id: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
       this.prisma.customer.count({ where }),
     ]);
 
-    return { items: records.map(toDomain), total };
+    return {
+      items: records.map((record) => {
+        // Sin fila en customer_points el cliente nunca tuvo movimientos: todo en 0
+        const balance = record.points?.balance ?? 0;
+        const lifetimePoints = record.points?.lifetimePoints ?? 0;
+        return {
+          customer: toDomain(record),
+          balance,
+          lifetimePoints,
+          level: calculateLevel(lifetimePoints, config.silverMinPoints, config.goldMinPoints).current,
+        };
+      }),
+      total,
+    };
+  }
+
+  async findBalance(customerId: number): Promise<number> {
+    const row = await this.prisma.customerPoints.findUnique({
+      where: { customerId },
+      select: { balance: true },
+    });
+    return row?.balance ?? 0;
   }
 }

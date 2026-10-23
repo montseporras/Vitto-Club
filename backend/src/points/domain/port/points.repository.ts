@@ -11,7 +11,7 @@ export type CustomerPointsBalance = {
 
 export type InsertMovementData = {
   customerId: number;
-  type: 'PURCHASE_CREDIT' | 'VOID_REVERSAL' | 'MANUAL_ADJUSTMENT';
+  type: 'CONSUMPTION_CREDIT' | 'VOID_REVERSAL' | 'MANUAL_ADJUSTMENT';
   points: number;
   balanceAfter: number;
   consumptionId: number | null;

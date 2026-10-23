@@ -8,18 +8,17 @@ import {
   rejectedFields,
   REJECTED_FIELD_MESSAGE,
 } from '@/features/cashier'
-import { StatusText } from '@/shared/components/feedback/StatusText'
-import { FormActions } from '@/shared/components/forms/FormActions'
 import { FormField } from '@/shared/components/forms/FormField'
-import { FormSection } from '@/shared/components/forms/FormSection'
 import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio'
 import { Alert } from '@/shared/components/ui/Alert'
+import { AuthShell } from '@/shared/components/ui/AuthShell'
 import { Button } from '@/shared/components/ui/Button'
 import { DateInput } from '@/shared/components/ui/DateInput'
 import { Input } from '@/shared/components/ui/Input'
-import { Page, PageCard } from '@/shared/components/ui/Page'
 import { PasswordInput } from '@/shared/components/ui/PasswordInput'
+import { authFormStyles } from '@/styles/ui'
 import { useLogin, useRegisterCustomer } from '../api/auth.queries'
+import { AuthFormSection } from '../components/AuthFormSection'
 import { AuthTabs } from '../components/AuthTabs'
 import {
   registerSchema,
@@ -121,166 +120,179 @@ export function RegisterPage() {
   }
 
   return (
-    <Page className="max-w-5xl">
-      <PageCard
-        eyebrow="Vitto Club"
-        title="Registrarme"
-        description="Creá tu cuenta para sumarte al programa y canjear puntos por recompensas"
-      >
-        <AuthTabs />
+    <AuthShell
+      title="Registrarme"
+      description="Creá tu cuenta para sumarte al programa y canjear puntos por recompensas"
+      panel="narrow"
+    >
+      <AuthTabs />
 
-        <form noValidate onSubmit={handleSubmit(onSubmit)}>
-          {registerCustomer.isSuccess && (
-            <Alert variant="success" className="mb-6">
-              ¡Listo! Tu cuenta quedó creada con el mail{' '}
-              <strong>{registerCustomer.variables.email}</strong>.
-              {login.isError &&
-                ' No pudimos iniciar tu sesión: entrá desde "Ingresar" con tu mail y contraseña.'}
-            </Alert>
-          )}
+      <form noValidate onSubmit={handleSubmit(onSubmit)}>
+        {registerCustomer.isSuccess && (
+          <Alert variant="success" className="mb-5">
+            ¡Listo! Tu cuenta quedó creada con el mail{' '}
+            <strong>{registerCustomer.variables.email}</strong>.
+            {login.isError &&
+              ' No pudimos iniciar tu sesión: entrá desde "Ingresar" con tu mail y contraseña.'}
+          </Alert>
+        )}
 
-          {generalError && (
-            <Alert variant="error" className="mb-6">
-              {generalError.status === undefined
+        {generalError && (
+          <Alert variant="error" className="mb-5">
+            {generalError.status === undefined
+              ? generalError.message
+              : conflict
                 ? generalError.message
-                : conflict
-                  ? generalError.message
-                  : generalError.status === 400
-                    ? 'Revisá los datos: no pudimos crear la cuenta.'
-                    : 'No pudimos crear la cuenta. Intentá de nuevo.'}
-            </Alert>
-          )}
+                : generalError.status === 400
+                  ? 'Revisá los datos: no pudimos crear la cuenta.'
+                  : 'No pudimos crear la cuenta. Intentá de nuevo.'}
+          </Alert>
+        )}
 
-          <FormSection step={1} title="Datos personales">
-            <FormField
-              id="firstName"
-              label="Nombre"
-              error={errors.firstName?.message}
-            >
-              <Input
-                autoFocus
-                autoComplete="given-name"
-                {...a11y('firstName')}
-                {...register('firstName')}
-              />
-            </FormField>
-
-            <FormField
-              id="lastName"
-              label="Apellido"
-              error={errors.lastName?.message}
-            >
-              <Input
-                autoComplete="family-name"
-                {...a11y('lastName')}
-                {...register('lastName')}
-              />
-            </FormField>
-
-            <FormField
-              id="dateOfBirth"
-              label="Fecha de nacimiento"
-              optional
-              error={errors.dateOfBirth?.message}
-            >
-              <DateInput {...a11y('dateOfBirth')} {...register('dateOfBirth')} />
-            </FormField>
-          </FormSection>
-
-          <FormSection step={2} title="Documento">
-            <SegmentedRadio
-              legend="Tipo de documento"
-              options={DOCUMENT_OPTIONS}
-              field={register('documentType', {
-                // El formato válido depende del tipo: revalida el número ya escrito
-                onChange: () => {
-                  if (getValues('documentNumber')) trigger('documentNumber')
-                },
-              })}
+        <AuthFormSection title="Datos personales">
+          <FormField
+            id="firstName"
+            label="Nombre"
+            hideRequiredMark
+            error={errors.firstName?.message}
+          >
+            <Input
+              autoFocus
+              autoComplete="given-name"
+              className={authFormStyles.input}
+              {...a11y('firstName')}
+              {...register('firstName')}
             />
+          </FormField>
 
+          <FormField
+            id="lastName"
+            label="Apellido"
+            hideRequiredMark
+            error={errors.lastName?.message}
+          >
+            <Input
+              autoComplete="family-name"
+              className={authFormStyles.input}
+              {...a11y('lastName')}
+              {...register('lastName')}
+            />
+          </FormField>
+
+          <FormField
+            id="dateOfBirth"
+            label="Fecha de nacimiento"
+            optional
+            error={errors.dateOfBirth?.message}
+          >
+            <DateInput
+              className={authFormStyles.input}
+              {...a11y('dateOfBirth')}
+              {...register('dateOfBirth')}
+            />
+          </FormField>
+        </AuthFormSection>
+
+        <AuthFormSection title="Documento">
+          <SegmentedRadio
+            legend="Tipo de documento"
+            options={DOCUMENT_OPTIONS}
+            compact
+            field={register('documentType', {
+              // El formato válido depende del tipo: revalida el número ya escrito
+              onChange: () => {
+                if (getValues('documentNumber')) trigger('documentNumber')
+              },
+            })}
+          />
+
+          <FormField
+            id="documentNumber"
+            label="Número de documento"
+            hideRequiredMark
+            error={errors.documentNumber?.message}
+          >
+            <Input
+              inputMode={isDni ? 'numeric' : 'text'}
+              placeholder="30111222"
+              autoComplete="off"
+              className={authFormStyles.input}
+              {...a11y('documentNumber')}
+              {...register('documentNumber')}
+            />
+          </FormField>
+        </AuthFormSection>
+
+        <AuthFormSection title="Contacto">
+          <FormField
+            id="email"
+            label="Mail"
+            hideRequiredMark
+            error={errors.email?.message}
+          >
+            <Input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              className={authFormStyles.input}
+              {...a11y('email')}
+              {...register('email')}
+            />
+          </FormField>
+
+          <FormField
+            id="phone"
+            label="Teléfono"
+            optional
+            error={errors.phone?.message}
+          >
+            <Input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              className={authFormStyles.input}
+              {...a11y('phone')}
+              {...register('phone')}
+            />
+          </FormField>
+        </AuthFormSection>
+
+        <AuthFormSection title="Acceso">
+          <div className="col-span-full">
             <FormField
-              id="documentNumber"
-              label="Número de documento"
-              error={errors.documentNumber?.message}
+              id="password"
+              label="Contraseña"
+              hideRequiredMark
+              hint="Entre 8 y 64 caracteres."
+              error={errors.password?.message}
             >
-              <Input
-                inputMode={isDni ? 'numeric' : 'text'}
-                placeholder="30111222"
-                autoComplete="off"
-                {...a11y('documentNumber')}
-                {...register('documentNumber')}
+              <PasswordInput
+                autoComplete="new-password"
+                className={authFormStyles.passwordInput}
+                {...a11y('password')}
+                aria-describedby={
+                  errors.password ? 'password-error' : 'password-hint'
+                }
+                {...register('password')}
               />
             </FormField>
-          </FormSection>
+          </div>
+        </AuthFormSection>
 
-          <FormSection step={3} title="Contacto">
-            <FormField id="email" label="Mail" error={errors.email?.message}>
-              <Input
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                {...a11y('email')}
-                {...register('email')}
-              />
-            </FormField>
+        <p className={authFormStyles.note}>
+          Ante cualquier duda o inconveniente, comunicate con el restaurante
+        </p>
 
-            <FormField
-              id="phone"
-              label="Teléfono"
-              optional
-              error={errors.phone?.message}
-            >
-              <Input
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                {...a11y('phone')}
-                {...register('phone')}
-              />
-            </FormField>
-          </FormSection>
-
-          <FormSection step={4} title="Acceso">
-            <div className="sm:col-span-2">
-              <FormField
-                id="password"
-                label="Contraseña"
-                hint="Entre 8 y 64 caracteres."
-                error={errors.password?.message}
-              >
-                <PasswordInput
-                  autoComplete="new-password"
-                  {...a11y('password')}
-                  aria-describedby={
-                    errors.password ? 'password-error' : 'password-hint'
-                  }
-                  {...register('password')}
-                />
-              </FormField>
-            </div>
-          </FormSection>
-
-          <StatusText className="mt-6 text-sm">
-            Ante cualquier duda o inconveniente, comunicate con el restaurante
-          </StatusText>
-
-          <FormActions>
-            <Button
-              type="submit"
-              size="lg"
-              disabled={submitting}
-              className="w-full sm:w-auto"
-            >
-              {registerCustomer.isPending
-                ? 'Creando cuenta…'
-                : login.isPending
-                  ? 'Ingresando…'
-                  : 'Crear cuenta'}
-            </Button>
-          </FormActions>
-        </form>
-      </PageCard>
-    </Page>
+        <div className={authFormStyles.actions}>
+          <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
+            {registerCustomer.isPending
+              ? 'Creando cuenta…'
+              : login.isPending
+                ? 'Ingresando…'
+                : 'Crear cuenta'}
+          </Button>
+        </div>
+      </form>
+    </AuthShell>
   )
 }

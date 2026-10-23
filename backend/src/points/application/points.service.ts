@@ -72,7 +72,7 @@ export class PointsService {
     private readonly transactionRunner: TransactionRunner,
   ) {}
 
-  // CA-BASE.3: acredita los puntos de un consumo (PURCHASE_CREDIT). Si hay deuda, la
+  // CA-BASE.3: acredita los puntos de un consumo (CONSUMPTION_CREDIT). Si hay deuda, la
   // cancela primero; lo que sobra crea un lote nuevo con la vigencia vigente.
   async acreditar(input: AcreditarInput): Promise<AcreditarResult> {
     return await this.transactionRunner.run(async () => {
@@ -106,7 +106,7 @@ export class PointsService {
 
       await this.pointsRepository.insertMovement({
         customerId: input.customerId,
-        type: 'PURCHASE_CREDIT',
+        type: 'CONSUMPTION_CREDIT',
         points: input.points,
         balanceAfter: newBalance,
         consumptionId: input.consumptionId,

@@ -9,21 +9,21 @@ import { PointsValidity } from '../domain/points-validity.js';
 import { DEFAULT_POINTS_EXPIRATION_MONTHS } from '../domain/points-validity.js';
 import { LoyaltyConfigurationRepository } from '../domain/port/loyalty-configuration.repository.js';
 import {
-  FirstPurchaseBonus,
-  FirstPurchaseBonusType,
-} from '../domain/first-purchase-bonus.js';
+  FirstConsumptionBonus,
+  FirstConsumptionBonusType,
+} from '../domain/first-consumption-bonus.js';
 import {
   LoyaltyProgramConfiguration,
   LoyaltyProgramConfigurationData,
   LoyaltyProgramConfigurationInput,
 } from '../domain/loyalty-program-configuration.js';
 
-function toBonusType(value: string): FirstPurchaseBonusType {
+function toBonusType(value: string): FirstConsumptionBonusType {
   if (value === 'PERCENTAGE' || value === 'FIXED_AMOUNT') {
     return value;
   }
   throw new Error(
-    `Unsupported first purchase bonus type returned by Prisma: ${value}`,
+    `Unsupported first consumption bonus type returned by Prisma: ${value}`,
   );
 }
 
@@ -96,21 +96,21 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
     });
   }
 
-  async saveFirstPurchaseBonus(
-    bonus: FirstPurchaseBonus,
-  ): Promise<FirstPurchaseBonus> {
+  async saveFirstConsumptionBonus(
+    bonus: FirstConsumptionBonus,
+  ): Promise<FirstConsumptionBonus> {
     const saved = await this.updatePartialConfig({
       bonusType: bonus.getBonusType(),
       bonusValue: bonus.getBonusValue(),
     });
-    return FirstPurchaseBonus.reconstruct({
+    return FirstConsumptionBonus.reconstruct({
       bonusType: saved.getBonusType()!,
       bonusValue: saved.getBonusValue()!,
       updatedAt: saved.getCreatedAt(),
     });
   }
 
-  async findCurrentFirstPurchaseBonus(): Promise<FirstPurchaseBonus | null> {
+  async findCurrentFirstConsumptionBonus(): Promise<FirstConsumptionBonus | null> {
     const active = await this.findActiveConfig();
     if (!active) {
       return null;
@@ -118,7 +118,7 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
     const bonusType = active.getBonusType();
     const bonusValue = active.getBonusValue();
     return bonusType !== null && bonusValue !== null
-      ? FirstPurchaseBonus.reconstruct({
+      ? FirstConsumptionBonus.reconstruct({
           bonusType,
           bonusValue,
           updatedAt: active.getCreatedAt(),

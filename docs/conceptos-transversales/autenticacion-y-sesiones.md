@@ -908,7 +908,7 @@ Content-Type: application/json
 
 ```http
 HTTP/1.1 200 OK
-Set-Cookie: refresh_token=...; Path=/api/auth; Expires=...; HttpOnly; SameSite=Lax
+Set-Cookie: refresh_token=...; Path=/api; Expires=...; HttpOnly; SameSite=Lax
 
 {
   "accessToken": "eyJhbGciOi...",
@@ -984,7 +984,7 @@ private cookieOptions(): CookieOptions {
 | `HttpOnly` | El JavaScript de la página no puede leer la cookie | Si un script malicioso se cuela en el frontend, no puede robar el refresh token |
 | `Secure` | Solo viaja por HTTPS | Nadie la ve en tránsito. Se activa solo en producción, porque en desarrollo se usa HTTP |
 | `SameSite=Lax` | No viaja en pedidos `POST` originados en otro sitio | Otro sitio web no puede hacer que el navegador renueve o cierre la sesión en nombre del usuario |
-| `Path=/api/auth` | Solo viaja a las rutas de `auth` | No se manda en cada pedido al resto de la API: menos exposición |
+| `Path=/api` | Viaja a la API, no al resto del sitio | Antes era `/api/auth`. PERFIL lo amplió porque `PATCH /api/mi-cuenta/password` necesita saber cuál es la sesión actual (la de esta cookie) para cerrar las otras y dejarla abierta. Al emitirla también se borra la cookie con el path viejo, para que no la tape |
 | `Expires` | Vence en el tope máximo de la sesión | El navegador la descarta sola cuando la sesión ya no puede servir |
 
 El **access token**, en cambio, sí va en el cuerpo: el frontend lo guarda en
@@ -1167,3 +1167,4 @@ permisos comprueba que eso se cumple en los tres.
 | 2026-10-05 | Roles declarados en `customers`, `employees` y `health`; filtros de error de `customers` y `employees` con 403 y `code`; e2e de la matriz de permisos (14 tests); contrato para el frontend en `docs/funcionalidades/autenticacion.md`. Se actualizan los pendientes con otras personas |
 | 2026-10-06 | Nombre y apellido en la respuesta del login y la renovación (opcionales; hoy solo empleados), sin ir dentro del token. Decisiones del PO: el rol solo se cambia desde empleados; la lista de usuarios va en `GET /api/usuarios`. Se documenta el posible ciclo `accounts` ↔ `customers` y se actualiza `docs/funcionalidades/autenticacion.md` (nombre, y sección 11 con lo acordado y pendiente). 68 tests de `auth`, 55 e2e |
 | 2026-10-06 | **Integración con `accounts` (paso E).** Hasher de bcryptjs en `accounts`, adaptador `AccountsCredentialsVerifier` en `auth` (reemplaza al provisorio), `AccountsModule` en `AppModule`, guards globales con `APP_GUARD`, `@Roles('ADMIN')` en `usuarios`, filtro de `accounts` con 403 y `code`. Límite de 72 bytes en la contraseña (bcrypt descarta el resto en silencio). Los empleados ya pueden iniciar sesión; probado con la aplicación levantada y el seed. Se decide la opción X para el registro de clientes. 457 tests unitarios y 73 e2e |
+| 2026-10-20 | PERFIL (cambio de contraseña): la cookie del refresh token pasa a `Path=/api` (y se borra la de `/api/auth`) y `readCookie` se mueve a `src/shared/security/refresh-cookie.ts`. Nuevo `SessionRepository.revokeAllForAccountExcept`, `AuthService.revokeOtherSessionsOfAccount` y `AccountPasswordChangedListener` (evento `account.password-changed`): al cambiar la contraseña se cierran las otras sesiones y la actual sigue abierta. Detalle en `docs/sprint-3/CAMBIOS_PROPUESTOS_AL_CONTRATO_PERFIL.md` |

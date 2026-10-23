@@ -56,16 +56,16 @@
 | BASE | Modelo de datos nuevo y módulo `points` | | | — (no tiene pantalla) | — | — | Sin empezar |
 | US-57 | Registrar auditoría (cambios de la auditoría) | | | — (no tiene pantalla) | — | — | Sin empezar |
 | US-58 | Consultar auditoría | | | | | `features/audit` | Sin empezar |
-| US-46 | Identificar cliente en mostrador | | | | | `features/cashier` | Sin empezar |
+| US-46 | Identificar cliente en mostrador | Jazmín | `feature/US-19-consultar-cliente-back` | | | `features/cashier` | En revisión |
 | US-21 | Registrar consumo y cálculo de puntos | | | | | `features/cashier` | Sin empezar |
 | US-22 | Anular consumo | | | | | `features/cashier` | Sin empezar |
 | US-23 | Consultar consumos | | | | | A confirmar (ver P8) | Sin empezar |
-| US-19 | Consultar cliente (ficha e inicio del Cliente) | | | | | `features/cashier` (ficha) y `features/my-account` (inicio) | Sin empezar |
+| US-19 | Consultar cliente (ficha e inicio del Cliente) | Jazmín | `feature/US-19-consultar-cliente-back` | | | `features/cashier` (ficha) y `features/my-account` (inicio) | En revisión |
 | US-24 | Ajustar puntos | | | | | `features/cashier` (modal de la ficha) | Sin empezar |
 | US-25 | Vencimiento automático de puntos | | | — (no tiene pantalla) | — | — | Sin empezar |
-| US-26 | Consultar movimientos de puntos | | | | | A confirmar (ver P8) | Sin empezar |
-| US-27 | Configurar niveles | | | | | `features/points` (tarjeta en Configuración → Puntos) | Sin empezar |
-| US-17-AJ | Alta de cliente con cuenta y contraseña inicial | | | | | `features/cashier` y `features/customers` | Sin empezar |
+| US-26 | Consultar movimientos de puntos | Jazmín | `feature/US-26-movimientos-puntos-back` | | | A confirmar (ver P8) | En curso |
+| US-27 | Configurar niveles | Jazmín | `feature/US-27-configurar-niveles-back` | | | `features/points` (tarjeta en Configuración → Puntos) | En revisión |
+| US-17-AJ | Alta de cliente con cuenta y contraseña inicial | | | Maga | `frontend-maga` | `features/cashier` y `features/customers` | En curso |
 | CLI-ADM | Clientes del Administrador | | | | | `features/customers` | Sin empezar |
 | PERFIL | Mi perfil, contraseña y cerrar sesión del Cliente (número de US a confirmar, ver P1) | | | | | `features/my-account` | Sin empezar |
 | EMP-PASS | Contraseña y reactivación de usuarios de empleados | | | | | `features/employees` | Sin empezar |
@@ -169,11 +169,11 @@ Formato de cada historia:
     - primero se cancela la deuda;
     - solo si sobra (N > D) se crea un lote por N − D.
 - **CA-BASE.4 [B] Revertir un consumo.** Dado un consumo con su lote, cuando se revierte, entonces:
-  - del lote se descuenta `min(remaining, totalPoints)` y el lote pasa a `CONSUMED`;
+  - del lote se descuenta `min(remaining, totalPoints)` y el lote pasa a `VOIDED` (Anulado);
   - lo que falta se suma a `debt`;
   - el saldo puede quedar negativo.
 
-  No se agrega ningún estado nuevo (decisión #11).
+  `VOIDED` es un estado final del lote y lo dispara solo esta operación (decisión #11, revisada el 20/10/2026).
 - **CA-BASE.5 [B] Ajustar.**
   - `ADD`: cancela la deuda primero; con lo que sobra, crea un lote.
   - `SUBTRACT`: descuenta de los lotes `ACTIVE` en orden de vencimiento (FIFO). Si los puntos superan el
@@ -242,7 +242,7 @@ Formato de cada historia:
   - `EMPLOYEE_CREATED`, `EMPLOYEE_UPDATED` y `EMPLOYEE_DEACTIVATED`;
   - `USER_ACCOUNT_CREATED`, `USER_ACCOUNT_UPDATED` y `USER_ACCOUNT_DEACTIVATED`;
   - `CUSTOMER_CREATED`, `CUSTOMER_UPDATED` y `CUSTOMER_DEACTIVATED`;
-  - `POINTS_EQUIVALENCE_UPDATED`, `POINTS_VALIDITY_UPDATED` y `FIRST_PURCHASE_BONUS_UPDATED`.
+  - `POINTS_EQUIVALENCE_UPDATED`, `POINTS_VALIDITY_UPDATED` y `FIRST_CONSUMPTION_BONUS_UPDATED`.
 - **CA-57.7 [B] Configuración sin cambios.** Dado un guardado de configuración que no cambia ningún valor,
   entonces igual se registra, con la fila "Cambios: Se guardó sin modificar valores". El
   `PUT /loyalty/configuration` completo registra una entrada **por cada sección** que cambió.
@@ -365,10 +365,10 @@ Formato de cada historia:
   - un id inexistente da `404`;
   - un id no numérico da `400`.
 - **CA-46.7 [B+F] Panel de canjes, recompensas y movimientos.**
-  - El botón dice "Ver canjes pendientes, recompensas y movimientos de las últimas 24 hs" para el Cajero, y
+  - El botón dice "Ver canjes, recompensas y movimientos de las últimas 24 hs" para el Cajero, y
     "…y últimos movimientos" para el Administrador.
   - Al abrirlo muestra:
-    - "No tiene canjes pendientes" (fijo hasta el Sprint 4);
+    - "No tiene canjes." (fijo hasta el Sprint 4);
     - "No tiene puntos suficientes…" (fijo hasta el Sprint 4);
     - los movimientos de `GET /customers/:id/movimientos?limit=5`. El Cajero ve solo las últimas 24 h; lo
       fuerza el backend (US-26).
@@ -412,19 +412,19 @@ Formato de cada historia:
   - Los valores salen de `GET /consumos/preview`; la pantalla no calcula nada.
   - La llamada tiene un debounce de 300 ms, y no se hace si el monto es inválido.
 - **CA-21.2 [B] Truncado.** `points = floor(amount / baseAmount × pointsAwarded)`: $1.550 → 15 pts.
-- **CA-21.3 [B+F] Bonificación por primera compra.**
+- **CA-21.3 [B+F] Bonificación por primer consumo.**
   - Dado un cliente **sin ningún consumo `REGISTERED`** y una bonificación configurada, cuando se previsualiza
     o se registra, entonces `bonusPoints` es:
     - con `PERCENTAGE`: `floor(points × valor / 100)`;
     - con `FIXED_AMOUNT`: el valor.
   - Además, `isFirstConsumption` es `true`.
-  - En "Consumo registrado" se agrega "(incluye N de bonificación por primera compra)".
+  - En "Consumo registrado" se agrega "(incluye N de bonificación por primer consumo)".
 - **CA-21.4 [B] Primer consumo anulado.** Dado que el único consumo del cliente está anulado, cuando se
   registra otro, entonces vuelve a recibir la bonificación (decisión #2).
 - **CA-21.5 [B] Registro.** Dado un monto válido, cuando se confirma, entonces en **una sola transacción**:
   - se crea el consumo `REGISTERED`, con el snapshot de la equivalencia y de la versión;
   - se acreditan `totalPoints` (primero cancelan la deuda; con lo que sobra, se crea un lote);
-  - se registra el movimiento `PURCHASE_CREDIT`, con `balanceAfter`;
+  - se registra el movimiento `CONSUMPTION_CREDIT`, con `balanceAfter`;
   - se suma `totalPoints` a `lifetimePoints` (incluida la bonificación, decisión #3);
   - se audita `CONSUMPTION_REGISTERED`, con sus `details`.
 
@@ -527,7 +527,7 @@ Formato de cada historia:
   es `409 CONSUMPTION_ALREADY_VOIDED` y se muestra "Este consumo ya está anulado.".
 - **CA-22.7 [B] Efectos.** En una transacción:
   - el consumo pasa a `VOIDED`, con `voidedAt`, `voidedBy` y `voidReason`;
-  - se revierten **todos** los puntos, incluida la bonificación (lote → `CONSUMED`; lo ya gastado pasa a
+  - se revierten **todos** los puntos, incluida la bonificación (lote → `VOIDED`; lo ya gastado pasa a
     deuda);
   - se registra el movimiento `VOID_REVERSAL` por `−totalPoints`;
   - `lifetimePoints` baja, y **el nivel puede bajar**;
@@ -656,7 +656,7 @@ Formato de cada historia:
 
 | | |
 |---|---|
-| **Historia** | Como Cliente, quiero consultar mis datos, saldo de puntos, nivel, misiones vigentes, canjes disponibles y pendientes, para conocer mi situación en el programa. En este sprint, además, está la **ficha del cliente** para el Cajero y el Administrador |
+| **Historia** | Como Cliente, quiero consultar mis datos, saldo de puntos, nivel, misiones vigentes, canjes disponibles y confirmados, para conocer mi situación en el programa. En este sprint, además, está la **ficha del cliente** para el Cajero y el Administrador |
 | **Roles** | Cliente (Inicio), Cajero y Administrador (ficha) |
 | **Contrato** | §3.4.1 (puntos y ficha), §3.10.1 (Inicio y `GET /customers/me/puntos`), §3.7 ("Dónde se muestra el nivel"), decisión #9 |
 | **Prototipo** | `FichaCliente.dc.html` (ficha) y, en el archivo principal, la vista `cliente`, pestaña Inicio |
@@ -857,7 +857,7 @@ Formato de cada historia:
 - **CA-26.6 [B+F] Historial de puntos del Cliente.**
   - `GET /customers/me/movimientos` **no** trae `performedBy` ni `customer`.
   - El texto de cada movimiento sale de la tabla de la §2.2. Por ejemplo, "Sumaste {n} pts por tu consumo".
-  - Se muestra la cantidad con signo y el estado del lote (Vigente, Consumido o Vencido) si viene.
+  - Se muestra la cantidad con signo y el estado del lote (Vigente, Consumido, Vencido o Anulado) si viene.
   - Vacío: "Todavía no tenés movimientos.".
 - **CA-26.7 [B] Permisos.** `/customers/me/movimientos` con un rol que no sea Cliente responde `403`.
 

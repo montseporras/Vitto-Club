@@ -12,7 +12,13 @@ type FormActionsProps = {
 /** Botonera al pie del formulario, separada por una línea. */
 export function FormActions({ message, children, className }: FormActionsProps) {
   return (
-    <div className={cn(formActionsStyles.root, className)}>
+    <div
+      className={cn(
+        formActionsStyles.root,
+        message && formActionsStyles.rootWithMessage,
+        className,
+      )}
+    >
       {message && (
         <p role="status" className={formActionsStyles.message}>
           {message}

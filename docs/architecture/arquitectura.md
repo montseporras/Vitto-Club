@@ -57,7 +57,7 @@ runtime qué implementación (`infrastructure/`) inyectar. Así, el dominio no
 depende de Prisma ni de HTTP.
 
 El módulo `loyalty` aplica el mismo patrón a la configuración global de
-puntos: `PointsEquivalence`, `PointsValidity` y `FirstPurchaseBonus` validan
+puntos: `PointsEquivalence`, `PointsValidity` y `FirstConsumptionBonus` validan
 las invariantes del dominio y el default de RF-010.
 `LoyaltyConfigurationRepository` define el puerto y
 `LoyaltyPrismaRepository` implementa la persistencia versionada del snapshot

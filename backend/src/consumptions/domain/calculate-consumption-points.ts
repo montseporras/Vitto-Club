@@ -6,7 +6,7 @@ export type ConsumptionPointsEquivalence = {
   pointsAwarded: number;
 };
 
-export type FirstPurchaseBonus =
+export type FirstConsumptionBonus =
   | { bonusType: 'PERCENTAGE'; bonusValue: number }
   | { bonusType: 'FIXED_AMOUNT'; bonusValue: number };
 
@@ -19,7 +19,7 @@ export type ConsumptionPointsResult = {
 export function calculateConsumptionPoints(
   amount: number,
   equivalence: ConsumptionPointsEquivalence,
-  bonus: FirstPurchaseBonus | null,
+  bonus: FirstConsumptionBonus | null,
   isFirstConsumption: boolean,
 ): ConsumptionPointsResult {
   // §3.1.2: floor(amount / baseAmount × pointsAwarded). Se trunca, nunca se redondea.

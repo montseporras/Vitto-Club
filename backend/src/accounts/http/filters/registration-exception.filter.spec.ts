@@ -68,6 +68,6 @@ describe('RegistrationExceptionFilter', () => {
     filter.catch(new Error('connect ECONNREFUSED 127.0.0.1:5433'), host);
 
     expect(status).toHaveBeenCalledWith(500);
-    expect(body().message).toBe('Unexpected error.');
+    expect(body().message).toBe('Ocurrió un error inesperado.');
   });
 });

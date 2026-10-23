@@ -27,9 +27,9 @@
       </div></sc-if>
       <sc-if value="{{ encontrado }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;"><button type="button" class="btn btn-secondary" onClick="{{ toggleInfo }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:{{ infoRot }}; transition:transform .15s;"><path d="m9 18 6-6-6-6"></path></svg>{{ infoTxt }}</button>
         <sc-if value="{{ verInfo }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px; border:1px solid #f6d0b1; border-radius:16px; padding:16px 18px; display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px 24px; font-size:13px;">
-          <div><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20; margin-bottom:6px;">Canjes pendientes</div>
+          <div><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20; margin-bottom:6px;">Canjes</div>
             <sc-for list="{{ info.canjes }}" as="c" hint-placeholder-count="1"><div style="display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-top:1px solid #fbe6d4;"><span><strong>{{ c.recompensa }}</strong><br /><span style="color:#7a6e63; font-size:12px;">Código {{ c.codigo }}</span></span><span style="white-space:nowrap;">{{ c.puntos }} pts</span></div></sc-for>
-            <sc-if value="{{ info.sinCanjes }}" hint-placeholder-val="{{ false }}"><p style="margin:0; color:#7a6e63;">No tiene canjes pendientes.</p></sc-if></div>
+            <sc-if value="{{ info.sinCanjes }}" hint-placeholder-val="{{ false }}"><p style="margin:0; color:#7a6e63;">No tiene canjes.</p></sc-if></div>
           <div><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20; margin-bottom:6px;">Recompensas a las que puede acceder</div>
             <sc-for list="{{ info.recompensas }}" as="r" hint-placeholder-count="2"><div style="display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-top:1px solid #fbe6d4;"><span>{{ r.nombre }}</span><span style="white-space:nowrap;">{{ r.puntos }} pts</span></div></sc-for>
             <sc-if value="{{ info.sinRec }}" hint-placeholder-val="{{ false }}"><p style="margin:0; color:#7a6e63;">No tiene puntos suficientes para ninguna recompensa disponible.</p></sc-if></div>
@@ -71,7 +71,7 @@
 
   <sc-if value="{{ m.open }}" hint-placeholder-val="{{ false }}">
     <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000; padding:16px;">
-      <div class="dialog" style="max-width:480px; width:100%;">
+      <div class="dialog" style="position:relative; max-width:480px; width:100%;"><button type="button" onClick="{{ cerrarAn }}" aria-label="Cerrar" title="Cerrar" style="position:absolute; top:16px; right:16px; width:36px; height:36px; display:grid; place-items:center; border:none; border-radius:999px; background:transparent; color:#7e3e20; cursor:pointer; z-index:1;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
         <sc-if value="{{ m.form }}" hint-placeholder-val="{{ true }}"><div>
           <div class="dialog-title">Anular consumo {{ m.codigo }}</div>
           <div class="dialog-body">
@@ -139,7 +139,7 @@ class Component extends DCLogic {
     const nivAntes = this.nivel(S.historicos(c.id));
     const r = S.registrar({ cid: c.id, monto: p.n, pts, por, obs, bono, eq: this.money(e.base) + ' = ' + this.num(e.pts) + ' pts' });
     this.setState({ paso: 'conf', codigo: r.codigo,
-      conf: [['Código de consumo', r.codigo], ['Fecha y hora', this.fdt(r.ts)], ['Cliente', c.nombre + ' · ' + (c.tipo || 'DNI') + ' ' + c.dni], ['Monto', this.money(p.n)], ['Puntos acreditados', '+' + this.num(pts) + ' pts' + (bono ? ' (incluye ' + this.num(bono) + ' de bonificación por primera compra)' : '')], ['Observaciones', obs || '—'], ['Saldo', this.num(r.antes) + ' pts → ' + this.num(r.despues) + ' pts'], ['Registrado por', por]].map(([k, v]) => ({ k, v })),
+      conf: [['Código de consumo', r.codigo], ['Fecha y hora', this.fdt(r.ts)], ['Cliente', c.nombre + ' · ' + (c.tipo || 'DNI') + ' ' + c.dni], ['Monto', this.money(p.n)], ['Puntos acreditados', '+' + this.num(pts) + ' pts' + (bono ? ' (incluye ' + this.num(bono) + ' de bonificación por primer consumo)' : '')], ['Observaciones', obs || '—'], ['Saldo', this.num(r.antes) + ' pts → ' + this.num(r.despues) + ' pts'], ['Registrado por', por]].map(([k, v]) => ({ k, v })),
       toast: 'Consumo ' + r.codigo + ' registrado: +' + this.num(pts) + ' pts.', subio: (() => { const n = this.nivel(S.historicos(c.id)); return n && nivAntes && n !== nivAntes ? '¡' + c.nombre + ' subió a nivel ' + n + '!' : ''; })() });
     clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 3800);
   };
@@ -182,13 +182,13 @@ class Component extends DCLogic {
       buscar: this.buscar, noEncontrado: s.buscado && !c, encontrado: !!c,
       segDni: 'vc-seg-opt' + (s.tipo === 'DNI' ? ' vc-seg-on' : ''), segPas: 'vc-seg-opt' + (s.tipo === 'Pasaporte' ? ' vc-seg-on' : ''), setDni: () => this.setTipo('DNI'), setPas: () => this.setTipo('Pasaporte'),
       docPh: s.tipo === 'DNI' ? '38.456.123' : 'AAB123456', docNom: s.tipo === 'DNI' ? 'DNI' : 'pasaporte',
-      verInfo: s.verInfo, toggleInfo: () => this.setState({ verInfo: !s.verInfo }), infoRot: s.verInfo ? 'rotate(90deg)' : 'none', infoTxt: s.verInfo ? 'Ocultar canjes, recompensas y movimientos' : ((this.props || {}).rol === 'Administrador' ? 'Ver canjes pendientes, recompensas y últimos movimientos' : 'Ver canjes pendientes, recompensas y movimientos de las últimas 24 hs'),
+      verInfo: s.verInfo, toggleInfo: () => this.setState({ verInfo: !s.verInfo }), infoRot: s.verInfo ? 'rotate(90deg)' : 'none', infoTxt: s.verInfo ? 'Ocultar canjes, recompensas y movimientos' : ((this.props || {}).rol === 'Administrador' ? 'Ver canjes, recompensas y últimos movimientos' : 'Ver canjes, recompensas y movimientos de las últimas 24 hs'),
       info: this.info(c),
       subio: s.paso === 'conf' ? (s.subio || '') : '',
       cli: c ? { nivel: this.nivel(S.historicos(c.id)), tipo: c.tipo || 'DNI', nombre: c.nombre, dni: c.dni, saldo: this.num(c.saldo), saldoColor: c.saldo < 0 ? '#b3261e' : '#7e3e20' } : {},
       irAlta: (ev) => { if (ev && ev.preventDefault) ev.preventDefault(); if (this.props && this.props.onIrAlta) this.props.onIrAlta(); },
       monto: s.monto, montoErr: s.montoErr, montoInv: !!s.montoErr, onMonto: (ev) => this.setState({ monto: ev.target.value, montoErr: '' }),
-      preview: !!p.n && !!c, bono: (c && p.n && S.primeraCompra(c.id)) ? this.bono(pts) : 0, ptsTxt: this.num(pts + ((c && p.n && S.primeraCompra(c.id)) ? this.bono(pts) : 0)), ptsDesglose: (c && p.n && S.primeraCompra(c.id) && this.bono(pts) > 0) ? ' (' + this.num(pts) + ' + ' + this.num(this.bono(pts)) + ' de bonificación por primera compra)' : '', resTxt: c ? this.num(c.saldo + pts + ((p.n && S.primeraCompra(c.id)) ? this.bono(pts) : 0)) : '',
+      preview: !!p.n && !!c, bono: (c && p.n && S.primeraCompra(c.id)) ? this.bono(pts) : 0, ptsTxt: this.num(pts + ((c && p.n && S.primeraCompra(c.id)) ? this.bono(pts) : 0)), ptsDesglose: (c && p.n && S.primeraCompra(c.id) && this.bono(pts) > 0) ? ' (' + this.num(pts) + ' + ' + this.num(this.bono(pts)) + ' de bonificación por primer consumo)' : '', resTxt: c ? this.num(c.saldo + pts + ((p.n && S.primeraCompra(c.id)) ? this.bono(pts) : 0)) : '',
       obs: s.obs, obsLen: s.obs.length + '/255', onObs: (ev) => this.setState({ obs: String(ev.target.value).slice(0, 255) }),
       eqTxt: this.money(e.base) + ' = ' + this.num(e.pts) + ' pts',
       cancelar: this.reset, registrar: this.registrar, otro: this.reset,

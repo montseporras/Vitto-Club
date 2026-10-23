@@ -61,6 +61,7 @@ class FakeCustomerRepository implements CustomerRepository {
   async updateStatus(): Promise<void> { throw new Error('not implemented'); }
   async findStatusHistory(): Promise<CustomerStatusChange[]> { throw new Error('not implemented'); }
   async list(): Promise<CustomerListResult> { throw new Error('not implemented'); }
+  async findBalance(): Promise<number> { throw new Error('not implemented'); }
 
   // Helper de test: un cliente ya persistido
   seed(data: { id: number; documentNumber: string; email: string; active: boolean }): void {
@@ -80,16 +81,18 @@ class FakeCustomerRepository implements CustomerRepository {
   }
 }
 
-type AccountRow = AccountByEmail & { email: string; passwordHash: string };
+type AccountRow = AccountByEmail & { email: string; passwordHash: string; mustChangePassword?: boolean };
 
 class FakeCustomerAccountRepository implements CustomerAccountRepository {
   rows = new Map<number, AccountRow>();
   private nextId = 1;
-  readonly create = jest.fn(async (data: { customerId: number; email: string; passwordHash: string }) => {
-    const accountId = this.nextId++;
-    this.rows.set(accountId, { accountId, employeeId: null, active: true, ...data });
-    return { accountId };
-  });
+  readonly create = jest.fn(
+    async (data: { customerId: number; email: string; passwordHash: string; mustChangePassword: boolean }) => {
+      const accountId = this.nextId++;
+      this.rows.set(accountId, { accountId, employeeId: null, active: true, ...data });
+      return { accountId };
+    },
+  );
 
   async findByEmail(email: string): Promise<AccountByEmail | null> {
     const row = [...this.rows.values()]
@@ -102,6 +105,12 @@ class FakeCustomerAccountRepository implements CustomerAccountRepository {
   async deactivate(accountId: number): Promise<void> {
     const row = this.rows.get(accountId);
     if (row) this.rows.set(accountId, { ...row, active: false });
+  }
+  async deactivateByCustomerId(): Promise<number | null> {
+    throw new Error('not implemented');
+  }
+  async replaceInitialPasswordHash(): Promise<boolean> {
+    throw new Error('not implemented');
   }
 
   seed(row: AccountRow): void {
@@ -205,6 +214,8 @@ describe('CustomerRegistrationService (SCRUM-160)', () => {
       customerId: 1,
       email: 'lucia@example.com',
       passwordHash: 'hashed:secreta123',
+      // CA-17AJ.6: en el autorregistro el cliente elige su contraseña
+      mustChangePassword: false,
     });
   });
 

@@ -6,9 +6,9 @@ import {
   PointsValidityData,
 } from '../domain/points-validity.js';
 import {
-  FirstPurchaseBonus,
-  FirstPurchaseBonusData,
-} from '../domain/first-purchase-bonus.js';
+  FirstConsumptionBonus,
+  FirstConsumptionBonusData,
+} from '../domain/first-consumption-bonus.js';
 import {
   LoyaltyProgramConfiguration,
   LoyaltyProgramConfigurationInput,
@@ -46,18 +46,18 @@ export class LoyaltyService {
     return await this.loyaltyRepository.findCurrentPointsValidity();
   }
 
-  async setFirstPurchaseBonus(
-    data: FirstPurchaseBonusData,
-  ): Promise<FirstPurchaseBonus> {
-    const bonus = FirstPurchaseBonus.define(data);
-    return await this.loyaltyRepository.saveFirstPurchaseBonus(bonus);
+  async setFirstConsumptionBonus(
+    data: FirstConsumptionBonusData,
+  ): Promise<FirstConsumptionBonus> {
+    const bonus = FirstConsumptionBonus.define(data);
+    return await this.loyaltyRepository.saveFirstConsumptionBonus(bonus);
   }
 
-  async getCurrentFirstPurchaseBonus(): Promise<FirstPurchaseBonus> {
-    const bonus = await this.loyaltyRepository.findCurrentFirstPurchaseBonus();
+  async getCurrentFirstConsumptionBonus(): Promise<FirstConsumptionBonus> {
+    const bonus = await this.loyaltyRepository.findCurrentFirstConsumptionBonus();
     if (!bonus) {
       throw new NotFoundException(
-        'First purchase bonus has not been configured',
+        'First consumption bonus has not been configured',
       );
     }
     return bonus;
@@ -77,7 +77,7 @@ export class LoyaltyService {
     PointsValidity.define({
       pointsExpirationMonths: data.pointsExpirationMonths,
     });
-    FirstPurchaseBonus.define({
+    FirstConsumptionBonus.define({
       bonusType: data.bonusType,
       bonusValue: data.bonusValue,
     });

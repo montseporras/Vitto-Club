@@ -10,6 +10,8 @@ export type CustomerLoginRecord = {
   email: string;
   passwordHash: string;
   active: boolean;
+  // true mientras el cliente no cambie la contraseña inicial (= su documento)
+  mustChangePassword: boolean;
 };
 
 export abstract class AccountRepository {

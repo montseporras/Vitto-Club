@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import type { Level } from '../../../points/domain/level.js';
 
 export class ListCustomersQueryDto {
   @IsOptional()
@@ -25,4 +26,21 @@ export class ListCustomersQueryDto {
   @IsString()
   @MaxLength(80)
   name?: string;
+
+  // CLI-ADM: nombre, apellido o documento (normalizado), coincidencia parcial. No se puede
+  // mandar junto con name (contrato §3.8.1; lo controla el servicio).
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  q?: string;
+
+  // CLI-ADM: nivel calculado
+  @IsOptional()
+  @IsIn(['BRONZE', 'SILVER', 'GOLD'])
+  level?: Level;
+
+  // CLI-ADM: 'id' por defecto, para no romper a quien ya usa el listado
+  @IsOptional()
+  @IsIn(['lastName', 'id'])
+  sort?: 'lastName' | 'id';
 }

@@ -25,16 +25,51 @@ export type EmployeeRoleChangedEvent = {
 export const ACCOUNT_DEACTIVATED = 'account.deactivated';
 export type AccountDeactivatedEvent = { accountId: number };
 
-// Lo emite customers cuando da de baja un cliente. Lo escucha accounts para dar de baja su cuenta.
+// Lo emite customers cuando da de baja un cliente (CLI-ADM, contrato §3.8.3). Lo escucha accounts
+// para dejar su cuenta inactiva; accounts publica account.deactivated y auth cierra las sesiones.
 export const CUSTOMER_DEACTIVATED = 'customer.deactivated';
 export type CustomerDeactivatedEvent = { customerId: number };
 
 // Lo emite customers cuando reactiva un cliente. Lo escucha accounts para reactivar su cuenta.
+// Sin uso desde CLI-ADM: la reactivación de clientes ya no existe (contrato §1, "se eliminan").
 export const CUSTOMER_REACTIVATED = 'customer.reactivated';
 export type CustomerReactivatedEvent = { customerId: number };
+
+// Lo emite customers cuando el Cajero o el Administrador dan de alta un cliente (no en el
+// autorregistro, donde el cliente elige su contraseña). Lo escucha accounts para crear la
+// cuenta de acceso, con el documento como contraseña inicial y mustChangePassword = true.
+// documentNumber ya viene normalizado (pasaporte en mayúsculas); es la contraseña inicial y
+// no se guarda en ningún otro lado. Si el listener tira, se deshace también el cliente.
+export const CUSTOMER_CREATED = 'customer.created';
+export type CustomerCreatedEvent = { customerId: number; email: string; documentNumber: string };
 
 // Lo emite customers cuando cambia el email de un cliente (solo si realmente cambió).
 // Lo escucha accounts para actualizar el email de acceso; si ese email ya tiene cuenta,
 // tira ConflictException y se deshace el cambio.
 export const CUSTOMER_EMAIL_CHANGED = 'customer.email-changed';
 export type CustomerEmailChangedEvent = { customerId: number; email: string };
+
+// Lo emite customers cuando el Administrador corrige el número de documento de un cliente
+// (CLI-ADM, CA-CLI.7; evento nuevo, decisión a pedido de Magali). Lo escucha accounts: si la cuenta
+// todavía tiene la contraseña inicial (mustChangePassword = true), la contraseña pasa a ser el
+// documento nuevo. documentNumber ya viene normalizado y no se guarda: solo su hash.
+export const CUSTOMER_DOCUMENT_CHANGED = 'customer.document-changed';
+export type CustomerDocumentChangedEvent = { customerId: number; documentNumber: string };
+
+// Lo emite customers cuando el cliente cambia su correo desde Mi perfil (PERFIL, contrato §3.10.4),
+// ANTES de escribir nada. Lo escucha accounts: verifica la contraseña actual (con el límite de
+// intentos compartido) y que el correo no lo use otra cuenta activa. Si algo falla, tira el error
+// del contrato (400 CURRENT_PASSWORD_INCORRECT, 429 TOO_MANY_ATTEMPTS, 409 EMAIL_IN_USE) y no se
+// guarda nada. currentPassword viaja en texto plano solo dentro del proceso: no se guarda ni se loguea.
+export const CUSTOMER_EMAIL_CHANGE_REQUESTED = 'customer.email-change-requested';
+export type CustomerEmailChangeRequestedEvent = {
+  customerId: number;
+  email: string;
+  currentPassword: string;
+};
+
+// Lo emite accounts cuando una cuenta cambia su propia contraseña (PERFIL, contrato §3.11.1). Lo
+// escucha auth para cerrar todas las otras sesiones de la cuenta. currentRefreshToken es el valor
+// de la cookie refresh_token del pedido (la sesión que sigue abierta); sin cookie, se cierran todas.
+export const ACCOUNT_PASSWORD_CHANGED = 'account.password-changed';
+export type AccountPasswordChangedEvent = { accountId: number; currentRefreshToken?: string };

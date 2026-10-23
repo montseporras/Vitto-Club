@@ -1,3 +1,5 @@
+> **Documento histórico (sin actualizar).** Conserva el vocabulario y los nombres de cuando se escribió: usa "compra", `FirstPurchaseBonus` y `PURCHASE_CREDIT`. Hoy se dice **Consumo** (`FirstConsumptionBonus`, `CONSUMPTION_CREDIT`). Ver `docs/sprint-3/API_CONTRACT_SPRINT_3.md`.
+
 # Transacciones y eventos entre módulos: cómo funciona
 
 Guía para entender qué se construyó, por qué, en qué archivos está y cómo se

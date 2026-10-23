@@ -24,11 +24,12 @@ interface ConfirmAccountStatusChangeProps {
 
 const TEXTS = {
   deactivate: {
-    question: 'Va a dejar de poder ingresar al sistema y se cierran sus sesiones abiertas.',
-    confirm: 'Dar de baja usuario',
-    pending: 'Dando de baja…',
-    conflict: 'Este usuario ya estaba dado de baja.',
-    failed: 'No se pudo dar de baja el usuario. Intentá nuevamente.',
+    question:
+      'Va a dejar de poder ingresar al sistema y se cierran sus sesiones abiertas. Después vas a poder activarla nuevamente.',
+    confirm: 'Desactivar cuenta',
+    pending: 'Desactivando…',
+    conflict: 'Esta cuenta ya estaba desactivada.',
+    failed: 'No se pudo desactivar la cuenta. Intentá nuevamente.',
   },
   reactivate: {
     question: 'Va a poder volver a ingresar al sistema con la contraseña que tenía.',
@@ -40,13 +41,18 @@ const TEXTS = {
   },
 } as const;
 
+// Contrato §3.11.4: al reactivar, el email lo usa otra cuenta activa.
+const EMAIL_IN_USE_MESSAGE =
+  'El mail de este usuario ya lo usa otra cuenta activa.';
+
 // Mensaje según la respuesta del backend
 // (PATCH /usuarios/:id/deactivate o /usuarios/:id/reactivate).
 function errorMessage(change: StatusChange, error: unknown): string {
   const apiError = toApiError(error);
   if (apiError.code === 'LAST_ADMIN') {
-    return 'No se puede dar de baja: es el único administrador que puede ingresar al sistema.';
+    return 'No se puede desactivar: es el único administrador que puede ingresar al sistema.';
   }
+  if (apiError.code === 'EMAIL_IN_USE') return EMAIL_IN_USE_MESSAGE;
   switch (apiError.status) {
     case undefined:
       return apiError.message;
@@ -84,7 +90,10 @@ export function ConfirmAccountStatusChange({
       )}
 
       <p className="text-base text-text">
-        ¿{change === 'deactivate' ? 'Dar de baja' : 'Reactivar'} el usuario de{' '}
+        ¿
+        {change === 'deactivate'
+          ? 'Desactivar la cuenta de'
+          : 'Reactivar el usuario de'}{' '}
         <strong>
           {employee.firstName} {employee.lastName}
         </strong>
