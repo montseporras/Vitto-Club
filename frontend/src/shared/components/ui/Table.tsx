@@ -21,14 +21,17 @@ export function TableHeaderCell({ className, ...props }: ComponentProps<'th'>) {
 type TableRowProps = ComponentProps<'tr'> & {
   /** Fila clickeable: resalta al pasar el mouse. */
   interactive?: boolean
+  /** Resalta al pasar el mouse, sin ser clickeable (ej. filas con botones). */
+  highlight?: boolean
 }
 
-export function TableRow({ className, interactive, ...props }: TableRowProps) {
+export function TableRow({ className, interactive, highlight, ...props }: TableRowProps) {
   return (
     <tr
       className={cn(
         tableStyles.row,
         interactive && tableStyles.rowInteractive,
+        highlight && !interactive && tableStyles.rowHighlight,
         className,
       )}
       {...props}

@@ -45,6 +45,21 @@ export const segmentedStyles = {
   optionCompact: 'rounded-md px-2.5 py-1.5 text-sm',
 }
 
+/**
+ * Control segmentado hecho con botones (ej. pestañas de la ficha del cliente). Mismo aspecto
+ * que `segmentedStyles`, pero sin radios: la opción elegida se marca con `optionActive`.
+ */
+export const segmentedTabsStyles = {
+  // Prototipo: .vc-seg con max-width 460px
+  group: 'grid w-full max-w-115 grid-cols-2 gap-1 rounded-xl border border-accent-200 bg-accent-50 p-1',
+  option: [
+    'cursor-pointer rounded-lg px-3 py-2.5 text-center text-base font-semibold transition-colors',
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700',
+  ].join(' '),
+  optionActive: 'bg-accent-700 text-white shadow-sm',
+  optionIdle: 'text-accent-800 hover:bg-accent-100',
+}
+
 /** Título de un bloque del formulario, con una línea debajo (ej. "Cliente" en Buscar cliente). */
 export const formSectionTitleStyles = {
   root: 'mb-5 border-b border-accent-100 pb-1',

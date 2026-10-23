@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
 import { useSession } from '@/features/auth'
 import { StatusText } from '@/shared/components/feedback/StatusText'
@@ -32,8 +32,21 @@ const DOCUMENT_OPTIONS = DOCUMENT_TYPE_VALUES.map((type) => ({
   label: DOCUMENT_TYPES[type].label,
 }))
 
+type IdentifyCustomerPageProps = {
+  /**
+   * A dónde lleva "Registrar cliente" cuando no se encuentra al cliente. En Caja, a "Nuevo
+   * cliente"; en Administración, a Clientes (contrato §3.1.1). Por defecto, el de Caja.
+   */
+  newCustomerPath?: string
+}
+
 /** Buscar cliente: se identifica al cliente por documento y se ven su nivel y saldo (US-46). */
-export function IdentifyCustomerPage() {
+export function IdentifyCustomerPage({
+  // Relativo a /caja: un feature no importa de app/
+  newCustomerPath = '../alta-cliente',
+}: IdentifyCustomerPageProps) {
+  // "Registrar consumo" de la ficha llega con el documento del cliente: se busca directo
+  const prefilled = useLocation().state as DocumentSearch | null
   const {
     register,
     handleSubmit,
@@ -41,9 +54,9 @@ export function IdentifyCustomerPage() {
     formState: { errors },
   } = useForm<FindCustomerFormInput, unknown, FindCustomerFormOutput>({
     resolver: zodResolver(findCustomerSchema),
-    defaultValues: { documentType: 'DNI', documentNumber: '' },
+    defaultValues: prefilled ?? { documentType: 'DNI', documentNumber: '' },
   })
-  const [search, setSearch] = useState<DocumentSearch | null>(null)
+  const [search, setSearch] = useState<DocumentSearch | null>(prefilled)
   const session = useSession()
   const result = useCustomerByDocument(search)
 
@@ -130,9 +143,8 @@ export function IdentifyCustomerPage() {
                   {/* Texto del contrato §3.1.1 */}
                   No existe un cliente con ese{' '}
                   {search.documentType === 'DNI' ? 'DNI' : 'pasaporte'}.{' '}
-                  {/* Relativo a /caja: un feature no importa de app/ (ver docs/FRONTEND-STRUCTURE.md, sección 02). */}
                   <Link
-                    to="../alta-cliente"
+                    to={newCustomerPath}
                     // El alta arranca con el documento que se buscó
                     state={search}
                     className="font-semibold underline underline-offset-2"

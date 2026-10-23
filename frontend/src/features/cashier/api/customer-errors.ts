@@ -3,7 +3,12 @@ import type { ApiError } from '@/shared/api/ApiError'
 /** Códigos de error de clientes (contrato §5): se decide por estos, nunca por el mensaje. */
 export const CUSTOMER_ERROR_CODES = {
   EMAIL_IN_USE: 'EMAIL_IN_USE',
+  // 409 al editar un cliente dado de baja (contrato §3.8.2)
+  CUSTOMER_INACTIVE: 'CUSTOMER_INACTIVE',
 } as const
+
+// Texto del contrato §3.8.2
+const CUSTOMER_INACTIVE_MESSAGE = 'El cliente está dado de baja.'
 
 // El contrato no cita este texto: es el del prototipo (alta de cliente en Caja).
 const EMAIL_IN_USE_MESSAGE = 'Ya hay un cliente registrado con ese correo electrónico.'
@@ -19,8 +24,9 @@ const isConflictField = (field: string): field is 'email' | 'documentNumber' =>
 
 /**
  * Traduce un 409 del alta, la edición o el autorregistro de clientes.
- * El autorregistro manda el campo en `details` y el mensaje ya en español; el resto de la
- * API de clientes no trae código ni campo, así que se deduce del mensaje del backend.
+ * Primero se decide por `code` (EMAIL_IN_USE, CUSTOMER_INACTIVE). El autorregistro manda el
+ * campo en `details`; el documento o el mail repetidos no traen código ni campo (contrato
+ * §3.8.2: "sin cambios respecto del Sprint 2"), así que se deducen del mensaje del backend.
  */
 export function customerConflict(error: ApiError): CustomerConflict | undefined {
   if (error.status !== 409) return undefined
@@ -30,16 +36,17 @@ export function customerConflict(error: ApiError): CustomerConflict | undefined 
     return { field: 'email', message: EMAIL_IN_USE_MESSAGE }
   }
 
+  // Los clientes dados de baja son de solo lectura y no se reactivan
+  if (error.code === CUSTOMER_ERROR_CODES.CUSTOMER_INACTIVE) {
+    return { message: CUSTOMER_INACTIVE_MESSAGE }
+  }
+
   const detail = error.details.find((item) => isConflictField(item.field))
   if (detail && isConflictField(detail.field)) {
     return { field: detail.field, message: detail.message }
   }
 
   const { message } = error
-  // 'Customer with ID … is inactive…': los clientes dados de baja no se reactivan
-  if (/\bis inactive\b/i.test(message)) {
-    return { message: 'El cliente está dado de baja: no se puede modificar.' }
-  }
   // 'Email "…" is already registered as an employee'
   if (/registered as an employee/i.test(message)) {
     return { field: 'email', message: 'Este mail ya está registrado como empleado' }

@@ -14,6 +14,16 @@ export const PATHS = {
   },
   admin: {
     root: '/admin',
+    // Menú del Administrador (prototipo v2, en el orden del menú)
+    rewards: '/admin/recompensas',
+    missions: '/admin/misiones',
+    customers: '/admin/clientes',
+    customerDetail: '/admin/clientes/:id',
+    statistics: '/admin/estadisticas',
+    audit: '/admin/auditoria',
+    identifyCustomer: '/admin/buscar-cliente',
+    consumptions: '/admin/consumos',
+    pointsMovements: '/admin/movimientos',
   },
 } as const
 
