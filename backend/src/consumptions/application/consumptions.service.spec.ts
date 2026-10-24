@@ -3,9 +3,12 @@ import { ConsumptionsService } from './consumptions.service.js';
 import { Consumption } from '../domain/consumption.js';
 import {
   ConsumptionRepository,
+  FindAllFilters,
+  FindAllResult,
   FindByCustomerIdFilters,
   FindByCustomerIdResult,
 } from '../domain/port/consumption.repository.js';
+import { DomainError } from '../domain/errors/domain.error.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import { Customer } from '../../customers/domain/customer.js';
 import { CustomersService } from '../../customers/application/customers.service.js';
@@ -71,6 +74,35 @@ class FakeConsumptionRepository implements ConsumptionRepository {
 
     const start = (filters.page - 1) * filters.limit;
     return { items: matching.slice(start, start + filters.limit), total: matching.length };
+  }
+
+  // US-23: guarda los filtros que le llegan (para ver la conversión de fechas y de q) y filtra
+  // por los campos simples. La búsqueda y el rango los prueba el e2e contra Postgres.
+  lastFindAllFilters: FindAllFilters | null = null;
+
+  async findAll(filters: FindAllFilters): Promise<FindAllResult> {
+    this.lastFindAllFilters = filters;
+    const matching = [...this.items.values()]
+      .filter((c) => filters.customerId === undefined || c.getCustomerId() === filters.customerId)
+      .filter((c) => !filters.status || c.getStatus() === filters.status)
+      .filter(
+        (c) => filters.registeredByAccountId === undefined || c.getRegisteredByAccountId() === filters.registeredByAccountId,
+      );
+    const registered = matching.filter((c) => c.isRegistered());
+    const start = (filters.page - 1) * filters.limit;
+
+    return {
+      items: matching.slice(start, start + filters.limit).map((consumption) => ({
+        consumption,
+        customer: { id: consumption.getCustomerId(), firstName: 'Carolina', lastName: 'Fernández', documentType: 'DNI', documentNumber: '38456123' },
+      })),
+      total: matching.length,
+      totals: {
+        count: matching.length,
+        amountTotal: registered.reduce((sum, c) => sum + c.getAmount(), 0),
+        pointsTotal: registered.reduce((sum, c) => sum + c.getTotalPoints(), 0),
+      },
+    };
   }
 }
 
@@ -455,6 +487,130 @@ describe('ConsumptionsService', () => {
       await expect(
         service.anular({ code: 'C-999999', reason: 'motivo válido', actor: { accountId: 12, role: 'ADMIN', employeeId: 12 } }),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('listAll (US-23, §3.3.1)', () => {
+    const registerBy = (accountId: number, amount: number) =>
+      service.register({ customerId: 101, amount, registeredBy: { accountId, employeeId: 12 } });
+
+    it('totales: count incluye los anulados; monto y puntos solo los REGISTERED (CA-23.2)', async () => {
+      await registerBy(12, 50000); // 500 pts
+      const { consumption } = await registerBy(12, 20000); // 200 pts
+      await service.anular({
+        code: consumption.getCode() as string,
+        reason: 'monto incorrecto',
+        actor: { accountId: 1, role: 'ADMIN', employeeId: 12 },
+      });
+
+      const result = await service.listAll({ page: 1, limit: 8 });
+
+      expect(result.total).toBe(2);
+      expect(result.totals).toEqual({ count: 2, amountTotal: 50000, pointsTotal: 500 });
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(8);
+    });
+
+    it('fromDate y toDate pasan como días completos en hora de Argentina', async () => {
+      await service.listAll({ fromDate: '2026-10-01', toDate: '2026-10-15', page: 1, limit: 20 });
+
+      expect(repository.lastFindAllFilters).toMatchObject({
+        createdFrom: new Date('2026-10-01T03:00:00.000Z'),
+        createdBefore: new Date('2026-10-16T03:00:00.000Z'),
+      });
+    });
+
+    it('q con 3 dígitos o más busca por documento; si no, por nombre sin tildes', async () => {
+      await service.listAll({ q: '384', page: 1, limit: 20 });
+      expect(repository.lastFindAllFilters?.search).toEqual({ kind: 'document', documentNumber: '384' });
+
+      await service.listAll({ q: 'Fernández', page: 1, limit: 20 });
+      expect(repository.lastFindAllFilters?.search).toEqual({ kind: 'name', terms: ['fernandez'] });
+    });
+
+    it('pasa status, registeredByAccountId y customerId al repositorio', async () => {
+      await service.listAll({ status: 'VOIDED', registeredByAccountId: 12, customerId: 101, page: 2, limit: 8 });
+
+      expect(repository.lastFindAllFilters).toMatchObject({
+        status: 'VOIDED',
+        registeredByAccountId: 12,
+        customerId: 101,
+        page: 2,
+        limit: 8,
+      });
+    });
+
+    it('400: fromDate posterior a toDate, como DomainError de consumptions (CA-23.3)', async () => {
+      const promise = service.listAll({ fromDate: '2026-10-15', toDate: '2026-10-01', page: 1, limit: 20 });
+
+      await expect(promise).rejects.toThrow(DomainError);
+      await expect(promise).rejects.toThrow('fromDate no puede ser posterior a toDate');
+      expect(repository.lastFindAllFilters).toBeNull();
+    });
+
+    it('400: fecha inexistente', async () => {
+      await expect(service.listAll({ fromDate: '2026-02-30', page: 1, limit: 20 })).rejects.toThrow(DomainError);
+    });
+  });
+
+  describe('getByCode (US-23, §3.3.2)', () => {
+    it('devuelve el consumo', async () => {
+      const { consumption } = await service.register({
+        customerId: 101,
+        amount: 50000,
+        registeredBy: { accountId: 12, employeeId: 12 },
+      });
+
+      const found = await service.getByCode(consumption.getCode() as string);
+
+      expect(found.getId()).toBe(consumption.getId());
+    });
+
+    it('400 con el mensaje en castellano si el código no respeta el formato (CA-23.6)', async () => {
+      const promise = service.getByCode('131');
+
+      await expect(promise).rejects.toThrow(BadRequestException);
+      await expect(promise).rejects.toThrow('El código 131 no tiene un formato válido.');
+    });
+
+    it('404 si el código no existe (CA-23.6)', async () => {
+      await expect(service.getByCode('C-999999')).rejects.toThrow('No existe el consumo C-999999.');
+    });
+  });
+
+  describe('listMine (US-23, §3.10.2)', () => {
+    it('trae todos los consumos del cliente, sin el límite de 24 hs, y filtra por estado', async () => {
+      await service.register({ customerId: 101, amount: 50000, registeredBy: { accountId: 12, employeeId: 12 } });
+      const old = Consumption.reconstruct({
+        id: 999,
+        customerId: 101,
+        amount: 1000,
+        notes: null,
+        points: 10,
+        bonusPoints: 0,
+        configurationVersion: 4,
+        baseAmount: 1000,
+        pointsAwarded: 10,
+        registeredByAccountId: 12,
+        registeredByName: 'Ana Pereyra',
+        status: 'REGISTERED',
+        createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000),
+      });
+      repository.items.set(999, old);
+
+      const all = await service.listMine({ customerId: 101, page: 1, limit: 20 });
+      const voided = await service.listMine({ customerId: 101, status: 'VOIDED', page: 1, limit: 20 });
+
+      expect(all.total).toBe(2);
+      expect(voided.total).toBe(0);
+    });
+
+    it('no trae consumos de otros clientes (CA-23.8)', async () => {
+      await service.register({ customerId: 101, amount: 50000, registeredBy: { accountId: 12, employeeId: 12 } });
+
+      const result = await service.listMine({ customerId: 555, page: 1, limit: 20 });
+
+      expect(result.items).toEqual([]);
     });
   });
 });

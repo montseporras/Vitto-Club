@@ -6,7 +6,7 @@ import { CustomersService } from '../../customers/application/customers.service.
 import type { CurrentUserData } from '../../shared/security/current-user-data.js';
 
 describe('ConsumptionsController', () => {
-  let service: { preview: jest.Mock; register: jest.Mock; anular: jest.Mock };
+  let service: { preview: jest.Mock; register: jest.Mock; anular: jest.Mock; listAll: jest.Mock; getByCode: jest.Mock };
   let customersService: { findById: jest.Mock };
   let controller: ConsumptionsController;
 
@@ -39,7 +39,7 @@ describe('ConsumptionsController', () => {
   const cashier: CurrentUserData = { accountId: 12, role: 'CASHIER', employeeId: 12 };
 
   beforeEach(() => {
-    service = { preview: jest.fn(), register: jest.fn(), anular: jest.fn() };
+    service = { preview: jest.fn(), register: jest.fn(), anular: jest.fn(), listAll: jest.fn(), getByCode: jest.fn() };
     customersService = { findById: jest.fn().mockResolvedValue(customer) };
     controller = new ConsumptionsController(
       service as unknown as ConsumptionsService,
@@ -130,6 +130,69 @@ describe('ConsumptionsController', () => {
       });
       expect(result.consumption.status).toBe('VOIDED');
       expect(result.negativeBalance).toBe(false);
+    });
+  });
+
+  const admin: CurrentUserData = { accountId: 999, role: 'ADMIN', employeeId: 1 };
+
+  describe('list() — US-23, CA-23.2/CA-23.3', () => {
+    it('delega los filtros en el servicio y arma la página con los totales', async () => {
+      const customerSnapshot = {
+        id: 101,
+        firstName: 'Carolina',
+        lastName: 'Fernández',
+        documentType: 'DNI',
+        documentNumber: '38456123',
+      };
+      service.listAll.mockResolvedValue({
+        items: [{ consumption, customer: customerSnapshot }],
+        total: 17,
+        page: 1,
+        limit: 8,
+        totals: { count: 17, amountTotal: 735700, pointsTotal: 7357 },
+      });
+
+      const result = await controller.list(
+        { fromDate: '2026-10-01', toDate: '2026-10-15', q: 'carolina', status: 'REGISTERED', registeredByAccountId: 12, customerId: 101, page: 1, limit: 8 },
+        admin,
+      );
+
+      expect(service.listAll).toHaveBeenCalledWith({
+        fromDate: '2026-10-01',
+        toDate: '2026-10-15',
+        q: 'carolina',
+        status: 'REGISTERED',
+        registeredByAccountId: 12,
+        customerId: 101,
+        page: 1,
+        limit: 8,
+      });
+      expect(result).toMatchObject({
+        total: 17,
+        page: 1,
+        limit: 8,
+        totals: { count: 17, amountTotal: 735700, pointsTotal: 7357 },
+      });
+      expect(result.items[0].code).toBe('C-000141');
+      expect(result.items[0].customer).toEqual(customerSnapshot);
+      // Administrador: canVoid = REGISTERED, sin voidableUntil (§3.2.1)
+      expect(result.items[0].canVoid).toBe(true);
+      expect(result.items[0].voidableUntil).toBeNull();
+    });
+  });
+
+  describe('detail() — US-23, CA-23.5', () => {
+    it('devuelve el consumo completo con los datos del cliente', async () => {
+      service.getByCode.mockResolvedValue(consumption);
+
+      const result = await controller.detail('C-000141', admin);
+
+      expect(service.getByCode).toHaveBeenCalledWith('C-000141');
+      expect(customersService.findById).toHaveBeenCalledWith(101);
+      expect(result.code).toBe('C-000141');
+      expect(result.equivalence).toEqual({ baseAmount: 1000, pointsAwarded: 10, configurationVersion: 4 });
+      expect(result.registeredBy).toEqual({ accountId: 12, name: 'Ana Pereyra' });
+      expect(result.canVoid).toBe(true);
     });
   });
 });

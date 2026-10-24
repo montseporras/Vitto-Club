@@ -1,3 +1,4 @@
+import { ForbiddenException } from '@nestjs/common';
 import { CustomerConsumptionsController } from './customer-consumptions.controller.js';
 import { ConsumptionsService } from '../application/consumptions.service.js';
 import { Consumption } from '../domain/consumption.js';
@@ -6,7 +7,7 @@ import { CustomersService } from '../../customers/application/customers.service.
 import type { CurrentUserData } from '../../shared/security/current-user-data.js';
 
 describe('CustomerConsumptionsController', () => {
-  let service: { listByCustomer: jest.Mock };
+  let service: { listByCustomer: jest.Mock; listMine: jest.Mock };
   let customersService: { findById: jest.Mock };
   let controller: CustomerConsumptionsController;
 
@@ -40,7 +41,7 @@ describe('CustomerConsumptionsController', () => {
   const cashier: CurrentUserData = { accountId: 12, role: 'CASHIER', employeeId: 12 };
 
   beforeEach(() => {
-    service = { listByCustomer: jest.fn() };
+    service = { listByCustomer: jest.fn(), listMine: jest.fn() };
     customersService = { findById: jest.fn().mockResolvedValue(customer) };
     controller = new CustomerConsumptionsController(
       service as unknown as ConsumptionsService,
@@ -90,5 +91,36 @@ describe('CustomerConsumptionsController', () => {
     });
 
     expect(result.items[0].canVoid).toBe(false);
+  });
+
+  describe('listMine() — US-23, CA-23.7/CA-23.8', () => {
+    const client: CurrentUserData = { accountId: 300, role: 'CUSTOMER', customerId: 101 };
+
+    it('usa el customerId del token y no trae los datos de empleados', async () => {
+      service.listMine.mockResolvedValue({ items: [consumption], total: 1, page: 1, limit: 20 });
+
+      const result = await controller.listMine({ status: 'REGISTERED', page: 1, limit: 20 }, client);
+
+      expect(service.listMine).toHaveBeenCalledWith({ customerId: 101, status: 'REGISTERED', page: 1, limit: 20 });
+      expect(result.total).toBe(1);
+      expect(result.items[0]).toMatchObject({ code: 'C-000141', amount: 50000, totalPoints: 500, status: 'REGISTERED' });
+      expect(result.items[0].customer).toEqual({
+        id: 101,
+        firstName: 'Carolina',
+        lastName: 'Fernández',
+        documentType: 'DNI',
+        documentNumber: '38456123',
+      });
+      for (const field of ['registeredBy', 'voidedBy', 'canVoid', 'voidableUntil']) {
+        expect(result.items[0]).not.toHaveProperty(field);
+      }
+    });
+
+    it('403 si el token de Cliente no trae customerId', async () => {
+      await expect(controller.listMine({ page: 1, limit: 20 }, { accountId: 300, role: 'CUSTOMER' })).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(service.listMine).not.toHaveBeenCalled();
+    });
   });
 });
