@@ -4,14 +4,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FirstConsumptionBonusFormValues } from '../schemas/first-consumption-bonus.schema';
 import type { PointsEquivalenceFormValues } from '../schemas/points-equivalence.schema';
 import type { PointsExpirationFormValues } from '../schemas/points-expiration.schema';
+import type { LoyaltyLevelsFormValues } from '../schemas/loyalty-levels.schema';
 import {
   formToUpdateFirstConsumptionBonusDto,
   formToUpdatePointsEquivalenceDto,
   formToUpdatePointsExpirationDto,
   getFirstConsumptionBonus,
+  getLoyaltyLevels,
   getPointsEquivalence,
   getPointsExpiration,
   updateFirstConsumptionBonus,
+  updateLoyaltyLevels,
   updatePointsEquivalence,
   updatePointsExpiration,
 } from './points.api';
@@ -63,6 +66,26 @@ export const usePointsExpiration = () =>
     queryKey: pointsKeys.expiration(),
     queryFn: getPointsExpiration,
   });
+
+export const useLoyaltyLevels = () =>
+  useQuery({
+    queryKey: pointsKeys.loyaltyLevels(),
+    queryFn: getLoyaltyLevels,
+  });
+
+export const useUpdateLoyaltyLevels = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (form: LoyaltyLevelsFormValues) =>
+      updateLoyaltyLevels({
+        silverMinPoints: form.silverMinPoints,
+        goldMinPoints: form.goldMinPoints,
+      }),
+    onSuccess: (saved) => {
+      qc.setQueryData(pointsKeys.loyaltyLevels(), saved);
+    },
+  });
+};
 
 // Guarda la vigencia (RF-010). Recibe el formulario y lo traduce al DTO del backend.
 // La respuesta ya es la configuración guardada: se escribe directo en la caché.

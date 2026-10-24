@@ -1,4 +1,4 @@
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import { PointsEquivalence } from '../domain/points-equivalence.js';
 import { LoyaltyPrismaRepository } from './loyalty-prisma.repository.js';
 
@@ -12,6 +12,8 @@ describe('LoyaltyPrismaRepository', () => {
     pointsExpirationMonths: 12,
     bonusType: null,
     bonusValue: null,
+    silverMinPoints: 300,
+    goldMinPoints: 800,
     isActive: true,
     validFrom: timestamp,
     validTo: null,
@@ -61,8 +63,23 @@ describe('LoyaltyPrismaRepository', () => {
         findFirst: jest.fn().mockResolvedValue(activeRecord),
       },
     };
+    // Dentro de run() el client es el de la transacción; afuera, el normal
+    let inTransaction = false;
+    const transactionRunner = {
+      run: async <T>(fn: () => Promise<T>): Promise<T> => {
+        inTransaction = true;
+        try {
+          return await fn();
+        } finally {
+          inTransaction = false;
+        }
+      },
+      get client() {
+        return inTransaction ? transaction : prisma;
+      },
+    };
     repository = new LoyaltyPrismaRepository(
-      prisma as unknown as PrismaService,
+      transactionRunner as unknown as PrismaTransactionRunner,
     );
   });
 
@@ -94,6 +111,8 @@ describe('LoyaltyPrismaRepository', () => {
       pointsExpirationMonths: 18,
       bonusType: 'PERCENTAGE',
       bonusValue: { toNumber: () => 15 },
+      silverMinPoints: 400,
+      goldMinPoints: 900,
     });
 
     const result = await repository.savePointsEquivalence(
@@ -116,6 +135,8 @@ describe('LoyaltyPrismaRepository', () => {
           pointsExpirationMonths: 18,
           bonusType: 'PERCENTAGE',
           bonusValue: 15,
+          silverMinPoints: 400,
+          goldMinPoints: 900,
           isActive: true,
           validTo: null,
         }),

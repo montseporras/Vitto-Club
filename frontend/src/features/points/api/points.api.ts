@@ -17,10 +17,30 @@ import type {
   PointsExpiration,
   UpdatePointsExpirationDto,
 } from '../types/points-expiration';
+import type {
+  LoyaltyLevelsConfiguration,
+  UpdateLoyaltyLevelsDto,
+} from '../types/loyalty-levels';
 
 const FIRST_CONSUMPTION_BONUS_URL = '/loyalty/configuration/first-consumption-bonus';
 const POINTS_EQUIVALENCE_URL = '/loyalty/configuration/points-equivalence';
 const POINTS_EXPIRATION_URL = '/loyalty/configuration/points-validity';
+const LOYALTY_LEVELS_URL = '/loyalty/configuration/levels';
+
+export async function getLoyaltyLevels(): Promise<LoyaltyLevelsConfiguration> {
+  const { data } = await http.get<LoyaltyLevelsConfiguration>(LOYALTY_LEVELS_URL);
+  return data;
+}
+
+export async function updateLoyaltyLevels(
+  body: UpdateLoyaltyLevelsDto,
+): Promise<LoyaltyLevelsConfiguration> {
+  const { data } = await http.put<LoyaltyLevelsConfiguration>(
+    LOYALTY_LEVELS_URL,
+    body,
+  );
+  return data;
+}
 
 // La equivalencia y la bonificación responden 404 mientras nadie las configuró.
 // No es un error: se devuelve null y la pantalla muestra el formulario vacío.

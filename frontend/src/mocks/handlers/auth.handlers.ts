@@ -13,44 +13,59 @@ import {
 
 const PASSWORD = 'vitto2026'
 
-const accounts: AuthUser[] = [
+// Se exporta para que Mi perfil (my-account.handlers.ts) cambie el correo y mustChangePassword
+export const accounts: AuthUser[] = [
   { accountId: 1, role: 'ADMIN', email: 'ana.gomez@vitto.club', employeeId: 1, firstName: 'Ana', lastName: 'Gómez', mustChangePassword: false },
   { accountId: 2, role: 'CASHIER', email: 'bruno.perez@vitto.club', employeeId: 2, firstName: 'Bruno', lastName: 'Pérez', mustChangePassword: false },
   { accountId: 3, role: 'CUSTOMER', email: 'lucia@example.com', customerId: 1, firstName: 'Lucía', lastName: 'Fernández', mustChangePassword: false },
   { accountId: 4, role: 'CASHIER', email: 'diego.sosa@vitto.club', employeeId: 4, firstName: 'Diego', lastName: 'Sosa', mustChangePassword: false },
+  // Cliente cargado en caja: contraseña inicial = su documento y cambio pendiente (§3.11.3)
+  { accountId: 5, role: 'CUSTOMER', email: 'martin@example.com', customerId: 2, firstName: 'Martín', lastName: 'Suárez', mustChangePassword: true },
 ]
 
+// Contraseñas propias: autorregistro, contraseña inicial y cambios desde Mi perfil
+// (el resto usa PASSWORD)
+const registeredPasswords = new Map<number, string>([[5, '38987654']])
+
+export const passwordOf = (accountId: number) =>
+  registeredPasswords.get(accountId) ?? PASSWORD
+
+export function setPassword(accountId: number, password: string) {
+  registeredPasswords.set(accountId, password)
+}
+
 // Cliente dado de alta en Caja (US-17-AJ): su cuenta nace con el documento como contraseña y
-// mustChangePassword = true. Se arma al ingresar, a partir de lo que dejó el alta en el mock.
-function accountOfCheckoutCustomer(
-  matches: (customer: Customer) => boolean,
-): { user: AuthUser; password: string } | undefined {
+// mustChangePassword = true. Se arma la primera vez que se la busca, a partir de lo que dejó el
+// alta en el mock, y queda en `accounts`: así Mi perfil puede cambiarle la contraseña y el correo.
+function accountOfCheckoutCustomer(matches: (customer: Customer) => boolean): AuthUser | undefined {
   const customer = customers.find(
     (item) => item.active && initialPasswords.has(item.id) && matches(item),
   )
   if (!customer) return undefined
-  return {
-    user: {
-      accountId: 1000 + customer.id,
-      role: 'CUSTOMER',
-      email: customer.email,
-      customerId: customer.id,
-      firstName: customer.firstName,
-      lastName: customer.lastName,
-      mustChangePassword: true,
-    },
-    password: initialPasswords.get(customer.id)!,
+  const user: AuthUser = {
+    accountId: 1000 + customer.id,
+    role: 'CUSTOMER',
+    email: customer.email,
+    customerId: customer.id,
+    firstName: customer.firstName,
+    lastName: customer.lastName,
+    mustChangePassword: true,
   }
+  accounts.push(user)
+  setPassword(user.accountId, initialPasswords.get(customer.id)!)
+  return user
 }
-
-// Contraseñas de las cuentas creadas por el autorregistro (el resto usa PASSWORD)
-const registeredPasswords = new Map<number, string>()
 
 // Cuentas dadas de baja: responden igual que un mail inexistente
 const inactiveAccountIds = new Set([4])
 
 // Hace de la cookie httpOnly del refresh: sobrevive a recargar la página
 const SESSION_KEY = 'vitto:mock-session'
+
+export function getMockCurrentUser() {
+  const accountId = Number(sessionStorage.getItem(SESSION_KEY))
+  return accounts.find((account) => account.accountId === accountId) ?? null
+}
 
 const STATUS_NAMES = { 400: 'Bad Request', 401: 'Unauthorized' }
 
@@ -117,11 +132,11 @@ export const authHandlers = [
     if (messages.length > 0) return errorResponse(400, messages, request)
 
     const email = String(body.email).trim().toLowerCase()
-    const checkout = accountOfCheckoutCustomer((item) => item.email.toLowerCase() === email)
-    const account = accounts.find((item) => item.email === email) ?? checkout?.user
+    const account =
+      accounts.find((item) => item.email === email) ??
+      accountOfCheckoutCustomer((item) => item.email.toLowerCase() === email)
     // Mismo mensaje para cualquier causa, a propósito
-    const password =
-      account && (checkout?.password ?? registeredPasswords.get(account.accountId) ?? PASSWORD)
+    const password = account && passwordOf(account.accountId)
     if (!account || inactiveAccountIds.has(account.accountId) || body.password !== password) {
       return errorResponse(401, 'Los datos de acceso son incorrectos', request, 'INVALID_CREDENTIALS')
     }
@@ -135,7 +150,7 @@ export const authHandlers = [
     const accountId = Number(sessionStorage.getItem(SESSION_KEY))
     const account =
       accounts.find((item) => item.accountId === accountId) ??
-      accountOfCheckoutCustomer((item) => 1000 + item.id === accountId)?.user
+      accountOfCheckoutCustomer((item) => 1000 + item.id === accountId)
     if (!account || inactiveAccountIds.has(account.accountId)) {
       return errorResponse(401, 'La sesión no es válida', request, 'INVALID_SESSION')
     }

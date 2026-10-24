@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Prisma,
-  type LoyaltyProgramConfiguration as PrismaConfig,
-} from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import type { LoyaltyProgramConfiguration as PrismaConfig } from '@prisma/client';
+import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import { PointsEquivalence } from '../domain/points-equivalence.js';
 import { PointsValidity } from '../domain/points-validity.js';
 import { DEFAULT_POINTS_EXPIRATION_MONTHS } from '../domain/points-validity.js';
@@ -17,6 +14,7 @@ import {
   LoyaltyProgramConfigurationData,
   LoyaltyProgramConfigurationInput,
 } from '../domain/loyalty-program-configuration.js';
+import type { LevelThresholds } from '../domain/levels.js';
 
 function toBonusType(value: string): FirstConsumptionBonusType {
   if (value === 'PERCENTAGE' || value === 'FIXED_AMOUNT') {
@@ -35,6 +33,8 @@ function toDomain(record: PrismaConfig): LoyaltyProgramConfiguration {
     pointsExpirationMonths: record.pointsExpirationMonths,
     bonusType: record.bonusType ? toBonusType(record.bonusType) : null,
     bonusValue: record.bonusValue?.toNumber() ?? null,
+    silverMinPoints: record.silverMinPoints,
+    goldMinPoints: record.goldMinPoints,
     isActive: record.isActive,
     validFrom: record.validFrom,
     validTo: record.validTo,
@@ -44,7 +44,13 @@ function toDomain(record: PrismaConfig): LoyaltyProgramConfiguration {
 
 @Injectable()
 export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  // Usa el client de la transacción ambiente: así cada versión nueva y su auditoría
+  // (AuditService.capture) se guardan juntas o no se guarda ninguna.
+  constructor(private readonly transactionRunner: PrismaTransactionRunner) {}
+
+  private get prisma() {
+    return this.transactionRunner.client;
+  }
 
   async savePointsEquivalence(
     configuration: PointsEquivalence,
@@ -110,6 +116,15 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
     });
   }
 
+  async saveLevels(
+    thresholds: LevelThresholds,
+  ): Promise<LoyaltyProgramConfiguration> {
+    return await this.updatePartialConfig({
+      silverMinPoints: thresholds.silverMinPoints,
+      goldMinPoints: thresholds.goldMinPoints,
+    });
+  }
+
   async findCurrentFirstConsumptionBonus(): Promise<FirstConsumptionBonus | null> {
     const active = await this.findActiveConfig();
     if (!active) {
@@ -145,17 +160,17 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
   async saveNewConfigVersion(
     configuration: LoyaltyProgramConfigurationData,
   ): Promise<LoyaltyProgramConfiguration> {
-    return await this.prisma.$transaction(async (transaction) => {
-      const current = await this.lockAndGetActiveConfig(transaction);
-      return await this.persistNewVersion(transaction, current, configuration);
+    return await this.transactionRunner.run(async () => {
+      const current = await this.lockAndGetActiveConfig();
+      return await this.persistNewVersion(current, configuration);
     });
   }
 
   async updateFullConfig(
     configuration: LoyaltyProgramConfigurationInput,
   ): Promise<LoyaltyProgramConfiguration> {
-    return await this.prisma.$transaction(async (transaction) => {
-      const current = await this.lockAndGetActiveConfig(transaction);
+    return await this.transactionRunner.run(async () => {
+      const current = await this.lockAndGetActiveConfig();
       const next = LoyaltyProgramConfiguration.createNextVersion(
         current,
         configuration,
@@ -165,30 +180,28 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
       next.pointsExpirationMonths = configuration.pointsExpirationMonths;
       next.bonusType = configuration.bonusType;
       next.bonusValue = configuration.bonusValue;
-      return await this.persistNewVersion(transaction, current, next);
+      return await this.persistNewVersion(current, next);
     });
   }
 
   private async updatePartialConfig(
     patch: Partial<LoyaltyProgramConfigurationInput>,
   ): Promise<LoyaltyProgramConfiguration> {
-    return await this.prisma.$transaction(async (transaction) => {
-      const current = await this.lockAndGetActiveConfig(transaction);
+    return await this.transactionRunner.run(async () => {
+      const current = await this.lockAndGetActiveConfig();
       const next = LoyaltyProgramConfiguration.createNextVersion(
         current,
         patch,
       );
-      return await this.persistNewVersion(transaction, current, next);
+      return await this.persistNewVersion(current, next);
     });
   }
 
-  private async lockAndGetActiveConfig(
-    transaction: Prisma.TransactionClient,
-  ): Promise<LoyaltyProgramConfiguration | null> {
-    await transaction.$queryRaw`
+  private async lockAndGetActiveConfig(): Promise<LoyaltyProgramConfiguration | null> {
+    await this.prisma.$queryRaw`
       SELECT pg_advisory_xact_lock(761204, 1)::text AS lock_acquired
     `;
-    const record = await transaction.loyaltyProgramConfiguration.findFirst({
+    const record = await this.prisma.loyaltyProgramConfiguration.findFirst({
       where: { isActive: true },
       orderBy: { version: 'desc' },
     });
@@ -196,7 +209,6 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
   }
 
   private async persistNewVersion(
-    transaction: Prisma.TransactionClient,
     current: LoyaltyProgramConfiguration | null,
     data: LoyaltyProgramConfigurationData,
   ): Promise<LoyaltyProgramConfiguration> {
@@ -204,13 +216,13 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
     const now = new Date();
 
     if (current) {
-      await transaction.loyaltyProgramConfiguration.update({
+      await this.prisma.loyaltyProgramConfiguration.update({
         where: { version: current.getVersion() },
         data: { isActive: false, validTo: now },
       });
     }
 
-    const record = await transaction.loyaltyProgramConfiguration.create({
+    const record = await this.prisma.loyaltyProgramConfiguration.create({
       data: {
         version,
         baseAmount: data.baseAmount,
@@ -218,6 +230,8 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
         pointsExpirationMonths: data.pointsExpirationMonths,
         bonusType: data.bonusType,
         bonusValue: data.bonusValue,
+        silverMinPoints: data.silverMinPoints,
+        goldMinPoints: data.goldMinPoints,
         isActive: true,
         validFrom: now,
         validTo: null,

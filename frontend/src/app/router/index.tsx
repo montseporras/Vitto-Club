@@ -42,6 +42,40 @@ export const router = createBrowserRouter([
         ),
       }
     },
+    children: [
+      // Inicio es de otra historia (US-19, frontend)
+      {
+        index: true,
+        element: (
+          <ComingSoon
+            eyebrow="Mi cuenta"
+            title="Tus puntos y recompensas"
+            description="Acá vas a ver tus puntos, tu nivel y las recompensas que podés canjear."
+          />
+        ),
+      },
+      // Historial de puntos (US-26). El historial de consumos es de US-23
+      {
+        path: PATHS.customer.history,
+        lazy: async () => {
+          const { PointsHistory } = await import('@/features/my-account')
+          return {
+            element: (
+              <div className="mx-auto w-full max-w-xl">
+                <PointsHistory />
+              </div>
+            ),
+          }
+        },
+      },
+      {
+        path: PATHS.customer.profile,
+        lazy: async () => {
+          const { MyProfilePage } = await import('@/features/my-account')
+          return { element: <MyProfilePage homePath={PATHS.customer.root} /> }
+        },
+      },
+    ],
   },
   {
     path: PATHS.cashier.root,
@@ -113,6 +147,14 @@ export const router = createBrowserRouter([
           }
         },
       },
+      {
+        // Listado de movimientos de puntos (US-26)
+        path: PATHS.admin.pointsMovements,
+        lazy: async () => {
+          const { PointsMovementsPage } = await import('@/features/points-movements')
+          return { Component: PointsMovementsPage }
+        },
+      },
       // Pantallas de otras historias o sprints: todavía no están construidas
       ...(
         [
@@ -121,7 +163,6 @@ export const router = createBrowserRouter([
           [PATHS.admin.statistics, 'Estadísticas', 'Estadísticas y reportes'],
           [PATHS.admin.audit, 'Auditoría', 'Auditoría'],
           [PATHS.admin.consumptions, 'Consumos', 'Consumos'],
-          [PATHS.admin.pointsMovements, 'Puntos', 'Movimientos de puntos'],
         ] as const
       ).map(([path, eyebrow, title]) => ({
         path,

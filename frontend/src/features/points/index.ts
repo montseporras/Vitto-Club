@@ -14,3 +14,9 @@ export type {
   PointsExpiration,
   UpdatePointsExpirationDto,
 } from './types/points-expiration';
+export type {
+  LoyaltyLevel,
+  LoyaltyLevelEntry,
+  LoyaltyLevelsConfiguration,
+  UpdateLoyaltyLevelsDto,
+} from './types/loyalty-levels';

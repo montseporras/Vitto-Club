@@ -13,6 +13,7 @@ import {
   LoyaltyProgramConfiguration,
   LoyaltyProgramConfigurationInput,
 } from '../domain/loyalty-program-configuration.js';
+import { assertLevelThresholds, LevelThresholds } from '../domain/levels.js';
 
 @Injectable()
 export class LoyaltyService {
@@ -61,6 +62,14 @@ export class LoyaltyService {
       );
     }
     return bonus;
+  }
+
+  // US-27 (§3.7.2): versión nueva con los umbrales, copiando el resto de los valores
+  async setLevels(
+    thresholds: LevelThresholds,
+  ): Promise<LoyaltyProgramConfiguration> {
+    assertLevelThresholds(thresholds);
+    return await this.loyaltyRepository.saveLevels(thresholds);
   }
 
   async getActiveConfiguration(): Promise<LoyaltyProgramConfiguration> {

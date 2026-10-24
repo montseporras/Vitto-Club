@@ -5,6 +5,11 @@ import {
 import { PointsEquivalence } from './points-equivalence.js';
 import { PointsValidity } from './points-validity.js';
 import { DomainError } from './errors/domain.error.js';
+import {
+  assertLevelThresholds,
+  DEFAULT_GOLD_MIN_POINTS,
+  DEFAULT_SILVER_MIN_POINTS,
+} from './levels.js';
 
 export type LoyaltyProgramConfigurationData = {
   version: number;
@@ -13,6 +18,8 @@ export type LoyaltyProgramConfigurationData = {
   pointsExpirationMonths: number;
   bonusType: FirstConsumptionBonusType | null;
   bonusValue: number | null;
+  silverMinPoints: number;
+  goldMinPoints: number;
   isActive: boolean;
   validFrom: Date;
   validTo: Date | null;
@@ -25,6 +32,9 @@ export type LoyaltyProgramConfigurationInput = {
   pointsExpirationMonths: number;
   bonusType: FirstConsumptionBonusType;
   bonusValue: number;
+  // US-27: en el guardado completo son opcionales; si faltan se copian de la versión vigente
+  silverMinPoints?: number;
+  goldMinPoints?: number;
 };
 
 export class LoyaltyProgramConfiguration {
@@ -70,6 +80,11 @@ export class LoyaltyProgramConfiguration {
       });
     }
 
+    assertLevelThresholds({
+      silverMinPoints: data.silverMinPoints,
+      goldMinPoints: data.goldMinPoints,
+    });
+
     return new LoyaltyProgramConfiguration(data);
   }
 
@@ -86,6 +101,15 @@ export class LoyaltyProgramConfiguration {
       12;
     const bonusType = input.bonusType ?? current?.getBonusType() ?? null;
     const bonusValue = input.bonusValue ?? current?.getBonusValue() ?? null;
+    // US-27: cada versión nueva copia los umbrales vigentes si no vienen
+    const silverMinPoints =
+      input.silverMinPoints ??
+      current?.getSilverMinPoints() ??
+      DEFAULT_SILVER_MIN_POINTS;
+    const goldMinPoints =
+      input.goldMinPoints ?? current?.getGoldMinPoints() ?? DEFAULT_GOLD_MIN_POINTS;
+    // Oro > Plata también cuando llega uno solo y el otro se copia de la versión vigente
+    assertLevelThresholds({ silverMinPoints, goldMinPoints });
 
     return {
       version: (current?.getVersion() ?? 0) + 1,
@@ -94,6 +118,8 @@ export class LoyaltyProgramConfiguration {
       pointsExpirationMonths,
       bonusType,
       bonusValue,
+      silverMinPoints,
+      goldMinPoints,
       isActive: true,
       validFrom: new Date(),
       validTo: null,
@@ -123,6 +149,14 @@ export class LoyaltyProgramConfiguration {
 
   getBonusValue(): number | null {
     return this.data.bonusValue;
+  }
+
+  getSilverMinPoints(): number {
+    return this.data.silverMinPoints;
+  }
+
+  getGoldMinPoints(): number {
+    return this.data.goldMinPoints;
   }
 
   getIsActive(): boolean {

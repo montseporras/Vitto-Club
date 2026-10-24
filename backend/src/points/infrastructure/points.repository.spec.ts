@@ -206,11 +206,13 @@ describe('PointsPrismaRepository', () => {
   });
 
   describe('insertMovement()', () => {
-    it('inserta el movimiento con los campos dados', async () => {
+    it('inserta el movimiento con los campos dados y devuelve su id y su fecha', async () => {
       const prisma = fakePrisma();
+      const createdAt = new Date('2026-10-16T18:12:00.000Z');
+      prisma.pointsMovement.create.mockResolvedValue({ id: 88, createdAt });
       const repo = new PointsPrismaRepository(fakeTransactionRunner(prisma));
 
-      await repo.insertMovement({
+      const inserted = await repo.insertMovement({
         customerId: 101,
         type: 'CONSUMPTION_CREDIT',
         points: 500,
@@ -233,7 +235,9 @@ describe('PointsPrismaRepository', () => {
           performedByAccountId: 12,
           performedByName: 'Ana Pereyra',
         },
+        select: { id: true, createdAt: true },
       });
+      expect(inserted).toEqual({ id: 88, createdAt });
     });
   });
 
