@@ -231,7 +231,7 @@ describe('PointsService', () => {
       const balance = await repository.findBalance(101);
       expect(balance?.debt).toBe(0);
       const lot = await repository.findLotByConsumptionId(141);
-      expect(lot?.getStatus()).toBe('CONSUMED');
+      expect(lot?.getStatus()).toBe('VOIDED');
       expect(lot?.getRemainingPoints()).toBe(0);
     });
 
@@ -258,7 +258,7 @@ describe('PointsService', () => {
       const balance = await repository.findBalance(101);
       expect(balance?.debt).toBe(300); // lo que faltó recuperar del lote (500-200)
       const lot = await repository.findLotByConsumptionId(141);
-      expect(lot?.getStatus()).toBe('CONSUMED');
+      expect(lot?.getStatus()).toBe('VOIDED');
       expect(lot?.getRemainingPoints()).toBe(0);
     });
 

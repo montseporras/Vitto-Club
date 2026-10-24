@@ -87,14 +87,14 @@ describe('PointsLot', () => {
   });
 
   describe('voidOrigin() (CA-BASE.4, US-22)', () => {
-    it('descuenta lo disponible y fuerza CONSUMED aunque no llegue a 0', () => {
+    it('descuenta lo disponible y fuerza VOIDED aunque no llegue a 0', () => {
       const lot = PointsLot.create(validData);
       lot.consume(300); // ya se gastó parte en otro lado -> quedan 200 disponibles
 
       lot.voidOrigin(200); // se anula el consumo que originó este lote
 
       expect(lot.getRemainingPoints()).toBe(0);
-      expect(lot.getStatus()).toBe('CONSUMED');
+      expect(lot.getStatus()).toBe('VOIDED');
     });
 
     it('invalida el lote entero aunque todavía tenga todo el saldo disponible', () => {
@@ -103,7 +103,7 @@ describe('PointsLot', () => {
       lot.voidOrigin(500);
 
       expect(lot.getRemainingPoints()).toBe(0);
-      expect(lot.getStatus()).toBe('CONSUMED');
+      expect(lot.getStatus()).toBe('VOIDED');
     });
   });
 });
