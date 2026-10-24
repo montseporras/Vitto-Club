@@ -4,6 +4,7 @@ import {
   customerDeactivatedEntry,
   customerUpdatedEntry,
   employeeUpdatedEntry,
+  pointsAdjustedEntry,
   type CustomerSnapshot,
   type EmployeeSnapshot,
   type LoyaltyConfigSnapshot,
@@ -110,6 +111,47 @@ describe('customerUpdatedEntry() con motivo (CLI-ADM)', () => {
     expect(customerUpdatedEntry(actor, customer, changed).details).toEqual([
       { label: 'Teléfono', value: '3510000000 → 3510000009' },
     ]);
+  });
+});
+
+describe('pointsAdjustedEntry()', () => {
+  it('ADD: Cantidad con +, Saldo resultante y Motivo, con el cliente afectado', () => {
+    const entry = pointsAdjustedEntry(actor, customer, {
+      points: 350,
+      balanceAfter: 0,
+      reason: 'Regularización por anulación de consumo',
+    });
+
+    expect(entry).toEqual({
+      actor,
+      module: 'POINTS',
+      action: 'POINTS_ADJUSTED',
+      description: 'Ajustó puntos de Sofía Ríos',
+      affectedCustomer: { customerId: 102, name: 'Sofía Ríos', documentType: 'DNI', documentNumber: '30111222' },
+      details: [
+        { label: 'Cantidad', value: '+350 pts' },
+        { label: 'Saldo resultante', value: '0 pts' },
+        { label: 'Motivo', value: 'Regularización por anulación de consumo' },
+      ],
+    });
+    expect(entry.operationCode).toBeUndefined();
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+
+  it('SUBTRACT: Cantidad con el signo menos de §3.9.4 y puntos de miles', () => {
+    const entry = pointsAdjustedEntry(actor, customer, { points: -1200, balanceAfter: 1350, reason: 'Corrección' });
+
+    expect(entry.details).toEqual([
+      { label: 'Cantidad', value: '−1.200 pts' },
+      { label: 'Saldo resultante', value: '1.350 pts' },
+      { label: 'Motivo', value: 'Corrección' },
+    ]);
+  });
+
+  it('Saldo resultante negativo: con el guion común, como el ejemplo de §3.9.4', () => {
+    const entry = pointsAdjustedEntry(actor, customer, { points: 50, balanceAfter: -350, reason: 'Parcial' });
+
+    expect(entry.details[1]).toEqual({ label: 'Saldo resultante', value: '-350 pts' });
   });
 });
 

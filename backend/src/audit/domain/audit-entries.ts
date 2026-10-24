@@ -254,6 +254,40 @@ export function customerDeactivatedEntry(
   };
 }
 
+// --- Puntos ------------------------------------------------------------------------------
+
+// Cantidad con signo, como en el ejemplo de §3.9.4 ("−500 pts", con el signo menos U+2212).
+// El saldo resultante va con formatNumber, que usa el guion común ("-350 pts"), igual que ese
+// ejemplo (decisión de Jazmín).
+const formatSignedPoints = (points: number): string =>
+  `${points < 0 ? '−' : '+'}${formatNumber(Math.abs(points))} pts`;
+
+export type PointsAdjustmentSnapshot = {
+  // Con signo: + al sumar, − al restar
+  points: number;
+  balanceAfter: number;
+  reason: string;
+};
+
+export function pointsAdjustedEntry(
+  actor: AuditActor,
+  customer: CustomerSnapshot,
+  adjustment: PointsAdjustmentSnapshot,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'POINTS',
+    action: 'POINTS_ADJUSTED',
+    description: `Ajustó puntos de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    details: [
+      { label: 'Cantidad', value: formatSignedPoints(adjustment.points) },
+      { label: 'Saldo resultante', value: `${formatNumber(adjustment.balanceAfter)} pts` },
+      { label: 'Motivo', value: adjustment.reason },
+    ],
+  };
+}
+
 // --- Configuración del programa de puntos -----------------------------------------------
 
 export type LoyaltyConfigSnapshot = {

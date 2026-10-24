@@ -21,6 +21,9 @@ export type InsertMovementData = {
   performedByName: string;
 };
 
+// Lo que la base le asigna al movimiento al guardarlo (US-24 lo devuelve en la respuesta)
+export type InsertedMovement = { id: number; createdAt: Date };
+
 // Configuración vigente que PointsService necesita leer (vigencia para el snapshot del
 // lote, y umbrales de nivel). Se lee directo de loyalty_program_configurations por Prisma,
 // sin pasar por el código de `loyalty` (ese módulo no es mío, pero la columna es pública).
@@ -55,7 +58,7 @@ export abstract class PointsRepository {
   abstract createLot(lot: PointsLot): Promise<PointsLot>;
   abstract updateLot(lot: PointsLot): Promise<void>;
 
-  abstract insertMovement(data: InsertMovementData): Promise<void>;
+  abstract insertMovement(data: InsertMovementData): Promise<InsertedMovement>;
 
   // null si no hay ninguna configuración activa (no debería pasar en el flujo normal:
   // quien llama a acreditar/ajustar ya validó que existe antes de llegar acá).
