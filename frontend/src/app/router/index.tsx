@@ -43,7 +43,7 @@ export const router = createBrowserRouter([
       }
     },
     children: [
-      // Inicio e Historial son de otras historias (US-19 y US-23/US-26, frontend)
+      // Inicio es de otra historia (US-19, frontend)
       {
         index: true,
         element: (
@@ -54,15 +54,19 @@ export const router = createBrowserRouter([
           />
         ),
       },
+      // Historial de puntos (US-26). El historial de consumos es de US-23
       {
         path: PATHS.customer.history,
-        element: (
-          <ComingSoon
-            eyebrow="Mi cuenta"
-            title="Historial"
-            description="Acá vas a ver tus consumos y los movimientos de tus puntos."
-          />
-        ),
+        lazy: async () => {
+          const { PointsHistory } = await import('@/features/my-account')
+          return {
+            element: (
+              <div className="mx-auto w-full max-w-xl">
+                <PointsHistory />
+              </div>
+            ),
+          }
+        },
       },
       {
         path: PATHS.customer.profile,

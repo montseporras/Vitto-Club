@@ -5,11 +5,15 @@ import { cashierHandlers } from './cashier.handlers'
 import { employeesHandlers } from './employees.handlers'
 import { myAccountHandlers } from './my-account.handlers'
 import { pointsHandlers } from './points.handlers'
+import { pointsMovementsHandlers } from './points-movements.handlers'
 
 export const handlers = [
   ...authHandlers,
   // Antes que los de caja: /customers/me tiene que ganarle a /customers/:id
   ...myAccountHandlers,
+  // También antes que los de caja: /customers/me/movimientos le tiene que ganar a
+  // /customers/:id/movimientos
+  ...pointsMovementsHandlers,
   ...cashierHandlers,
   ...employeesHandlers,
   ...pointsHandlers,
