@@ -1,8 +1,9 @@
 import { z } from 'zod'
 
 export const MAX_LEVEL_MIN_POINTS = 2_147_483_647
+// Mismo texto que devuelve el backend (US-27)
 export const MAX_LEVEL_MIN_POINTS_MESSAGE =
-  'El umbral no puede superar el límite máximo permitido de 2.147.483.647.'
+  'Ingresá un número menor o igual a 2.147.483.647.'
 
 export const loyaltyLevelsSchema = z
   .object({
