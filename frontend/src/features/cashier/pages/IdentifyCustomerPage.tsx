@@ -19,31 +19,39 @@ import {
   useCustomerPoints,
   type DocumentSearch,
 } from '../api/cashier.queries'
+import { ConsumptionRegistered } from '../components/ConsumptionRegistered'
 import { CustomerActivityPanel } from '../components/CustomerActivityPanel'
 import { CustomerPointsCard } from '../components/CustomerPointsCard'
+import { RegisterConsumptionForm } from '../components/RegisterConsumptionForm'
 import {
   findCustomerSchema,
   type FindCustomerFormInput,
   type FindCustomerFormOutput,
 } from '../schemas/find-customer.schema'
+import type { CreateConsumptionResult } from '../types/consumption'
 
 const DOCUMENT_OPTIONS = DOCUMENT_TYPE_VALUES.map((type) => ({
   value: type,
   label: DOCUMENT_TYPES[type].label,
 }))
 
-/** Buscar cliente: se identifica al cliente por documento y se ven su nivel y saldo (US-46). */
+/**
+ * Buscar cliente: se identifica al cliente por documento y se ven su nivel y saldo (US-46).
+ * Con el cliente encontrado se registra su consumo (US-21).
+ */
 export function IdentifyCustomerPage() {
   const {
     register,
     handleSubmit,
     control,
+    reset,
     formState: { errors },
   } = useForm<FindCustomerFormInput, unknown, FindCustomerFormOutput>({
     resolver: zodResolver(findCustomerSchema),
     defaultValues: { documentType: 'DNI', documentNumber: '' },
   })
   const [search, setSearch] = useState<DocumentSearch | null>(null)
+  const [registered, setRegistered] = useState<CreateConsumptionResult | null>(null)
   const session = useSession()
   const result = useCustomerByDocument(search)
 
@@ -67,7 +75,26 @@ export function IdentifyCustomerPage() {
   }
 
   const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
+  // "Registrar otro consumo" vuelve a la búsqueda, vacía
+  const registerAnother = () => {
+    setRegistered(null)
+    setSearch(null)
+    reset()
+  }
+
   const loading = result.isFetching || (customer !== null && points.isFetching)
+
+  if (registered && session.user) {
+    return (
+      <Page>
+        <ConsumptionRegistered
+          result={registered}
+          role={session.user.role}
+          onRegisterAnother={registerAnother}
+        />
+      </Page>
+    )
+  }
 
   return (
     <Page>
@@ -165,6 +192,13 @@ export function IdentifyCustomerPage() {
                   key={customer.id}
                   customerId={customer.id}
                   role={session.user.role}
+                />
+                <RegisterConsumptionForm
+                  // Al cambiar de cliente, el formulario vuelve a arrancar vacío
+                  key={customer.id}
+                  customerId={customer.id}
+                  onRegistered={setRegistered}
+                  onCancel={() => undefined}
                 />
               </div>
             )}

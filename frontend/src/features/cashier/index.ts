@@ -14,3 +14,9 @@ export type {
   UpdateCustomerBody,
 } from './types/customer'
 export type { CustomerPoints, PointsMovement } from './types/points'
+export type {
+  Consumption,
+  ConsumptionPreview,
+  CreateConsumptionBody,
+  CreateConsumptionResult,
+} from './types/consumption'

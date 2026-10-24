@@ -7,3 +7,11 @@ export const formatInteger = (value: number) =>
 /** Con signo siempre: "+500" o "−500". */
 export const formatSignedInteger = (value: number) =>
   (value > 0 ? '+' : '') + formatInteger(value)
+
+const MONEY = new Intl.NumberFormat('es-AR', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+})
+
+/** 50000 → "$50.000"; 12500.5 → "$12.500,5". */
+export const formatMoney = (value: number) => `$${MONEY.format(value)}`

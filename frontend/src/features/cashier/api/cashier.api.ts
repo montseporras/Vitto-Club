@@ -8,6 +8,11 @@ import type {
 } from '../types/customer'
 import type { Paginated } from '@/shared/types/pagination'
 import type { CustomerPoints, PointsMovement } from '../types/points'
+import type {
+  ConsumptionPreview,
+  CreateConsumptionBody,
+  CreateConsumptionResult,
+} from '../types/consumption'
 
 export async function createCustomer(body: CreateCustomerBody) {
   try {
@@ -56,6 +61,26 @@ export async function getCustomerMovements(customerId: number, limit: number) {
       `/customers/${customerId}/movimientos`,
       { params: { limit } },
     )
+    return res.data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function getConsumptionPreview(customerId: number, amount: number) {
+  try {
+    const res = await http.get<ConsumptionPreview>('/consumos/preview', {
+      params: { customerId, amount },
+    })
+    return res.data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function createConsumption(body: CreateConsumptionBody) {
+  try {
+    const res = await http.post<CreateConsumptionResult>('/consumos', body)
     return res.data
   } catch (error) {
     throw toApiError(error)

@@ -11,6 +11,8 @@ export const cashierKeys = {
   byDocument: ({ documentType, documentNumber }: DocumentSearch) =>
     ['customers', 'by-document', documentType, documentNumber] as const,
   points: (customerId: number) => ['customers', customerId, 'points'] as const,
+  consumptionPreview: (customerId: number, amount: number) =>
+    ['consumptions', 'preview', customerId, amount] as const,
   movements: (customerId: number, limit: number) =>
     ['customers', customerId, 'movements', { limit }] as const,
 }
