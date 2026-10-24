@@ -3,6 +3,24 @@ import { CustomersService } from '../application/customers.service.js';
 import { Customer } from '../domain/customer.js';
 import { ListCustomersQueryDto } from './dto/list-customers-query.dto.js';
 import { FindCustomerByDocumentQueryDto } from './dto/find-customer-by-document-query.dto.js';
+import { CustomerPointsService } from '../application/customer-points.service.js';
+import type { PointsSummary } from '../../points/application/points.service.js';
+
+const pointsSummary: PointsSummary = {
+  customerId: 1,
+  balance: 450,
+  negativeBalance: false,
+  lifetimePoints: 450,
+  level: {
+    current: 'SILVER',
+    next: 'GOLD',
+    currentMinPoints: 300,
+    nextMinPoints: 800,
+    pointsToNext: 350,
+    progressPercent: 30,
+  },
+  nextExpirations: [{ points: 200, expiresAt: '2026-11-30' }],
+};
 import { createCapturingAuditService } from '../../audit/testing/capturing-audit-service.js';
 import type { CustomerPointsAdjustmentService } from '../application/customer-points-adjustment.service.js';
 import type { AuditEntryInput } from '../../audit/domain/audit-entry.js';
@@ -29,6 +47,7 @@ describe('CustomersController', () => {
     createWithAccount: jest.Mock;
     update: jest.Mock;
   };
+  let pointsService: { getSummary: jest.Mock };
   let audit: AuditEntryInput[];
   let controller: CustomersController;
   let adjustment: { adjust: jest.Mock };
@@ -56,12 +75,14 @@ describe('CustomersController', () => {
       createWithAccount: jest.fn(),
       update: jest.fn(),
     };
+    pointsService = { getSummary: jest.fn() };
     const capturing = createCapturingAuditService();
     audit = capturing.entries;
     adjustment = { adjust: jest.fn() };
     controller = new CustomersController(
       service as unknown as CustomersService,
       capturing.service,
+      pointsService as unknown as CustomerPointsService,
       adjustment as unknown as CustomerPointsAdjustmentService,
     );
   });
@@ -370,6 +391,34 @@ describe('CustomersController', () => {
 
       expect(service.getStatusHistory).toHaveBeenCalledWith(1);
       expect(result).toEqual([{ id: 3, action: 'DEACTIVATED', createdAt: '2026-09-20T12:00:00.000Z' }]);
+    });
+  });
+
+  describe('puntos del cliente (US-46 / US-19)', () => {
+    it('points() devuelve la forma de §3.4.1 para el id recibido', async () => {
+      pointsService.getSummary.mockResolvedValue(pointsSummary);
+
+      const result = await controller.points(1);
+
+      expect(pointsService.getSummary).toHaveBeenCalledWith(1);
+      expect(result).toEqual(pointsSummary);
+    });
+
+    it('myPoints() usa el customerId del token', async () => {
+      pointsService.getSummary.mockResolvedValue(pointsSummary);
+
+      const result = await controller.myPoints({ accountId: 9, role: 'CUSTOMER', customerId: 1 });
+
+      expect(pointsService.getSummary).toHaveBeenCalledWith(1);
+      expect(result).toEqual(pointsSummary);
+    });
+
+    it('myPoints() rechaza con 403 FORBIDDEN un token sin customerId', async () => {
+      await expect(controller.myPoints({ accountId: 9, role: 'CUSTOMER' })).rejects.toMatchObject({
+        status: 403,
+        response: expect.objectContaining({ code: 'FORBIDDEN' }),
+      });
+      expect(pointsService.getSummary).not.toHaveBeenCalled();
     });
   });
 });
