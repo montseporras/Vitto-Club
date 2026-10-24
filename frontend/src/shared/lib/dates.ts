@@ -85,3 +85,18 @@ export function isoToDisplayDateTime(value: string) {
   )
   return `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}`
 }
+
+const ARGENTINA_DATE = new Intl.DateTimeFormat('es-AR', {
+  timeZone: 'America/Argentina/Cordoba',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+})
+
+/** ISO UTC de la API → 'dd/mm/aaaa' en hora de Argentina (ej. fecha de alta). */
+export function isoToDisplayDateOnly(value: string) {
+  const parts = Object.fromEntries(
+    ARGENTINA_DATE.formatToParts(new Date(value)).map((p) => [p.type, p.value]),
+  )
+  return `${parts.day}/${parts.month}/${parts.year}`
+}

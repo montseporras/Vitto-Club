@@ -1,5 +1,6 @@
 import type { DocumentType } from '@/domain/documents'
 import type { Level } from '@/domain/levels'
+import type { PointsMovementType } from '@/domain/statuses'
 
 /** Respuesta de GET /api/customers/:id/puntos (contrato §3.4.1). */
 export type CustomerPoints = {
@@ -19,14 +20,6 @@ export type CustomerPoints = {
   /** `expiresAt` en 'YYYY-MM-DD' (hora de Argentina) */
   nextExpirations: { points: number; expiresAt: string }[]
 }
-
-/** Enum PointsMovementType (contrato §2.2). */
-export type PointsMovementType =
-  | 'CONSUMPTION_CREDIT'
-  | 'VOID_REVERSAL'
-  | 'MANUAL_ADJUSTMENT'
-  | 'EXPIRATION'
-  | 'REDEMPTION'
 
 /** Tipo PointsMovement (contrato §3.6). */
 export type PointsMovement = {

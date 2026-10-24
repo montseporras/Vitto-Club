@@ -1,25 +1,51 @@
 // Este archivo es el marco de las pantallas del Administrador: encabezado, engranaje y
 // modal de Configuración. Decide qué pantalla de cada feature se muestra en cada sección.
 //
-// El fondo (catálogo, misiones, clientes, etc.) queda como placeholder: pertenece
-// a otros RF. Acá se cablean las secciones de Configuración ya implementadas:
-// Empleados (RF-01) y Puntos (RF-011).
+// El menú lateral lleva a las pantallas del Administrador (el router las pone en el <Outlet>):
+// Clientes (CLI-ADM) y Buscar cliente ya están; el resto muestra "Próximamente". Acá se
+// cablean también las secciones de Configuración ya implementadas: Empleados (RF-01) y
+// Puntos (RF-011).
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, Outlet } from 'react-router';
 import { PATHS } from '@/app/router/paths';
 import { SessionActions } from '@/features/auth';
 import { EmployeesPage } from '@/features/employees';
-import { PointsMovementsPage } from '@/features/points-movements'
 // NUEVO (cambio 1): la pantalla de puntos, importada desde la API pública del
 // feature (su index.ts, archivo 10), nunca desde sus carpetas internas.
-import { PointsSettingsPage } from '@/features/points'
-import { StatusText } from '@/shared/components/feedback/StatusText'
-import { AppFooter, AppHeader } from '@/shared/components/navigation/AppHeader'
-import { SideNav } from '@/shared/components/navigation/SideNav';
+import { PointsSettingsPage } from '@/features/points';
+import { StatusText } from '@/shared/components/feedback/StatusText';
+import { AppFooter, AppHeader } from '@/shared/components/navigation/AppHeader';
+import { SideNav, type SideNavItem } from '@/shared/components/navigation/SideNav';
 import { Icon } from '@/shared/components/ui/Icon';
 import { ICONS } from '@/shared/components/ui/icons';
 import { Modal } from '@/shared/components/ui/Modal';
 import { appHeaderStyles } from '@/styles/ui';
+
+// Menú lateral del Administrador, en el orden del prototipo v2. Recompensas, Misiones y
+// Estadísticas son de otros sprints: deshabilitadas con "Próx.", como en el prototipo. El resto
+// de las opciones que todavía no están construidas abre una pantalla "Próximamente".
+const SOON = 'Próx.';
+const NAV: SideNavItem[] = [
+  { id: 'rewards', disabled: true, tag: SOON, label: 'Catálogo de recompensas', icon: ICONS.gift },
+  { id: 'missions', disabled: true, tag: SOON, label: 'Misiones', icon: ICONS.target },
+  { id: 'customers', to: PATHS.admin.customers, label: 'Clientes', icon: ICONS.users },
+  {
+    id: 'statistics',
+    disabled: true,
+    tag: SOON,
+    label: 'Estadísticas y reportes',
+    icon: ICONS.chart,
+  },
+  { id: 'audit', to: PATHS.admin.audit, label: 'Auditoría', icon: ICONS.history },
+  { id: 'identify', to: PATHS.admin.identifyCustomer, label: 'Buscar cliente', icon: ICONS.user },
+  { id: 'consumptions', to: PATHS.admin.consumptions, label: 'Consumos', icon: ICONS.receipt },
+  {
+    id: 'movements',
+    to: PATHS.admin.pointsMovements,
+    label: 'Movimientos de puntos',
+    icon: ICONS.arrowsLeftRight,
+  },
+];
 
 // Secciones del menú lateral del modal de Configuración.
 const SECTIONS = [
@@ -73,10 +99,23 @@ export function AdminLayout() {
         </button>
       </AppHeader>
 
-      {/* El listado de movimientos es la pantalla administrativa implementada en US-26. */}
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:py-8">
-        <PointsMovementsPage />
-      </main>
+      {/* Igual que el mostrador: el menú pegado a la izquierda y el contenido en el espacio que sobra */}
+      <div className="flex w-full flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:gap-8 lg:py-8">
+        <aside className="lg:shrink-0">
+          <SideNav
+            label="Opciones de administración"
+            title="Menú de administración"
+            items={NAV}
+            storageKey="vitto:menu-admin"
+            collapsibleFrom="(min-width: 64rem)"
+            className="lg:sticky lg:top-24"
+          />
+        </aside>
+
+        <main className="min-w-0 flex-1">
+          <Outlet />
+        </main>
+      </div>
 
       <AppFooter />
 

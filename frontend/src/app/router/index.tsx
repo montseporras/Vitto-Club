@@ -121,6 +121,54 @@ export const router = createBrowserRouter([
         ),
       }
     },
+    children: [
+      { index: true, element: <Navigate to={PATHS.admin.customers} replace /> },
+      {
+        path: PATHS.admin.customers,
+        lazy: async () => {
+          const { CustomersPage } = await import('@/features/customers')
+          return { Component: CustomersPage }
+        },
+      },
+      {
+        path: PATHS.admin.customerDetail,
+        lazy: async () => {
+          const { CustomerDetailPage } = await import('@/features/customers')
+          return { Component: CustomerDetailPage }
+        },
+      },
+      {
+        // El mismo "Buscar cliente" de Caja; "Registrar cliente" lleva a Clientes (§3.1.1)
+        path: PATHS.admin.identifyCustomer,
+        lazy: async () => {
+          const { IdentifyCustomerPage } = await import('@/features/cashier')
+          return {
+            Component: () => <IdentifyCustomerPage newCustomerPath={PATHS.admin.customers} />,
+          }
+        },
+      },
+      {
+        // Listado de movimientos de puntos (US-26)
+        path: PATHS.admin.pointsMovements,
+        lazy: async () => {
+          const { PointsMovementsPage } = await import('@/features/points-movements')
+          return { Component: PointsMovementsPage }
+        },
+      },
+      // Pantallas de otras historias o sprints: todavía no están construidas
+      ...(
+        [
+          [PATHS.admin.rewards, 'Recompensas', 'Catálogo de recompensas'],
+          [PATHS.admin.missions, 'Misiones', 'Misiones'],
+          [PATHS.admin.statistics, 'Estadísticas', 'Estadísticas y reportes'],
+          [PATHS.admin.audit, 'Auditoría', 'Auditoría'],
+          [PATHS.admin.consumptions, 'Consumos', 'Consumos'],
+        ] as const
+      ).map(([path, eyebrow, title]) => ({
+        path,
+        element: <ComingSoon eyebrow={eyebrow} title={title} />,
+      })),
+    ],
   },
   { path: '*', element: <Navigate to="/" replace /> },
 ])

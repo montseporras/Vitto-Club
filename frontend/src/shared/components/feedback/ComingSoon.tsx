@@ -1,7 +1,8 @@
 type ComingSoonProps = {
   eyebrow: string
   title: string
-  description: string
+  /** Texto opcional debajo de "Próximamente". */
+  description?: string
 }
 
 /** Lugar reservado para una pantalla que todavía no está construida. */
@@ -18,9 +19,11 @@ export function ComingSoon({ eyebrow, title, description }: ComingSoonProps) {
         <span className="inline-block rounded-full bg-beige px-3 py-1 text-xs font-bold uppercase tracking-wide text-ink">
           Próximamente
         </span>
-        <p className="mt-3 max-w-prose text-base text-neutral-700">
-          {description}
-        </p>
+        {description && (
+          <p className="mt-3 max-w-prose text-base text-neutral-700">
+            {description}
+          </p>
+        )}
       </div>
     </section>
   )

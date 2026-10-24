@@ -14,3 +14,10 @@ export type {
   UpdateCustomerBody,
 } from './types/customer'
 export type { CustomerPoints, PointsMovement } from './types/points'
+// Clientes del Administrador (features/customers) reutiliza el alta, el saldo y los movimientos.
+export {
+  CustomerRegistrationForm,
+  CUSTOMER_REGISTERED_MESSAGE,
+} from './components/CustomerRegistrationForm'
+export { useCustomerMovements, useCustomerPoints } from './api/cashier.queries'
+export { customerFieldsSchema } from './schemas/create-customer.schema'

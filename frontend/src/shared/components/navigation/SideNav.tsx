@@ -14,6 +14,8 @@ export type SideNavItem = {
 } & (
   | { to: string }
   | { active: boolean; onSelect: () => void }
+  // Todavía no disponible: se ve en gris, con la etiqueta (ej. "Próx."), y no hace nada
+  | { disabled: true; tag?: string }
 )
 
 type SideNavProps = {
@@ -115,7 +117,32 @@ export function SideNav({
       <ul className={sideNavStyles.list}>
         {items.map((item) => (
           <li key={item.id} className={sideNavStyles.entry}>
-            {'to' in item ? (
+            {'disabled' in item ? (
+              <span
+                aria-disabled="true"
+                className={cn(
+                  sideNavStyles.item,
+                  collapsed && sideNavStyles.itemCollapsed,
+                  sideNavStyles.itemDisabled,
+                )}
+              >
+                <Icon d={item.icon} className={sideNavStyles.icon} />
+                <span
+                  className={cn(
+                    sideNavStyles.label,
+                    sideNavStyles.labelWithTag,
+                    collapsed && sideNavStyles.labelCollapsed,
+                  )}
+                >
+                  {item.label}
+                </span>
+                {item.tag && (
+                  <span className={cn(sideNavStyles.tag, collapsed && sideNavStyles.tagCollapsed)}>
+                    {item.tag}
+                  </span>
+                )}
+              </span>
+            ) : 'to' in item ? (
               <NavLink
                 to={item.to}
                 className={({ isActive }) =>

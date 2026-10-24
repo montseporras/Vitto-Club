@@ -81,6 +81,13 @@ export const sideNavStyles = {
   ].join(' '),
   itemActive: 'bg-accent-100 text-accent-700',
   itemIdle: 'bg-transparent text-ink hover:bg-accent-50',
+  // Opción que todavía no está disponible (prototipo: .vc-si-dis), sin hover ni clic
+  itemDisabled: 'cursor-default bg-transparent text-neutral-400',
+  // Etiqueta "Próx." a la derecha de la opción deshabilitada (prototipo: .vc-si-tag)
+  tag: 'ml-auto shrink-0 rounded-full bg-accent-100 px-1 py-0.5 text-xs font-bold uppercase text-accent-700',
+  tagCollapsed: 'hidden',
+  // Con etiqueta: si no entra, el nombre se corta con "…" en vez de taparse
+  labelWithTag: 'min-w-0 text-ellipsis',
   icon: 'size-5 shrink-0',
   label:
     'ml-3 overflow-hidden whitespace-nowrap transition-[opacity,margin] duration-300',
