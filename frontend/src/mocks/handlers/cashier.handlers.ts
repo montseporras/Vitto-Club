@@ -391,6 +391,127 @@ export const cashierHandlers = [
     })
   }),
 
+  // US-24: POST /api/customers/:id/ajustes-de-puntos (contrato §3.5.1). Solo el Administrador.
+  http.post<{ id: string }>(
+    `${API_URL}/customers/:id/ajustes-de-puntos`,
+    async ({ request, params }) => {
+      await delay(400)
+      const path = new URL(request.url).pathname
+      const account = accountFromRequest(request)
+      if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+      // El Cajero y el Cliente reciben 403 (CA-24.1)
+      if (account.role !== 'ADMIN') {
+        return errorResponse(403, 'No tenés permiso para realizar esta acción.', path, 'FORBIDDEN')
+      }
+
+      // Equivalente al ValidationPipe con el DTO del ajuste
+      const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
+      const messages = Object.keys(body)
+        .filter((key) => !['direction', 'points', 'reason'].includes(key))
+        .map((key) => `property ${key} should not exist`)
+      const { direction, points } = body
+      const reason = typeof body.reason === 'string' ? body.reason.trim() : ''
+      if (direction !== 'ADD' && direction !== 'SUBTRACT') {
+        messages.push('direction must be one of the following values: ADD, SUBTRACT')
+      }
+      if (points === undefined || points === null || points === '') {
+        messages.push('Ingresá la cantidad de puntos.')
+      } else if (typeof points !== 'number' || !Number.isInteger(points) || points <= 0) {
+        messages.push('Tiene que ser un número entero mayor a 0.')
+      } else if (points > 1_000_000) {
+        messages.push('points must not be greater than 1000000')
+      }
+      if (!reason) messages.push('El motivo es obligatorio.')
+      else if (reason.length > 500) messages.push('reason must be shorter than or equal to 500 characters')
+      if (messages.length) return errorResponse(400, messages, path)
+
+      if (!/^\d+$/.test(params.id)) {
+        return errorResponse(400, 'Validation failed (numeric string is expected)', path)
+      }
+      const customer = customers.find((c) => c.id === Number(params.id))
+      if (!customer) return errorResponse(404, `No existe el cliente ${params.id}.`, path)
+      if (!customer.active) {
+        return errorResponse(409, 'El cliente está dado de baja.', path, 'CUSTOMER_INACTIVE')
+      }
+
+      const amount = points as number
+      const state = (pointsByCustomer[customer.id] ??= {
+        balance: 0,
+        lifetimePoints: 0,
+        nextExpirations: [],
+      })
+      const balanceBefore = state.balance
+      if (direction === 'SUBTRACT') {
+        // Restar nunca deja el saldo negativo (decisión #1)
+        if (balanceBefore < 0 || amount > balanceBefore) {
+          return errorResponse(
+            409,
+            'No se puede restar más que el saldo disponible.',
+            path,
+            'INSUFFICIENT_BALANCE',
+          )
+        }
+        // FIFO: se descuenta del lote que vence primero
+        let left = amount
+        state.nextExpirations.sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime())
+        for (const item of state.nextExpirations) {
+          const taken = Math.min(item.points, left)
+          item.points -= taken
+          left -= taken
+        }
+        state.nextExpirations = state.nextExpirations.filter((item) => item.points > 0)
+        state.balance -= amount
+      } else {
+        // Primero se cancela la deuda; lo que sobra crea un lote con la vigencia vigente (12 meses)
+        const rest = amount - Math.max(0, -balanceBefore)
+        if (rest > 0) {
+          const expiresAt = new Date()
+          expiresAt.setUTCMonth(expiresAt.getUTCMonth() + 12)
+          state.nextExpirations.push({ points: rest, expiresAt })
+        }
+        state.balance += amount
+      }
+      // El ajuste no toca lifetimePoints: el nivel no cambia (CA-24.4)
+
+      const signed = direction === 'SUBTRACT' ? -amount : amount
+      const performedBy = {
+        actorType: 'EMPLOYEE' as const,
+        accountId: account.accountId,
+        name: `${account.firstName} ${account.lastName}`,
+      }
+      movementSeeds.push({
+        customerId: customer.id,
+        createdAt: new Date().toISOString(),
+        type: 'MANUAL_ADJUSTMENT',
+        points: signed,
+        balanceAfter: state.balance,
+        description: `Ajuste: ${reason}`,
+        consumptionCode: null,
+        reason,
+        lot: null,
+        performedBy,
+      })
+
+      return HttpResponse.json(
+        {
+          movement: {
+            id: movementSeeds.length,
+            createdAt: new Date().toISOString(),
+            type: 'MANUAL_ADJUSTMENT',
+            points: signed,
+            balanceAfter: state.balance,
+            description: `Ajuste: ${reason}`,
+            reason,
+            performedBy,
+          },
+          balanceBefore,
+          balanceAfter: state.balance,
+        },
+        { status: 201 },
+      )
+    },
+  ),
+
   // RF-015: POST /api/customers responde 201 / 400 / 409.
   http.post<never, CreateCustomerBody>(
     `${API_URL}/customers`,
