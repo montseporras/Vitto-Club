@@ -5,11 +5,12 @@ import { Alert } from '@/shared/components/ui/Alert';
 import { Card, CardTitle } from '@/shared/components/ui/Card';
 import {
   useFirstConsumptionBonus,
+  useLoyaltyLevels,
   usePointsEquivalence,
   usePointsExpiration,
 } from '../api/points.queries';
 import { FirstConsumptionBonusForm } from '../components/FirstConsumptionBonusForm';
-import { LevelsComingSoon } from '../components/LevelsComingSoon';
+import { LoyaltyLevelsForm } from '../components/LoyaltyLevelsForm';
 import { PointsEquivalenceForm } from '../components/PointsEquivalenceForm';
 import { PointsExpirationForm } from '../components/PointsExpirationForm';
 
@@ -17,6 +18,7 @@ import { PointsExpirationForm } from '../components/PointsExpirationForm';
 export function PointsSettingsPage() {
   const equivalence = usePointsEquivalence();
   const expiration = usePointsExpiration();
+  const levels = useLoyaltyLevels();
   const { data: bonus, isLoading, isError, refetch } = useFirstConsumptionBonus();
 
   return (
@@ -59,8 +61,34 @@ export function PointsSettingsPage() {
         )}
       </Card>
 
-      {/* RF-028 (otra historia): en el prototipo va entre la equivalencia y la vigencia. */}
-      <LevelsComingSoon />
+      <Card>
+        <CardTitle>Niveles</CardTitle>
+        <StatusText className="mt-1 mb-6">
+          El nivel del cliente se calcula según los puntos que acumuló por
+          consumos a lo largo del tiempo.
+        </StatusText>
+
+        {levels.isLoading && <StatusText>Cargando niveles…</StatusText>}
+
+        {levels.isError && (
+          <Alert variant="error">
+            <p>
+              No se pudieron cargar los niveles.{' '}
+              <button
+                type="button"
+                onClick={() => void levels.refetch()}
+                className="cursor-pointer font-semibold underline underline-offset-2"
+              >
+                Reintentar
+              </button>
+            </p>
+          </Alert>
+        )}
+
+        {levels.data && !levels.isError && (
+          <LoyaltyLevelsForm configuration={levels.data} />
+        )}
+      </Card>
 
       {/* RF-010. */}
       <Card>
