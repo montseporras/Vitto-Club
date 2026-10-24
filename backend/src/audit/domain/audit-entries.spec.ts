@@ -6,6 +6,7 @@ import {
   customerUpdatedEntry,
   employeeUpdatedEntry,
   pointsAdjustedEntry,
+  pointsExpiredEntry,
   type CustomerSnapshot,
   type EmployeeSnapshot,
   type LoyaltyConfigSnapshot,
@@ -237,6 +238,47 @@ describe('configurationSavedEntries() con niveles — US-27', () => {
     expect(entries[0].details).toEqual([
       { label: 'Plata', value: '300 → 300 pts' },
       { label: 'Oro', value: '800 → 1.000 pts' },
+    ]);
+  });
+});
+
+describe('pointsExpiredEntry() (US-25)', () => {
+  it('actor Sistema, description del contrato y las 3 filas en orden, sin código de operación', () => {
+    const entry = pointsExpiredEntry(customer, {
+      points: 200,
+      // 16/08/2026 21:30 en Argentina
+      accreditedAt: new Date('2026-08-17T00:30:00.000Z'),
+      balanceAfter: 1040,
+    });
+
+    expect(entry).toEqual({
+      actor: { type: 'SYSTEM' },
+      module: 'POINTS',
+      action: 'POINTS_EXPIRED',
+      description: 'Venció 200 pts de Sofía Ríos',
+      affectedCustomer: { customerId: 102, name: 'Sofía Ríos', documentType: 'DNI', documentNumber: '30111222' },
+      details: [
+        { label: 'Puntos vencidos', value: '−200 pts' },
+        { label: 'Fecha del lote (acreditación)', value: '16/08/2026' },
+        { label: 'Saldo resultante', value: '1.040 pts' },
+      ],
+    });
+    expect(entry.operationCode).toBeUndefined();
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+
+  it('puntos de miles y saldo negativo (cliente con deuda)', () => {
+    const entry = pointsExpiredEntry(customer, {
+      points: 1500,
+      accreditedAt: new Date('2025-10-16T18:40:00.000Z'),
+      balanceAfter: -30,
+    });
+
+    expect(entry.description).toBe('Venció 1.500 pts de Sofía Ríos');
+    expect(entry.details).toEqual([
+      { label: 'Puntos vencidos', value: '−1.500 pts' },
+      { label: 'Fecha del lote (acreditación)', value: '16/10/2025' },
+      { label: 'Saldo resultante', value: '-30 pts' },
     ]);
   });
 });

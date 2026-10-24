@@ -174,7 +174,13 @@ export type CustomerSnapshot = {
   dateOfBirth: Date | null;
 };
 
-const affectedCustomerOf = (customer: CustomerSnapshot) => ({
+// Lo mínimo para el bloque "Cliente afectado" (el vencimiento de US-25 no tiene más datos)
+export type AffectedCustomerSnapshot = Pick<
+  CustomerSnapshot,
+  'id' | 'firstName' | 'lastName' | 'documentType' | 'documentNumber'
+>;
+
+const affectedCustomerOf = (customer: AffectedCustomerSnapshot) => ({
   customerId: customer.id,
   name: fullName(customer),
   documentType: customer.documentType,
@@ -284,6 +290,38 @@ export function pointsAdjustedEntry(
       { label: 'Cantidad', value: formatSignedPoints(adjustment.points) },
       { label: 'Saldo resultante', value: `${formatNumber(adjustment.balanceAfter)} pts` },
       { label: 'Motivo', value: adjustment.reason },
+    ],
+  };
+}
+
+// US-25: fecha en hora de Argentina (UTC−03:00, sin horario de verano), dd/mm/aaaa. La fecha
+// de acreditación es un instante (con hora), a diferencia de la fecha de nacimiento.
+const ARGENTINA_OFFSET_MS = 3 * 60 * 60 * 1000;
+const formatArgentinaDate = (date: Date): string =>
+  formatDate(new Date(date.getTime() - ARGENTINA_OFFSET_MS));
+
+export type PointsExpirationSnapshot = {
+  // Puntos que vencieron (positivo)
+  points: number;
+  accreditedAt: Date;
+  balanceAfter: number;
+};
+
+// POINTS_EXPIRED (§3.9.2 y §3.9.3): lo registra el Sistema, sin código de operación.
+export function pointsExpiredEntry(
+  customer: AffectedCustomerSnapshot,
+  expiration: PointsExpirationSnapshot,
+): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'POINTS',
+    action: 'POINTS_EXPIRED',
+    description: `Venció ${formatNumber(expiration.points)} pts de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    details: [
+      { label: 'Puntos vencidos', value: formatSignedPoints(-expiration.points) },
+      { label: 'Fecha del lote (acreditación)', value: formatArgentinaDate(expiration.accreditedAt) },
+      { label: 'Saldo resultante', value: `${formatNumber(expiration.balanceAfter)} pts` },
     ],
   };
 }
