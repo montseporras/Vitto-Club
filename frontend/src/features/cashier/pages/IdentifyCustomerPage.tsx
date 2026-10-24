@@ -22,6 +22,7 @@ import {
 import { ConfirmConsumptionModal } from '../components/ConfirmConsumptionModal'
 import { CustomerActivityPanel } from '../components/CustomerActivityPanel'
 import { CustomerPointsCard } from '../components/CustomerPointsCard'
+import { Last24hConsumptions } from '../components/Last24hConsumptions'
 import { RegisterConsumptionForm } from '../components/RegisterConsumptionForm'
 import {
   findCustomerSchema,
@@ -97,6 +98,13 @@ export function IdentifyCustomerPage({
   // Tras registrar el consumo el cliente sigue a la vista, con su saldo actualizado
   const finishRegistration = () => {
     setPendingAmount(null)
+    setQuietRefresh(true)
+    setFormVersion((version) => version + 1)
+  }
+
+  // "Sí, registrar consumo" después de anular (contrato §3.2.2): el mismo cliente queda
+  // cargado y el monto vacío
+  const registerAnother = () => {
     setQuietRefresh(true)
     setFormVersion((version) => version + 1)
   }
@@ -225,6 +233,12 @@ export function IdentifyCustomerPage({
                   key={customer.id}
                   customerId={customer.id}
                   role={session.user.role}
+                />
+                {/* Segundo panel de la búsqueda (contrato §3.1.4): consumos de 24 hs y anulación */}
+                <Last24hConsumptions
+                  key={`${customer.id}-consumptions`}
+                  customerId={customer.id}
+                  onRegisterNew={registerAnother}
                 />
                 {pendingAmount !== null && (
                   <ConfirmConsumptionModal

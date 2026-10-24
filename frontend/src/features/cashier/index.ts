@@ -8,6 +8,8 @@ export {
   rejectedFields,
   REJECTED_FIELD_MESSAGE,
 } from './api/customer-errors'
+// US-23 lo usa en el detalle del consumo (CA-22.12)
+export { VoidConsumptionModal } from './components/VoidConsumptionModal'
 export type {
   Customer,
   CreateCustomerBody,

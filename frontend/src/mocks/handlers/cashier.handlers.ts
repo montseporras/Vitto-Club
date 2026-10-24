@@ -254,7 +254,7 @@ function checkCustomerAccess(request: Request, id: string) {
 // ── Consumos del cliente (US-22, lo usa la ficha de CLI-ADM) ────────────────
 // Los mismos consumos que generan los movimientos de arriba. Equivalencia $1.000 = 10 pts.
 
-type ConsumptionSeed = {
+export type ConsumptionSeed = {
   id: number
   customerId: number
   createdAt: string
@@ -264,7 +264,7 @@ type ConsumptionSeed = {
   voided?: { at: string; by: { accountId: number; name: string }; reason: string }
 }
 
-const consumptionSeeds: ConsumptionSeed[] = [
+export const consumptionSeeds: ConsumptionSeed[] = [
   { id: 101, customerId: 1, createdAt: ago(400 * DAY), amount: 1000, totalPoints: 10, registeredBy: { accountId: 1, name: 'Ana Gómez' } },
   { id: 120, customerId: 1, createdAt: ago(10 * DAY), amount: 75000, totalPoints: 750, registeredBy: { accountId: 2, name: 'Bruno Pérez' } },
   { id: 141, customerId: 1, createdAt: ago(2 * HOUR), amount: 50000, totalPoints: 500, registeredBy: { accountId: 2, name: 'Bruno Pérez' } },
@@ -277,7 +277,7 @@ const consumptionSeeds: ConsumptionSeed[] = [
 
 
 // canVoid y voidableUntil se calculan para quien consulta (contrato §3.2.1)
-function toConsumption(seed: ConsumptionSeed, customer: Customer, viewer: { accountId: number; role: string }): Consumption {
+export function toConsumption(seed: ConsumptionSeed, customer: Customer, viewer: { accountId: number; role: string }): Consumption {
   const registered = !seed.voided
   const until = new Date(Date.parse(seed.createdAt) + DAY).toISOString()
   const own = seed.registeredBy.accountId === viewer.accountId

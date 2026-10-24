@@ -1,5 +1,6 @@
 // Mocks de consumos: GET /customers/me/consumos (historial del Cliente, US-23, §3.10.2),
-// GET /consumos/preview y POST /consumos (US-21, §3.1.2 y §3.1.3).
+// GET /consumos/preview y POST /consumos (US-21, §3.1.2 y §3.1.3) y PATCH /consumos/:code/anular
+// (US-22, §3.2.2). GET /customers/:id/consumos está en cashier.handlers.ts, con los mismos datos.
 import { delay, http, HttpResponse } from 'msw'
 import type {
   Consumption,
@@ -10,11 +11,13 @@ import type { ConsumptionStatus, CustomerConsumption } from '@/features/consumpt
 import { API_URL } from '@/shared/api/http'
 import { accountFromRequest } from './auth.handlers'
 import {
+  consumptionSeeds,
   customers,
   errorResponse,
   levelOf,
   movementSeeds,
   pointsByCustomer,
+  toConsumption,
 } from './cashier.handlers'
 
 // US-21: GET /api/consumos/preview y POST /api/consumos (contrato §3.1.2 y §3.1.3).
@@ -233,6 +236,15 @@ export const consumptionsHandlers = [
       lot: null,
       performedBy: { actorType: 'EMPLOYEE', ...employee },
     })
+    // Lo guarda junto con los demás consumos: así aparece en el panel de 24 hs y se puede anular
+    consumptionSeeds.push({
+      id,
+      customerId: customer.id,
+      createdAt: createdAt.toISOString(),
+      amount,
+      totalPoints: calc.totalPoints,
+      registeredBy: employee,
+    })
 
     const consumption: Consumption = {
       id,
@@ -268,4 +280,89 @@ export const consumptionsHandlers = [
     }
     return HttpResponse.json(result, { status: 201 })
   }),
+
+  // US-22: PATCH /api/consumos/:code/anular (contrato §3.2.2), sobre los mismos consumos y saldos
+  // que los demás mocks. 200 / 400 / 403 VOID_NOT_ALLOWED / 404 / 409 CONSUMPTION_ALREADY_VOIDED.
+  http.patch<{ code: string }, { reason?: unknown }>(
+    `${API_URL}/consumos/:code/anular`,
+    async ({ params, request }) => {
+      await delay(400)
+      const path = new URL(request.url).pathname
+      const account = accountFromRequest(request)
+      if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+      if (account.role === 'CUSTOMER') {
+        return errorResponse(403, 'No tenés permiso para realizar esta acción.', path, 'FORBIDDEN')
+      }
+
+      const body: { reason?: unknown } = await request.json().catch(() => ({}))
+      const reason = typeof body.reason === 'string' ? body.reason.trim() : ''
+      if (!/^C-\d{6}$/.test(params.code)) {
+        return errorResponse(400, 'code must match /^C-\\d{6}$/', path)
+      }
+      if (reason === '') {
+        return errorResponse(400, 'El motivo de anulación es obligatorio.', path)
+      }
+      if (reason.length < 5) {
+        return errorResponse(400, 'Indicá un motivo de al menos 5 caracteres.', path)
+      }
+
+      const seed = consumptionSeeds.find((item) => item.id === Number(params.code.slice(2)))
+      const customer = seed && customers.find((item) => item.id === seed.customerId)
+      if (!seed || !customer) {
+        return errorResponse(404, `No existe el consumo ${params.code}.`, path)
+      }
+      if (seed.voided) {
+        return errorResponse(409, 'Este consumo ya está anulado.', path, 'CONSUMPTION_ALREADY_VOIDED')
+      }
+      // Cajero: solo los propios y dentro de las 24 hs (§3.2.1); lo calcula toConsumption
+      if (!toConsumption(seed, customer, account).canVoid) {
+        return errorResponse(
+          403,
+          'Solo podés anular consumos propios dentro de las 24 hs.',
+          path,
+          'VOID_NOT_ALLOWED',
+        )
+      }
+
+      const employee = { accountId: account.accountId, name: `${account.firstName} ${account.lastName}` }
+      const voidedAt = new Date().toISOString()
+      seed.voided = { at: voidedAt, by: employee, reason }
+
+      // Se revierten todos los puntos: el saldo puede quedar negativo y los acumulados bajan
+      const state = (pointsByCustomer[customer.id] ??= {
+        balance: 0,
+        lifetimePoints: 0,
+        nextExpirations: [],
+      })
+      const balanceBefore = state.balance
+      const balanceAfter = balanceBefore - seed.totalPoints
+      state.balance = balanceAfter
+      state.lifetimePoints = Math.max(state.lifetimePoints - seed.totalPoints, 0)
+
+      movementSeeds.push({
+        customerId: customer.id,
+        createdAt: voidedAt,
+        type: 'VOID_REVERSAL',
+        points: -seed.totalPoints,
+        balanceAfter,
+        description: `Anulación de ${params.code}`,
+        consumptionCode: params.code,
+        reason: null,
+        lot: null,
+        performedBy: { actorType: 'EMPLOYEE', ...employee },
+      })
+      // Decisión #2: si no le queda ningún consumo REGISTERED, el próximo vuelve a recibir la
+      // bonificación
+      if (!consumptionSeeds.some((item) => item.customerId === customer.id && !item.voided)) {
+        customersWithConsumption.delete(customer.id)
+      }
+
+      return HttpResponse.json({
+        consumption: toConsumption(seed, customer, account),
+        balanceBefore,
+        balanceAfter,
+        negativeBalance: balanceAfter < 0,
+      })
+    },
+  ),
 ]
