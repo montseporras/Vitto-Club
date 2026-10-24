@@ -16,6 +16,7 @@ describe('LoyaltyService', () => {
     findCurrentFirstConsumptionBonus: jest.Mock;
     getActiveConfig: jest.Mock;
     updateFullConfig: jest.Mock;
+    saveLevels: jest.Mock;
   };
   let service: LoyaltyService;
 
@@ -29,6 +30,7 @@ describe('LoyaltyService', () => {
       findCurrentFirstConsumptionBonus: jest.fn(),
       getActiveConfig: jest.fn(),
       updateFullConfig: jest.fn(),
+      saveLevels: jest.fn(),
     };
     service = new LoyaltyService(
       repository as unknown as LoyaltyConfigurationRepository,
@@ -182,6 +184,8 @@ describe('LoyaltyService', () => {
       pointsExpirationMonths: 18,
       bonusType: 'PERCENTAGE',
       bonusValue: 15,
+      silverMinPoints: 300,
+      goldMinPoints: 800,
       isActive: true,
       validFrom: new Date(),
       validTo: null,
@@ -213,5 +217,27 @@ describe('LoyaltyService', () => {
       }),
     ).rejects.toThrow('Percentage bonus must be between 1 and 100');
     expect(repository.updateFullConfig).not.toHaveBeenCalled();
+  });
+
+  describe('setLevels() — US-27', () => {
+    it('valida y guarda los umbrales como una versión nueva', async () => {
+      repository.saveLevels.mockResolvedValue('saved');
+
+      await expect(
+        service.setLevels({ silverMinPoints: 400, goldMinPoints: 900 }),
+      ).resolves.toBe('saved');
+      expect(repository.saveLevels).toHaveBeenCalledWith({
+        silverMinPoints: 400,
+        goldMinPoints: 900,
+      });
+    });
+
+    it.each([
+      [{ silverMinPoints: 0, goldMinPoints: 800 }, 'El umbral de Plata debe ser mayor que 0'],
+      [{ silverMinPoints: 500, goldMinPoints: 500 }, 'El umbral de Oro debe ser mayor que el de Plata'],
+    ])('rechaza %j sin guardar', async (thresholds, message) => {
+      await expect(service.setLevels(thresholds)).rejects.toThrow(message);
+      expect(repository.saveLevels).not.toHaveBeenCalled();
+    });
   });
 });

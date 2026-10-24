@@ -8,6 +8,8 @@ export class LoyaltyProgramConfigurationResponseDto {
   pointsExpirationMonths: number;
   bonusType: FirstConsumptionBonusType | null;
   bonusValue: number | null;
+  silverMinPoints: number;
+  goldMinPoints: number;
   isActive: boolean;
   validFrom: Date;
   validTo: Date | null;
@@ -20,6 +22,8 @@ export class LoyaltyProgramConfigurationResponseDto {
     this.pointsExpirationMonths = configuration.getPointsExpirationMonths();
     this.bonusType = configuration.getBonusType();
     this.bonusValue = configuration.getBonusValue();
+    this.silverMinPoints = configuration.getSilverMinPoints();
+    this.goldMinPoints = configuration.getGoldMinPoints();
     this.isActive = configuration.getIsActive();
     this.validFrom = configuration.getValidFrom();
     this.validTo = configuration.getValidTo();
