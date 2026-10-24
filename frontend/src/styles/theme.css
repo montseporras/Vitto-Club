@@ -20,6 +20,9 @@
   --color-olive-800: #4e5e41;
   --color-sage: #a1a67d;
 
+  /* Rojo del prototipo para puntos que restan y saldo negativo (no está en el manual) */
+  --color-negative: #b3261e;
+
   /* Superficies con texto: accent-700 + blanco (5,3:1). Blanco sobre #DA864D da 2,8:1 y no se lee bien. */
   --color-ink: #2b1a10;
 

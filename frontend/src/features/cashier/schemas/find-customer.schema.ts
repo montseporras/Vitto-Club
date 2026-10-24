@@ -7,7 +7,7 @@ export const findCustomerSchema = z.object({
   documentNumber: z
     .string()
     .transform((v) => v.replace(/[.\s-]/g, '').toUpperCase())
-    .pipe(z.string().min(1, 'Ingresá el número de documento')),
+    .pipe(z.string().min(1, 'Ingresá el número de documento.')),
 })
 
 export type FindCustomerFormInput = z.input<typeof findCustomerSchema>

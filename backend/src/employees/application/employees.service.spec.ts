@@ -22,6 +22,9 @@ class FakeCustomersService {
   async existsByEmail(email: string): Promise<boolean> {
     return this.emails.has(email.toLowerCase());
   }
+  async existsActiveByEmail(email: string): Promise<boolean> {
+    return this.emails.has(email.toLowerCase());
+  }
 }
 
 // Passthrough sin snapshot/restore: para los tests que no son de la integración US-07 no
@@ -169,7 +172,7 @@ describe('EmployeesService', () => {
 
       await expect(
         service.create({ ...validData, email: '  ANA.Gomez@Vitto.Club ' }),
-      ).rejects.toThrow('already exists');
+      ).rejects.toThrow('Ya existe un empleado registrado con ese mail.');
     });
 
     it('lanza 409 aunque el empleado con ese email esté dado de baja', async () => {
@@ -298,7 +301,7 @@ describe('EmployeesService', () => {
       );
 
       await expect(service.update(50, updateData)).rejects.toThrow(ConflictException);
-      await expect(service.update(50, updateData)).rejects.toThrow('inactive');
+      await expect(service.update(50, updateData)).rejects.toThrow('dado de baja');
 
       const employee = await service.findById(50);
       expect(employee.getFirstName()).toBe('Ana');
@@ -382,7 +385,7 @@ describe('EmployeesService', () => {
       repo.updateStatus_.mockClear();
 
       await expect(service.deactivate(id)).rejects.toThrow(ConflictException);
-      await expect(service.deactivate(id)).rejects.toThrow('already inactive');
+      await expect(service.deactivate(id)).rejects.toThrow('ya está dado de baja');
 
       expect(repo.updateStatus_).not.toHaveBeenCalled();
       expect((await service.findById(id)).getDeactivatedAt()).toBe(deactivatedAt);
@@ -649,7 +652,7 @@ describe('EmployeesService', () => {
           ConflictException,
         );
         await expect(employees.deactivate(admin.getId() as number)).rejects.toThrow(
-          'without an available administrator',
+          'sin un administrador disponible',
         );
 
         expect(employeeRepo.items.get(admin.getId() as number)?.isActive()).toBe(true);

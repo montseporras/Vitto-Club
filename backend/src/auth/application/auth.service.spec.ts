@@ -72,6 +72,14 @@ class InMemorySessions extends SessionRepository {
     );
   }
 
+  async revokeAllForAccountExcept(accountId: number, keepTokenHash: string | null, now: Date): Promise<void> {
+    this.rows = this.rows.map((r) =>
+      r.getAccountId() === accountId && r.getRevokedAt() === null && r.getTokenHash() !== keepTokenHash
+        ? copy(r, { revokedAt: now })
+        : r,
+    );
+  }
+
   // Solo para los tests: simular que pasó el tiempo o que alguien revocó la sesión
   patch(index: number, overrides: { expiresAt?: Date; absoluteExpiresAt?: Date; revokedAt?: Date | null }): void {
     this.rows[index] = copy(this.rows[index], overrides);
@@ -86,8 +94,13 @@ class FakeCredentials extends CredentialsVerifier {
     email: string,
     password: string,
     names?: { firstName: string; lastName: string },
+    mustChangePassword?: boolean,
   ): void {
-    this.accounts.set(account.accountId, { verified: { account, email, ...names }, password, active: true });
+    this.accounts.set(account.accountId, {
+      verified: { account, email, ...names, ...(mustChangePassword !== undefined ? { mustChangePassword } : {}) },
+      password,
+      active: true,
+    });
   }
 
   deactivate(accountId: number): void {
@@ -172,6 +185,7 @@ describe('AuthService', () => {
         email: 'ana.gomez@vitto.club',
         firstName: 'Ana',
         lastName: 'Gómez',
+        mustChangePassword: false,
       });
       expect(result.refreshTokenExpiresAt).toEqual(sessions.rows[0].getAbsoluteExpiresAt());
     });
@@ -179,9 +193,23 @@ describe('AuthService', () => {
     it('si accounts no conoce el nombre (clientes), la respuesta no lo trae', async () => {
       const result = await service.login('lucia@example.com', 'secreta-de-lucia');
 
-      expect(result.user).toEqual({ ...LUCIA, email: 'lucia@example.com' });
+      expect(result.user).toEqual({ ...LUCIA, email: 'lucia@example.com', mustChangePassword: false });
       expect(result.user).not.toHaveProperty('firstName');
       expect(result.user).not.toHaveProperty('lastName');
+    });
+
+    // US-17-AJ: un cliente dado de alta en caja entra con su documento y debe cambiarla.
+    // El flag viaja en el usuario de la respuesta, nunca en el access token.
+    it('el login y la renovación devuelven mustChangePassword = true si accounts lo informa', async () => {
+      const ROSA: AuthenticatedAccount = { accountId: 3, role: 'CUSTOMER', customerId: 30 };
+      credentials.add(ROSA, 'rosa@example.com', '30111222', undefined, true);
+
+      const login = await service.login('rosa@example.com', '30111222');
+      expect(login.user.mustChangePassword).toBe(true);
+      expect(JSON.parse(login.accessToken)).toEqual(ROSA);
+
+      const refreshed = await service.refresh(login.refreshToken);
+      expect(refreshed.user.mustChangePassword).toBe(true);
     });
 
     it('guarda el hash del refresh token, nunca el token', async () => {
@@ -356,6 +384,28 @@ describe('AuthService', () => {
       await service.logout(cashRegister.refreshToken);
 
       await expect(service.refresh(phone.refreshToken)).resolves.toBeDefined();
+    });
+  });
+
+  describe('revokeOtherSessionsOfAccount', () => {
+    it('revoca las otras sesiones de la cuenta y deja abierta la del token indicado', async () => {
+      const ana1 = await service.login('ana.gomez@vitto.club', 'secreta-de-ana');
+      const ana2 = await service.login('ana.gomez@vitto.club', 'secreta-de-ana');
+      const lucia = await service.login('lucia@example.com', 'secreta-de-lucia');
+
+      await service.revokeOtherSessionsOfAccount(ANA.accountId, ana2.refreshToken);
+
+      expect(await unauthorizedCode(service.refresh(ana1.refreshToken))).toBe(INVALID_SESSION);
+      await expect(service.refresh(ana2.refreshToken)).resolves.toBeDefined();
+      await expect(service.refresh(lucia.refreshToken)).resolves.toBeDefined();
+    });
+
+    it('sin token actual revoca todas las sesiones de la cuenta', async () => {
+      const ana1 = await service.login('ana.gomez@vitto.club', 'secreta-de-ana');
+
+      await service.revokeOtherSessionsOfAccount(ANA.accountId, undefined);
+
+      expect(await unauthorizedCode(service.refresh(ana1.refreshToken))).toBe(INVALID_SESSION);
     });
   });
 

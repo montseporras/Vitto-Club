@@ -839,9 +839,9 @@ Parámetros que **se agregan** a los existentes (`page`, `limit`, `active`, `nam
 
 | Query param | Tipo | Regla |
 |---|---|---|
-| `q` | string (máx. 80) | Busca en nombre, apellido **y número de documento** (normalizado, coincidencia parcial). Si viene `q`, no se puede mandar `name` a la vez (`400`) |
-| `level` | `Level` | Filtra por nivel calculado (`lifetimePoints` contra los umbrales vigentes) |
-| `sort` | `lastName` \| `id` | Por defecto `id` (para no romper a quien ya lo usa). La pantalla manda `sort=lastName`: ordena por apellido, nombre e `id` |
+| `q` | string (máx. 80) | Busca en nombre, apellido **y número de documento** (normalizado, coincidencia parcial). Cada palabra separada por espacios tiene que aparecer en alguno de los tres campos. Si viene `q`, no se puede mandar `name` a la vez: `400`, sin `code`, "No se puede buscar por q y por name a la vez." |
+| `level` | `Level` (`BRONZE`, `SILVER`, `GOLD`) | Filtra por nivel calculado (`lifetimePoints` contra los umbrales vigentes). Un valor que no sea uno de los tres: `400`. Un cliente sin movimientos de puntos es `BRONZE` |
+| `sort` | `lastName` \| `id` | Por defecto `id` (para no romper a quien ya lo usa). La pantalla manda `sort=lastName`: ordena por apellido, nombre e `id`. Cualquier otro valor: `400`. El orden de tildes y mayúsculas lo define la *collation* de la base: el contrato no la fija |
 
 La pantalla llama a `GET /api/customers?active=true&sort=lastName&q=…&level=…&page=1&limit=20`.
 
@@ -852,6 +852,10 @@ La pantalla llama a `GET /api/customers?active=true&sort=lastName&q=…&level=�
 | `balance` | entero | Saldo actual (columna **Saldo**) |
 | `lifetimePoints` | entero | Puntos acumulados. La tabla no lo muestra, pero viaja porque define el nivel y lo usa el modal "Ver más" |
 | `level` | `Level` | Nivel calculado |
+
+Un cliente que nunca tuvo movimientos de puntos viene con `balance: 0`, `lifetimePoints: 0` y
+`level: "BRONZE"`. `balance` puede ser negativo. Si no hay una configuración vigente, el nivel se calcula con
+los umbrales por defecto (300 y 800) en lugar de responder `500`.
 
 #### 3.8.2 "Ver más" (modal)
 
@@ -869,14 +873,34 @@ cambios:
 | `puntos` | Editable | **Se saca del formulario** | Los puntos solo cambian con movimientos. Para corregirlos se usa **Ajustar puntos** (desde la ficha), que deja el motivo y el saldo resultante |
 | `reason` | "Motivo del cambio (obligatorio)" | **Nuevo campo**. Obligatorio si quien edita es Administrador; opcional para el Cajero | Queda en la auditoría (`CUSTOMER_UPDATED`) |
 
-Reglas de `reason`: sin espacios en los extremos, de 1 a 500 caracteres. Si el Administrador lo omite:
-`400` "Indicá el motivo del cambio para continuar."
+Reglas de `reason`: de 1 a 500 caracteres; el backend le **recorta** los espacios de los extremos antes de
+validar, así que un motivo de solo espacios cuenta como omitido. Un `PATCH` que trae solo `reason`, sin ningún
+dato del cliente para cambiar, es `400` (el motivo no cuenta como dato).
+
+**Errores de `PATCH /api/customers/:id`:**
+
+| Caso | Respuesta | Mensaje |
+|---|---|---|
+| El Administrador omite `reason` (o lo manda en blanco) | `400`, sin `code` | "Indicá el motivo del cambio para continuar." |
+| `reason` de más de 500 caracteres | `400`, sin `code` | "El motivo no puede superar los 500 caracteres." |
+| El Cajero manda `documentType` o `documentNumber` | `403` `FORBIDDEN_FIELD` | "El documento no se puede modificar." Se valida **antes** que cualquier otra regla: el Cajero recibe `403` aunque el cliente no exista o esté inactivo |
+| El cliente está inactivo | `409` `CUSTOMER_INACTIVE` | "El cliente está dado de baja." Un cliente inactivo es de solo lectura y no tiene reactivación |
+| El cliente no existe | `404` | — |
+| El documento nuevo lo usa otro cliente activo, o el email nuevo lo usa otro cliente, un empleado u otra cuenta activa | `409`, sin `code` | Sin cambios respecto del Sprint 2 (mensajes en inglés). No se guarda nada |
+
+El frontend decide por `code`, pero el `400` por `reason` faltante no lo trae: la pantalla tiene que validarlo
+antes de enviar ("Indicá el motivo del cambio para continuar.").
 
 **Si el Administrador corrige el documento** de un cliente que **todavía no cambió su contraseña inicial**
 (`mustChangePassword = true`), la contraseña inicial pasa a ser el documento nuevo, en la misma transacción.
-Si el cliente ya la cambió, la contraseña no se toca.
+Si el cliente ya la cambió, la contraseña no se toca. `customers` lo avisa con el evento nuevo
+`customer.document-changed` (`{ customerId, documentNumber }`, con el documento ya normalizado), que escucha
+`accounts`. Se publica solo si el **número** cambió (si cambia solo el tipo, no). Si `accounts` falla, se
+deshace también el cambio del documento.
 
 **Si se corrige el email,** cambia también el email de acceso (ya funciona así, evento `customer.email-changed`).
+
+**Auditoría:** `CUSTOMER_UPDATED` (§3.9.3), con la fila `Motivo` al final cuando se mandó `reason`.
 
 **Mensaje de éxito:** "Cliente actualizado y registrado en auditoría."
 
@@ -889,9 +913,14 @@ listado y no se puede deshacer." (Cancelar / Eliminar)
 
 **Qué tiene que pasar en el backend:**
 - El cliente ya no puede iniciar sesión ni renovar. Esto **ya funciona**: el login lee el estado del cliente.
-- La **cuenta** queda `is_active = false` y se cierran sus sesiones (evento `customer.deactivated` → `accounts`). **Falta**: hoy el evento no se publica y la cuenta queda activa, lo que impide que el cliente vuelva a registrarse con el mismo email.
+- La **cuenta** queda `is_active = false` y se cierran sus sesiones: `customers` publica `customer.deactivated`, `accounts` deja inactiva la cuenta y publica `account.deactivated`, y `auth` revoca las sesiones. Todo en la misma transacción: si algo falla, el cliente sigue activo. Un cliente sin cuenta se da de baja igual. Así su email queda libre para volver a registrarse.
 - Sus puntos se pierden: el saldo deja de importar porque no se reactiva.
-- Auditoría `CUSTOMER_DEACTIVATED`.
+- Auditoría `CUSTOMER_DEACTIVATED`, con `Saldo perdido: {n} pts`. `{n}` es el saldo (`balance`) del cliente en el momento de la baja, leído en la misma transacción: con puntos de miles (`1.250 pts`), `0 pts` si nunca tuvo movimientos y con signo si es negativo (`-30 pts`).
+
+**Errores:** `404` si el cliente no existe; `409` si ya estaba inactivo (no se vuelve a auditar).
+
+`PATCH /api/customers/:id/activate` **no existe**: responde `404`. El valor `ACTIVATED` de
+`CustomerStatusAction` queda solo para filas viejas del historial.
 
 **Mensaje de éxito:** "Cliente eliminado."
 
@@ -1733,7 +1762,7 @@ LoyaltyProgramConfiguration (version) 1 ── 0..N Consumption
 | 400 | `PASSWORD_SAME_AS_DOCUMENT` | Cliente: nueva contraseña igual a su número de documento |
 | 403 | `VOID_NOT_ALLOWED` | Cajero anulando un consumo ajeno o con más de 24 h |
 | 403 | `FORBIDDEN_FIELD` | Cajero intentando cambiar el documento de un cliente |
-| 409 | `CUSTOMER_INACTIVE` | Operar puntos o consumos sobre un cliente dado de baja |
+| 409 | `CUSTOMER_INACTIVE` | Operar puntos o consumos sobre un cliente dado de baja, o editarlo (`PATCH /customers/:id`) |
 | 409 | `CONSUMPTION_ALREADY_VOIDED` | Anular un consumo ya anulado |
 | 409 | `POINTS_EQUIVALENCE_NOT_CONFIGURED` | Registrar o previsualizar sin equivalencia configurada |
 | 409 | `INSUFFICIENT_BALANCE` | Ajuste `SUBTRACT` mayor que el saldo |

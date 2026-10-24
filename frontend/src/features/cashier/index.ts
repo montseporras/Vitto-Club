@@ -13,3 +13,4 @@ export type {
   CreateCustomerBody,
   UpdateCustomerBody,
 } from './types/customer'
+export type { CustomerPoints, PointsMovement } from './types/points'

@@ -5,7 +5,11 @@ import { delay, http, HttpResponse } from 'msw'
 import type { AuthResponse, AuthUser, RegisterCustomerBody } from '@/features/auth'
 import type { Customer } from '@/features/cashier'
 import { API_URL } from '@/shared/api/http'
-import { customers, errorResponse as customerErrorResponse } from './cashier.handlers'
+import {
+  customers,
+  errorResponse as customerErrorResponse,
+  initialPasswords,
+} from './cashier.handlers'
 
 const PASSWORD = 'vitto2026'
 
@@ -28,6 +32,28 @@ export const passwordOf = (accountId: number) =>
 
 export function setPassword(accountId: number, password: string) {
   registeredPasswords.set(accountId, password)
+}
+
+// Cliente dado de alta en Caja (US-17-AJ): su cuenta nace con el documento como contraseña y
+// mustChangePassword = true. Se arma la primera vez que se la busca, a partir de lo que dejó el
+// alta en el mock, y queda en `accounts`: así Mi perfil puede cambiarle la contraseña y el correo.
+function accountOfCheckoutCustomer(matches: (customer: Customer) => boolean): AuthUser | undefined {
+  const customer = customers.find(
+    (item) => item.active && initialPasswords.has(item.id) && matches(item),
+  )
+  if (!customer) return undefined
+  const user: AuthUser = {
+    accountId: 1000 + customer.id,
+    role: 'CUSTOMER',
+    email: customer.email,
+    customerId: customer.id,
+    firstName: customer.firstName,
+    lastName: customer.lastName,
+    mustChangePassword: true,
+  }
+  accounts.push(user)
+  setPassword(user.accountId, initialPasswords.get(customer.id)!)
+  return user
 }
 
 // Cuentas dadas de baja: responden igual que un mail inexistente
@@ -55,6 +81,18 @@ const errorResponse = (
     },
     { status: statusCode },
   )
+
+/**
+ * Cuenta que hace la llamada, sacada del token de los mocks
+ * (`mock-access-token-{accountId}-{fecha}`). Sirve para simular las reglas por rol.
+ */
+export function accountFromRequest(request: Request): AuthUser | null {
+  const match = /^Bearer mock-access-token-(\d+)-/.exec(
+    request.headers.get('Authorization') ?? '',
+  )
+  if (!match) return null
+  return accounts.find((account) => account.accountId === Number(match[1])) ?? null
+}
 
 const authResponse = (user: AuthUser): AuthResponse => ({
   accessToken: `mock-access-token-${user.accountId}-${Date.now()}`,
@@ -89,7 +127,9 @@ export const authHandlers = [
     if (messages.length > 0) return errorResponse(400, messages, request)
 
     const email = String(body.email).trim().toLowerCase()
-    const account = accounts.find((item) => item.email === email)
+    const account =
+      accounts.find((item) => item.email === email) ??
+      accountOfCheckoutCustomer((item) => item.email.toLowerCase() === email)
     // Mismo mensaje para cualquier causa, a propósito
     const password = account && passwordOf(account.accountId)
     if (!account || inactiveAccountIds.has(account.accountId) || body.password !== password) {
@@ -103,7 +143,9 @@ export const authHandlers = [
   http.post(`${API_URL}/auth/refresh`, async ({ request }) => {
     await delay(200)
     const accountId = Number(sessionStorage.getItem(SESSION_KEY))
-    const account = accounts.find((item) => item.accountId === accountId)
+    const account =
+      accounts.find((item) => item.accountId === accountId) ??
+      accountOfCheckoutCustomer((item) => 1000 + item.id === accountId)
     if (!account || inactiveAccountIds.has(account.accountId)) {
       return errorResponse(401, 'La sesión no es válida', request, 'INVALID_SESSION')
     }
@@ -196,7 +238,7 @@ export const authHandlers = [
         customerId: created.id,
         firstName: created.firstName,
         lastName: created.lastName,
-        // El autorregistro elige su contraseña: no tiene cambio pendiente
+        // El cliente elige su contraseña al registrarse (§3.11.3)
         mustChangePassword: false,
       })
       registeredPasswords.set(accountId, password)

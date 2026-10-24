@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import {
   IsDateString,
   IsEmail,
@@ -54,4 +55,13 @@ export class UpdateCustomerDto {
   @IsOptional()
   @IsDateString()
   dateOfBirth?: string | null;
+
+  // CLI-ADM: motivo del cambio, queda en la auditoría (CUSTOMER_UPDATED). Obligatorio para el
+  // Administrador (lo controla el servicio, que conoce el rol) y opcional para el Cajero.
+  // Sin espacios en los extremos, de 1 a 500 caracteres (contrato §3.8.2).
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @MaxLength(500, { message: 'El motivo no puede superar los 500 caracteres.' })
+  reason?: string;
 }

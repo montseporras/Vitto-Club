@@ -48,17 +48,21 @@ Algunos ejemplos:
 
 | Archivo | Qué tiene |
 |---|---|
-| `Vitto Club Prototipo v2.dc.html` | Login y las tres vistas (`view === 'login' \| 'cliente' \| 'empleado' \| 'admin'`), la configuración y los modales. Pesa unos 300 KB: **buscá con grep, no lo leas entero** |
-| `RegistrarConsumo.dc.html` | "Buscar cliente", la tarjeta del cliente, el monto, la vista previa, "Consumo registrado" y los paneles de 24 h |
-| `FichaCliente.dc.html` | Ficha del cliente (Cajero y Administrador) |
-| `Consumos.dc.html` | Listado y detalle de consumos (Administrador) y el modal de anulación |
-| `MovimientosPuntos.dc.html` | Movimientos de puntos (Administrador) |
-| `Auditoria.dc.html` | Auditoría (Administrador) |
-| `MiPerfil.dc.html` | Mi perfil del Cliente |
-| `SidebarMenu.dc.html` | Menú lateral de mostrador y de administración |
+| `pagina-principal.html` | Login y las tres vistas (`view === 'login' \| 'cliente' \| 'empleado' \| 'admin'`), la configuración y los modales. Pesa unos 350 KB: **buscá con grep, no lo leas entero** |
+| `RegistrarConsumo.html` | "Buscar cliente", la tarjeta del cliente, el monto, la vista previa, "Consumo registrado" y los paneles de 24 h |
+| `FichaCliente.html` | Ficha del cliente (Cajero y Administrador) |
+| `Consumos.html` | Listado y detalle de consumos (Administrador) y el modal de anulación |
+| `MovimientosPuntos.html` | Movimientos de puntos (Administrador) |
+| `Auditoria.html` | Auditoría (Administrador) |
+| `MiPerfil.html` | Mi perfil del Cliente |
+| `CambiarPassword.html` | Ventana "Cambiá tu contraseña" que se abre al ingresar (§3.11.3) |
+| `SidebarMenu.html` | Menú lateral de mostrador y de administración |
 
-**No uses** `Vitto Club Prototipo.dc.html`, `Vitto Club Prototipo (anterior).dc.html` ni
-`Vitto Club Prototipo-print.dc.html`: son versiones viejas.
+`docs/prototipo/v2/LEEME.md` explica cómo se desempaquetó la carpeta y qué se cambió a mano. Leelo si
+algo del prototipo no coincide con la app.
+
+**No uses** `docs/prototipo/Vitto Club Prototipo - archivo unico.html`: guarda los componentes
+comprimidos y no se puede buscar con grep. La carpeta `v2/` es su versión desempaquetada.
 
 **Puntos de búsqueda en el archivo principal:**
 
@@ -70,7 +74,7 @@ Algunos ejemplos:
 | Cliente | `clienteTab === 'historial'`, `'perfil'` |
 
 Los componentes se insertan con `<dc-import name="RegistrarConsumo" …>`. Para encontrar un texto, buscalo
-literal. Por ejemplo: `grep -n "Ver movimientos de las últimas 24 hs" docs/prototipo/v2/*.dc.html`.
+literal. Por ejemplo: `grep -n "Ver movimientos de las últimas 24 hs" docs/prototipo/v2/*.html`.
 
 **Lo que se toma del prototipo:**
 - la disposición;

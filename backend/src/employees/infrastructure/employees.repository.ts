@@ -124,7 +124,9 @@ export class EmployeePrismaRepository implements EmployeeRepository {
 
   async existsByEmail(email: string): Promise<boolean> {
     const match = await this.prisma.employee.findFirst({
-      where: { email: { equals: email, mode: 'insensitive' } },
+      // Solo cuentan los empleados activos: el email de uno dado de baja se puede reutilizar
+      // (contrato §1, unicidad de email entre activos).
+      where: { email: { equals: email, mode: 'insensitive' }, isActive: true },
       select: { id: true },
     });
 

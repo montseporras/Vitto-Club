@@ -15,6 +15,7 @@ type AccountLoginInfo = {
   email: string;
   firstName?: string;
   lastName?: string;
+  mustChangePassword: boolean;
 };
 
 // Traduce la forma de accounts a la del puerto de auth:
@@ -33,6 +34,7 @@ function toVerifiedAccount(info: AccountLoginInfo | undefined): VerifiedAccount 
         : { customerId: info.owner.customerId }),
     },
     email: info.email,
+    mustChangePassword: info.mustChangePassword,
     ...(info.firstName !== undefined ? { firstName: info.firstName } : {}),
     ...(info.lastName !== undefined ? { lastName: info.lastName } : {}),
   };

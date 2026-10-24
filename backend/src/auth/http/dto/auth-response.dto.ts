@@ -13,6 +13,8 @@ export class AuthResponseDto {
     lastName?: string;
     employeeId?: number;
     customerId?: number;
+    // true mientras el cliente no cambie la contraseña inicial; siempre false para empleados
+    mustChangePassword: boolean;
   };
 
   static fromResult(result: AuthResult): AuthResponseDto {

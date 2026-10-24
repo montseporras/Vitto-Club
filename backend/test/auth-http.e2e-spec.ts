@@ -165,7 +165,7 @@ describe('Auth por HTTP (e2e)', () => {
       const cookie = refreshCookie(res);
       expect(cookie).toBeDefined();
       expect(cookie).toContain('HttpOnly');
-      expect(cookie).toContain('Path=/api/auth');
+      expect(cookie).toContain('Path=/api;');
       expect(cookie).toContain('SameSite=Lax');
       expect(JSON.stringify(res.body)).not.toContain(cookiePair(res).split('=')[1]);
       expect(res.body.refreshToken).toBeUndefined();
