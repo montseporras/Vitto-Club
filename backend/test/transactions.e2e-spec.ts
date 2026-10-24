@@ -47,8 +47,10 @@ describe('Transacción ambiente (e2e)', () => {
   let events: EventEmitter2;
   let listener: TestListener;
 
+  // Se ordena en JS (por código de carácter) y no en la base: el orden de Postgres depende de la
+  // intercalación (con Spanish_Argentina.1252, "ok@" queda antes que "ok2@")
   const emails = async () =>
-    (await prisma.employee.findMany({ orderBy: { email: 'asc' } })).map((e) => e.email);
+    (await prisma.employee.findMany()).map((e) => e.email).sort();
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
