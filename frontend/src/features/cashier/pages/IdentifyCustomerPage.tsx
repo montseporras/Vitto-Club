@@ -44,6 +44,7 @@ export function IdentifyCustomerPage() {
     handleSubmit,
     control,
     reset,
+    setFocus,
     formState: { errors },
   } = useForm<FindCustomerFormInput, unknown, FindCustomerFormOutput>({
     resolver: zodResolver(findCustomerSchema),
@@ -52,6 +53,10 @@ export function IdentifyCustomerPage() {
   const [search, setSearch] = useState<DocumentSearch | null>(null)
   // Monto que espera confirmación en la advertencia (null: la advertencia está cerrada)
   const [pendingAmount, setPendingAmount] = useState<number | null>(null)
+  // Cada consumo registrado vuelve a arrancar el formulario del monto, con el mismo cliente
+  const [formVersion, setFormVersion] = useState(0)
+  // Tras registrar, el saldo se actualiza sin esconder la tarjeta del cliente
+  const [quietRefresh, setQuietRefresh] = useState(false)
   const session = useSession()
   const result = useCustomerByDocument(search)
 
@@ -72,21 +77,42 @@ export function IdentifyCustomerPage() {
       result.refetch()
       if (customer) points.refetch()
     } else setSearch(data)
+    setQuietRefresh(false)
   }
 
   const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
-  // Tras registrar el consumo se vuelve a la búsqueda, vacía
+  // Tras registrar el consumo el cliente sigue a la vista, con su saldo actualizado
   const finishRegistration = () => {
+    setPendingAmount(null)
+    setQuietRefresh(true)
+    setFormVersion((version) => version + 1)
+  }
+
+  // Vuelve a la búsqueda, vacía y lista para escribir otro documento
+  const searchAnother = () => {
     setPendingAmount(null)
     setSearch(null)
     reset()
+    // Después del render: el botón que se apretó desaparece y se llevaría el foco
+    setTimeout(() => setFocus('documentNumber'))
   }
 
-  const loading = result.isFetching || (customer !== null && points.isFetching)
+  const loading =
+    result.isFetching || (customer !== null && points.isFetching && !quietRefresh)
+  const showingCustomer = !loading && customer !== null && !!points.data
 
   return (
     <Page>
       <PageCard title="Buscar cliente" variant="plain">
+        {/* Solo con los datos de un cliente a la vista */}
+        {showingCustomer && (
+          <div className="mb-5">
+            <Button type="button" variant="secondary" onClick={searchAnother}>
+              <Icon d={ICONS.search} />
+              Buscar otro cliente
+            </Button>
+          </div>
+        )}
         <div className={formSectionTitleStyles.root}>
           <h3 className={formSectionTitleStyles.title}>Cliente</h3>
         </div>
@@ -177,7 +203,7 @@ export function IdentifyCustomerPage() {
                 <CustomerPointsCard customer={customer} points={points.data} />
                 <RegisterConsumptionForm
                   // Al cambiar de cliente, el formulario vuelve a arrancar vacío
-                  key={customer.id}
+                  key={`${customer.id}-${formVersion}`}
                   customerId={customer.id}
                   onSubmitAmount={setPendingAmount}
                   onCancel={() => undefined}
