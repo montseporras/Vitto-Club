@@ -39,11 +39,6 @@ export const consumptionSchema = z.object({
     }
     return parsed.amount
   }),
-  // Vacío se guarda como null (contrato §3.1.3)
-  notes: z
-    .string()
-    .max(NOTES_MAX_LENGTH)
-    .transform((value) => value.trim() || null),
 })
 
 export type ConsumptionFormInput = z.input<typeof consumptionSchema>

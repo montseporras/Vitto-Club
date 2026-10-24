@@ -19,7 +19,7 @@ import {
   useCustomerPoints,
   type DocumentSearch,
 } from '../api/cashier.queries'
-import { ConsumptionRegistered } from '../components/ConsumptionRegistered'
+import { ConfirmConsumptionModal } from '../components/ConfirmConsumptionModal'
 import { CustomerActivityPanel } from '../components/CustomerActivityPanel'
 import { CustomerPointsCard } from '../components/CustomerPointsCard'
 import { RegisterConsumptionForm } from '../components/RegisterConsumptionForm'
@@ -28,7 +28,6 @@ import {
   type FindCustomerFormInput,
   type FindCustomerFormOutput,
 } from '../schemas/find-customer.schema'
-import type { CreateConsumptionResult } from '../types/consumption'
 
 const DOCUMENT_OPTIONS = DOCUMENT_TYPE_VALUES.map((type) => ({
   value: type,
@@ -51,7 +50,8 @@ export function IdentifyCustomerPage() {
     defaultValues: { documentType: 'DNI', documentNumber: '' },
   })
   const [search, setSearch] = useState<DocumentSearch | null>(null)
-  const [registered, setRegistered] = useState<CreateConsumptionResult | null>(null)
+  // Monto que espera confirmación en la advertencia (null: la advertencia está cerrada)
+  const [pendingAmount, setPendingAmount] = useState<number | null>(null)
   const session = useSession()
   const result = useCustomerByDocument(search)
 
@@ -75,26 +75,14 @@ export function IdentifyCustomerPage() {
   }
 
   const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
-  // "Registrar otro consumo" vuelve a la búsqueda, vacía
-  const registerAnother = () => {
-    setRegistered(null)
+  // Tras registrar el consumo se vuelve a la búsqueda, vacía
+  const finishRegistration = () => {
+    setPendingAmount(null)
     setSearch(null)
     reset()
   }
 
   const loading = result.isFetching || (customer !== null && points.isFetching)
-
-  if (registered && session.user) {
-    return (
-      <Page>
-        <ConsumptionRegistered
-          result={registered}
-          role={session.user.role}
-          onRegisterAnother={registerAnother}
-        />
-      </Page>
-    )
-  }
 
   return (
     <Page>
@@ -187,19 +175,28 @@ export function IdentifyCustomerPage() {
             {!loading && customer && points.data && session.user && (
               <div className="flex flex-col gap-4">
                 <CustomerPointsCard customer={customer} points={points.data} />
+                <RegisterConsumptionForm
+                  // Al cambiar de cliente, el formulario vuelve a arrancar vacío
+                  key={customer.id}
+                  customerId={customer.id}
+                  onSubmitAmount={setPendingAmount}
+                  onCancel={() => undefined}
+                />
                 <CustomerActivityPanel
                   // Al cambiar de cliente, el panel vuelve a arrancar cerrado
                   key={customer.id}
                   customerId={customer.id}
                   role={session.user.role}
                 />
-                <RegisterConsumptionForm
-                  // Al cambiar de cliente, el formulario vuelve a arrancar vacío
-                  key={customer.id}
-                  customerId={customer.id}
-                  onRegistered={setRegistered}
-                  onCancel={() => undefined}
-                />
+                {pendingAmount !== null && (
+                  <ConfirmConsumptionModal
+                    customerId={customer.id}
+                    customerName={`${customer.firstName} ${customer.lastName}`}
+                    amount={pendingAmount}
+                    onCancel={() => setPendingAmount(null)}
+                    onRegistered={finishRegistration}
+                  />
+                )}
               </div>
             )}
           </div>
