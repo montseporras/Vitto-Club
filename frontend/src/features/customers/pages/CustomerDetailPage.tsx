@@ -3,7 +3,11 @@ import { Link, useParams } from 'react-router'
 import { DOCUMENT_TYPES } from '@/domain/documents'
 import { LEVELS } from '@/domain/levels'
 import { CONSUMPTION_STATUSES, POINTS_MOVEMENT_TYPES } from '@/domain/statuses'
-import { useCustomerMovements, useCustomerPoints } from '@/features/cashier'
+import {
+  AdjustPointsModal,
+  useCustomerMovements,
+  useCustomerPoints,
+} from '@/features/cashier'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Badge } from '@/shared/components/ui/Badge'
@@ -44,14 +48,15 @@ type Tab = 'consumptions' | 'movements'
 
 /**
  * "Ver ficha" de Clientes: la ficha del cliente con rol Administrador (contrato §3.8.5 y §3.4.1,
- * prototipo FichaCliente). "Ajustar puntos" es de US-24 y "Ver todos" lleva a pantallas que
- * todavía no existen: quedan como "Próximamente".
+ * prototipo FichaCliente). "Ajustar puntos" abre el modal de US-24; "Ver todos" lleva a
+ * pantallas que todavía no existen: quedan como "Próximamente".
  */
 export function CustomerDetailPage() {
   const id = Number(useParams().id)
   const customer = useCustomer(id)
   const points = useCustomerPoints(Number.isInteger(id) ? id : null)
   const [tab, setTab] = useState<Tab>('consumptions')
+  const [adjusting, setAdjusting] = useState(false)
 
   // Rutas relativas a la URL (/admin/clientes/:id): un feature no importa de app/
   const back = (
@@ -86,8 +91,9 @@ export function CustomerDetailPage() {
   const data = customer.data
   const summary = points.data
   const nextExpiration = summary.nextExpirations[0]
-  const adjustSoon = (
-    <Button type="button" variant="secondary" size="lg" disabled title="Próximamente">
+  // La ficha es solo del Administrador: el botón no se muestra a otros roles (CA-24.1)
+  const adjustButton = (
+    <Button type="button" variant="secondary" size="lg" onClick={() => setAdjusting(true)}>
       Ajustar puntos
     </Button>
   )
@@ -100,7 +106,7 @@ export function CustomerDetailPage() {
         <Alert variant="error">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>Saldo negativo por anulación de consumo. Requiere ajuste del Administrador.</span>
-            {adjustSoon}
+            {adjustButton}
           </div>
         </Alert>
       )}
@@ -121,7 +127,7 @@ export function CustomerDetailPage() {
             >
               Registrar consumo
             </Link>
-            {adjustSoon}
+            {adjustButton}
           </div>
         </div>
 
@@ -217,6 +223,10 @@ export function CustomerDetailPage() {
           )}
         </div>
       </section>
+
+      {adjusting && (
+        <AdjustPointsModal customer={data} onClose={() => setAdjusting(false)} />
+      )}
     </Page>
   )
 }

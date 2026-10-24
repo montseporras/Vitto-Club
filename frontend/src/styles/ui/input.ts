@@ -34,3 +34,6 @@ export const selectStyles = {
   chevron:
     'pointer-events-none absolute top-1/2 right-4 size-5 -translate-y-1/2 text-accent-800',
 }
+
+/** Texto de varios renglones (ej. motivo de un ajuste): mismo aspecto que un Input, alto libre. */
+export const textareaStyles = 'h-auto min-h-12 resize-y py-2.5'

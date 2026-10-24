@@ -52,3 +52,23 @@ export type PointsMovement = {
     name: string
   }
 }
+
+/** Enum AdjustmentDirection (contrato §2.2): Sumar o Restar. */
+export type AdjustmentDirection = 'ADD' | 'SUBTRACT'
+
+/** Body de POST /api/customers/:id/ajustes-de-puntos (contrato §3.5.1). */
+export type PointsAdjustmentBody = {
+  direction: AdjustmentDirection
+  points: number
+  reason: string
+}
+
+/** Respuesta 201 de POST /api/customers/:id/ajustes-de-puntos (contrato §3.5.1). */
+export type PointsAdjustmentResult = {
+  movement: Pick<
+    PointsMovement,
+    'id' | 'createdAt' | 'type' | 'points' | 'balanceAfter' | 'description' | 'reason' | 'performedBy'
+  >
+  balanceBefore: number
+  balanceAfter: number
+}

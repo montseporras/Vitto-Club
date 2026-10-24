@@ -21,3 +21,5 @@ export {
 } from './components/CustomerRegistrationForm'
 export { useCustomerMovements, useCustomerPoints } from './api/cashier.queries'
 export { customerFieldsSchema } from './schemas/create-customer.schema'
+// US-24: el modal "Ajustar puntos" lo abre la ficha del cliente (US-19 / CLI-ADM)
+export { AdjustPointsModal } from './components/AdjustPointsModal'

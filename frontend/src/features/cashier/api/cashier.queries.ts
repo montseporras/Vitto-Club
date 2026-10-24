@@ -6,8 +6,14 @@ import type {
   UpdateCustomerBody,
 } from '../types/customer'
 import type { Paginated } from '@/shared/types/pagination'
-import type { CustomerPoints, PointsMovement } from '../types/points'
+import type {
+  CustomerPoints,
+  PointsAdjustmentBody,
+  PointsAdjustmentResult,
+  PointsMovement,
+} from '../types/points'
 import {
+  adjustPoints,
   createCustomer,
   findCustomerByDocument,
   getCustomerMovements,
@@ -70,3 +76,20 @@ export const useCustomerMovements = (
     enabled: enabled && customerId !== null,
     retry: (count, error) => error.status === undefined && count < 1,
   })
+
+/**
+ * Ajusta los puntos de un cliente (US-24, solo el Administrador). Después se vuelve a pedir todo
+ * lo del cliente (saldo, nivel, movimientos) y el listado de movimientos de puntos (US-26), así la
+ * ficha muestra el saldo, la alerta y los movimientos nuevos (CA-24.9).
+ */
+export const useAdjustPoints = (customerId: number) => {
+  const queryClient = useQueryClient()
+  return useMutation<PointsAdjustmentResult, ApiError, PointsAdjustmentBody>({
+    mutationFn: (body) => adjustPoints(customerId, body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: cashierKeys.customer(customerId) })
+      // Claves de features/points-movements: todas empiezan con 'points-movements'
+      void queryClient.invalidateQueries({ queryKey: ['points-movements'] })
+    },
+  })
+}
