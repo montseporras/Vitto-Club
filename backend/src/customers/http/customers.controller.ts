@@ -21,6 +21,9 @@ import { MyProfileResponseDto } from "./dto/my-profile-response.dto.js";
 import { ListCustomersQueryDto } from "./dto/list-customers-query.dto.js";
 import { FindCustomerByDocumentQueryDto } from "./dto/find-customer-by-document-query.dto.js";
 import { CustomersService } from "../application/customers.service.js";
+import { CustomerPointsAdjustmentService } from "../application/customer-points-adjustment.service.js";
+import { AdjustPointsDto } from "./dto/adjust-points.dto.js";
+import { PointsAdjustmentResponseDto } from "./dto/points-adjustment-response.dto.js";
 import { CustomerResponseDto } from "./dto/customer-response.dto.js";
 import { CustomerListItemResponseDto } from "./dto/customer-list-item-response.dto.js";
 import { CustomerExceptionFilter } from "./filters/customers-exception.filter.js";
@@ -35,6 +38,7 @@ import {
   customerCreatedEntry,
   customerDeactivatedEntry,
   customerUpdatedEntry,
+  pointsAdjustedEntry,
 } from "../../audit/domain/audit-entries.js";
 import { toCustomerSnapshot } from "./customer-audit-snapshot.js";
 
@@ -57,6 +61,7 @@ export class CustomersController{
             private readonly customersService: CustomersService,
             private readonly auditService: AuditService,
             private readonly customerPointsService: CustomerPointsService,
+            private readonly pointsAdjustmentService: CustomerPointsAdjustmentService,
         ){}
 
 
@@ -214,6 +219,36 @@ export class CustomersController{
                 customerDeactivatedEntry(actorOf(user), toCustomerSnapshot(customer), lostBalance),
         );
         }
+
+
+    // POST /customers/:id/ajustes-de-puntos (US-24, §3.5.1): solo el Administrador.
+    // El ajuste y la auditoría POINTS_ADJUSTED van en la misma transacción.
+    @Post(':id/ajustes-de-puntos')
+    @Roles('ADMIN')
+    @HttpCode(HttpStatus.CREATED)
+    async adjustPoints(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() dto: AdjustPointsDto,
+        @CurrentUser() user: CurrentUserData,
+    ){
+        const result = await this.auditService.capture(
+            () =>
+                this.pointsAdjustmentService.adjust({
+                    customerId: id,
+                    direction: dto.direction,
+                    points: dto.points,
+                    reason: dto.reason,
+                    performedBy: { accountId: user.accountId, employeeId: user.employeeId as number },
+                }),
+            (adjusted) =>
+                pointsAdjustedEntry(actorOf(user), toCustomerSnapshot(adjusted.customer), {
+                    points: adjusted.movement.points,
+                    balanceAfter: adjusted.balanceAfter,
+                    reason: adjusted.movement.reason,
+                }),
+        );
+        return PointsAdjustmentResponseDto.fromResult(result);
+    }
 
 
 }

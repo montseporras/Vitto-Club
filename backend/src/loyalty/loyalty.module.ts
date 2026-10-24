@@ -9,6 +9,8 @@ import { PointsValidityController } from './http/points-validity.controller.js';
 import { FirstConsumptionBonusController } from './http/first-consumption-bonus.controller.js';
 import { FirstConsumptionBonusValueValidator } from './http/validators/first-consumption-bonus-value.validator.js';
 import { LoyaltyProgramConfigurationController } from './http/loyalty-program-configuration.controller.js';
+import { LevelsController } from './http/levels.controller.js';
+import { LevelThresholdValidator } from './http/validators/level-threshold.validator.js';
 
 @Module({
   imports: [AuditModule],
@@ -17,11 +19,13 @@ import { LoyaltyProgramConfigurationController } from './http/loyalty-program-co
     PointsValidityController,
     FirstConsumptionBonusController,
     LoyaltyProgramConfigurationController,
+    LevelsController,
   ],
   providers: [
     LoyaltyService,
     AdminRoleGuard,
     FirstConsumptionBonusValueValidator,
+    LevelThresholdValidator,
     {
       provide: LoyaltyConfigurationRepository,
       useClass: LoyaltyPrismaRepository,
