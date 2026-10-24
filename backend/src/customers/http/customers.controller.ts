@@ -12,6 +12,7 @@ import {
   ValidationPipe,
   UseFilters,
   Query,
+  ForbiddenException,
 } from "@nestjs/common";
 import { CreateCustomerDto } from "./dto/create-customer.dto.js";
 import { UpdateCustomerDto } from "./dto/update-customer.dto.js";
@@ -20,18 +21,24 @@ import { MyProfileResponseDto } from "./dto/my-profile-response.dto.js";
 import { ListCustomersQueryDto } from "./dto/list-customers-query.dto.js";
 import { FindCustomerByDocumentQueryDto } from "./dto/find-customer-by-document-query.dto.js";
 import { CustomersService } from "../application/customers.service.js";
+import { CustomerPointsAdjustmentService } from "../application/customer-points-adjustment.service.js";
+import { AdjustPointsDto } from "./dto/adjust-points.dto.js";
+import { PointsAdjustmentResponseDto } from "./dto/points-adjustment-response.dto.js";
 import { CustomerResponseDto } from "./dto/customer-response.dto.js";
 import { CustomerListItemResponseDto } from "./dto/customer-list-item-response.dto.js";
 import { CustomerExceptionFilter } from "./filters/customers-exception.filter.js";
 import { Roles } from "../../shared/security/roles.decorator.js";
 import { CurrentUser } from "../../shared/security/current-user.decorator.js";
 import type { CurrentUserData } from "../../shared/security/current-user-data.js";
+import { CustomerPointsService } from "../application/customer-points.service.js";
+import { CustomerPointsResponseDto } from "./dto/customer-points-response.dto.js";
 import { AuditService } from "../../audit/application/audit.service.js";
 import { actorOf } from "../../audit/domain/audit-entry.js";
 import {
   customerCreatedEntry,
   customerDeactivatedEntry,
   customerUpdatedEntry,
+  pointsAdjustedEntry,
 } from "../../audit/domain/audit-entries.js";
 import { toCustomerSnapshot } from "./customer-audit-snapshot.js";
 
@@ -53,6 +60,8 @@ export class CustomersController{
         constructor(
             private readonly customersService: CustomersService,
             private readonly auditService: AuditService,
+            private readonly customerPointsService: CustomerPointsService,
+            private readonly pointsAdjustmentService: CustomerPointsAdjustmentService,
         ){}
 
 
@@ -97,6 +106,25 @@ export class CustomersController{
         }
 
 
+    // GET /customers/me/puntos -> CA-19.7 (§3.10.1): solo el Cliente, con el cliente del token.
+    // Tiene que ir ANTES que @Get(':id/puntos'), si no "me" se interpretaría como un id.
+    @Get('me/puntos')
+    @Roles('CUSTOMER')
+        async myPoints(@CurrentUser() user: CurrentUserData){
+            // Un token de Cliente siempre trae customerId; si no lo trae, se rechaza igual que el RolesGuard
+            if (user.customerId === undefined) {
+                throw new ForbiddenException({
+                    statusCode: 403,
+                    error: 'Forbidden',
+                    message: 'You do not have permission to perform this operation',
+                    code: 'FORBIDDEN',
+                });
+            }
+            const summary = await this.customerPointsService.getSummary(user.customerId);
+            return CustomerPointsResponseDto.fromSummary(summary);
+        }
+
+
     // GET /customers/by-document?documentType=DNI&documentNumber=40123456
     // Tiene que ir ANTES que @Get(':id'), si no "by-document" se interpretaría como un id.
     @Get('by-document')
@@ -113,6 +141,14 @@ export class CustomersController{
         async findById(@Param('id', ParseIntPipe) id: number){
             const customer = await this.customersService.findById(id);
             return CustomerResponseDto.fromDomain(customer);
+        }
+
+
+    // GET /customers/:id/puntos -> CA-46.6 (§3.4.1): Administrador y Cajero (roles de la clase)
+    @Get(':id/puntos')
+        async points(@Param('id', ParseIntPipe) id: number){
+            const summary = await this.customerPointsService.getSummary(id);
+            return CustomerPointsResponseDto.fromSummary(summary);
         }
 
 
@@ -183,6 +219,36 @@ export class CustomersController{
                 customerDeactivatedEntry(actorOf(user), toCustomerSnapshot(customer), lostBalance),
         );
         }
+
+
+    // POST /customers/:id/ajustes-de-puntos (US-24, §3.5.1): solo el Administrador.
+    // El ajuste y la auditoría POINTS_ADJUSTED van en la misma transacción.
+    @Post(':id/ajustes-de-puntos')
+    @Roles('ADMIN')
+    @HttpCode(HttpStatus.CREATED)
+    async adjustPoints(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() dto: AdjustPointsDto,
+        @CurrentUser() user: CurrentUserData,
+    ){
+        const result = await this.auditService.capture(
+            () =>
+                this.pointsAdjustmentService.adjust({
+                    customerId: id,
+                    direction: dto.direction,
+                    points: dto.points,
+                    reason: dto.reason,
+                    performedBy: { accountId: user.accountId, employeeId: user.employeeId as number },
+                }),
+            (adjusted) =>
+                pointsAdjustedEntry(actorOf(user), toCustomerSnapshot(adjusted.customer), {
+                    points: adjusted.movement.points,
+                    balanceAfter: adjusted.balanceAfter,
+                    reason: adjusted.movement.reason,
+                }),
+        );
+        return PointsAdjustmentResponseDto.fromResult(result);
+    }
 
 
 }

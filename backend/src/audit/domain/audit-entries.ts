@@ -254,6 +254,40 @@ export function customerDeactivatedEntry(
   };
 }
 
+// --- Puntos ------------------------------------------------------------------------------
+
+// Cantidad con signo, como en el ejemplo de §3.9.4 ("−500 pts", con el signo menos U+2212).
+// El saldo resultante va con formatNumber, que usa el guion común ("-350 pts"), igual que ese
+// ejemplo (decisión de Jazmín).
+const formatSignedPoints = (points: number): string =>
+  `${points < 0 ? '−' : '+'}${formatNumber(Math.abs(points))} pts`;
+
+export type PointsAdjustmentSnapshot = {
+  // Con signo: + al sumar, − al restar
+  points: number;
+  balanceAfter: number;
+  reason: string;
+};
+
+export function pointsAdjustedEntry(
+  actor: AuditActor,
+  customer: CustomerSnapshot,
+  adjustment: PointsAdjustmentSnapshot,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'POINTS',
+    action: 'POINTS_ADJUSTED',
+    description: `Ajustó puntos de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    details: [
+      { label: 'Cantidad', value: formatSignedPoints(adjustment.points) },
+      { label: 'Saldo resultante', value: `${formatNumber(adjustment.balanceAfter)} pts` },
+      { label: 'Motivo', value: adjustment.reason },
+    ],
+  };
+}
+
 // --- Configuración del programa de puntos -----------------------------------------------
 
 export type LoyaltyConfigSnapshot = {
@@ -262,6 +296,9 @@ export type LoyaltyConfigSnapshot = {
   pointsExpirationMonths: number;
   bonusType: string | null;
   bonusValue: number | null;
+  // US-27: umbrales de nivel
+  silverMinPoints: number;
+  goldMinPoints: number;
 };
 
 const bonusTypeLabel = (type: string | null): string =>
@@ -284,6 +321,10 @@ export function pointsValidityChanged(before: LoyaltyConfigSnapshot, after: Loya
 
 export function firstConsumptionBonusChanged(before: LoyaltyConfigSnapshot, after: LoyaltyConfigSnapshot): boolean {
   return before.bonusType !== after.bonusType || before.bonusValue !== after.bonusValue;
+}
+
+export function levelsChanged(before: LoyaltyConfigSnapshot, after: LoyaltyConfigSnapshot): boolean {
+  return before.silverMinPoints !== after.silverMinPoints || before.goldMinPoints !== after.goldMinPoints;
 }
 
 export function pointsEquivalenceUpdatedEntry(
@@ -356,6 +397,30 @@ export function firstConsumptionBonusUpdatedEntry(
   };
 }
 
+// US-27 (§3.9.3): "Plata: {antes} → {después} pts · Oro: {antes} → {después} pts"
+export function levelsUpdatedEntry(
+  actor: AuditActor,
+  before: LoyaltyConfigSnapshot,
+  after: LoyaltyConfigSnapshot,
+): AuditEntryInput {
+  const levelRow = (label: string, from: number, to: number): AuditDetail => ({
+    label,
+    value: `${change(formatNumber(from), formatNumber(to))} pts`,
+  });
+  return {
+    actor,
+    module: 'CONFIGURATION',
+    action: 'LEVELS_UPDATED',
+    description: 'Modificó niveles',
+    details: levelsChanged(before, after)
+      ? [
+          levelRow('Plata', before.silverMinPoints, after.silverMinPoints),
+          levelRow('Oro', before.goldMinPoints, after.goldMinPoints),
+        ]
+      : [{ label: 'Cambios', value: NO_CHANGES }],
+  };
+}
+
 // Guardado completo (PUT /loyalty/configuration): una entrada por cada sección que cambió. Si no
 // cambió ninguna igual se registra una, con la fila "Cambios: Se guardó sin modificar valores"
 // (contrato §3.9.3). Para ese caso el contrato no dice qué código usar: se usa el de la equivalencia.
@@ -373,6 +438,9 @@ export function configurationSavedEntries(
   }
   if (firstConsumptionBonusChanged(before, after)) {
     entries.push(firstConsumptionBonusUpdatedEntry(actor, before, after));
+  }
+  if (levelsChanged(before, after)) {
+    entries.push(levelsUpdatedEntry(actor, before, after));
   }
   return entries.length > 0 ? entries : [pointsEquivalenceUpdatedEntry(actor, before, after)];
 }

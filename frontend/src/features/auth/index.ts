@@ -2,6 +2,12 @@
 export { LoginPage } from './pages/LoginPage'
 export { RegisterPage } from './pages/RegisterPage'
 export { SessionActions } from './components/SessionActions'
-export { restoreSession, useSession, type Session } from './session'
+export { LogoutDialog } from './components/LogoutDialog'
+export {
+  restoreSession,
+  updateSessionUser,
+  useSession,
+  type Session,
+} from './session'
 export type { AuthResponse, AuthUser } from './types/auth'
 export type { RegisterCustomerBody } from './types/register'

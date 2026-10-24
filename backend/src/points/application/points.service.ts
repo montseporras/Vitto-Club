@@ -3,7 +3,7 @@ import { PointsLot } from '../domain/points-lot.js';
 import { calculateLevel, Level, LevelSummary } from '../domain/level.js';
 import { toArgentinaDateString } from '../domain/argentina-date.js';
 import { InsufficientBalanceError } from '../domain/errors/insufficient-balance.error.js';
-import { PointsRepository } from '../domain/port/points.repository.js';
+import { InsertedMovement, PointsRepository } from '../domain/port/points.repository.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
 
 export type PerformedBy = { accountId: number; name: string };
@@ -28,6 +28,22 @@ export type AjustarInput = {
   points: number;
   reason: string;
   performedBy: PerformedBy;
+};
+
+// US-24: el movimiento MANUAL_ADJUSTMENT que se acaba de guardar, para la respuesta 201 (§3.5.1)
+export type AdjustmentMovement = {
+  id: number;
+  createdAt: Date;
+  points: number;
+  balanceAfter: number;
+  reason: string;
+  performedBy: PerformedBy;
+};
+
+export type AjustarResult = {
+  balanceBefore: number;
+  balanceAfter: number;
+  movement: AdjustmentMovement;
 };
 
 export type BalanceMutationResult = {
@@ -181,7 +197,7 @@ export class PointsService {
   // lo que sobra. SUBTRACT descuenta de los lotes ACTIVE en orden de vencimiento (FIFO);
   // si points supera el saldo (o el saldo ya es negativo), tira InsufficientBalanceError.
   // Nunca toca lifetimePoints: el ajuste no cambia el nivel (CA-BASE.7).
-  async ajustar(input: AjustarInput): Promise<{ balanceBefore: number; balanceAfter: number }> {
+  async ajustar(input: AjustarInput): Promise<AjustarResult> {
     return await this.transactionRunner.run(async () => {
       const row = await this.pointsRepository.lockOrCreateBalance(input.customerId);
 
@@ -195,7 +211,7 @@ export class PointsService {
   private async ajustarAdd(
     input: AjustarInput,
     row: { customerId: number; balance: number; debt: number; lifetimePoints: number },
-  ): Promise<{ balanceBefore: number; balanceAfter: number }> {
+  ): Promise<AjustarResult> {
     const config = await this.requireActiveConfiguration();
     const { newDebt, remainingToCredit } = this.cancelDebtFirst(row.debt, input.points);
 
@@ -219,7 +235,7 @@ export class PointsService {
       debt: newDebt,
       lifetimePoints: row.lifetimePoints,
     });
-    await this.pointsRepository.insertMovement({
+    const inserted = await this.pointsRepository.insertMovement({
       customerId: input.customerId,
       type: 'MANUAL_ADJUSTMENT',
       points: input.points,
@@ -231,13 +247,13 @@ export class PointsService {
       performedByName: input.performedBy.name,
     });
 
-    return { balanceBefore: row.balance, balanceAfter: newBalance };
+    return this.adjustmentResult(input, row.balance, newBalance, input.points, inserted);
   }
 
   private async ajustarSubtract(
     input: AjustarInput,
     row: { customerId: number; balance: number; debt: number; lifetimePoints: number },
-  ): Promise<{ balanceBefore: number; balanceAfter: number }> {
+  ): Promise<AjustarResult> {
     if (input.points > row.balance) {
       throw new InsufficientBalanceError();
     }
@@ -260,7 +276,7 @@ export class PointsService {
       debt: row.debt,
       lifetimePoints: row.lifetimePoints,
     });
-    await this.pointsRepository.insertMovement({
+    const inserted = await this.pointsRepository.insertMovement({
       customerId: input.customerId,
       type: 'MANUAL_ADJUSTMENT',
       points: -input.points,
@@ -272,7 +288,28 @@ export class PointsService {
       performedByName: input.performedBy.name,
     });
 
-    return { balanceBefore: row.balance, balanceAfter: newBalance };
+    return this.adjustmentResult(input, row.balance, newBalance, -input.points, inserted);
+  }
+
+  private adjustmentResult(
+    input: AjustarInput,
+    balanceBefore: number,
+    balanceAfter: number,
+    signedPoints: number,
+    inserted: InsertedMovement,
+  ): AjustarResult {
+    return {
+      balanceBefore,
+      balanceAfter,
+      movement: {
+        id: inserted.id,
+        createdAt: inserted.createdAt,
+        points: signedPoints,
+        balanceAfter,
+        reason: input.reason,
+        performedBy: input.performedBy,
+      },
+    };
   }
 
   // CA-BASE.9: forma exacta de §3.4.1. Lectura pura, sin lock (no muta nada).

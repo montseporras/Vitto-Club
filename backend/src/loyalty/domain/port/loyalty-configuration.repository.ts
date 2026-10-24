@@ -6,6 +6,7 @@ import {
   LoyaltyProgramConfigurationData,
   LoyaltyProgramConfigurationInput,
 } from '../loyalty-program-configuration.js';
+import type { LevelThresholds } from '../levels.js';
 
 export abstract class LoyaltyConfigurationRepository {
   abstract savePointsEquivalence(
@@ -20,6 +21,10 @@ export abstract class LoyaltyConfigurationRepository {
     bonus: FirstConsumptionBonus,
   ): Promise<FirstConsumptionBonus>;
   abstract findCurrentFirstConsumptionBonus(): Promise<FirstConsumptionBonus | null>;
+  // US-27: versión nueva con los umbrales de nivel, copiando el resto
+  abstract saveLevels(
+    thresholds: LevelThresholds,
+  ): Promise<LoyaltyProgramConfiguration>;
   abstract getActiveConfig(): Promise<LoyaltyProgramConfiguration>;
   abstract saveNewConfigVersion(
     configuration: LoyaltyProgramConfigurationData,

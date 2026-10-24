@@ -4,6 +4,7 @@ import { InsufficientBalanceError } from '../domain/errors/insufficient-balance.
 import {
   ActiveLoyaltyConfiguration,
   CustomerPointsBalance,
+  InsertedMovement,
   InsertMovementData,
   PointsRepository,
 } from '../domain/port/points.repository.js';
@@ -91,8 +92,9 @@ class FakePointsRepository implements PointsRepository {
     this.lots.set(lot.getId() as number, lot);
   }
 
-  async insertMovement(data: InsertMovementData): Promise<void> {
+  async insertMovement(data: InsertMovementData): Promise<InsertedMovement> {
     this.movements.push(data);
+    return { id: this.movements.length, createdAt: new Date('2026-10-16T18:12:00.000Z') };
   }
 
   async findActiveLoyaltyConfiguration(): Promise<ActiveLoyaltyConfiguration | null> {
@@ -289,7 +291,18 @@ describe('PointsService', () => {
         performedBy,
       });
 
-      expect(result).toEqual({ balanceBefore: 0, balanceAfter: 350 });
+      expect(result).toEqual({
+        balanceBefore: 0,
+        balanceAfter: 350,
+        movement: {
+          id: 1,
+          createdAt: new Date('2026-10-16T18:12:00.000Z'),
+          points: 350,
+          balanceAfter: 350,
+          reason: 'Regularización por anulación de consumo',
+          performedBy,
+        },
+      });
       const lots = await repository.findActiveLotsByCustomerId(101);
       expect(lots[0].getInitialPoints()).toBe(350);
     });
@@ -347,7 +360,9 @@ describe('PointsService', () => {
         performedBy,
       });
 
-      expect(result).toEqual({ balanceBefore: 500, balanceAfter: 250 });
+      expect(result).toMatchObject({ balanceBefore: 500, balanceAfter: 250 });
+      // El movimiento de la respuesta va con signo
+      expect(result.movement).toMatchObject({ points: -250, balanceAfter: 250, reason: 'Corrección manual' });
       // lot1 se consumió entero primero (vencía antes) y ya no es ACTIVE, así que lo busco
       // directo en el repo fake en vez de por findActiveLotsByCustomerId.
       const lot1 = repository.lots.get(1);
