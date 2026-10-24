@@ -11,8 +11,10 @@ export const handlers = [
   ...authHandlers,
   // Antes que los de caja: /customers/me tiene que ganarle a /customers/:id
   ...myAccountHandlers,
+  // También antes que los de caja: /customers/me/movimientos le tiene que ganar a
+  // /customers/:id/movimientos
+  ...pointsMovementsHandlers,
   ...cashierHandlers,
   ...employeesHandlers,
   ...pointsHandlers,
-  ...pointsMovementsHandlers,
 ]

@@ -308,31 +308,5 @@ export const pointsMovementsHandlers = [
 
     return HttpResponse.json(paginate(items, page, limit))
   }),
-
-  http.get<{ id: string }>(
-    `${API_URL}/customers/:id/movimientos`,
-    async ({ params, request }) => {
-      await delay(250)
-      const user = getMockCurrentUser()
-      if (!user) return unauthorized(request)
-      if (user.role !== 'ADMIN' && user.role !== 'CASHIER') {
-        return forbidden(request)
-      }
-
-      const customerId = Number(params.id)
-      const url = new URL(request.url)
-      const type = url.searchParams.get('type') as PointsMovementType | null
-      const { page, limit } = pageParams(url, 20)
-      const isCashier = user.role === 'CASHIER'
-      const last24hStart = Date.now() - 24 * 60 * 60 * 1000
-      const items = sorted(movementRows).filter(
-        (movement) =>
-          movement.customer.id === customerId &&
-          (!isCashier || new Date(movement.createdAt).getTime() >= last24hStart) &&
-          (!type || movement.type === type),
-      )
-
-      return HttpResponse.json(paginate(items, page, limit))
-    },
-  ),
+  // GET /customers/:id/movimientos (la ficha) ya lo simula cashier.handlers.ts (US-46)
 ]

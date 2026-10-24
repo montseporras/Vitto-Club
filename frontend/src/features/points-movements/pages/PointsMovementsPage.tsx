@@ -59,6 +59,9 @@ const emptyFilters: DraftFilters = {
   type: '',
 }
 
+// El contrato no da texto para este caso: lo validamos antes de enviar (decisión de Jazmín)
+const DATE_RANGE_MESSAGE = 'La fecha desde no puede ser posterior a la fecha hasta.'
+
 function signedPoints(points: number) {
   if (points > 0) return `+${points}`
   if (points < 0) return `−${Math.abs(points)}`
@@ -69,6 +72,7 @@ export function PointsMovementsPage() {
   const [draft, setDraft] = useState<DraftFilters>(emptyFilters)
   const [filters, setFilters] = useState<PointsMovementFilters>({})
   const [page, setPage] = useState(1)
+  const [dateError, setDateError] = useState<string | null>(null)
   const result = usePointsMovements(filters, page)
   const appliedDraft: DraftFilters = {
     q: filters.q ?? '',
@@ -81,6 +85,12 @@ export function PointsMovementsPage() {
 
   const applyFilters = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    // 'YYYY-MM-DD' se compara bien como texto
+    if (draft.fromDate && draft.toDate && draft.fromDate > draft.toDate) {
+      setDateError(DATE_RANGE_MESSAGE)
+      return
+    }
+    setDateError(null)
     setFilters({
       ...(draft.q ? { q: draft.q } : {}),
       ...(draft.fromDate ? { fromDate: draft.fromDate } : {}),
@@ -93,7 +103,10 @@ export function PointsMovementsPage() {
   const updateDraft = <TField extends keyof DraftFilters>(
     field: TField,
     value: DraftFilters[TField],
-  ) => setDraft((current) => ({ ...current, [field]: value }))
+  ) => {
+    if (field === 'fromDate' || field === 'toDate') setDateError(null)
+    setDraft((current) => ({ ...current, [field]: value }))
+  }
 
   const data = result.data
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1
@@ -123,10 +136,17 @@ export function PointsMovementsPage() {
 
           <fieldset className="grid gap-4 sm:grid-cols-2 xl:col-span-2">
             <legend className="sr-only">Fechas</legend>
-            <FormField id="movement-from-date" label="Desde" hideRequiredMark>
+            <FormField
+              id="movement-from-date"
+              label="Desde"
+              hideRequiredMark
+              error={dateError ?? undefined}
+            >
               <Input
                 id="movement-from-date"
                 type="date"
+                aria-invalid={dateError ? true : undefined}
+                aria-describedby={dateError ? 'movement-from-date-error' : undefined}
                 value={draft.fromDate}
                 onChange={(event) => updateDraft('fromDate', event.target.value)}
               />
