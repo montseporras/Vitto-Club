@@ -1,9 +1,11 @@
 import {
   configurationSavedEntries,
+  levelsUpdatedEntry,
   customerCreatedEntry,
   customerDeactivatedEntry,
   customerUpdatedEntry,
   employeeUpdatedEntry,
+  pointsAdjustedEntry,
   type CustomerSnapshot,
   type EmployeeSnapshot,
   type LoyaltyConfigSnapshot,
@@ -37,6 +39,8 @@ const config: LoyaltyConfigSnapshot = {
   pointsExpirationMonths: 12,
   bonusType: 'PERCENTAGE',
   bonusValue: 15,
+  silverMinPoints: 300,
+  goldMinPoints: 800,
 };
 
 describe('employeeUpdatedEntry()', () => {
@@ -113,6 +117,47 @@ describe('customerUpdatedEntry() con motivo (CLI-ADM)', () => {
   });
 });
 
+describe('pointsAdjustedEntry()', () => {
+  it('ADD: Cantidad con +, Saldo resultante y Motivo, con el cliente afectado', () => {
+    const entry = pointsAdjustedEntry(actor, customer, {
+      points: 350,
+      balanceAfter: 0,
+      reason: 'Regularización por anulación de consumo',
+    });
+
+    expect(entry).toEqual({
+      actor,
+      module: 'POINTS',
+      action: 'POINTS_ADJUSTED',
+      description: 'Ajustó puntos de Sofía Ríos',
+      affectedCustomer: { customerId: 102, name: 'Sofía Ríos', documentType: 'DNI', documentNumber: '30111222' },
+      details: [
+        { label: 'Cantidad', value: '+350 pts' },
+        { label: 'Saldo resultante', value: '0 pts' },
+        { label: 'Motivo', value: 'Regularización por anulación de consumo' },
+      ],
+    });
+    expect(entry.operationCode).toBeUndefined();
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+
+  it('SUBTRACT: Cantidad con el signo menos de §3.9.4 y puntos de miles', () => {
+    const entry = pointsAdjustedEntry(actor, customer, { points: -1200, balanceAfter: 1350, reason: 'Corrección' });
+
+    expect(entry.details).toEqual([
+      { label: 'Cantidad', value: '−1.200 pts' },
+      { label: 'Saldo resultante', value: '1.350 pts' },
+      { label: 'Motivo', value: 'Corrección' },
+    ]);
+  });
+
+  it('Saldo resultante negativo: con el guion común, como el ejemplo de §3.9.4', () => {
+    const entry = pointsAdjustedEntry(actor, customer, { points: 50, balanceAfter: -350, reason: 'Parcial' });
+
+    expect(entry.details[1]).toEqual({ label: 'Saldo resultante', value: '-350 pts' });
+  });
+});
+
 describe('customerDeactivatedEntry()', () => {
   it('guarda Estado y Saldo perdido, con puntos de miles', () => {
     const entry = customerDeactivatedEntry(actor, customer, 1250);
@@ -129,6 +174,29 @@ describe('customerDeactivatedEntry()', () => {
       label: 'Saldo perdido',
       value: '0 pts',
     });
+  });
+});
+
+describe('levelsUpdatedEntry() — US-27', () => {
+  it('Plata y Oro con antes → después en pts, con puntos de miles', () => {
+    const entry = levelsUpdatedEntry(actor, config, { ...config, silverMinPoints: 400, goldMinPoints: 1500 });
+
+    assertValidAuditEntry(entry);
+    expect(entry).toMatchObject({
+      module: 'CONFIGURATION',
+      action: 'LEVELS_UPDATED',
+      description: 'Modificó niveles',
+    });
+    expect(entry.details).toEqual([
+      { label: 'Plata', value: '300 → 400 pts' },
+      { label: 'Oro', value: '800 → 1.500 pts' },
+    ]);
+  });
+
+  it('sin cambios: la fila fija "Cambios"', () => {
+    const entry = levelsUpdatedEntry(actor, config, { ...config });
+
+    expect(entry.details).toEqual([{ label: 'Cambios', value: 'Se guardó sin modificar valores' }]);
   });
 });
 
@@ -157,6 +225,18 @@ describe('configurationSavedEntries()', () => {
     expect(entries[0].action).toBe('POINTS_EQUIVALENCE_UPDATED');
     expect(entries[0].details).toEqual([
       { label: 'Cambios', value: 'Se guardó sin modificar valores' },
+    ]);
+  });
+});
+
+describe('configurationSavedEntries() con niveles — US-27', () => {
+  it('si cambian los umbrales, agrega LEVELS_UPDATED', () => {
+    const entries = configurationSavedEntries(actor, config, { ...config, goldMinPoints: 1000 });
+
+    expect(entries.map((entry) => entry.action)).toEqual(['LEVELS_UPDATED']);
+    expect(entries[0].details).toEqual([
+      { label: 'Plata', value: '300 → 300 pts' },
+      { label: 'Oro', value: '800 → 1.000 pts' },
     ]);
   });
 });

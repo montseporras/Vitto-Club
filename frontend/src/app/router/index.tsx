@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router'
 import { AuthLayout } from '@/app/layouts/AuthLayout'
 import { CashierLayout } from '@/app/layouts/CashierLayout'
 import { LoginPage } from '@/features/auth'
+import { ComingSoon } from '@/shared/components/feedback/ComingSoon'
 import { PATHS, ROLE_HOME } from './paths'
 import { ProtectedRoute } from './ProtectedRoute'
 import { RoleRoute } from './RoleRoute'
@@ -41,6 +42,36 @@ export const router = createBrowserRouter([
         ),
       }
     },
+    children: [
+      // Inicio e Historial son de otras historias (US-19 y US-23/US-26, frontend)
+      {
+        index: true,
+        element: (
+          <ComingSoon
+            eyebrow="Mi cuenta"
+            title="Tus puntos y recompensas"
+            description="Acá vas a ver tus puntos, tu nivel y las recompensas que podés canjear."
+          />
+        ),
+      },
+      {
+        path: PATHS.customer.history,
+        element: (
+          <ComingSoon
+            eyebrow="Mi cuenta"
+            title="Historial"
+            description="Acá vas a ver tus consumos y los movimientos de tus puntos."
+          />
+        ),
+      },
+      {
+        path: PATHS.customer.profile,
+        lazy: async () => {
+          const { MyProfilePage } = await import('@/features/my-account')
+          return { element: <MyProfilePage homePath={PATHS.customer.root} /> }
+        },
+      },
+    ],
   },
   {
     path: PATHS.cashier.root,

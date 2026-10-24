@@ -50,6 +50,8 @@ export class LoyaltyProgramConfigurationController {
           pointsExpirationMonths: dto.pointsExpirationMonths,
           bonusType: dto.bonusType,
           bonusValue: dto.bonusValue,
+          silverMinPoints: dto.silverMinPoints,
+          goldMinPoints: dto.goldMinPoints,
         });
         return { before, configuration: saved };
       },

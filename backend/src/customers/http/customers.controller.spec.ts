@@ -3,7 +3,26 @@ import { CustomersService } from '../application/customers.service.js';
 import { Customer } from '../domain/customer.js';
 import { ListCustomersQueryDto } from './dto/list-customers-query.dto.js';
 import { FindCustomerByDocumentQueryDto } from './dto/find-customer-by-document-query.dto.js';
+import { CustomerPointsService } from '../application/customer-points.service.js';
+import type { PointsSummary } from '../../points/application/points.service.js';
+
+const pointsSummary: PointsSummary = {
+  customerId: 1,
+  balance: 450,
+  negativeBalance: false,
+  lifetimePoints: 450,
+  level: {
+    current: 'SILVER',
+    next: 'GOLD',
+    currentMinPoints: 300,
+    nextMinPoints: 800,
+    pointsToNext: 350,
+    progressPercent: 30,
+  },
+  nextExpirations: [{ points: 200, expiresAt: '2026-11-30' }],
+};
 import { createCapturingAuditService } from '../../audit/testing/capturing-audit-service.js';
+import type { CustomerPointsAdjustmentService } from '../application/customer-points-adjustment.service.js';
 import type { AuditEntryInput } from '../../audit/domain/audit-entry.js';
 import type { CurrentUserData } from '../../shared/security/current-user-data.js';
 
@@ -28,8 +47,10 @@ describe('CustomersController', () => {
     createWithAccount: jest.Mock;
     update: jest.Mock;
   };
+  let pointsService: { getSummary: jest.Mock };
   let audit: AuditEntryInput[];
   let controller: CustomersController;
+  let adjustment: { adjust: jest.Mock };
 
   const cashier: CurrentUserData = { accountId: 9, role: 'CASHIER', employeeId: 9 };
   const customer = Customer.reconstruct({
@@ -54,9 +75,16 @@ describe('CustomersController', () => {
       createWithAccount: jest.fn(),
       update: jest.fn(),
     };
+    pointsService = { getSummary: jest.fn() };
     const capturing = createCapturingAuditService();
     audit = capturing.entries;
-    controller = new CustomersController(service as unknown as CustomersService, capturing.service);
+    adjustment = { adjust: jest.fn() };
+    controller = new CustomersController(
+      service as unknown as CustomersService,
+      capturing.service,
+      pointsService as unknown as CustomerPointsService,
+      adjustment as unknown as CustomerPointsAdjustmentService,
+    );
   });
 
   const query = (values: Partial<ListCustomersQueryDto> = {}): ListCustomersQueryDto =>
@@ -151,6 +179,76 @@ describe('CustomersController', () => {
       service.update.mockRejectedValue(new Error('documento en uso'));
 
       await expect(controller.update(7, {} as never, cashier)).rejects.toThrow('documento en uso');
+      expect(audit).toEqual([]);
+    });
+  });
+
+  describe('ajuste de puntos (US-24)', () => {
+    const admin: CurrentUserData = { accountId: 19, role: 'ADMIN', employeeId: 9 };
+
+    it('ajusta con quién ajusta sacado del token, responde §3.5.1 y audita POINTS_ADJUSTED', async () => {
+      adjustment.adjust.mockResolvedValue({
+        customer,
+        balanceBefore: -350,
+        balanceAfter: 0,
+        movement: {
+          id: 88,
+          createdAt: new Date('2026-10-16T18:12:00.000Z'),
+          points: 350,
+          balanceAfter: 0,
+          reason: 'Regularización por anulación de consumo',
+          performedBy: { accountId: 19, name: 'Valeria Vitto' },
+        },
+      });
+
+      const response = await controller.adjustPoints(
+        7,
+        { direction: 'ADD', points: 350, reason: 'Regularización por anulación de consumo' },
+        admin,
+      );
+
+      expect(adjustment.adjust).toHaveBeenCalledWith({
+        customerId: 7,
+        direction: 'ADD',
+        points: 350,
+        reason: 'Regularización por anulación de consumo',
+        performedBy: { accountId: 19, employeeId: 9 },
+      });
+      expect(response).toEqual({
+        movement: {
+          id: 88,
+          createdAt: '2026-10-16T18:12:00.000Z',
+          type: 'MANUAL_ADJUSTMENT',
+          points: 350,
+          balanceAfter: 0,
+          description: 'Ajuste: Regularización por anulación de consumo',
+          reason: 'Regularización por anulación de consumo',
+          performedBy: { actorType: 'EMPLOYEE', accountId: 19, name: 'Valeria Vitto' },
+        },
+        balanceBefore: -350,
+        balanceAfter: 0,
+      });
+      expect(audit).toEqual([
+        expect.objectContaining({
+          actor: { type: 'EMPLOYEE', accountId: 19 },
+          module: 'POINTS',
+          action: 'POINTS_ADJUSTED',
+          description: 'Ajustó puntos de Carlos Ruiz',
+          details: [
+            { label: 'Cantidad', value: '+350 pts' },
+            { label: 'Saldo resultante', value: '0 pts' },
+            { label: 'Motivo', value: 'Regularización por anulación de consumo' },
+          ],
+        }),
+      ]);
+    });
+
+    it('si el ajuste falla, no audita', async () => {
+      adjustment.adjust.mockRejectedValue(new Error('No se puede restar más que el saldo disponible.'));
+
+      await expect(
+        controller.adjustPoints(7, { direction: 'SUBTRACT', points: 9999, reason: 'Corrección' }, admin),
+      ).rejects.toThrow();
       expect(audit).toEqual([]);
     });
   });
@@ -293,6 +391,34 @@ describe('CustomersController', () => {
 
       expect(service.getStatusHistory).toHaveBeenCalledWith(1);
       expect(result).toEqual([{ id: 3, action: 'DEACTIVATED', createdAt: '2026-09-20T12:00:00.000Z' }]);
+    });
+  });
+
+  describe('puntos del cliente (US-46 / US-19)', () => {
+    it('points() devuelve la forma de §3.4.1 para el id recibido', async () => {
+      pointsService.getSummary.mockResolvedValue(pointsSummary);
+
+      const result = await controller.points(1);
+
+      expect(pointsService.getSummary).toHaveBeenCalledWith(1);
+      expect(result).toEqual(pointsSummary);
+    });
+
+    it('myPoints() usa el customerId del token', async () => {
+      pointsService.getSummary.mockResolvedValue(pointsSummary);
+
+      const result = await controller.myPoints({ accountId: 9, role: 'CUSTOMER', customerId: 1 });
+
+      expect(pointsService.getSummary).toHaveBeenCalledWith(1);
+      expect(result).toEqual(pointsSummary);
+    });
+
+    it('myPoints() rechaza con 403 FORBIDDEN un token sin customerId', async () => {
+      await expect(controller.myPoints({ accountId: 9, role: 'CUSTOMER' })).rejects.toMatchObject({
+        status: 403,
+        response: expect.objectContaining({ code: 'FORBIDDEN' }),
+      });
+      expect(pointsService.getSummary).not.toHaveBeenCalled();
     });
   });
 });

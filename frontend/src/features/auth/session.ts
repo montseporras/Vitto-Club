@@ -30,6 +30,16 @@ export function startSession(response: AuthResponse) {
   setSession({ status: 'authenticated', user: response.user })
 }
 
+/**
+ * Actualiza datos del usuario de la sesión sin volver a ingresar: el correo
+ * después de cambiarlo en Mi perfil, o mustChangePassword después de cambiar
+ * la contraseña (el 204 no trae otra respuesta que lo diga).
+ */
+export function updateSessionUser(changes: Partial<AuthUser>) {
+  if (session.status !== 'authenticated') return
+  setSession({ status: 'authenticated', user: { ...session.user, ...changes } })
+}
+
 /** Cierra la sesión en el front y descarta los datos cacheados del usuario anterior. */
 export function endSession() {
   accessToken = null

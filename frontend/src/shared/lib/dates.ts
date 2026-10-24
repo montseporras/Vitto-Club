@@ -52,6 +52,22 @@ export function todayIso() {
     .slice(0, 10)
 }
 
+// Argentina es UTC-3 todo el año (sin horario de verano)
+const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires'
+
+/** Instante ISO UTC de la API → 'DD/MM/AAAA' en hora de Argentina. */
+export function formatArgentinaDate(value: string) {
+  const parts = new Intl.DateTimeFormat('es-AR', {
+    timeZone: ARGENTINA_TIME_ZONE,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).formatToParts(new Date(value))
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? ''
+  return `${part('day')}/${part('month')}/${part('year')}`
+}
+
 const ARGENTINA_DATE_TIME = new Intl.DateTimeFormat('es-AR', {
   timeZone: 'America/Argentina/Cordoba',
   day: '2-digit',
