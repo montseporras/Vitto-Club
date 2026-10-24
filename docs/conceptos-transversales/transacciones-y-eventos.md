@@ -313,9 +313,13 @@ Es la lista de avisos que existen y qué datos lleva cada uno.
 | `employee.deactivated` | `employees` | `accounts` | Dar de baja la cuenta del empleado |
 | `employee.role-changed` | `employees` | `accounts` | Actualizar la copia del rol en la cuenta |
 | `account.deactivated` | `accounts` | `auth` | Revocar las sesiones abiertas de esa cuenta |
-| `customer.deactivated` | `customers` | `accounts` | Dar de baja la cuenta del cliente |
-| `customer.reactivated` | `customers` | `accounts` | Reactivar la cuenta del cliente |
+| `customer.created` | `customers` | `accounts` | Crear la cuenta del cliente dado de alta en caja (contraseña inicial = documento) |
+| `customer.deactivated` | `customers` | `accounts` | Dejar inactiva la cuenta del cliente; `accounts` publica `account.deactivated` y `auth` cierra sus sesiones (CLI-ADM) |
+| `customer.reactivated` | `customers` | `accounts` | Sin uso: la reactivación de clientes ya no existe (contrato §1) |
 | `customer.email-changed` | `customers` | `accounts` | Actualizar el email de acceso del cliente |
+| `customer.document-changed` | `customers` | `accounts` | Si el cliente no cambió la contraseña inicial, que pase a ser el documento nuevo (CLI-ADM) |
+| `customer.email-change-requested` | `customers` | `accounts` | El cliente cambia su correo desde Mi perfil: verificar su contraseña actual (con el límite de intentos) y que ninguna otra cuenta activa use el correo, **antes** de escribir nada. Si falla, tira el error y se deshace todo (PERFIL) |
+| `account.password-changed` | `accounts` | `auth` | Cerrar las sesiones de la cuenta. Si el evento trae `currentRefreshToken` (el usuario cambia su propia contraseña, PERFIL), deja abierta la de la cookie del pedido. Si no lo trae (el Administrador cambia la contraseña de un empleado con `PATCH /usuarios/:id`, EMP-PASS), cierra todas |
 
 **Por qué está en una carpeta compartida (`shared/events/`) y no dentro de un
 módulo:** si `accounts` importara el evento desde `employees/domain`, se
@@ -442,10 +446,16 @@ Al escribir una operación que toca más de un módulo:
   escuchan**, con rollback probado (`accounts` escucha ambos desde
   `EmployeeEventsListener`, protección del último ADMIN incluida). Es el
   refactor de la rama `users`, ya integrado.
-- **Eventos de clientes:** `customer.deactivated`, `customer.reactivated` y
-  `customer.email-changed` siguen solo en el contrato. Falta publicarlos desde
-  `customers` y escucharlos desde `accounts`; sigue siendo parte de la rama de
-  cuentas de clientes, todavía no implementada.
+- **Eventos de clientes:** `customer.created`, `customer.email-changed`,
+  `customer.deactivated` y `customer.document-changed` ya se publican desde
+  `customers` y los escucha `accounts` (`CustomerEventsListener`), todos en la
+  transacción de quien los publica. `customer.reactivated` queda declarado pero
+  sin uso desde CLI-ADM. PERFIL suma `customer.email-change-requested` (customers →
+  accounts) y `account.password-changed` (accounts → auth), ambos en la
+  transacción de quien los publica. El primero se publica **antes** de escribir:
+  si la contraseña es incorrecta, tira y no queda nada guardado. EMP-PASS reutiliza
+  `account.password-changed` desde `AccountsService.resetPassword` (sin
+  `currentRefreshToken`) para cerrar todas las sesiones del empleado.
 - **Test de la cadena completa por HTTP** (degradar al último administrador
   desde `PATCH /api/empleados/:id` tiene que responder 409 y no cambiar nada):
   sigue sin existir — lo que hay es el equivalente a nivel de servicio (con
@@ -484,3 +494,6 @@ Al escribir una operación que toca más de un módulo:
 | 2026-10-05 | Versión inicial: transacción ambiente, eventos de dominio, contrato de tres eventos, 9 tests |
 | 2026-10-05 | Se agregan los tres eventos de clientes. El login pasa a ser por email para todos los roles |
 | 2026-10-06 | Sección 10 actualizada: `employee.deactivated`/`employee.role-changed` ya están implementados y probados (rollback incluido) en `employees`/`accounts`, con `client` en ambos repositorios. Sigue pendiente el test e2e por HTTP y los eventos de clientes |
+| 2026-10-20 | CLI-ADM: `customer.deactivated` ya se publica (baja de la cuenta y cierre de sesiones) y se suma `customer.document-changed`. `customer.reactivated` queda sin uso |
+| 2026-10-20 | PERFIL: se suman `customer.email-change-requested` (el cliente cambia su correo; `accounts` verifica la contraseña antes de que `customers` escriba) y `account.password-changed` (`auth` cierra las otras sesiones) |
+| 2026-10-20 | EMP-PASS: `AccountsService.resetPassword` (`PATCH /usuarios/:id`) corre en la transacción ambiente y publica `account.password-changed` sin `currentRefreshToken`, así que `auth` cierra todas las sesiones de la cuenta |

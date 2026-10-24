@@ -67,6 +67,13 @@ export class SessionPrismaRepository implements SessionRepository {
     });
   }
 
+  async revokeAllForAccountExcept(accountId: number, keepTokenHash: string | null, now: Date): Promise<void> {
+    await this.tx.client.session.updateMany({
+      where: { accountId, revokedAt: null, ...(keepTokenHash ? { tokenHash: { not: keepTokenHash } } : {}) },
+      data: { revokedAt: now },
+    });
+  }
+
   async revokeAllForAccount(accountId: number, now: Date): Promise<void> {
     await this.tx.client.session.updateMany({
       where: { accountId, revokedAt: null },

@@ -17,7 +17,7 @@ interface ConfirmEmployeeDeactivationProps {
 function errorMessage(error: unknown): string {
   const apiError = toApiError(error);
   if (apiError.code === 'LAST_ADMIN') {
-    return 'No se puede dar de baja: es el único administrador que puede ingresar al sistema.';
+    return 'No se puede eliminar: es el único administrador que puede ingresar al sistema.';
   }
   switch (apiError.status) {
     case undefined:
@@ -27,7 +27,7 @@ function errorMessage(error: unknown): string {
     case 404:
       return 'El empleado ya no existe.';
     default:
-      return 'No se pudo dar de baja al empleado. Intentá nuevamente.';
+      return 'No se pudo eliminar al empleado. Intentá nuevamente.';
   }
 }
 
@@ -55,11 +55,12 @@ export function ConfirmEmployeeDeactivation({
       )}
 
       <p className="text-base text-text">
-        ¿Dar de baja a{' '}
+        ¿Eliminar a{' '}
         <strong>
           {employee.firstName} {employee.lastName}
         </strong>
-        ? Va a dejar de poder ingresar al sistema.
+        ? Se va a eliminar definitivamente y va a dejar de poder ingresar al
+        sistema.
       </p>
 
       <FormActions>
@@ -72,7 +73,7 @@ export function ConfirmEmployeeDeactivation({
           onClick={handleConfirm}
           disabled={deactivateEmployee.isPending || noRetry}
         >
-          {deactivateEmployee.isPending ? 'Dando de baja…' : 'Dar de baja'}
+          {deactivateEmployee.isPending ? 'Eliminando…' : 'Eliminar empleado'}
         </Button>
       </FormActions>
     </div>

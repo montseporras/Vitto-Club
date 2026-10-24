@@ -1,5 +1,13 @@
 import type { ApiError } from '@/shared/api/ApiError'
 
+/** Códigos de error de clientes (contrato §5): se decide por estos, nunca por el mensaje. */
+export const CUSTOMER_ERROR_CODES = {
+  EMAIL_IN_USE: 'EMAIL_IN_USE',
+} as const
+
+// El contrato no cita este texto: es el del prototipo (alta de cliente en Caja).
+const EMAIL_IN_USE_MESSAGE = 'Ya hay un cliente registrado con ese correo electrónico.'
+
 /** Un 409 de la API de clientes: qué dato está repetido (si es uno solo) y qué mostrar. */
 export type CustomerConflict = {
   field?: 'email' | 'documentNumber'
@@ -17,15 +25,20 @@ const isConflictField = (field: string): field is 'email' | 'documentNumber' =>
 export function customerConflict(error: ApiError): CustomerConflict | undefined {
   if (error.status !== 409) return undefined
 
+  // El mail lo usa otro cliente, un empleado u otra cuenta activa: se marca en el campo del mail
+  if (error.code === CUSTOMER_ERROR_CODES.EMAIL_IN_USE) {
+    return { field: 'email', message: EMAIL_IN_USE_MESSAGE }
+  }
+
   const detail = error.details.find((item) => isConflictField(item.field))
   if (detail && isConflictField(detail.field)) {
     return { field: detail.field, message: detail.message }
   }
 
   const { message } = error
-  // 'Customer with ID … is inactive: reactivate it before modifying'
+  // 'Customer with ID … is inactive…': los clientes dados de baja no se reactivan
   if (/\bis inactive\b/i.test(message)) {
-    return { message: 'El cliente está dado de baja: reactivalo antes de modificarlo.' }
+    return { message: 'El cliente está dado de baja: no se puede modificar.' }
   }
   // 'Email "…" is already registered as an employee'
   if (/registered as an employee/i.test(message)) {

@@ -8,6 +8,7 @@ Documentos que cambian con el tiempo: estado, pendientes y pedidos entre equipos
 | [estado-puntos-y-consumos](./estado-puntos-y-consumos.md) | BASE, US-21 y US-22 (backend): qué se hizo, y qué falta de puntos/consumos/auditoría por historia |
 | [deuda-tecnica](./deuda-tecnica.md) | Deuda, limitaciones aceptadas y riesgos |
 | [pendientes-frontend](./pendientes-frontend.md) | Pendientes del frontend del módulo de clientes |
+| [diferencias-prototipo-frontend](./diferencias-prototipo-frontend.md) | Diferencias entre el prototipo v2 y el frontend tras la alineación visual (sin historia asociada) |
 | [pedidos/](./pedidos/) | Pedidos entre equipos (ver [plantilla](../plantillas/pedido-entre-equipos.md)) |
 | [historico/](./historico/) | Documentos de traspaso y comparación de ramas, ya superados |
 

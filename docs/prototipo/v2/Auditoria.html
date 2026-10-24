@@ -73,7 +73,7 @@ class Component extends DCLogic {
     Canjes: ['Confirmó canje', 'Registró uso de canje', 'Rechazó canje', 'Venció canje'],
     Recompensas: ['Creó recompensa', 'Editó recompensa', 'Activó recompensa', 'Desactivó recompensa', 'Dio de baja recompensa', 'Deshabilitó recompensa', 'Habilitó recompensa'],
     Misiones: ['Creó misión', 'Editó misión', 'Dio de baja misión', 'Completó misión', 'Reclamó recompensa de misión', 'Venció misiones del mes'],
-    'Configuración': ['Modificó equivalencia de puntos', 'Modificó vigencia de puntos', 'Modificó bonificación por primera compra', 'Modificó logo y mensajes', 'Modificó promociones', 'Modificó niveles']
+    'Configuración': ['Modificó equivalencia de puntos', 'Modificó vigencia de puntos', 'Modificó bonificación por primer consumo', 'Modificó logo y mensajes', 'Modificó promociones', 'Modificó niveles']
   };
   ICON_P = 'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8';
   ICON_S = 'M4 4h16v12H4z M8 20h8 M12 16v4 M8 8h.01 M12 8h4';
@@ -103,7 +103,7 @@ class Component extends DCLogic {
     else if (/ajust/.test(x)) { modulo = 'Puntos'; accion = 'Ajustó puntos'; }
     else if (/nivel/.test(x)) { modulo = 'Configuración'; accion = 'Modificó niveles'; }
     else if (/notificaci/.test(x)) { modulo = 'Configuración'; accion = 'Modificó logo y mensajes'; }
-    else if (/configuraci/.test(x)) { modulo = 'Configuración'; accion = /puntos por|monto base/.test(det) ? 'Modificó equivalencia de puntos' : /vigencia/.test(det) ? 'Modificó vigencia de puntos' : /bonificaci/.test(det) ? 'Modificó bonificación por primera compra' : 'Modificó equivalencia de puntos'; }
+    else if (/configuraci/.test(x)) { modulo = 'Configuración'; accion = /puntos por|monto base/.test(det) ? 'Modificó equivalencia de puntos' : /vigencia/.test(det) ? 'Modificó vigencia de puntos' : /bonificaci/.test(det) ? 'Modificó bonificación por primer consumo' : 'Modificó equivalencia de puntos'; }
     let cliente = null; let filas = (a.detalle || []).filter((d) => d[0] !== 'Cliente');
     const dc = (a.detalle || []).find((d) => d[0] === 'Cliente');
     if (dc) { const m = String(dc[1]).match(/^(.*?)\s*\((DNI|Pasaporte)\s+([^)]+)\)/); if (m) cliente = this.cli(m[1], m[3].replace(/\D/g, ''), m[2]); }

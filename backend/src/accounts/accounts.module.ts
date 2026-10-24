@@ -9,11 +9,20 @@ import { AccountPrismaRepository } from './infrastructure/accounts.repository.js
 import { BcryptPasswordHasher } from './infrastructure/bcrypt-password-hasher.js';
 import { AccountsController } from './http/accounts.controller.js';
 import { CustomerRegistrationController } from './http/customer-registration.controller.js';
+import { MyAccountController } from './http/my-account.controller.js';
+import { PasswordChangeService } from './application/password-change.service.js';
+import { AccountCredentialsRepository } from './domain/port/account-credentials.repository.js';
+import { AccountCredentialsPrismaRepository } from './infrastructure/account-credentials.repository.js';
+import { PasswordAttemptLimiter } from './domain/port/password-attempt-limiter.js';
+import { InMemoryPasswordAttemptLimiter } from './infrastructure/in-memory-password-attempt-limiter.js';
 import { CustomerRegistrationService } from './application/customer-registration.service.js';
+import { CustomerAccountCreationService } from './application/customer-account-creation.service.js';
+import { CustomerAccountSyncService } from './application/customer-account-sync.service.js';
 import { CustomerAccountRepository } from './domain/port/customer-account.repository.js';
 import { CustomerAccountPrismaRepository } from './infrastructure/customer-accounts.repository.js';
 import { EmployeesModule } from '../employees/employees.module.js';
 import { CustomersModule } from '../customers/customers.module.js';
+import { AuditModule } from '../audit/audit.module.js';
 import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
 
 // accounts es dueño de la tabla Account y de las contraseñas: el adaptador de bcryptjs vive
@@ -24,13 +33,23 @@ import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js'
 // solo sentido (ninguno de los dos importa a Accounts). La integración Employee -> Account
 // es por eventos (EmployeeEventsListener), no por import circular.
 @Module({
-  imports: [EmployeesModule, CustomersModule],
-  controllers: [AccountsController, CustomerRegistrationController],
+  imports: [EmployeesModule, CustomersModule, AuditModule],
+  controllers: [AccountsController, CustomerRegistrationController, MyAccountController],
   providers: [
     AccountsService,
     // SCRUM-160: registro de clientes (servicio y repositorio propios, aparte del ABMC de usuarios)
     CustomerRegistrationService,
+    // US-17-AJ: cuenta del cliente dado de alta por el Cajero o el Administrador (evento customer.created)
+    CustomerAccountCreationService,
+    // CLI-ADM: baja del cliente (cuenta inactiva y sesiones cerradas) y corrección de su documento
+    CustomerAccountSyncService,
     { provide: CustomerAccountRepository, useClass: CustomerAccountPrismaRepository },
+    // PERFIL: el usuario cambia su contraseña (y confirma la actual para cambiar su correo)
+    PasswordChangeService,
+    { provide: AccountCredentialsRepository, useClass: AccountCredentialsPrismaRepository },
+    // Contador de intentos incorrectos en memoria: un solo objeto para toda la aplicación, así lo
+    // comparten el cambio de contraseña y el de correo
+    { provide: PasswordAttemptLimiter, useClass: InMemoryPasswordAttemptLimiter },
     EmployeeEventsListener,
     CustomerEventsListener,
     {

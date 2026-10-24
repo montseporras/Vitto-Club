@@ -3,10 +3,10 @@
 > Extraído de `funcionalidades/configuracion-de-puntos.md`.
 
 Los modelos Prisma previos `LoyaltyPointsConfiguration`,
-`LoyaltyPointsValidityConfiguration` y `FirstPurchaseBonusConfiguration` están
+`LoyaltyPointsValidityConfiguration` y `FirstConsumptionBonusConfiguration` están
 en `backend/prisma/schema.prisma`. Las tablas PostgreSQL son
 `loyalty_points_configuration`, `loyalty_points_validity_configuration` y
-`first_purchase_bonus_configuration`. Estas tablas singleton se conservan
+`first_consumption_bonus_configuration`. Estas tablas singleton se conservan
 como datos legacy y fuente de importación de la versión inicial; la
 persistencia activa pasa a ser `LoyaltyProgramConfiguration`, un snapshot
 completo descrito en la sección RF-014 al final de este documento.
@@ -53,7 +53,7 @@ se modifica.
 
 La bonificación está en
 `backend/prisma/migrations/20261007173000_add_first_purchase_bonus_configuration/`.
-La migración crea el enum PostgreSQL `FirstPurchaseBonusType` (`PERCENTAGE`,
+La migración crea el enum PostgreSQL `FirstConsumptionBonusType` (`PERCENTAGE`,
 `FIXED_AMOUNT`) y una tabla singleton con `bonus_type`,
 `bonus_value DECIMAL(12,2)`, `created_at` y `updated_at`. La migración inicial
 definía el porcentaje como `0.1..100`; la migración de ajuste indicada abajo
@@ -70,7 +70,7 @@ configuración o un snapshot histórico.
 | Columna       | Tipo                          | Regla                                               |
 | ------------- | ----------------------------- | --------------------------------------------------- |
 | `id`          | `INTEGER`                     | PK; por defecto `1`; CHECK obliga a que sea `1`.    |
-| `bonus_type`  | `FirstPurchaseBonusType` enum | `PERCENTAGE` o `FIXED_AMOUNT`.                      |
+| `bonus_type`  | `FirstConsumptionBonusType` enum | `PERCENTAGE` o `FIXED_AMOUNT`.                      |
 | `bonus_value` | `DECIMAL(12,2)`               | Positivo; CHECK condicional según tipo.             |
 | `created_at`  | `TIMESTAMP(3)`                | Obligatorio; por defecto hora actual.               |
 | `updated_at`  | `TIMESTAMP(3)`                | Obligatorio; actualizado por Prisma en cada upsert. |
@@ -82,7 +82,7 @@ actualiza una propiedad mediante versionado y conserva las demás. El
 `LoyaltyService` exportado por `LoyaltyModule` expone
 `setPointsEquivalence`, `getCurrentPointsEquivalence`,
 `setPointsValidity` y `getCurrentPointsValidity` para que un futuro módulo de
-compras reutilice los ajustes. También ofrece `setFirstPurchaseBonus` y
-`getCurrentFirstPurchaseBonus`; consumidores usan el servicio, no el
+consumos reutilice los ajustes. También ofrece `setFirstConsumptionBonus` y
+`getCurrentFirstConsumptionBonus`; consumidores usan el servicio, no el
 repositorio ni las tablas directamente.
 

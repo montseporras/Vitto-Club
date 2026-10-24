@@ -29,14 +29,15 @@ export function formToCreateEmployeeDto(
 }
 
 // Listado de empleados (RF-03). La búsqueda por nombre y/o apellido la resuelve
-// el backend (?name=); sin `name` devuelve todos, activos e inactivos.
+// el backend (?name=). Se piden solo los activos (?active=true): un empleado
+// dado de baja no se reactiva y el Administrador ya no lo ve.
 // A cada empleado se le suma el resumen de su usuario, que sale de GET /usuarios
 // (SCRUM-27): el módulo de empleados del backend no conoce a las cuentas.
 export async function listEmployees(name?: string): Promise<Employee[]> {
   const trimmed = name?.trim();
   const [{ data: employees }, { data: accounts }] = await Promise.all([
     http.get<EmployeeResponse[]>('/empleados', {
-      params: trimmed ? { name: trimmed } : undefined,
+      params: trimmed ? { name: trimmed, active: 'true' } : { active: 'true' },
     }),
     http.get<Account[]>('/usuarios'),
   ]);

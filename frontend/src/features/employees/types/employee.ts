@@ -60,8 +60,8 @@ export interface Account {
   active: boolean;
 }
 
-// Cuerpo del PATCH /usuarios/:id (SCRUM-24). El backend también acepta `role`,
-// pero el rol se cambia desde el empleado: el front solo cambia la contraseña.
+// Cuerpo del PATCH /usuarios/:id (SCRUM-24, contrato §3.11.2). Solo viaja la
+// contraseña: el backend rechaza `role` con 400, el rol se cambia desde el empleado.
 export interface UpdateAccountPasswordDto {
   password: string;
 }

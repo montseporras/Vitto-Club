@@ -188,7 +188,7 @@ export function EditEmployeeForm({
             onClick={onRequestDeactivation}
             className="sm:mr-auto"
           >
-            Dar de baja
+            Eliminar empleado
           </Button>
           <Button type="button" variant="secondary" size="lg" onClick={onCancel}>
             Cancelar

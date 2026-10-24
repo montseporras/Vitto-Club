@@ -1,6 +1,6 @@
 import { PointsEquivalence } from '../points-equivalence.js';
 import { PointsValidity } from '../points-validity.js';
-import { FirstPurchaseBonus } from '../first-purchase-bonus.js';
+import { FirstConsumptionBonus } from '../first-consumption-bonus.js';
 import {
   LoyaltyProgramConfiguration,
   LoyaltyProgramConfigurationData,
@@ -16,10 +16,10 @@ export abstract class LoyaltyConfigurationRepository {
     validity: PointsValidity,
   ): Promise<PointsValidity>;
   abstract findCurrentPointsValidity(): Promise<PointsValidity>;
-  abstract saveFirstPurchaseBonus(
-    bonus: FirstPurchaseBonus,
-  ): Promise<FirstPurchaseBonus>;
-  abstract findCurrentFirstPurchaseBonus(): Promise<FirstPurchaseBonus | null>;
+  abstract saveFirstConsumptionBonus(
+    bonus: FirstConsumptionBonus,
+  ): Promise<FirstConsumptionBonus>;
+  abstract findCurrentFirstConsumptionBonus(): Promise<FirstConsumptionBonus | null>;
   abstract getActiveConfig(): Promise<LoyaltyProgramConfiguration>;
   abstract saveNewConfigVersion(
     configuration: LoyaltyProgramConfigurationData,

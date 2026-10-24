@@ -12,7 +12,7 @@ describe('SetPointsEquivalenceDto', () => {
     });
   }
 
-  it('accepts a positive decimal purchase amount and a positive integer points amount', async () => {
+  it('accepts a positive decimal consumption amount and a positive integer points amount', async () => {
     const errors = await validate(dto(996.5, 10));
     expect(errors).toHaveLength(0);
   });

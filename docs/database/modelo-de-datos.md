@@ -16,7 +16,7 @@ de traspaso).
 | `LoyaltyProgramConfiguration` | `loyalty_program_configurations` | Versión inmutable de toda la configuración del programa de puntos |
 | `LoyaltyPointsConfiguration` | `loyalty_points_configuration` | Equivalencia monto/puntos (fila única, `id = 1`) |
 | `LoyaltyPointsValidityConfiguration` | `loyalty_points_validity_configuration` | Vigencia de puntos en meses (fila única, `id = 1`) |
-| `FirstPurchaseBonusConfiguration` | `first_purchase_bonus_configuration` | Bonificación de primera compra (fila única, `id = 1`) |
+| `FirstConsumptionBonusConfiguration` | `first_consumption_bonus_configuration` | Bonificación de primer consumo (fila única, `id = 1`) |
 
 > Las tres tablas de fila única son anteriores al versionado completo. El doc de loyalty indica que una
 > migración importó sus valores como versión inicial y que los endpoints seccionales crean versiones.
@@ -30,7 +30,7 @@ de traspaso).
 | `AccountRole` | `ADMIN`, `CASHIER`, `CUSTOMER` |
 | `DocumentType` | `DNI`, `PASSPORT` |
 | `CustomerStatusAction` | `DEACTIVATED`, `ACTIVATED` |
-| `FirstPurchaseBonusType` | `PERCENTAGE`, `FIXED_AMOUNT` |
+| `FirstConsumptionBonusType` | `PERCENTAGE`, `FIXED_AMOUNT` |
 
 ## Relaciones
 

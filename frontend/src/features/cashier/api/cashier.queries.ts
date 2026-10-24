@@ -1,35 +1,32 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { DocumentType } from '@/domain/documents'
 import type { ApiError } from '@/shared/api/ApiError'
 import type {
   Customer,
   CreateCustomerBody,
   UpdateCustomerBody,
 } from '../types/customer'
+import type { Paginated } from '@/shared/types/pagination'
+import type { CustomerPoints, PointsMovement } from '../types/points'
 import {
-  activateCustomer,
   createCustomer,
   findCustomerByDocument,
+  getCustomerMovements,
+  getCustomerPoints,
   updateCustomer,
 } from './cashier.api'
+import { cashierKeys, type DocumentSearch } from './cashier.keys'
+
+export type { DocumentSearch } from './cashier.keys'
 
 export const useCreateCustomer = () =>
   useMutation<Customer, ApiError, CreateCustomerBody>({
     mutationFn: createCustomer,
   })
 
-export type DocumentSearch = {
-  documentType: DocumentType
-  documentNumber: string
-}
-
-const customerByDocumentKey = ({ documentType, documentNumber }: DocumentSearch) =>
-  ['customers', 'by-document', documentType, documentNumber] as const
-
 /** Busca al cliente por documento. No pide nada hasta que haya una búsqueda. */
 export const useCustomerByDocument = (search: DocumentSearch | null) =>
   useQuery<Customer, ApiError>({
-    queryKey: search ? customerByDocumentKey(search) : ['customers', 'by-document'],
+    queryKey: search ? cashierKeys.byDocument(search) : cashierKeys.byDocumentAll,
     queryFn: () =>
       findCustomerByDocument(search!.documentType, search!.documentNumber),
     enabled: search !== null,
@@ -43,22 +40,33 @@ export const useUpdateCustomer = () => {
     mutationFn: ({ id, body }) => updateCustomer(id, body),
     onSuccess: (customer) => {
       // Si cambió el documento, la búsqueda vieja ya no aplica
-      queryClient.removeQueries({ queryKey: ['customers', 'by-document'] })
-      queryClient.setQueryData(customerByDocumentKey(customer), customer)
+      queryClient.removeQueries({ queryKey: cashierKeys.byDocumentAll })
+      queryClient.setQueryData(cashierKeys.byDocument(customer), customer)
     },
   })
 }
 
-/** La reactivación no devuelve body: se arma el cliente actualizado a mano. */
-export const useActivateCustomer = () => {
-  const queryClient = useQueryClient()
-  return useMutation<Customer, ApiError, Customer>({
-    mutationFn: async (customer) => {
-      await activateCustomer(customer.id)
-      return { ...customer, active: true, deactivatedAt: null }
-    },
-    onSuccess: (customer) => {
-      queryClient.setQueryData(customerByDocumentKey(customer), customer)
-    },
+/** Saldo y nivel del cliente (US-46). No pide nada hasta tener el id. */
+export const useCustomerPoints = (customerId: number | null) =>
+  useQuery<CustomerPoints, ApiError>({
+    queryKey: cashierKeys.points(customerId ?? 0),
+    queryFn: () => getCustomerPoints(customerId!),
+    enabled: customerId !== null,
+    retry: (count, error) => error.status === undefined && count < 1,
   })
-}
+
+/**
+ * Últimos movimientos de puntos del cliente. Al Cajero el backend le fuerza las
+ * últimas 24 h (contrato §3.6.1): la pantalla no filtra nada.
+ */
+export const useCustomerMovements = (
+  customerId: number | null,
+  limit: number,
+  enabled: boolean,
+) =>
+  useQuery<Paginated<PointsMovement>, ApiError>({
+    queryKey: cashierKeys.movements(customerId ?? 0, limit),
+    queryFn: () => getCustomerMovements(customerId!, limit),
+    enabled: enabled && customerId !== null,
+    retry: (count, error) => error.status === undefined && count < 1,
+  })

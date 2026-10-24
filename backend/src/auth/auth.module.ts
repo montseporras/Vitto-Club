@@ -15,6 +15,7 @@ import { AuthController } from './http/auth.controller.js';
 import { JwtAuthGuard } from './http/guards/jwt-auth.guard.js';
 import { RolesGuard } from './http/guards/roles.guard.js';
 import { AccountDeactivatedListener } from './infrastructure/account-deactivated.listener.js';
+import { AccountPasswordChangedListener } from './infrastructure/account-password-changed.listener.js';
 import { AccountsCredentialsVerifier } from './infrastructure/accounts-credentials-verifier.js';
 import { AuthConfig } from './infrastructure/auth.config.js';
 import { CryptoRefreshTokenGenerator } from './infrastructure/crypto-refresh-token-generator.js';
@@ -52,6 +53,7 @@ import { SessionPrismaRepository } from './infrastructure/sessions.repository.js
     { provide: CredentialsVerifier, useClass: AccountsCredentialsVerifier },
     AuthService,
     AccountDeactivatedListener,
+    AccountPasswordChangedListener,
     // Guards para TODA la aplicación, en este orden: primero quién sos (JwtAuthGuard), después
     // si podés hacerlo (RolesGuard). Un endpoint sin @Public() ni @Roles() queda cerrado para
     // todos. Las marcas las declaran los controllers de cada módulo (src/shared/security).

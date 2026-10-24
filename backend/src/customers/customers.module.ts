@@ -4,6 +4,7 @@ import { CustomersService } from './application/customers.service.js';
 import { CustomerRepository } from './domain/port/customer.repository.js';
 import { CustomerPrismaRepository } from './infrastructure/customers.repository.js';
 import { EmployeesModule } from '../employees/employees.module.js';
+import { AuditModule } from '../audit/audit.module.js';
 import { TransactionRunner } from './domain/port/transaction-runner.js';
 import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
 import { PointsModule } from '../points/points.module.js';
@@ -13,7 +14,7 @@ import { CustomerPointsService } from './application/customer-points.service.js'
 // la única dirección, ver CustomersService). Import plano.
 @Module({
   // PointsModule: puntos y nivel de la ficha (US-19/US-46). points no importa customers, sin ciclo.
-  imports: [EmployeesModule, PointsModule],
+  imports: [EmployeesModule, AuditModule, PointsModule],
   controllers: [CustomersController],
   providers: [
     CustomersService,

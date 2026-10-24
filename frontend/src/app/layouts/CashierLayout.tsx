@@ -12,7 +12,7 @@ const NAV: SideNavItem[] = [
   {
     id: 'customer',
     to: PATHS.cashier.customer,
-    label: 'Buscar clientes',
+    label: 'Buscar cliente',
     icon: ICONS.user,
   },
   {
@@ -45,11 +45,14 @@ export function CashierLayout() {
         <SessionActions />
       </AppHeader>
 
-      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 lg:flex-row lg:gap-8 lg:py-8">
+      {/* A todo el ancho: el menú queda pegado a la izquierda con un margen chico y
+          el contenido se centra en el espacio que sobra */}
+      <div className="flex w-full flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:gap-8 lg:py-8">
         <aside className="lg:shrink-0">
           {/* En pantallas chicas el menú va arriba y siempre expandido */}
           <SideNav
             label="Opciones del mostrador"
+            title="Menú de mostrador"
             items={NAV}
             storageKey="vitto:menu-caja"
             collapsibleFrom="(min-width: 64rem)"

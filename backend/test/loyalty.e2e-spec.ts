@@ -10,14 +10,16 @@ import { AccessTokenIssuer } from '../src/auth/domain/port/access-token-issuer.j
 
 const POINTS_EQUIVALENCE_URL = '/api/loyalty/configuration/points-equivalence';
 const POINTS_VALIDITY_URL = '/api/loyalty/configuration/points-validity';
-const FIRST_PURCHASE_BONUS_URL =
-  '/api/loyalty/configuration/first-purchase-bonus';
+const FIRST_CONSUMPTION_BONUS_URL =
+  '/api/loyalty/configuration/first-consumption-bonus';
 const CURRENT_LOYALTY_CONFIG_URL = '/api/loyalty/configuration/current';
 const LOYALTY_CONFIG_URL = '/api/loyalty/configuration';
 
 describe('Loyalty configuration (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let actorAccountId = 0;
+  let actorEmployeeId = 0;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -39,7 +41,7 @@ describe('Loyalty configuration (e2e)', () => {
     app.use(async (request: Request, _response: Response, next: NextFunction) => {
       const role = request.header('x-test-auth-role');
       if (role === 'ADMIN' || role === 'CASHIER') {
-        const token = await issuer.issue({ accountId: 1, role, employeeId: 1 });
+        const token = await issuer.issue({ accountId: actorAccountId, role, employeeId: actorEmployeeId });
         request.headers.authorization = `Bearer ${token}`;
       }
       next();
@@ -50,10 +52,36 @@ describe('Loyalty configuration (e2e)', () => {
   });
 
   beforeEach(async () => {
+    // Actor de las operaciones auditadas (US-57): un empleado real con su cuenta
+    await prisma.session.deleteMany();
+    await prisma.account.deleteMany();
+    await prisma.employee.deleteMany();
+    const actor = await prisma.employee.create({
+      data: {
+        firstName: 'Test',
+        lastName: 'Admin',
+        phone: '3510000000',
+        email: 'actor.loyalty@vitto.club',
+        role: 'ADMIN',
+        isActive: true,
+      },
+    });
+    const actorAccount = await prisma.account.create({
+      data: {
+        email: actor.email,
+        passwordHash: 'hashed:secreta123',
+        role: 'ADMIN',
+        isActive: true,
+        employeeId: actor.id,
+      },
+    });
+    actorEmployeeId = actor.id;
+    actorAccountId = actorAccount.id;
+
     await prisma.loyaltyProgramConfiguration.deleteMany();
     await prisma.loyaltyPointsConfiguration.deleteMany();
     await prisma.loyaltyPointsValidityConfiguration.deleteMany();
-    await prisma.firstPurchaseBonusConfiguration.deleteMany();
+    await prisma.firstConsumptionBonusConfiguration.deleteMany();
     await prisma.loyaltyProgramConfiguration.create({
       data: { version: 1 },
     });
@@ -63,7 +91,7 @@ describe('Loyalty configuration (e2e)', () => {
     await prisma.loyaltyProgramConfiguration.deleteMany();
     await prisma.loyaltyPointsConfiguration.deleteMany();
     await prisma.loyaltyPointsValidityConfiguration.deleteMany();
-    await prisma.firstPurchaseBonusConfiguration.deleteMany();
+    await prisma.firstConsumptionBonusConfiguration.deleteMany();
     await app.close();
   });
 
@@ -236,7 +264,7 @@ describe('Loyalty configuration (e2e)', () => {
     }
   });
 
-  it.each(['abc', '12months', 1.5, 0, -2, 2_147_483_648])(
+  it.each(['abc', '12months', 1.5, 0, -2, 121])(
     'rejects invalid points validity %s without persisting it',
     async (pointsExpirationMonths) => {
       await request(app.getHttpServer())
@@ -249,29 +277,29 @@ describe('Loyalty configuration (e2e)', () => {
     },
   );
 
-  it('requires an authenticated administrator to read or change first purchase bonus', async () => {
+  it('requires an authenticated administrator to read or change first consumption bonus', async () => {
     await request(app.getHttpServer())
-      .get(FIRST_PURCHASE_BONUS_URL)
+      .get(FIRST_CONSUMPTION_BONUS_URL)
       .expect(401);
     await request(app.getHttpServer())
-      .put(FIRST_PURCHASE_BONUS_URL)
+      .put(FIRST_CONSUMPTION_BONUS_URL)
       .send({ bonusType: 'FIXED_AMOUNT', bonusValue: 30 })
       .expect(401);
 
     await request(app.getHttpServer())
-      .put(FIRST_PURCHASE_BONUS_URL)
+      .put(FIRST_CONSUMPTION_BONUS_URL)
       .set('x-test-auth-role', 'CASHIER')
       .send({ bonusType: 'FIXED_AMOUNT', bonusValue: 30 })
       .expect(403);
 
-    await expect(prisma.firstPurchaseBonusConfiguration.count()).resolves.toBe(
+    await expect(prisma.firstConsumptionBonusConfiguration.count()).resolves.toBe(
       0,
     );
   });
 
-  it('returns not found when the first purchase bonus is not configured', async () => {
+  it('returns not found when the first consumption bonus is not configured', async () => {
     await request(app.getHttpServer())
-      .get(FIRST_PURCHASE_BONUS_URL)
+      .get(FIRST_CONSUMPTION_BONUS_URL)
       .set('x-test-auth-role', 'ADMIN')
       .expect(404);
   });
@@ -282,10 +310,10 @@ describe('Loyalty configuration (e2e)', () => {
     [{ bonusType: 'FIXED_AMOUNT', bonusValue: 30 }, 'FIXED_AMOUNT', 30],
     [{ bonusType: 'FIXED_AMOUNT', bonusValue: 10_000 }, 'FIXED_AMOUNT', 10_000],
   ])(
-    'persists and returns valid first purchase bonus %j',
+    'persists and returns valid first consumption bonus %j',
     async (payload, bonusType, bonusValue) => {
       const saved = await request(app.getHttpServer())
-        .put(FIRST_PURCHASE_BONUS_URL)
+        .put(FIRST_CONSUMPTION_BONUS_URL)
         .set('x-test-auth-role', 'ADMIN')
         .send(payload)
         .expect(200);
@@ -294,7 +322,7 @@ describe('Loyalty configuration (e2e)', () => {
       expect(saved.body.updatedAt).toEqual(expect.any(String));
 
       const current = await request(app.getHttpServer())
-        .get(FIRST_PURCHASE_BONUS_URL)
+        .get(FIRST_CONSUMPTION_BONUS_URL)
         .set('x-test-auth-role', 'ADMIN')
         .expect(200);
 
@@ -303,15 +331,15 @@ describe('Loyalty configuration (e2e)', () => {
     },
   );
 
-  it('replaces first purchase bonus settings without creating duplicate rows', async () => {
+  it('replaces first consumption bonus settings without creating duplicate rows', async () => {
     await request(app.getHttpServer())
-      .put(FIRST_PURCHASE_BONUS_URL)
+      .put(FIRST_CONSUMPTION_BONUS_URL)
       .set('x-test-auth-role', 'ADMIN')
       .send({ bonusType: 'FIXED_AMOUNT', bonusValue: 30 })
       .expect(200);
 
     const updated = await request(app.getHttpServer())
-      .put(FIRST_PURCHASE_BONUS_URL)
+      .put(FIRST_CONSUMPTION_BONUS_URL)
       .set('x-test-auth-role', 'ADMIN')
       .send({ bonusType: 'PERCENTAGE', bonusValue: 15.5 })
       .expect(200);
@@ -336,9 +364,9 @@ describe('Loyalty configuration (e2e)', () => {
     { bonusType: 'FIXED_AMOUNT', bonusValue: 10_001 },
     { bonusType: 'FIXED_AMOUNT', bonusValue: 'abc' },
     { bonusType: 'PERCENTAGE', bonusValue: 15, extra: true },
-  ])('rejects invalid first purchase bonus %j', async (payload) => {
+  ])('rejects invalid first consumption bonus %j', async (payload) => {
     await request(app.getHttpServer())
-      .put(FIRST_PURCHASE_BONUS_URL)
+      .put(FIRST_CONSUMPTION_BONUS_URL)
       .set('x-test-auth-role', 'ADMIN')
       .send(payload)
       .expect(400);
@@ -349,17 +377,17 @@ describe('Loyalty configuration (e2e)', () => {
   it('enforces bonus value rules in PostgreSQL as well as at the API boundary', async () => {
     await expect(
       prisma.$executeRaw`
-        INSERT INTO "first_purchase_bonus_configuration"
+        INSERT INTO "first_consumption_bonus_configuration"
           ("id", "bonus_type", "bonus_value", "updated_at")
-        VALUES (1, 'PERCENTAGE'::"FirstPurchaseBonusType", 0.5, CURRENT_TIMESTAMP)
+        VALUES (1, 'PERCENTAGE'::"FirstConsumptionBonusType", 0.5, CURRENT_TIMESTAMP)
       `,
     ).rejects.toThrow();
 
     await expect(
       prisma.$executeRaw`
-        INSERT INTO "first_purchase_bonus_configuration"
+        INSERT INTO "first_consumption_bonus_configuration"
           ("id", "bonus_type", "bonus_value", "updated_at")
-        VALUES (1, 'PERCENTAGE'::"FirstPurchaseBonusType", 101, CURRENT_TIMESTAMP)
+        VALUES (1, 'PERCENTAGE'::"FirstConsumptionBonusType", 101, CURRENT_TIMESTAMP)
       `,
     ).rejects.toThrow();
 
@@ -367,23 +395,23 @@ describe('Loyalty configuration (e2e)', () => {
       prisma.$executeRaw`
         INSERT INTO "loyalty_program_configurations"
           ("version", "bonus_type", "bonus_value", "is_active", "valid_from")
-        VALUES (2, 'PERCENTAGE'::"FirstPurchaseBonusType", 0.5, false, CURRENT_TIMESTAMP)
+        VALUES (2, 'PERCENTAGE'::"FirstConsumptionBonusType", 0.5, false, CURRENT_TIMESTAMP)
       `,
     ).rejects.toThrow();
 
     await expect(
       prisma.$executeRaw`
-        INSERT INTO "first_purchase_bonus_configuration"
+        INSERT INTO "first_consumption_bonus_configuration"
           ("id", "bonus_type", "bonus_value", "updated_at")
-        VALUES (1, 'FIXED_AMOUNT'::"FirstPurchaseBonusType", 30, CURRENT_TIMESTAMP)
+        VALUES (1, 'FIXED_AMOUNT'::"FirstConsumptionBonusType", 30, CURRENT_TIMESTAMP)
       `,
     ).resolves.toBe(1);
 
     await expect(
       prisma.$executeRaw`
-        INSERT INTO "first_purchase_bonus_configuration"
+        INSERT INTO "first_consumption_bonus_configuration"
           ("id", "bonus_type", "bonus_value", "updated_at")
-        VALUES (2, 'FIXED_AMOUNT'::"FirstPurchaseBonusType", 30, CURRENT_TIMESTAMP)
+        VALUES (2, 'FIXED_AMOUNT'::"FirstConsumptionBonusType", 30, CURRENT_TIMESTAMP)
       `,
     ).rejects.toThrow();
   });

@@ -6,6 +6,8 @@ import type {
   CreateCustomerBody,
   UpdateCustomerBody,
 } from '../types/customer'
+import type { Paginated } from '@/shared/types/pagination'
+import type { CustomerPoints, PointsMovement } from '../types/points'
 
 export async function createCustomer(body: CreateCustomerBody) {
   try {
@@ -39,10 +41,22 @@ export async function updateCustomer(id: number, body: UpdateCustomerBody) {
   }
 }
 
-/** PATCH /customers/:id/activate: 204 sin body / 404 / 409 (ya activo). */
-export async function activateCustomer(id: number) {
+export async function getCustomerPoints(customerId: number) {
   try {
-    await http.patch(`/customers/${id}/activate`)
+    const res = await http.get<CustomerPoints>(`/customers/${customerId}/puntos`)
+    return res.data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function getCustomerMovements(customerId: number, limit: number) {
+  try {
+    const res = await http.get<Paginated<PointsMovement>>(
+      `/customers/${customerId}/movimientos`,
+      { params: { limit } },
+    )
+    return res.data
   } catch (error) {
     throw toApiError(error)
   }

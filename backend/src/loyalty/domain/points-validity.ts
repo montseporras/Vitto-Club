@@ -1,7 +1,7 @@
 import { DomainError } from './errors/domain.error.js';
 
 export const DEFAULT_POINTS_EXPIRATION_MONTHS = 12;
-const MAX_POINTS_EXPIRATION_MONTHS = 2_147_483_647;
+const MAX_POINTS_EXPIRATION_MONTHS = 120;
 
 export type PointsValidityData = {
   pointsExpirationMonths?: number | null;

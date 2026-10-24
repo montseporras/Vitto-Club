@@ -1,6 +1,6 @@
 import { DomainError } from './errors/domain.error.js';
 
-export const POINTS_LOT_STATUSES = ['ACTIVE', 'CONSUMED', 'EXPIRED'] as const;
+export const POINTS_LOT_STATUSES = ['ACTIVE', 'CONSUMED', 'EXPIRED', 'VOIDED'] as const;
 export type PointsLotStatus = (typeof POINTS_LOT_STATUSES)[number];
 
 function requiredPositiveInt(value: number, field: string): number {
@@ -89,7 +89,7 @@ export class PointsLot {
   // disponible y el lote se invalida entero, aunque no llegue a 0 por sí solo.
   voidOrigin(amount: number): void {
     this.consume(amount);
-    this._status = 'CONSUMED';
+    this._status = 'VOIDED';
   }
 
   // GETTERS

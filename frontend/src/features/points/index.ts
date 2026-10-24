@@ -3,9 +3,9 @@
 export { PointsSettingsPage } from './pages/PointsSettingsPage';
 export type {
   BonusType,
-  FirstPurchaseBonus,
-  UpdateFirstPurchaseBonusDto,
-} from './types/first-purchase-bonus';
+  FirstConsumptionBonus,
+  UpdateFirstConsumptionBonusDto,
+} from './types/first-consumption-bonus';
 export type {
   PointsEquivalence,
   UpdatePointsEquivalenceDto,

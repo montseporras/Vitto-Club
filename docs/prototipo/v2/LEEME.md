@@ -31,3 +31,50 @@ texto adentro. Desempaquetado, cada pantalla es un `.html` que se busca con grep
 Si no se actualiza, Claude programa contra una versión vieja.
 
 Último export cargado: **(completar fecha)**
+
+## Cambios hechos a mano (20/10/2026, a pedido de Denise)
+
+Después del último export, el prototipo se editó a mano para que **las pantallas ya programadas se vean
+igual que la app real** (`frontend/`). Se cambiaron los `.html` de esta carpeta **y** el archivo único
+(`../Vitto Club Prototipo - archivo unico.html`), que se volvió a empaquetar con el mismo contenido.
+
+> **Cuidado:** si se vuelve a exportar desde Claude Design sin hacer estos cambios allá, se pierden.
+
+**Criterio:**
+- Lo que ya está programado se copió de la app: medidas, colores, textos y comportamiento.
+- Lo que en el prototipo está completo y en la app todavía dice "Próximamente" **quedó como estaba en el
+  prototipo** (por ejemplo, la configuración de Niveles, la vista del Cliente, el panel del Administrador).
+- Se mantuvieron las cosas propias del prototipo: el botón "Tipos de datos", las cuentas de prueba del
+  ingreso y las notas del prototipo.
+- "Buscar cliente" del Cajero sigue siendo el flujo de Registrar consumo del Sprint 3 (todavía no está
+  programado); solo se revisó que respete las decisiones ya tomadas.
+
+**Qué cambió:**
+
+| Dónde | Cambio |
+|---|---|
+| Marco (`pagina-principal.html`) | Encabezado centrado en 1280 px, logo de 36 px y título de 24 px; fondo `#fdf7ee` y texto `#2b1a10`, como la app |
+| Menú lateral (`SidebarMenu.html` y `.vc-side`) | Sin fondo blanco, a 24 px del borde, 304 px de ancho (272 px en Configuración), opciones de 48 px y 16 px de letra. Contraído: 80 px y el resaltado es un cuadrado centrado sobre el ícono |
+| Nuevo cliente | Mismo diseño que la app (tarjeta "Clientes / Registrar", campos de 48 px, botonera con fondo). Se mantuvo el botón "Cancelar" y el aviso de éxito del Sprint 3 |
+| Configuración | Modal de 1280 px y 92 % del alto, con el encabezado y el botón "Cerrar ✕" de la app |
+| Configuración → Empleados | Solo empleados activos (los eliminados no se ven ni se reactivan). Columnas Apellido, Nombre, Teléfono y Rol; si la cuenta está desactivada, la etiqueta roja "Desactivado" va pegada al rol |
+| Modal del empleado | Mismo diseño que la app. "Eliminar empleado" (aviso: se elimina definitivamente) y "Desactivar cuenta" (aviso: después se puede activar nuevamente). Al registrar un empleado, una casilla permite crear su usuario en el mismo paso |
+| Configuración → Puntos | Tarjetas a todo el ancho con título de 24 px y botonera con fondo, como la app. Niveles quedó completo |
+| Modales | Todos tienen una cruz para cerrar: "Cerrar ✕" en los de encabezado naranja y una ✕ en la esquina en los demás (incluidos los de `Consumos.html`, `RegistrarConsumo.html`, `FichaCliente.html` y `CambiarPassword.html`) |
+| Cerrar sesión | Mismo diálogo que la app: "¿Cerrar sesión?", 448 px y cruz |
+
+Las clases nuevas del prototipo que copian los estilos de la app empiezan con `vc-c-` (pantallas) y
+`vc-m` (modales), y están en el `<style>` de `pagina-principal.html`.
+
+**Ojo con el paso 2 de arriba:** `scripts/desempaquetar_prototipo.py` no está en el repo.
+
+## Cambios de textos (20/10/2026, a pedido de Magali)
+
+Se editaron los `.html` de esta carpeta para alinear el vocabulario con el contrato:
+
+- "Compra" → **"Consumo"** en los textos visibles (títulos, botones, notas, auditoría, tipos de datos). Los estados del consumo pasan a "Registrado" y "Anulado". Los nombres internos del código del prototipo (`registrarCompra`, `compraForm`, `compras`, etc.) **no se tocaron**: no se ven en pantalla.
+- "Canjes pendientes" → **"Canjes"** en las pantallas de caja, y "No tiene canjes." (el canje no tiene estado "Pendiente").
+
+**Pendiente (se hace en Claude Design y se vuelve a exportar):** el canje del prototipo todavía nace `Pendiente` y el Cajero lo "confirma". Según la Definición del Producto (sección 9) el canje **nace Confirmado** y pasa a Utilizado, Rechazado, Cancelado o Vencido. Esa lógica sigue en `pagina-principal.html`. En los lotes de puntos falta mostrar el estado "Anulado".
+
+**El archivo único (`../Vitto Club Prototipo - archivo unico.html`) NO se actualizó** con estos cambios: guarda los componentes comprimidos y `scripts/desempaquetar_prototipo.py`, que lo arma, no está en el repo. Hasta que se vuelva a exportar, ese archivo y esta carpeta no coinciden.

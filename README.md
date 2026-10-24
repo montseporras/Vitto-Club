@@ -23,7 +23,7 @@ que se despliegan por separado:
   [`docs/seguimiento/pendientes-frontend.md`](docs/seguimiento/pendientes-frontend.md)).
 - **Configuración de puntos** (`/api/loyalty/configuration/*`): equivalencia de
   monto/puntos, vigencia en meses (default RF-010: 12) y bonificación de
-  primera compra (porcentaje o puntos fijos), con endpoints GET/PUT y
+  primer consumo (porcentaje o puntos fijos), con endpoints GET/PUT y
   configuración completa versionada para cumplir RF-014 sin sobrescribir
   reglas anteriores. Las rutas seccionales también crean versiones, y la
   configuración vigente se consulta en `/api/loyalty/configuration/current`.
@@ -61,7 +61,7 @@ Vitto-Club/
 │  │  ├─ main.ts             # Bootstrap: prefijo /api, ValidationPipe, CORS
 │  │  ├─ customers/          # Módulo de clientes (domain / application / infrastructure / http)
 │  │  ├─ employees/          # Módulo de empleados (misma estructura)
-│  │  ├─ loyalty/            # Equivalencia vigente monto de compra / puntos
+│  │  ├─ loyalty/            # Equivalencia vigente monto de consumo / puntos
 │  │  ├─ prisma/             # PrismaService + PrismaModule (@Global)
 │  │  └─ health/             # GET /api/health -> hace SELECT 1 contra la DB
 │  ├─ prisma/
