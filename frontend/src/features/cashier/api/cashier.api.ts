@@ -13,6 +13,11 @@ import type {
   PointsAdjustmentResult,
   PointsMovement,
 } from '../types/points'
+import type {
+  ConsumptionPreview,
+  CreateConsumptionBody,
+  CreateConsumptionResult,
+} from '../types/consumption'
 
 export async function createCustomer(body: CreateCustomerBody) {
   try {
@@ -73,6 +78,26 @@ export async function adjustPoints(customerId: number, body: PointsAdjustmentBod
       `/customers/${customerId}/ajustes-de-puntos`,
       body,
     )
+    return res.data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function getConsumptionPreview(customerId: number, amount: number) {
+  try {
+    const res = await http.get<ConsumptionPreview>('/consumos/preview', {
+      params: { customerId, amount },
+    })
+    return res.data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function createConsumption(body: CreateConsumptionBody) {
+  try {
+    const res = await http.post<CreateConsumptionResult>('/consumos', body)
     return res.data
   } catch (error) {
     throw toApiError(error)

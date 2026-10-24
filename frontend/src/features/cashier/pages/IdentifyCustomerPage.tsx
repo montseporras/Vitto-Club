@@ -19,8 +19,10 @@ import {
   useCustomerPoints,
   type DocumentSearch,
 } from '../api/cashier.queries'
+import { ConfirmConsumptionModal } from '../components/ConfirmConsumptionModal'
 import { CustomerActivityPanel } from '../components/CustomerActivityPanel'
 import { CustomerPointsCard } from '../components/CustomerPointsCard'
+import { RegisterConsumptionForm } from '../components/RegisterConsumptionForm'
 import {
   findCustomerSchema,
   type FindCustomerFormInput,
@@ -40,7 +42,10 @@ type IdentifyCustomerPageProps = {
   newCustomerPath?: string
 }
 
-/** Buscar cliente: se identifica al cliente por documento y se ven su nivel y saldo (US-46). */
+/**
+ * Buscar cliente: se identifica al cliente por documento y se ven su nivel y saldo (US-46).
+ * Con el cliente encontrado se registra su consumo (US-21).
+ */
 export function IdentifyCustomerPage({
   // Relativo a /caja: un feature no importa de app/
   newCustomerPath = '../alta-cliente',
@@ -51,12 +56,20 @@ export function IdentifyCustomerPage({
     register,
     handleSubmit,
     control,
+    reset,
+    setFocus,
     formState: { errors },
   } = useForm<FindCustomerFormInput, unknown, FindCustomerFormOutput>({
     resolver: zodResolver(findCustomerSchema),
     defaultValues: prefilled ?? { documentType: 'DNI', documentNumber: '' },
   })
   const [search, setSearch] = useState<DocumentSearch | null>(prefilled)
+  // Monto que espera confirmación en la advertencia (null: la advertencia está cerrada)
+  const [pendingAmount, setPendingAmount] = useState<number | null>(null)
+  // Cada consumo registrado vuelve a arrancar el formulario del monto, con el mismo cliente
+  const [formVersion, setFormVersion] = useState(0)
+  // Tras registrar, el saldo se actualiza sin esconder la tarjeta del cliente
+  const [quietRefresh, setQuietRefresh] = useState(false)
   const session = useSession()
   const result = useCustomerByDocument(search)
 
@@ -77,14 +90,42 @@ export function IdentifyCustomerPage({
       result.refetch()
       if (customer) points.refetch()
     } else setSearch(data)
+    setQuietRefresh(false)
   }
 
   const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
-  const loading = result.isFetching || (customer !== null && points.isFetching)
+  // Tras registrar el consumo el cliente sigue a la vista, con su saldo actualizado
+  const finishRegistration = () => {
+    setPendingAmount(null)
+    setQuietRefresh(true)
+    setFormVersion((version) => version + 1)
+  }
+
+  // Vuelve a la búsqueda, vacía y lista para escribir otro documento
+  const searchAnother = () => {
+    setPendingAmount(null)
+    setSearch(null)
+    reset()
+    // Después del render: el botón que se apretó desaparece y se llevaría el foco
+    setTimeout(() => setFocus('documentNumber'))
+  }
+
+  const loading =
+    result.isFetching || (customer !== null && points.isFetching && !quietRefresh)
+  const showingCustomer = !loading && customer !== null && !!points.data
 
   return (
     <Page>
       <PageCard title="Buscar cliente" variant="plain">
+        {/* Solo con los datos de un cliente a la vista */}
+        {showingCustomer && (
+          <div className="mb-5">
+            <Button type="button" variant="secondary" onClick={searchAnother}>
+              <Icon d={ICONS.search} />
+              Buscar otro cliente
+            </Button>
+          </div>
+        )}
         <div className={formSectionTitleStyles.root}>
           <h3 className={formSectionTitleStyles.title}>Cliente</h3>
         </div>
@@ -172,12 +213,28 @@ export function IdentifyCustomerPage({
             {!loading && customer && points.data && session.user && (
               <div className="flex flex-col gap-4">
                 <CustomerPointsCard customer={customer} points={points.data} />
+                <RegisterConsumptionForm
+                  // Al cambiar de cliente, el formulario vuelve a arrancar vacío
+                  key={`${customer.id}-${formVersion}`}
+                  customerId={customer.id}
+                  onSubmitAmount={setPendingAmount}
+                  onCancel={() => undefined}
+                />
                 <CustomerActivityPanel
                   // Al cambiar de cliente, el panel vuelve a arrancar cerrado
                   key={customer.id}
                   customerId={customer.id}
                   role={session.user.role}
                 />
+                {pendingAmount !== null && (
+                  <ConfirmConsumptionModal
+                    customerId={customer.id}
+                    customerName={`${customer.firstName} ${customer.lastName}`}
+                    amount={pendingAmount}
+                    onCancel={() => setPendingAmount(null)}
+                    onRegistered={finishRegistration}
+                  />
+                )}
               </div>
             )}
           </div>
