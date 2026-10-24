@@ -1,12 +1,35 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import type { Consumption as PrismaConsumptionRecord } from '@prisma/client';
 import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import { Consumption } from '../domain/consumption.js';
 import {
   ConsumptionRepository,
+  FindAllFilters,
+  FindAllResult,
   FindByCustomerIdFilters,
   FindByCustomerIdResult,
 } from '../domain/port/consumption.repository.js';
+import type { CustomerSearch } from '../../points/domain/movement-filters.js';
+
+// Mismas letras que foldName() del dominio de points: minúsculas con tilde → sin tilde (la ñ no
+// se toca). Copiado de points-movements.repository.ts: un repositorio no importa la
+// infraestructura de otro módulo (decisión de Jazmín).
+const ACCENTED = 'áàäâéèëêíìïîóòöôúùüû';
+const PLAIN = 'aaaaeeeeiiiioooouuuu';
+
+// Un término buscado no puede usar los comodines de LIKE
+function escapeLike(term: string): string {
+  return term.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
+const customerSelect = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  documentType: true,
+  documentNumber: true,
+} satisfies Prisma.CustomerSelect;
 
 // amount/baseAmount son DECIMAL(12,2) en Prisma -> llegan como Prisma.Decimal; el dominio
 // trabaja con number (igual criterio que loyalty con PointsEquivalence).
@@ -118,5 +141,73 @@ export class ConsumptionPrismaRepository implements ConsumptionRepository {
     ]);
 
     return { items: records.map(toDomain), total };
+  }
+
+  // §3.3.1. count incluye los anulados; amountTotal y pointsTotal suman solo los REGISTERED.
+  async findAll(filters: FindAllFilters): Promise<FindAllResult> {
+    const searchIds = filters.search ? await this.findCustomerIdsBySearch(filters.search) : undefined;
+    if (searchIds && searchIds.length === 0) {
+      return { items: [], total: 0, totals: { count: 0, amountTotal: 0, pointsTotal: 0 } };
+    }
+
+    const where: Prisma.ConsumptionWhereInput = {
+      AND: [
+        ...(filters.customerId !== undefined ? [{ customerId: filters.customerId }] : []),
+        ...(searchIds ? [{ customerId: { in: searchIds } }] : []),
+        ...(filters.status ? [{ status: filters.status }] : []),
+        ...(filters.registeredByAccountId !== undefined
+          ? [{ registeredByAccountId: filters.registeredByAccountId }]
+          : []),
+        ...(filters.createdFrom ? [{ createdAt: { gte: filters.createdFrom } }] : []),
+        ...(filters.createdBefore ? [{ createdAt: { lt: filters.createdBefore } }] : []),
+      ],
+    };
+
+    const [records, total, registeredSums] = await Promise.all([
+      this.prisma.consumption.findMany({
+        where,
+        include: { customer: { select: customerSelect } },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: (filters.page - 1) * filters.limit,
+        take: filters.limit,
+      }),
+      this.prisma.consumption.count({ where }),
+      this.prisma.consumption.aggregate({
+        where: { AND: [where, { status: 'REGISTERED' }] },
+        _sum: { amount: true, points: true, bonusPoints: true },
+      }),
+    ]);
+
+    return {
+      items: records.map(({ customer, ...record }) => ({ consumption: toDomain(record), customer })),
+      total,
+      totals: {
+        count: total,
+        amountTotal: Number(registeredSums._sum.amount ?? 0),
+        pointsTotal: (registeredSums._sum.points ?? 0) + (registeredSums._sum.bonusPoints ?? 0),
+      },
+    };
+  }
+
+  // Clientes (activos o no) que coinciden con q. El nombre se compara sin tildes con
+  // translate(), igual que en los movimientos de US-26.
+  private async findCustomerIdsBySearch(search: CustomerSearch): Promise<number[]> {
+    if (search.kind === 'document') {
+      const customers = await this.prisma.customer.findMany({
+        where: { documentNumber: { contains: search.documentNumber } },
+        select: { id: true },
+      });
+      return customers.map((customer) => customer.id);
+    }
+
+    const conditions = search.terms.map((term) => {
+      const pattern = `%${escapeLike(term)}%`;
+      return Prisma.sql`(translate(lower(first_name), ${ACCENTED}, ${PLAIN}) LIKE ${pattern}
+        OR translate(lower(last_name), ${ACCENTED}, ${PLAIN}) LIKE ${pattern})`;
+    });
+    const rows = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM customers WHERE ${Prisma.join(conditions, ' AND ')}
+    `;
+    return rows.map((row) => row.id);
   }
 }

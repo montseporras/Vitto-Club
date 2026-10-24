@@ -1,5 +1,12 @@
 import { Consumption, ConsumptionViewerRole } from '../../domain/consumption.js';
 
+// §3.10.2: lo que ve el Cliente en su historial. No trae registeredBy, voidedBy, canVoid ni
+// voidableUntil.
+export type CustomerConsumptionResponse = Omit<
+  ConsumptionResponseDto,
+  'registeredBy' | 'voidedBy' | 'canVoid' | 'voidableUntil'
+>;
+
 // §3.3.3. Nunca incluye datos del cliente más allá de lo que lista el contrato (nada de
 // email/teléfono): eso es responsabilidad de customers, no de esta respuesta.
 export class ConsumptionResponseDto {
@@ -71,5 +78,31 @@ export class ConsumptionResponseDto {
     dto.canVoid = eligibility.canVoid;
 
     return dto;
+  }
+
+  // US-23, GET /customers/me/consumos (CA-23.7): sin los datos de empleados
+  static forCustomer(
+    consumption: Consumption,
+    customer: { id: number; firstName: string; lastName: string; documentType: string; documentNumber: string },
+  ): CustomerConsumptionResponse {
+    return {
+      id: consumption.getId() as number,
+      code: consumption.getCode() as string,
+      createdAt: consumption.getCreatedAt().toISOString(),
+      customer,
+      amount: consumption.getAmount(),
+      points: consumption.getPoints(),
+      bonusPoints: consumption.getBonusPoints(),
+      totalPoints: consumption.getTotalPoints(),
+      equivalence: {
+        baseAmount: consumption.getBaseAmount(),
+        pointsAwarded: consumption.getPointsAwarded(),
+        configurationVersion: consumption.getConfigurationVersion(),
+      },
+      notes: consumption.getNotes(),
+      status: consumption.getStatus(),
+      voidedAt: consumption.getVoidedAt()?.toISOString() ?? null,
+      voidReason: consumption.getVoidedReason(),
+    };
   }
 }

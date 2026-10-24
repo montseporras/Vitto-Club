@@ -14,7 +14,10 @@ function fakePrisma() {
       findMany: jest.fn(),
       count: jest.fn(),
       update: jest.fn(),
+      aggregate: jest.fn(),
     },
+    customer: { findMany: jest.fn() },
+    $queryRaw: jest.fn(),
   };
 }
 
@@ -243,6 +246,132 @@ describe('ConsumptionPrismaRepository', () => {
       expect(prisma.consumption.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ skip: 20, take: 10 }),
       );
+    });
+  });
+
+  describe('findAll() — US-23', () => {
+    const CUSTOMER = { id: 101, firstName: 'Carolina', lastName: 'Fernández', documentType: 'DNI', documentNumber: '38456123' };
+
+    function prismaWithRows() {
+      const prisma = fakePrisma();
+      (prisma.consumption.findMany as jest.Mock).mockResolvedValue([{ ...BASE_RECORD, customer: CUSTOMER }]);
+      (prisma.consumption.count as jest.Mock).mockResolvedValue(17);
+      (prisma.consumption.aggregate as jest.Mock).mockResolvedValue({
+        _sum: { amount: { toString: () => '735700.5' }, points: 7300, bonusPoints: 57 },
+      });
+      return prisma;
+    }
+
+    it('arma el where con todos los filtros, pagina y ordena por createdAt descendente', async () => {
+      const prisma = prismaWithRows();
+      const repo = new ConsumptionPrismaRepository(fakeTransactionRunner(prisma));
+      const createdFrom = new Date('2026-10-01T03:00:00.000Z');
+      const createdBefore = new Date('2026-10-16T03:00:00.000Z');
+
+      await repo.findAll({
+        customerId: 101,
+        status: 'REGISTERED',
+        registeredByAccountId: 12,
+        createdFrom,
+        createdBefore,
+        page: 2,
+        limit: 8,
+      });
+
+      const expectedWhere = {
+        AND: [
+          { customerId: 101 },
+          { status: 'REGISTERED' },
+          { registeredByAccountId: 12 },
+          { createdAt: { gte: createdFrom } },
+          { createdAt: { lt: createdBefore } },
+        ],
+      };
+      expect(prisma.consumption.findMany).toHaveBeenCalledWith({
+        where: expectedWhere,
+        include: { customer: { select: { id: true, firstName: true, lastName: true, documentType: true, documentNumber: true } } },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: 8,
+        take: 8,
+      });
+      expect(prisma.consumption.count).toHaveBeenCalledWith({ where: expectedWhere });
+    });
+
+    it('totales: count es el total; monto y puntos salen del aggregate de los REGISTERED', async () => {
+      const prisma = prismaWithRows();
+      const repo = new ConsumptionPrismaRepository(fakeTransactionRunner(prisma));
+
+      const result = await repo.findAll({ page: 1, limit: 8 });
+
+      expect(prisma.consumption.aggregate).toHaveBeenCalledWith({
+        where: { AND: [{ AND: [] }, { status: 'REGISTERED' }] },
+        _sum: { amount: true, points: true, bonusPoints: true },
+      });
+      expect(result.total).toBe(17);
+      expect(result.totals).toEqual({ count: 17, amountTotal: 735700.5, pointsTotal: 7357 });
+    });
+
+    it('cada ítem trae el consumo y los datos del cliente', async () => {
+      const repo = new ConsumptionPrismaRepository(fakeTransactionRunner(prismaWithRows()));
+
+      const result = await repo.findAll({ page: 1, limit: 8 });
+
+      expect(result.items[0].consumption.getCode()).toBe('C-000141');
+      expect(result.items[0].customer).toEqual(CUSTOMER);
+    });
+
+    it('totales en cero si no hay consumos REGISTERED (el aggregate devuelve null)', async () => {
+      const prisma = fakePrisma();
+      (prisma.consumption.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.consumption.count as jest.Mock).mockResolvedValue(0);
+      (prisma.consumption.aggregate as jest.Mock).mockResolvedValue({
+        _sum: { amount: null, points: null, bonusPoints: null },
+      });
+      const repo = new ConsumptionPrismaRepository(fakeTransactionRunner(prisma));
+
+      const result = await repo.findAll({ page: 1, limit: 8 });
+
+      expect(result.totals).toEqual({ count: 0, amountTotal: 0, pointsTotal: 0 });
+    });
+
+    it('q por documento: busca los clientes por coincidencia parcial y filtra por sus ids', async () => {
+      const prisma = prismaWithRows();
+      (prisma.customer.findMany as jest.Mock).mockResolvedValue([{ id: 101 }, { id: 105 }]);
+      const repo = new ConsumptionPrismaRepository(fakeTransactionRunner(prisma));
+
+      await repo.findAll({ search: { kind: 'document', documentNumber: '384' }, page: 1, limit: 8 });
+
+      expect(prisma.customer.findMany).toHaveBeenCalledWith({
+        where: { documentNumber: { contains: '384' } },
+        select: { id: true },
+      });
+      expect(prisma.consumption.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { AND: [{ customerId: { in: [101, 105] } }] } }),
+      );
+    });
+
+    it('q por nombre: busca sin tildes con una consulta a customers', async () => {
+      const prisma = prismaWithRows();
+      (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ id: 101 }]);
+      const repo = new ConsumptionPrismaRepository(fakeTransactionRunner(prisma));
+
+      await repo.findAll({ search: { kind: 'name', terms: ['fernandez'] }, page: 1, limit: 8 });
+
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(prisma.consumption.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { AND: [{ customerId: { in: [101] } }] } }),
+      );
+    });
+
+    it('si q no encuentra clientes, responde vacío sin consultar los consumos', async () => {
+      const prisma = fakePrisma();
+      (prisma.customer.findMany as jest.Mock).mockResolvedValue([]);
+      const repo = new ConsumptionPrismaRepository(fakeTransactionRunner(prisma));
+
+      const result = await repo.findAll({ search: { kind: 'document', documentNumber: '999' }, page: 1, limit: 8 });
+
+      expect(result).toEqual({ items: [], total: 0, totals: { count: 0, amountTotal: 0, pointsTotal: 0 } });
+      expect(prisma.consumption.findMany).not.toHaveBeenCalled();
     });
   });
 });

@@ -7,7 +7,9 @@ import {
 } from '@nestjs/common';
 import { Consumption, ConsumptionStatus, ConsumptionViewerRole } from '../domain/consumption.js';
 import { calculateConsumptionPoints, FirstConsumptionBonus } from '../domain/calculate-consumption-points.js';
+import { DomainError } from '../domain/errors/domain.error.js';
 import { ConsumptionRepository } from '../domain/port/consumption.repository.js';
+import type { ConsumptionCustomer, ConsumptionTotals } from '../domain/port/consumption.repository.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import { CustomersService } from '../../customers/application/customers.service.js';
 import { Customer } from '../../customers/domain/customer.js';
@@ -15,6 +17,9 @@ import { EmployeesService } from '../../employees/application/employees.service.
 import { LoyaltyService } from '../../loyalty/application/loyalty.service.js';
 import { LoyaltyProgramConfiguration } from '../../loyalty/domain/loyalty-program-configuration.js';
 import { Level } from '../../points/domain/level.js';
+import { DomainError as PointsDomainError } from '../../points/domain/errors/domain.error.js';
+import { buildMovementDateRange, parseCustomerSearch } from '../../points/domain/movement-filters.js';
+import type { CustomerSearch, MovementDateRange } from '../../points/domain/movement-filters.js';
 import { PointsService } from '../../points/application/points.service.js';
 
 export type PreviewInput = { customerId: number; amount: number };
@@ -73,6 +78,32 @@ export type ListByCustomerInput = {
 export type ListByCustomerResult = {
   items: Consumption[];
   total: number;
+  page: number;
+  limit: number;
+};
+
+export type ListAllInput = {
+  fromDate?: string;
+  toDate?: string;
+  q?: string;
+  status?: ConsumptionStatus;
+  registeredByAccountId?: number;
+  customerId?: number;
+  page: number;
+  limit: number;
+};
+
+export type ListAllResult = {
+  items: { consumption: Consumption; customer: ConsumptionCustomer }[];
+  total: number;
+  page: number;
+  limit: number;
+  totals: ConsumptionTotals;
+};
+
+export type ListMineInput = {
+  customerId: number;
+  status?: ConsumptionStatus;
   page: number;
   limit: number;
 };
@@ -145,6 +176,65 @@ export class ConsumptionsService {
     });
 
     return { items, total, page: input.page, limit: input.limit };
+  }
+
+  // US-23, §3.3.1 (CA-23.2, CA-23.3): listado del Administrador con filtros y totales
+  async listAll(input: ListAllInput): Promise<ListAllResult> {
+    const { range, search } = this.parseListFilters(input);
+
+    const { items, total, totals } = await this.consumptionsRepository.findAll({
+      customerId: input.customerId,
+      search,
+      status: input.status,
+      registeredByAccountId: input.registeredByAccountId,
+      ...range,
+      page: input.page,
+      limit: input.limit,
+    });
+
+    return { items, total, page: input.page, limit: input.limit, totals };
+  }
+
+  // US-23, §3.3.2 (CA-23.5, CA-23.6): detalle por código visible
+  async getByCode(code: string): Promise<Consumption> {
+    if (Consumption.parseCode(code) === null) {
+      throw new BadRequestException(`El código ${code} no tiene un formato válido.`);
+    }
+
+    const consumption = await this.consumptionsRepository.findByCode(code);
+    if (!consumption) {
+      throw new NotFoundException(`No existe el consumo ${code}.`);
+    }
+    return consumption;
+  }
+
+  // US-23, §3.10.2 (CA-23.7, CA-23.8): historial del Cliente. Mismos filtros que
+  // /customers/:id/consumos, sin last24h: ve todos sus consumos.
+  async listMine(input: ListMineInput): Promise<ListByCustomerResult> {
+    const { items, total } = await this.consumptionsRepository.findByCustomerId(input.customerId, {
+      last24h: false,
+      status: input.status,
+      page: input.page,
+      limit: input.limit,
+    });
+
+    return { items, total, page: input.page, limit: input.limit };
+  }
+
+  // Las reglas de fechas y de q son las de points (mismos mensajes que Movimientos de puntos).
+  // Su DomainError es otra clase: se pasa al de consumptions para que el filtro responda 400.
+  private parseListFilters(input: ListAllInput): { range: MovementDateRange; search?: CustomerSearch } {
+    try {
+      return {
+        range: buildMovementDateRange(input.fromDate, input.toDate),
+        search: input.q !== undefined ? parseCustomerSearch(input.q) : undefined,
+      };
+    } catch (error) {
+      if (error instanceof PointsDomainError) {
+        throw new DomainError(error.message, error.field);
+      }
+      throw error;
+    }
   }
 
   // CA-21.5: registrar, en una sola transacción. El servidor decide fecha/puntos/
