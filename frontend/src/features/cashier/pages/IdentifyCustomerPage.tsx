@@ -20,6 +20,7 @@ import {
   type DocumentSearch,
 } from '../api/cashier.queries'
 import { ConfirmConsumptionModal } from '../components/ConfirmConsumptionModal'
+import { ConsumptionRegistered } from '../components/ConsumptionRegistered'
 import { CustomerActivityPanel } from '../components/CustomerActivityPanel'
 import { CustomerPointsCard } from '../components/CustomerPointsCard'
 import { RegisterConsumptionForm } from '../components/RegisterConsumptionForm'
@@ -28,6 +29,7 @@ import {
   type FindCustomerFormInput,
   type FindCustomerFormOutput,
 } from '../schemas/find-customer.schema'
+import type { CreateConsumptionResult } from '../types/consumption'
 
 const DOCUMENT_OPTIONS = DOCUMENT_TYPE_VALUES.map((type) => ({
   value: type,
@@ -57,6 +59,8 @@ export function IdentifyCustomerPage() {
   const [formVersion, setFormVersion] = useState(0)
   // Tras registrar, el saldo se actualiza sin esconder la tarjeta del cliente
   const [quietRefresh, setQuietRefresh] = useState(false)
+  // Resultado del último consumo: mientras exista se muestra "Consumo registrado" (CA-21.9)
+  const [registered, setRegistered] = useState<CreateConsumptionResult | null>(null)
   const session = useSession()
   const result = useCustomerByDocument(search)
 
@@ -78,19 +82,25 @@ export function IdentifyCustomerPage() {
       if (customer) points.refetch()
     } else setSearch(data)
     setQuietRefresh(false)
+    setRegistered(null)
   }
 
   const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
   // Tras registrar el consumo el cliente sigue a la vista, con su saldo actualizado
-  const finishRegistration = () => {
+  const finishRegistration = (result: CreateConsumptionResult) => {
     setPendingAmount(null)
     setQuietRefresh(true)
     setFormVersion((version) => version + 1)
+    setRegistered(result)
   }
+
+  // Vuelve al formulario del monto, vacío y con el mismo cliente
+  const registerAnother = () => setRegistered(null)
 
   // Vuelve a la búsqueda, vacía y lista para escribir otro documento
   const searchAnother = () => {
     setPendingAmount(null)
+    setRegistered(null)
     setSearch(null)
     reset()
     // Después del render: el botón que se apretó desaparece y se llevaría el foco
@@ -201,13 +211,22 @@ export function IdentifyCustomerPage() {
             {!loading && customer && points.data && session.user && (
               <div className="flex flex-col gap-4">
                 <CustomerPointsCard customer={customer} points={points.data} />
-                <RegisterConsumptionForm
-                  // Al cambiar de cliente, el formulario vuelve a arrancar vacío
-                  key={`${customer.id}-${formVersion}`}
-                  customerId={customer.id}
-                  onSubmitAmount={setPendingAmount}
-                  onCancel={() => undefined}
-                />
+                {registered ? (
+                  <ConsumptionRegistered
+                    result={registered}
+                    // "Ver detalle" es solo del Administrador (CA-21.10)
+                    canViewDetail={session.user.role === 'ADMIN'}
+                    onRegisterAnother={registerAnother}
+                  />
+                ) : (
+                  <RegisterConsumptionForm
+                    // Al cambiar de cliente, el formulario vuelve a arrancar vacío
+                    key={`${customer.id}-${formVersion}`}
+                    customerId={customer.id}
+                    onSubmitAmount={setPendingAmount}
+                    onCancel={() => undefined}
+                  />
+                )}
                 <CustomerActivityPanel
                   // Al cambiar de cliente, el panel vuelve a arrancar cerrado
                   key={customer.id}
@@ -217,7 +236,6 @@ export function IdentifyCustomerPage() {
                 {pendingAmount !== null && (
                   <ConfirmConsumptionModal
                     customerId={customer.id}
-                    customerName={`${customer.firstName} ${customer.lastName}`}
                     amount={pendingAmount}
                     onCancel={() => setPendingAmount(null)}
                     onRegistered={finishRegistration}

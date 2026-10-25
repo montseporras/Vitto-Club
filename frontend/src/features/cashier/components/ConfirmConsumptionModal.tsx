@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { LEVELS } from '@/domain/levels'
 import { useToast } from '@/shared/components/feedback/useToast'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { FormActions } from '@/shared/components/forms/FormActions'
@@ -12,14 +11,13 @@ import { formatInteger, formatMoney } from '@/shared/lib/numbers'
 import { consumptionError } from '../api/consumption-errors'
 import { useConsumptionPreview, useCreateConsumption } from '../api/cashier.queries'
 import { NOTES_MAX_LENGTH } from '../schemas/consumption.schema'
+import type { CreateConsumptionResult } from '../types/consumption'
 
 type ConfirmConsumptionModalProps = {
   customerId: number
-  /** Nombre y apellido, para el aviso de subida de nivel */
-  customerName: string
   amount: number
   onCancel: () => void
-  onRegistered: () => void
+  onRegistered: (result: CreateConsumptionResult) => void
 }
 
 /**
@@ -28,7 +26,6 @@ type ConfirmConsumptionModalProps = {
  */
 export function ConfirmConsumptionModal({
   customerId,
-  customerName,
   amount,
   onCancel,
   onRegistered,
@@ -54,13 +51,9 @@ export function ConfirmConsumptionModal({
       {
         onSuccess: (result) => {
           const { code, totalPoints } = result.consumption
-          const registered = `Consumo ${code} registrado: +${formatInteger(totalPoints)} pts.`
-          showToast(
-            result.levelUp
-              ? `${registered} ¡${customerName} subió a nivel ${LEVELS[result.levelAfter]}!`
-              : registered,
-          )
-          onRegistered()
+          // La subida de nivel va en la pantalla "Consumo registrado", no en el toast
+          showToast(`Consumo ${code} registrado: +${formatInteger(totalPoints)} pts.`)
+          onRegistered(result)
         },
       },
     )
