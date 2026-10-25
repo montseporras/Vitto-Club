@@ -1,6 +1,7 @@
 // Este archivo junta los mocks de todos los features en una sola lista.
 // Es lo que lee mocks/browser.ts para saber qué llamadas simular.
 import { authHandlers } from './auth.handlers'
+import { auditHandlers } from './audit.handlers'
 import { cashierHandlers } from './cashier.handlers'
 import { consumptionsHandlers } from './consumptions.handlers'
 import { employeesHandlers } from './employees.handlers'
@@ -18,6 +19,7 @@ export const handlers = [
   // También antes que los de caja: /customers/me/consumos le tiene que ganar a
   // /customers/:id/consumos
   ...consumptionsHandlers,
+  ...auditHandlers,
   ...cashierHandlers,
   ...employeesHandlers,
   ...pointsHandlers,

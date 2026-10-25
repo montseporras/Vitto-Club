@@ -100,3 +100,41 @@ export function isoToDisplayDateOnly(value: string) {
   )
   return `${parts.day}/${parts.month}/${parts.year}`
 }
+
+/** Hoy como 'YYYY-MM-DD' en la zona horaria indicada. */
+export function todayIsoInTimeZone(timeZone: string) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
+  return `${values.year}-${values.month}-${values.day}`
+}
+
+/** Suma días calendario a una fecha ISO sin depender de la zona local. */
+export function addDaysToIso(value: string, days: number) {
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day + days))
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, '0'),
+    String(date.getUTCDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+/** Muestra una fecha ISO en la zona horaria indicada como dd/mm/aaaa hh:mm. */
+export function formatDateTimeInTimeZone(value: string, timeZone: string) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(value))
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
+  return `${values.day}/${values.month}/${values.year} ${values.hour}:${values.minute}`
+}

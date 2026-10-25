@@ -157,13 +157,20 @@ export const router = createBrowserRouter([
           return { Component: PointsMovementsPage }
         },
       },
+      {
+        // Consulta de auditoría (US-58)
+        path: PATHS.admin.audit,
+        lazy: async () => {
+          const { AuditPage } = await import('@/features/audit')
+          return { Component: AuditPage }
+        },
+      },
       // Pantallas de otras historias o sprints: todavía no están construidas
       ...(
         [
           [PATHS.admin.rewards, 'Recompensas', 'Catálogo de recompensas'],
           [PATHS.admin.missions, 'Misiones', 'Misiones'],
           [PATHS.admin.statistics, 'Estadísticas', 'Estadísticas y reportes'],
-          [PATHS.admin.audit, 'Auditoría', 'Auditoría'],
           [PATHS.admin.consumptions, 'Consumos', 'Consumos'],
         ] as const
       ).map(([path, eyebrow, title]) => ({
