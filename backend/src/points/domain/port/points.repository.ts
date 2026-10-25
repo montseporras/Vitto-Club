@@ -11,14 +11,27 @@ export type CustomerPointsBalance = {
 
 export type InsertMovementData = {
   customerId: number;
-  type: 'CONSUMPTION_CREDIT' | 'VOID_REVERSAL' | 'MANUAL_ADJUSTMENT';
+  type: 'CONSUMPTION_CREDIT' | 'VOID_REVERSAL' | 'MANUAL_ADJUSTMENT' | 'EXPIRATION';
   points: number;
   balanceAfter: number;
   consumptionId: number | null;
   lotId: number | null;
   reason?: string | null;
-  performedByAccountId: number;
+  // null = Sistema (procesos automáticos, como el vencimiento de US-25)
+  performedByAccountId: number | null;
   performedByName: string;
+};
+
+// US-25: lote candidato a vencer (ACTIVE, vencido, con saldo, de un cliente activo)
+export type ExpiredLotCandidate = { lotId: number; customerId: number };
+
+// US-25: datos del cliente para la auditoría POINTS_EXPIRED ("Cliente afectado", §3.9.3)
+export type ExpirationCustomer = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  documentType: 'DNI' | 'PASSPORT';
+  documentNumber: string;
 };
 
 // Lo que la base le asigna al movimiento al guardarlo (US-24 lo devuelve en la respuesta)
@@ -63,4 +76,16 @@ export abstract class PointsRepository {
   // null si no hay ninguna configuración activa (no debería pasar en el flujo normal:
   // quien llama a acreditar/ajustar ya validó que existe antes de llegar acá).
   abstract findActiveLoyaltyConfiguration(): Promise<ActiveLoyaltyConfiguration | null>;
+
+  // US-25 (§3.6.3): lotes ACTIVE con expiresAt <= now y remaining > 0, ordenados por
+  // vencimiento. Los clientes dados de baja se excluyen (decisión de Melisa).
+  abstract findExpiredLotCandidates(now: Date): Promise<ExpiredLotCandidate[]>;
+
+  // US-25: bloquea el lote con FOR UPDATE SKIP LOCKED. null si otra transacción lo tiene
+  // bloqueado (otra instancia del proceso lo está venciendo) o si ya no existe (CA-25.4).
+  abstract lockLotForExpiration(lotId: number): Promise<PointsLot | null>;
+
+  // US-25: nombre y documento del cliente, leídos de customers por Prisma (decisión de
+  // Melisa: points no importa el módulo customers, igual que con la configuración).
+  abstract findExpirationCustomer(customerId: number): Promise<ExpirationCustomer>;
 }

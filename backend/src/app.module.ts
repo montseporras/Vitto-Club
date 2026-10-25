@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ClsModule } from 'nestjs-cls';
 import { ClsPluginTransactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
@@ -33,6 +34,8 @@ import { AuditModule } from './audit/audit.module.js';
     // Sin opciones a propósito: `async` o `nextTick` sacarían a los listeners de la
     // transacción de quien publica.
     EventEmitterModule.forRoot(),
+    // Tareas programadas: el vencimiento diario de puntos (US-25, §3.6.3)
+    ScheduleModule.forRoot(),
     PrismaModule,
     HealthModule,
     CustomersModule,

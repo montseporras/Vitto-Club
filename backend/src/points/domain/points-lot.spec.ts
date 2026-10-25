@@ -106,4 +106,41 @@ describe('PointsLot', () => {
       expect(lot.getStatus()).toBe('VOIDED');
     });
   });
+  describe('expire() (US-25)', () => {
+    const now = new Date('2027-10-17T03:05:00.000Z');
+    const persisted = (remainingPoints: number, status: 'ACTIVE' | 'CONSUMED' | 'EXPIRED' | 'VOIDED' = 'ACTIVE') =>
+      PointsLot.reconstruct({ ...validData, id: 7, remainingPoints, status });
+
+    it('vence entero con saldo parcial: devuelve lo que quedaba, remaining 0, EXPIRED y expiredAt', () => {
+      const lot = persisted(200);
+
+      expect(lot.expire(now)).toBe(200);
+      expect(lot.getRemainingPoints()).toBe(0);
+      expect(lot.getStatus()).toBe('EXPIRED');
+      expect(lot.getExpiredAt()).toEqual(now);
+      expect(lot.getInitialPoints()).toBe(500);
+    });
+
+    it('vence entero con el saldo completo', () => {
+      expect(persisted(500).expire(now)).toBe(500);
+    });
+
+    it('vence justo en su fecha (expiresAt <= ahora)', () => {
+      expect(persisted(500).expire(validData.expiresAt)).toBe(500);
+    });
+
+    it('no vence antes de su fecha', () => {
+      expect(() => persisted(500).expire(new Date('2027-10-16T18:39:59.999Z'))).toThrow(DomainError);
+    });
+
+    it('un lote que no está ACTIVE no vence (idempotencia: EXPIRED no se vuelve a procesar)', () => {
+      expect(() => persisted(0, 'EXPIRED').expire(now)).toThrow(DomainError);
+      expect(() => persisted(0, 'CONSUMED').expire(now)).toThrow(DomainError);
+      expect(() => persisted(100, 'VOIDED').expire(now)).toThrow(DomainError);
+    });
+
+    it('un lote sin saldo no vence (no genera movimiento)', () => {
+      expect(() => persisted(0).expire(now)).toThrow(DomainError);
+    });
+  });
 });

@@ -3,10 +3,35 @@ import { PointsLot } from '../domain/points-lot.js';
 import { calculateLevel, Level, LevelSummary } from '../domain/level.js';
 import { toArgentinaDateString } from '../domain/argentina-date.js';
 import { InsufficientBalanceError } from '../domain/errors/insufficient-balance.error.js';
-import { InsertedMovement, PointsRepository } from '../domain/port/points.repository.js';
+import {
+  ExpirationCustomer,
+  InsertedMovement,
+  PointsRepository,
+} from '../domain/port/points.repository.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
 
 export type PerformedBy = { accountId: number; name: string };
+
+// US-25: nombre con el que el Sistema figura en los movimientos (§3.6, performed_by_name)
+export const SYSTEM_PERFORMER_NAME = 'Sistema';
+
+// US-25: un lote que acaba de vencer. Se le pasa a quien orquesta el proceso, dentro de la
+// misma transacción, para que escriba la auditoría POINTS_EXPIRED (§3.9.3).
+export type ExpiredLot = {
+  lotId: number;
+  customer: ExpirationCustomer;
+  // Puntos que vencieron (positivo); el movimiento EXPIRATION los registra con signo −
+  points: number;
+  accreditedAt: Date;
+  balanceAfter: number;
+};
+
+export type ExpirationRunResult = {
+  expiredLots: number;
+  expiredPoints: number;
+  // Lotes cuya transacción falló: quedan como estaban y se reintentan en la próxima corrida
+  failures: { lotId: number; error: unknown }[];
+};
 
 export type AcreditarInput = {
   customerId: number;
@@ -310,6 +335,85 @@ export class PointsService {
         performedBy: input.performedBy,
       },
     };
+  }
+
+  // US-25 (§3.6.3): vence los lotes ACTIVE con expiresAt <= now y saldo, de clientes activos.
+  // Cada lote va en su propia transacción: si uno falla, los demás siguen y ese queda como
+  // estaba. En cada una, igual que el resto de las operaciones, primero se bloquea la fila de
+  // customer_points (§3.12) y después el lote, con SKIP LOCKED (CA-25.4): si otra instancia
+  // lo tiene, se saltea; si ya venció, no se vuelve a procesar. `onExpired` corre dentro de la
+  // transacción (ahí se escribe la auditoría): si falla, se deshace también el vencimiento.
+  // No toca lifetimePoints ni la deuda: el vencimiento no baja el nivel (CA-25.3).
+  async vencerLotes(
+    now: Date,
+    onExpired: (expired: ExpiredLot) => Promise<void>,
+  ): Promise<ExpirationRunResult> {
+    const candidates = await this.pointsRepository.findExpiredLotCandidates(now);
+    const result: ExpirationRunResult = { expiredLots: 0, expiredPoints: 0, failures: [] };
+
+    for (const candidate of candidates) {
+      let points: number;
+      try {
+        points = await this.expireLot(candidate, now, onExpired);
+      } catch (error) {
+        result.failures.push({ lotId: candidate.lotId, error });
+        continue;
+      }
+      if (points > 0) {
+        result.expiredLots += 1;
+        result.expiredPoints += points;
+      }
+    }
+    return result;
+  }
+
+  // Un lote, en su propia transacción. Devuelve los puntos vencidos (0 si se salteó).
+  private async expireLot(
+    candidate: { lotId: number; customerId: number },
+    now: Date,
+    onExpired: (expired: ExpiredLot) => Promise<void>,
+  ): Promise<number> {
+    return await this.transactionRunner.run(async () => {
+      const row = await this.pointsRepository.lockOrCreateBalance(candidate.customerId);
+      const lot = await this.pointsRepository.lockLotForExpiration(candidate.lotId);
+      // Bloqueado por otra instancia, o ya procesado entre la búsqueda y el bloqueo
+      if (!lot || !this.canExpire(lot, now)) return 0;
+
+      const expiredPoints = lot.expire(now);
+      const newBalance = row.balance - expiredPoints;
+      await this.pointsRepository.updateLot(lot);
+      await this.pointsRepository.updateBalance(candidate.customerId, {
+        balance: newBalance,
+        debt: row.debt,
+        lifetimePoints: row.lifetimePoints,
+      });
+      await this.pointsRepository.insertMovement({
+        customerId: candidate.customerId,
+        type: 'EXPIRATION',
+        points: -expiredPoints,
+        balanceAfter: newBalance,
+        consumptionId: null,
+        lotId: candidate.lotId,
+        performedByAccountId: null,
+        performedByName: SYSTEM_PERFORMER_NAME,
+      });
+      await onExpired({
+        lotId: candidate.lotId,
+        customer: await this.pointsRepository.findExpirationCustomer(candidate.customerId),
+        points: expiredPoints,
+        accreditedAt: lot.getAccreditedAt(),
+        balanceAfter: newBalance,
+      });
+      return expiredPoints;
+    });
+  }
+
+  private canExpire(lot: PointsLot, now: Date): boolean {
+    return (
+      lot.isActive() &&
+      lot.getRemainingPoints() > 0 &&
+      lot.getExpiresAt().getTime() <= now.getTime()
+    );
   }
 
   // CA-BASE.9: forma exacta de §3.4.1. Lectura pura, sin lock (no muta nada).

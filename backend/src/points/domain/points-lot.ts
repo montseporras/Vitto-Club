@@ -92,6 +92,26 @@ export class PointsLot {
     this._status = 'VOIDED';
   }
 
+  // US-25 (§3.6.3): el lote vence entero, con lo que le quede. Pasa a EXPIRED, guarda la fecha
+  // y el saldo queda en 0 (decisión de Melisa). Devuelve los puntos que vencieron.
+  // La fecha que manda es la del lote (snapshot): un cambio posterior de vigencia no la corre.
+  expire(now: Date): number {
+    if (this._status !== 'ACTIVE') {
+      throw new DomainError('Only an ACTIVE lot can expire', 'status');
+    }
+    if (this._expiresAt.getTime() > now.getTime()) {
+      throw new DomainError('The lot has not expired yet', 'expiresAt');
+    }
+    if (this._remainingPoints === 0) {
+      throw new DomainError('A lot without remaining points does not expire', 'remainingPoints');
+    }
+    const expired = this._remainingPoints;
+    this._remainingPoints = 0;
+    this._status = 'EXPIRED';
+    this._expiredAt = now;
+    return expired;
+  }
+
   // GETTERS
   getId(): number | null {
     return this._id;
