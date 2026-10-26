@@ -22,17 +22,26 @@ function shiftMonth(value: string, amount: number) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
 }
 
-type AuditDateRangePickerProps = {
+type DateRangePickerProps = {
+  /** id del botón que abre el calendario; lo usa el <label> */
+  id: string
+  label: string
   fromDate: string
   toDate: string
   onApply: (fromDate: string, toDate: string) => void
 }
 
-export function AuditDateRangePicker({
+/**
+ * Rango de fechas con calendario (Auditoría y Consumos). Las fechas son 'YYYY-MM-DD' en hora de
+ * Argentina; "Listo" y "Limpiar" avisan con onApply.
+ */
+export function DateRangePicker({
+  id,
+  label,
   fromDate,
   toDate,
   onApply,
-}: AuditDateRangePickerProps) {
+}: DateRangePickerProps) {
   const today = todayIsoInTimeZone(ARGENTINA_TIME_ZONE)
   const [open, setOpen] = useState(false)
   const [visibleMonth, setVisibleMonth] = useState(today.slice(0, 7))
@@ -89,11 +98,11 @@ export function AuditDateRangePicker({
 
   return (
     <div className="relative min-w-0">
-      <label className="mb-1.5 block text-sm font-medium" htmlFor="audit-date-range">
-        Rango de fechas
+      <label className="mb-1.5 block text-sm font-medium" htmlFor={id}>
+        {label}
       </label>
       <Button
-        id="audit-date-range"
+        id={id}
         type="button"
         variant="secondary"
         aria-expanded={open}

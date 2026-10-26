@@ -1,10 +1,10 @@
 import { DOCUMENT_TYPES } from '@/domain/documents'
 import { Button } from '@/shared/components/ui/Button'
+import { DateRangePicker } from '@/shared/components/ui/DateRangePicker'
 import { Input } from '@/shared/components/ui/Input'
 import { Select } from '@/shared/components/ui/Select'
 import { AUDIT_ACTIONS_BY_MODULE, AUDIT_MODULES } from '../types/audit'
 import type { AuditActor, AuditAction, AuditModule } from '../types/audit'
-import { AuditDateRangePicker } from './AuditDateRangePicker'
 
 export type AuditDatePreset = 'ANY' | 'TODAY' | 'LAST_7_DAYS' | 'THIS_MONTH' | 'CUSTOM'
 
@@ -162,7 +162,9 @@ export function AuditFilters({
       </div>
 
       {filters.datePreset === 'CUSTOM' && (
-        <AuditDateRangePicker
+        <DateRangePicker
+          id="audit-date-range"
+          label="Rango de fechas"
           fromDate={filters.fromDate}
           toDate={filters.toDate}
           onApply={(fromDate, toDate) => onChange({ fromDate, toDate })}

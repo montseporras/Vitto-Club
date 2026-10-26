@@ -158,6 +158,21 @@ export const router = createBrowserRouter([
         },
       },
       {
+        // Sección Consumos: listado y detalle (US-23)
+        path: PATHS.admin.consumptions,
+        lazy: async () => {
+          const { ConsumptionsPage } = await import('@/features/consumptions')
+          return { Component: ConsumptionsPage }
+        },
+      },
+      {
+        path: PATHS.admin.consumptionDetail,
+        lazy: async () => {
+          const { ConsumptionDetailPage } = await import('@/features/consumptions')
+          return { Component: ConsumptionDetailPage }
+        },
+      },
+      {
         // Consulta de auditoría (US-58)
         path: PATHS.admin.audit,
         lazy: async () => {
@@ -171,7 +186,6 @@ export const router = createBrowserRouter([
           [PATHS.admin.rewards, 'Recompensas', 'Catálogo de recompensas'],
           [PATHS.admin.missions, 'Misiones', 'Misiones'],
           [PATHS.admin.statistics, 'Estadísticas', 'Estadísticas y reportes'],
-          [PATHS.admin.consumptions, 'Consumos', 'Consumos'],
         ] as const
       ).map(([path, eyebrow, title]) => ({
         path,
