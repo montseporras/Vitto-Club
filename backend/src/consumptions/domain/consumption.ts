@@ -188,7 +188,7 @@ export class Consumption {
   }
 
   // US-22: anular. Revertir los puntos y auditar NO es responsabilidad de esta entidad
-  // (eso lo hacen PointsService/AuditService, todavía no implementados) — esto solo mueve
+  // (eso lo hacen PointsService y AuditService desde ConsumptionsService): esto solo mueve
   // el propio estado del consumo.
   void(data: { voidedByAccountId: number; voidedByName: string; reason: string }): void {
     if (this._status === 'VOIDED') {

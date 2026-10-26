@@ -10,10 +10,12 @@ import type { AuthRole } from '../src/auth/domain/auth-role.js';
 
 // Cubre US-21 (Registrar consumo) y US-22 (Anular consumo + listado por cliente), contra
 // Postgres real, con los módulos reales (consumptions, points/BASE, loyalty, customers,
-// employees, auth). La auditoría (US-57) no existe todavía: ningún test de acá la verifica.
+// employees, auth), y la auditoría CONSUMPTION_REGISTERED / CONSUMPTION_VOIDED (§3.9.3).
 describe('Consumos y puntos (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  // La auditoría es solo inserción: no se borra, se mira desde el último id
+  let lastAuditId = 0;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -62,7 +64,14 @@ describe('Consumos y puntos (e2e)', () => {
     await prisma.employee.deleteMany();
     await prisma.customer.deleteMany();
     await prisma.loyaltyProgramConfiguration.deleteMany();
+    lastAuditId = await lastAuditIdNow();
   });
+
+  const lastAuditIdNow = async () =>
+    (await prisma.auditLog.findFirst({ orderBy: { id: 'desc' } }))?.id ?? 0;
+
+  const newAuditRows = () =>
+    prisma.auditLog.findMany({ where: { id: { gt: lastAuditId } }, orderBy: { id: 'asc' } });
 
   async function setConfig(overrides: {
     baseAmount?: number | null;
@@ -582,6 +591,142 @@ describe('Consumos y puntos (e2e)', () => {
         .set(authHeaders('CASHIER', account.id, employee.id));
 
       expect(response.status).toBe(404);
+    });
+  });
+
+  describe('Auditoría (CA-21.5 y CA-22.7)', () => {
+    it('registrar audita CONSUMPTION_REGISTERED a nombre del cajero, con el cliente afectado', async () => {
+      await setConfig();
+      const { employee, account } = await seedEmployeeWithAccount({ email: 'cajero.au1@vitto.club', role: 'CASHIER' });
+      const customer = await seedCustomer({ email: 'cliente.au1@example.com', documentNumber: '38456101' });
+
+      const consumption = await registerConsumption(authHeaders('CASHIER', account.id, employee.id), customer.id);
+
+      const rows = await newAuditRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        actorType: 'EMPLOYEE',
+        actorAccountId: account.id,
+        performedBy: 'Test CASHIER',
+        module: 'CONSUMPTIONS',
+        actionCode: 'CONSUMPTION_REGISTERED',
+        description: `Registró el consumo ${consumption.code} de Carolina Fernández`,
+        affectedCustomerId: customer.id,
+        affectedCustomerName: 'Carolina Fernández',
+        documentType: 'DNI',
+        documentNumber: '38456101',
+        operationCode: consumption.code,
+      });
+      expect(rows[0].details).toEqual([
+        { label: 'Código de operación', value: consumption.code },
+        { label: 'Monto', value: '$50.000' },
+        { label: 'Equivalencia aplicada', value: '$1.000 = 10 pts' },
+        { label: 'Puntos acreditados', value: '+500 pts' },
+        { label: 'Saldo resultante', value: '500 pts' },
+      ]);
+    });
+
+    it('con bonificación agrega la fila "Bonificación primer consumo"', async () => {
+      await setConfig({ bonusType: 'PERCENTAGE', bonusValue: 15 });
+      const { employee, account } = await seedEmployeeWithAccount({ email: 'cajero.au2@vitto.club', role: 'CASHIER' });
+      const customer = await seedCustomer({ email: 'cliente.au2@example.com', documentNumber: '38456102' });
+
+      await registerConsumption(authHeaders('CASHIER', account.id, employee.id), customer.id);
+
+      const [row] = await newAuditRows();
+      expect((row.details as { label: string }[]).map((detail) => detail.label)).toEqual([
+        'Código de operación',
+        'Monto',
+        'Equivalencia aplicada',
+        'Puntos acreditados',
+        'Bonificación primer consumo',
+        'Saldo resultante',
+      ]);
+      expect(row.details).toEqual(
+        expect.arrayContaining([
+          { label: 'Puntos acreditados', value: '+575 pts' },
+          { label: 'Bonificación primer consumo', value: '+75 pts' },
+          { label: 'Saldo resultante', value: '575 pts' },
+        ]),
+      );
+    });
+
+    it('anular audita CONSUMPTION_VOIDED a nombre de quien anula, con el motivo y el saldo negativo', async () => {
+      await setConfig();
+      const { employee, account } = await seedEmployeeWithAccount({ email: 'cajero.au3@vitto.club', role: 'CASHIER' });
+      const { employee: adminEmployee, account: adminAccount } = await seedEmployeeWithAccount({ email: 'admin.au3@vitto.club', role: 'ADMIN' });
+      const customer = await seedCustomer({ email: 'cliente.au3@example.com', documentNumber: '38456103' });
+      const cashierHeaders = authHeaders('CASHIER', account.id, employee.id);
+      const consumption = await registerConsumption(cashierHeaders, customer.id);
+      // Gasta 350 de los 500 con un ajuste, para que la anulación deje deuda
+      const adjustment = await request(app.getHttpServer())
+        .post(`/api/customers/${customer.id}/ajustes-de-puntos`)
+        .set(authHeaders('ADMIN', adminAccount.id, adminEmployee.id))
+        .send({ direction: 'SUBTRACT', points: 350, reason: 'Gasto de prueba' });
+      expect(adjustment.status).toBe(201);
+      lastAuditId = await lastAuditIdNow();
+
+      const response = await request(app.getHttpServer())
+        .patch(`/api/consumos/${consumption.code}/anular`)
+        .set(authHeaders('ADMIN', adminAccount.id, adminEmployee.id))
+        .send({ reason: 'Consumo registrado al cliente equivocado.' });
+      expect(response.status).toBe(200);
+      expect(response.body.balanceAfter).toBe(-350);
+
+      const rows = await newAuditRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        actorType: 'EMPLOYEE',
+        actorAccountId: adminAccount.id,
+        performedBy: 'Test ADMIN',
+        module: 'CONSUMPTIONS',
+        actionCode: 'CONSUMPTION_VOIDED',
+        description: `Anuló el consumo ${consumption.code} de Carolina Fernández`,
+        affectedCustomerId: customer.id,
+        operationCode: consumption.code,
+      });
+      expect(rows[0].details).toEqual([
+        { label: 'Código de operación', value: consumption.code },
+        { label: 'Monto', value: '$50.000' },
+        { label: 'Puntos revertidos', value: '−500 pts' },
+        { label: 'Saldo resultante', value: '-350 pts' },
+        { label: 'Motivo', value: 'Consumo registrado al cliente equivocado.' },
+      ]);
+    });
+
+    it('un registro o una anulación rechazados no auditan nada', async () => {
+      await setConfig();
+      const { employee: e1, account: a1 } = await seedEmployeeWithAccount({ email: 'cajero.au4a@vitto.club', role: 'CASHIER' });
+      const { employee: e2, account: a2 } = await seedEmployeeWithAccount({ email: 'cajero.au4b@vitto.club', role: 'CASHIER' });
+      const customer = await seedCustomer({ email: 'cliente.au4@example.com', documentNumber: '38456104' });
+      const inactive = await seedCustomer({ email: 'cliente.au4i@example.com', documentNumber: '38456105', active: false });
+      const own = authHeaders('CASHIER', a1.id, e1.id);
+      const other = authHeaders('CASHIER', a2.id, e2.id);
+      const consumption = await registerConsumption(own, customer.id);
+      const server = app.getHttpServer();
+      const voidWith = (headers: Record<string, string>, code: string, reason: string) =>
+        request(server).patch(`/api/consumos/${code}/anular`).set(headers).send({ reason });
+
+      lastAuditId = await lastAuditIdNow();
+      const statuses = [
+        // 409 CUSTOMER_INACTIVE
+        (await request(server).post('/api/consumos').set(own).send({ customerId: inactive.id, amount: 50000 })).status,
+        // 403 VOID_NOT_ALLOWED: el consumo es de otro cajero
+        (await voidWith(other, consumption.code, 'motivo válido')).status,
+        // 400: motivo de menos de 5 caracteres
+        (await voidWith(own, consumption.code, 'ab')).status,
+        // 404: el código no existe
+        (await voidWith(own, 'C-999999', 'motivo válido')).status,
+      ];
+      expect(await newAuditRows()).toHaveLength(0);
+
+      expect((await voidWith(own, consumption.code, 'motivo válido')).status).toBe(200);
+      lastAuditId = await lastAuditIdNow();
+      // 409 CONSUMPTION_ALREADY_VOIDED
+      statuses.push((await voidWith(own, consumption.code, 'otro motivo')).status);
+
+      expect(statuses).toEqual([409, 403, 400, 404, 409]);
+      expect(await newAuditRows()).toHaveLength(0);
     });
   });
 });

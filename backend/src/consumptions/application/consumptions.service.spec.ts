@@ -16,6 +16,8 @@ import { Employee } from '../../employees/domain/employee.js';
 import { EmployeesService } from '../../employees/application/employees.service.js';
 import { LoyaltyProgramConfiguration } from '../../loyalty/domain/loyalty-program-configuration.js';
 import { LoyaltyService } from '../../loyalty/application/loyalty.service.js';
+import type { AuditEntryInput } from '../../audit/domain/audit-entry.js';
+import { AuditService } from '../../audit/application/audit.service.js';
 import { PointsService, AcreditarInput, AcreditarResult, RevertirInput, BalanceMutationResult, PointsSummary } from '../../points/application/points.service.js';
 
 // --- Fakes en memoria, mismo criterio que el resto del repo. ---
@@ -200,6 +202,15 @@ class FakePointsService {
   }
 }
 
+// Guarda las entradas de auditoría que se escribirían en la transacción
+class FakeAuditService {
+  readonly entries: AuditEntryInput[] = [];
+
+  async record(entry: AuditEntryInput): Promise<void> {
+    this.entries.push(entry);
+  }
+}
+
 const ACTIVE_CUSTOMER = Customer.reconstruct({
   id: 101,
   firstName: 'Carolina',
@@ -236,6 +247,7 @@ describe('ConsumptionsService', () => {
   let employeesService: FakeEmployeesService;
   let loyaltyService: FakeLoyaltyService;
   let pointsService: FakePointsService;
+  let auditService: FakeAuditService;
   let service: ConsumptionsService;
 
   beforeEach(() => {
@@ -247,6 +259,7 @@ describe('ConsumptionsService', () => {
     employeesService.seed(CASHIER_EMPLOYEE);
     loyaltyService = new FakeLoyaltyService();
     pointsService = new FakePointsService();
+    auditService = new FakeAuditService();
 
     service = new ConsumptionsService(
       repository,
@@ -254,6 +267,7 @@ describe('ConsumptionsService', () => {
       employeesService as unknown as EmployeesService,
       loyaltyService as unknown as LoyaltyService,
       pointsService as unknown as PointsService,
+      auditService as unknown as AuditService,
       new PassthroughTransactionRunner(),
     );
   });
@@ -388,6 +402,26 @@ describe('ConsumptionsService', () => {
       expect(result.levelUp).toBe(true); // BRONZE -> SILVER, según el fake de PointsService
     });
 
+    it('audita CONSUMPTION_REGISTERED con el empleado como actor y el cliente afectado', async () => {
+      const result = await service.register({
+        customerId: 101,
+        amount: 50000,
+        registeredBy: { accountId: 12, employeeId: 12 },
+      });
+      const code = result.consumption.getCode() as string;
+
+      expect(auditService.entries).toHaveLength(1);
+      expect(auditService.entries[0]).toMatchObject({
+        actor: { type: 'EMPLOYEE', accountId: 12 },
+        module: 'CONSUMPTIONS',
+        action: 'CONSUMPTION_REGISTERED',
+        description: `Registró el consumo ${code} de Carolina Fernández`,
+        affectedCustomer: { customerId: 101, name: 'Carolina Fernández', documentType: 'DNI', documentNumber: '38456123' },
+        operationCode: code,
+      });
+      expect(auditService.entries[0].details.at(-1)).toEqual({ label: 'Saldo resultante', value: '500 pts' });
+    });
+
     it('409 CUSTOMER_INACTIVE: no crea el consumo ni acredita nada', async () => {
       await expect(
         service.register({ customerId: 102, amount: 50000, registeredBy: { accountId: 12, employeeId: 12 } }),
@@ -395,6 +429,7 @@ describe('ConsumptionsService', () => {
 
       expect(repository.items.size).toBe(0);
       expect(pointsService.acreditarCalls).toHaveLength(0);
+      expect(auditService.entries).toHaveLength(0);
     });
 
     it('409 POINTS_EQUIVALENCE_NOT_CONFIGURED: no crea el consumo', async () => {
@@ -444,6 +479,31 @@ describe('ConsumptionsService', () => {
       expect(pointsService.revertirCalls).toHaveLength(1);
     });
 
+    it('audita CONSUMPTION_VOIDED con quien anula como actor y el motivo', async () => {
+      const code = await registerConsumption();
+
+      await service.anular({
+        code,
+        reason: 'monto cargado incorrectamente',
+        actor: { accountId: 999, role: 'ADMIN', employeeId: 12 },
+      });
+
+      // La primera entrada es la del registro
+      expect(auditService.entries).toHaveLength(2);
+      expect(auditService.entries[1]).toMatchObject({
+        actor: { type: 'EMPLOYEE', accountId: 999 },
+        module: 'CONSUMPTIONS',
+        action: 'CONSUMPTION_VOIDED',
+        description: `Anuló el consumo ${code} de Carolina Fernández`,
+        affectedCustomer: { customerId: 101, name: 'Carolina Fernández' },
+        operationCode: code,
+      });
+      expect(auditService.entries[1].details.at(-1)).toEqual({
+        label: 'Motivo',
+        value: 'monto cargado incorrectamente',
+      });
+    });
+
     it('Cajero anula su propio consumo', async () => {
       const code = await registerConsumption();
 
@@ -466,6 +526,8 @@ describe('ConsumptionsService', () => {
           actor: { accountId: 999, role: 'CASHIER', employeeId: 12 },
         }),
       ).rejects.toThrow(ForbiddenException);
+      // Solo la entrada del registro: un rechazo no audita
+      expect(auditService.entries).toHaveLength(1);
     });
 
     it('409 CONSUMPTION_ALREADY_VOIDED: ya estaba anulado (incluso para el Administrador)', async () => {

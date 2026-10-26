@@ -5,6 +5,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { AuditService } from '../../audit/application/audit.service.js';
+import {
+  consumptionRegisteredEntry,
+  consumptionVoidedEntry,
+  type AffectedCustomerSnapshot,
+} from '../../audit/domain/audit-entries.js';
 import { Consumption, ConsumptionStatus, ConsumptionViewerRole } from '../domain/consumption.js';
 import { calculateConsumptionPoints, FirstConsumptionBonus } from '../domain/calculate-consumption-points.js';
 import { DomainError } from '../domain/errors/domain.error.js';
@@ -108,11 +114,9 @@ export type ListMineInput = {
   limit: number;
 };
 
-// US-21/US-22. Orquesta consumptions + points (BASE) dentro de la misma transacción
-// ambiente. La auditoría (CONSUMPTION_REGISTERED/CONSUMPTION_VOIDED, US-57) todavía no
-// existe: queda marcada con TODO en cada punto donde el contrato la pide (§3.9.3) — sin
-// eso, register()/anular() no cierran del todo CA-21.5/CA-22.7, solo lo que sí depende de
-// mí.
+// US-21/US-22. Orquesta consumptions + points (BASE) y la auditoría (CONSUMPTION_REGISTERED/
+// CONSUMPTION_VOIDED, §3.9.3) dentro de la misma transacción ambiente: si la auditoría falla,
+// se deshace también el consumo (§3.9.1, regla 7).
 @Injectable()
 export class ConsumptionsService {
   constructor(
@@ -121,6 +125,7 @@ export class ConsumptionsService {
     private readonly employeesService: EmployeesService,
     private readonly loyaltyService: LoyaltyService,
     private readonly pointsService: PointsService,
+    private readonly auditService: AuditService,
     private readonly transactionRunner: TransactionRunner,
   ) {}
 
@@ -280,9 +285,22 @@ export class ConsumptionsService {
         performedBy: { accountId: input.registeredBy.accountId, name: registeredByName },
       });
 
-      // TODO (US-57, sin implementar todavía): auditar CONSUMPTION_REGISTERED con las
-      // filas de §3.9.3 (código de operación, monto, equivalencia, puntos, bonificación
-      // si > 0, saldo resultante).
+      // CA-21.5: el actor es el empleado que registra (§3.9.1, regla 3)
+      await this.auditService.record(
+        consumptionRegisteredEntry(
+          { type: 'EMPLOYEE', accountId: input.registeredBy.accountId },
+          toAffectedCustomer(customer),
+          {
+            code: saved.getCode() as string,
+            amount: saved.getAmount(),
+            baseAmount: saved.getBaseAmount(),
+            pointsAwarded: saved.getPointsAwarded(),
+            totalPoints: saved.getTotalPoints(),
+            bonusPoints: saved.getBonusPoints(),
+            balanceAfter: credit.balanceAfter,
+          },
+        ),
+      );
 
       return {
         consumption: saved,
@@ -345,8 +363,18 @@ export class ConsumptionsService {
         performedBy: { accountId: input.actor.accountId, name: voidedByName },
       });
 
-      // TODO (US-57, sin implementar todavía): auditar CONSUMPTION_VOIDED con el motivo
-      // (§3.9.3).
+      // CA-22.7: el actor es el empleado que anula. El cliente se lee para el bloque
+      // "Cliente afectado" (foto del momento, §3.9.1 regla 8).
+      const customer = await this.customersService.findById(consumption.getCustomerId());
+      await this.auditService.record(
+        consumptionVoidedEntry({ type: 'EMPLOYEE', accountId: input.actor.accountId }, toAffectedCustomer(customer), {
+          code: input.code,
+          amount: consumption.getAmount(),
+          totalPoints: consumption.getTotalPoints(),
+          balanceAfter: reversal.balanceAfter,
+          reason: consumption.getVoidedReason() as string,
+        }),
+      );
 
       return {
         consumption,
@@ -385,4 +413,15 @@ export class ConsumptionsService {
     }
     return config;
   }
+}
+
+// Lo mínimo del cliente para el bloque "Cliente afectado" de la auditoría
+function toAffectedCustomer(customer: Customer): AffectedCustomerSnapshot {
+  return {
+    id: customer.getId() as number,
+    firstName: customer.getFirstName(),
+    lastName: customer.getLastName(),
+    documentType: customer.getDocumentType(),
+    documentNumber: customer.getDocumentNumber(),
+  };
 }
