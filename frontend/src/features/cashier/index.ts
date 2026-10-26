@@ -8,6 +8,8 @@ export {
   rejectedFields,
   REJECTED_FIELD_MESSAGE,
 } from './api/customer-errors'
+// US-23 lo usa en el detalle del consumo (CA-22.12)
+export { VoidConsumptionModal } from './components/VoidConsumptionModal'
 export type {
   Customer,
   CreateCustomerBody,
@@ -23,3 +25,9 @@ export { useCustomerMovements, useCustomerPoints } from './api/cashier.queries'
 export { customerFieldsSchema } from './schemas/create-customer.schema'
 // US-24: el modal "Ajustar puntos" lo abre la ficha del cliente (US-19 / CLI-ADM)
 export { AdjustPointsModal } from './components/AdjustPointsModal'
+export type {
+  Consumption,
+  ConsumptionPreview,
+  CreateConsumptionBody,
+  CreateConsumptionResult,
+} from './types/consumption'

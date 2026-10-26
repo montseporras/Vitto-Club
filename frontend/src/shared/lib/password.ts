@@ -10,6 +10,8 @@ const ALL = UPPERCASE + LOWERCASE + DIGITS + SPECIAL;
 
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 64;
+// Contrato §3.11: además del largo en caracteres, no puede pesar más de 72 bytes en UTF-8.
+export const PASSWORD_MAX_BYTES = 72;
 
 export const PASSWORD_RULES = {
   uppercase: /[A-Z]/,

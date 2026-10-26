@@ -43,25 +43,27 @@ export const router = createBrowserRouter([
       }
     },
     children: [
-      // Inicio es de otra historia (US-19, frontend)
       {
+        // US-19: Inicio del Cliente
         index: true,
-        element: (
-          <ComingSoon
-            eyebrow="Mi cuenta"
-            title="Tus puntos y recompensas"
-            description="Acá vas a ver tus puntos, tu nivel y las recompensas que podés canjear."
-          />
-        ),
+        lazy: async () => {
+          const { CustomerHomePage } = await import('@/features/my-account')
+          return { Component: CustomerHomePage }
+        },
       },
-      // Historial de puntos (US-26). El historial de consumos es de US-23
+      // Historial: consumos (US-23) y puntos (US-26), una sección debajo de la otra, como el
+      // prototipo (clienteTab === 'historial')
       {
         path: PATHS.customer.history,
         lazy: async () => {
-          const { PointsHistory } = await import('@/features/my-account')
+          const [{ CustomerHistoryPage }, { PointsHistory }] = await Promise.all([
+            import('@/features/consumptions'),
+            import('@/features/my-account'),
+          ])
           return {
             element: (
-              <div className="mx-auto w-full max-w-xl">
+              <div className="mx-auto grid w-full max-w-xl gap-8">
+                <CustomerHistoryPage />
                 <PointsHistory />
               </div>
             ),
@@ -155,14 +157,35 @@ export const router = createBrowserRouter([
           return { Component: PointsMovementsPage }
         },
       },
+      {
+        // Sección Consumos: listado y detalle (US-23)
+        path: PATHS.admin.consumptions,
+        lazy: async () => {
+          const { ConsumptionsPage } = await import('@/features/consumptions')
+          return { Component: ConsumptionsPage }
+        },
+      },
+      {
+        path: PATHS.admin.consumptionDetail,
+        lazy: async () => {
+          const { ConsumptionDetailPage } = await import('@/features/consumptions')
+          return { Component: ConsumptionDetailPage }
+        },
+      },
+      {
+        // Consulta de auditoría (US-58)
+        path: PATHS.admin.audit,
+        lazy: async () => {
+          const { AuditPage } = await import('@/features/audit')
+          return { Component: AuditPage }
+        },
+      },
       // Pantallas de otras historias o sprints: todavía no están construidas
       ...(
         [
           [PATHS.admin.rewards, 'Recompensas', 'Catálogo de recompensas'],
           [PATHS.admin.missions, 'Misiones', 'Misiones'],
           [PATHS.admin.statistics, 'Estadísticas', 'Estadísticas y reportes'],
-          [PATHS.admin.audit, 'Auditoría', 'Auditoría'],
-          [PATHS.admin.consumptions, 'Consumos', 'Consumos'],
         ] as const
       ).map(([path, eyebrow, title]) => ({
         path,

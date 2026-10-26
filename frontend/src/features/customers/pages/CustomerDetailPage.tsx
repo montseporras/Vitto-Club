@@ -217,7 +217,7 @@ export function CustomerDetailPage() {
 
         <div role="tabpanel">
           {tab === 'consumptions' ? (
-            <ConsumptionsTab customerId={id} />
+            <ConsumptionsTab customerId={id} documentNumber={data.documentNumber} />
           ) : (
             <MovementsTab customerId={id} />
           )}
@@ -231,7 +231,13 @@ export function CustomerDetailPage() {
   )
 }
 
-function ConsumptionsTab({ customerId }: { customerId: number }) {
+function ConsumptionsTab({
+  customerId,
+  documentNumber,
+}: {
+  customerId: number
+  documentNumber: string
+}) {
   const consumptions = useCustomerConsumptions(customerId, TAB_LIMIT)
 
   if (consumptions.isPending) return <StatusText>Cargando…</StatusText>
@@ -279,9 +285,9 @@ function ConsumptionsTab({ customerId }: { customerId: number }) {
                 </Badge>
               </TableCell>
               <TableCell className="text-right">
-                {/* El detalle del consumo es de US-23 */}
+                {/* Detalle del consumo (US-23) */}
                 <Link
-                  to="../../consumos"
+                  to={`../../consumos/${consumption.code}`}
                   relative="path"
                   className={buttonVariants({ variant: 'ghost' })}
                 >
@@ -293,7 +299,13 @@ function ConsumptionsTab({ customerId }: { customerId: number }) {
         </tbody>
       </Table>
       <div className="mt-4 flex justify-end">
-        <Link to="../../consumos" relative="path" className={buttonVariants({ variant: 'secondary' })}>
+        {/* Consumos filtrado por este cliente; el documento se muestra en el filtro Cliente (US-23) */}
+        <Link
+          to={`../../consumos?customerId=${customerId}`}
+          relative="path"
+          state={{ documentNumber }}
+          className={buttonVariants({ variant: 'secondary' })}
+        >
           Ver todos
         </Link>
       </div>

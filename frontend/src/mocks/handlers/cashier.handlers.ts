@@ -160,7 +160,7 @@ type PointsState = {
   nextExpirations: { points: number; expiresAt: Date }[]
 }
 
-const pointsByCustomer: Record<number, PointsState> = {
+export const pointsByCustomer: Record<number, PointsState> = {
   // Lucía: Oro, con lotes vigentes
   1: {
     balance: 1250,
@@ -174,7 +174,7 @@ const pointsByCustomer: Record<number, PointsState> = {
   2: { balance: -350, lifetimePoints: 150, nextExpirations: [] },
 }
 
-type MovementSeed = Omit<PointsMovement, 'id' | 'customer'> & { customerId: number }
+export type MovementSeed = Omit<PointsMovement, 'id' | 'customer'> & { customerId: number }
 
 const BRUNO = { actorType: 'EMPLOYEE', accountId: 2, name: 'Bruno Pérez' } as const
 const ANA = { actorType: 'EMPLOYEE', accountId: 1, name: 'Ana Gómez' } as const
@@ -191,7 +191,7 @@ const lot = (
   return { id, accreditedAt: accredited.toISOString(), expiresAt: expires.toISOString(), status }
 }
 
-const movementSeeds: MovementSeed[] = [
+export const movementSeeds: MovementSeed[] = [
   // Lucía
   { customerId: 1, createdAt: ago(400 * DAY), type: 'CONSUMPTION_CREDIT', points: 10, balanceAfter: 10, description: 'Consumo C-000101', consumptionCode: 'C-000101', reason: null, lot: lot(1, 400, 'EXPIRED'), performedBy: ANA },
   { customerId: 1, createdAt: ago(10 * DAY), type: 'CONSUMPTION_CREDIT', points: 750, balanceAfter: 760, description: 'Consumo C-000120', consumptionCode: 'C-000120', reason: null, lot: lot(2, 10, 'ACTIVE'), performedBy: BRUNO },
@@ -211,7 +211,7 @@ const LEVEL_ORDER: { level: Level; min: number }[] = [
 ]
 
 // Igual que el cálculo de nivel del backend (contrato §3.4.1)
-function levelOf(lifetimePoints: number): CustomerPoints['level'] {
+export function levelOf(lifetimePoints: number): CustomerPoints['level'] {
   const index = LEVEL_ORDER.findLastIndex((l) => lifetimePoints >= l.min)
   const current = LEVEL_ORDER[index]
   const next = LEVEL_ORDER[index + 1] ?? null
@@ -254,7 +254,7 @@ function checkCustomerAccess(request: Request, id: string) {
 // ── Consumos del cliente (US-22, lo usa la ficha de CLI-ADM) ────────────────
 // Los mismos consumos que generan los movimientos de arriba. Equivalencia $1.000 = 10 pts.
 
-type ConsumptionSeed = {
+export type ConsumptionSeed = {
   id: number
   customerId: number
   createdAt: string
@@ -264,7 +264,7 @@ type ConsumptionSeed = {
   voided?: { at: string; by: { accountId: number; name: string }; reason: string }
 }
 
-const consumptionSeeds: ConsumptionSeed[] = [
+export const consumptionSeeds: ConsumptionSeed[] = [
   { id: 101, customerId: 1, createdAt: ago(400 * DAY), amount: 1000, totalPoints: 10, registeredBy: { accountId: 1, name: 'Ana Gómez' } },
   { id: 120, customerId: 1, createdAt: ago(10 * DAY), amount: 75000, totalPoints: 750, registeredBy: { accountId: 2, name: 'Bruno Pérez' } },
   { id: 141, customerId: 1, createdAt: ago(2 * HOUR), amount: 50000, totalPoints: 500, registeredBy: { accountId: 2, name: 'Bruno Pérez' } },
@@ -277,7 +277,7 @@ const consumptionSeeds: ConsumptionSeed[] = [
 
 
 // canVoid y voidableUntil se calculan para quien consulta (contrato §3.2.1)
-function toConsumption(seed: ConsumptionSeed, customer: Customer, viewer: { accountId: number; role: string }): Consumption {
+export function toConsumption(seed: ConsumptionSeed, customer: Customer, viewer: { accountId: number; role: string }): Consumption {
   const registered = !seed.voided
   const until = new Date(Date.parse(seed.createdAt) + DAY).toISOString()
   const own = seed.registeredBy.accountId === viewer.accountId

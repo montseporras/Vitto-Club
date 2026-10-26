@@ -12,9 +12,16 @@ import type {
   PointsAdjustmentResult,
   PointsMovement,
 } from '../types/points'
+import type {
+  ConsumptionPreview,
+  CreateConsumptionBody,
+  CreateConsumptionResult,
+} from '../types/consumption'
 import {
   adjustPoints,
+  createConsumption,
   createCustomer,
+  getConsumptionPreview,
   findCustomerByDocument,
   getCustomerMovements,
   getCustomerPoints,
@@ -90,6 +97,42 @@ export const useAdjustPoints = (customerId: number) => {
       void queryClient.invalidateQueries({ queryKey: cashierKeys.customer(customerId) })
       // Claves de features/points-movements: todas empiezan con 'points-movements'
       void queryClient.invalidateQueries({ queryKey: ['points-movements'] })
+    },
+  })
+}
+
+/**
+ * Vista previa de puntos del consumo (US-21, CA-21.1): la calcula el backend.
+ * No pide nada mientras el monto sea inválido (`amount` en null).
+ */
+export const useConsumptionPreview = (
+  customerId: number | null,
+  amount: number | null,
+) =>
+  useQuery<ConsumptionPreview, ApiError>({
+    queryKey: cashierKeys.consumptionPreview(customerId ?? 0, amount ?? 0),
+    queryFn: () => getConsumptionPreview(customerId!, amount!),
+    enabled: customerId !== null && amount !== null,
+    // Los 4xx son respuestas válidas (cliente de baja, sin equivalencia): no se reintentan
+    retry: (count, error) => error.status === undefined && count < 1,
+    // El saldo y la equivalencia pueden cambiar: no se reutiliza una vista previa vieja
+    staleTime: 0,
+    gcTime: 0,
+  })
+
+/** Registra el consumo (US-21). Después refresca saldo, nivel y movimientos del cliente. */
+export const useCreateConsumption = () => {
+  const queryClient = useQueryClient()
+  return useMutation<CreateConsumptionResult, ApiError, CreateConsumptionBody>({
+    mutationFn: createConsumption,
+    onSuccess: (_result, body) => {
+      queryClient.invalidateQueries({ queryKey: cashierKeys.points(body.customerId) })
+      queryClient.invalidateQueries({
+        queryKey: ['customers', body.customerId, 'movements'],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['customers', body.customerId, 'consumptions'],
+      })
     },
   })
 }

@@ -1,11 +1,14 @@
 import {
   configurationSavedEntries,
+  consumptionRegisteredEntry,
+  consumptionVoidedEntry,
   levelsUpdatedEntry,
   customerCreatedEntry,
   customerDeactivatedEntry,
   customerUpdatedEntry,
   employeeUpdatedEntry,
   pointsAdjustedEntry,
+  pointsExpiredEntry,
   type CustomerSnapshot,
   type EmployeeSnapshot,
   type LoyaltyConfigSnapshot,
@@ -238,5 +241,127 @@ describe('configurationSavedEntries() con niveles — US-27', () => {
       { label: 'Plata', value: '300 → 300 pts' },
       { label: 'Oro', value: '800 → 1.000 pts' },
     ]);
+  });
+});
+
+describe('pointsExpiredEntry() (US-25)', () => {
+  it('actor Sistema, description del contrato y las 3 filas en orden, sin código de operación', () => {
+    const entry = pointsExpiredEntry(customer, {
+      points: 200,
+      // 16/08/2026 21:30 en Argentina
+      accreditedAt: new Date('2026-08-17T00:30:00.000Z'),
+      balanceAfter: 1040,
+    });
+
+    expect(entry).toEqual({
+      actor: { type: 'SYSTEM' },
+      module: 'POINTS',
+      action: 'POINTS_EXPIRED',
+      description: 'Venció 200 pts de Sofía Ríos',
+      affectedCustomer: { customerId: 102, name: 'Sofía Ríos', documentType: 'DNI', documentNumber: '30111222' },
+      details: [
+        { label: 'Puntos vencidos', value: '−200 pts' },
+        { label: 'Fecha del lote (acreditación)', value: '16/08/2026' },
+        { label: 'Saldo resultante', value: '1.040 pts' },
+      ],
+    });
+    expect(entry.operationCode).toBeUndefined();
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+
+  it('puntos de miles y saldo negativo (cliente con deuda)', () => {
+    const entry = pointsExpiredEntry(customer, {
+      points: 1500,
+      accreditedAt: new Date('2025-10-16T18:40:00.000Z'),
+      balanceAfter: -30,
+    });
+
+    expect(entry.description).toBe('Venció 1.500 pts de Sofía Ríos');
+    expect(entry.details).toEqual([
+      { label: 'Puntos vencidos', value: '−1.500 pts' },
+      { label: 'Fecha del lote (acreditación)', value: '16/10/2025' },
+      { label: 'Saldo resultante', value: '-30 pts' },
+    ]);
+  });
+});
+
+describe('consumptionRegisteredEntry() (US-21)', () => {
+  const registration = {
+    code: 'C-000141',
+    amount: 50000,
+    baseAmount: 1000,
+    pointsAwarded: 10,
+    totalPoints: 575,
+    bonusPoints: 75,
+    balanceAfter: 575,
+  };
+
+  it('arma la descripción, el cliente afectado, el código y las filas en orden', () => {
+    const entry = consumptionRegisteredEntry(actor, customer, registration);
+
+    expect(entry).toEqual({
+      actor,
+      module: 'CONSUMPTIONS',
+      action: 'CONSUMPTION_REGISTERED',
+      description: 'Registró el consumo C-000141 de Sofía Ríos',
+      affectedCustomer: { customerId: 102, name: 'Sofía Ríos', documentType: 'DNI', documentNumber: '30111222' },
+      operationCode: 'C-000141',
+      details: [
+        { label: 'Código de operación', value: 'C-000141' },
+        { label: 'Monto', value: '$50.000' },
+        { label: 'Equivalencia aplicada', value: '$1.000 = 10 pts' },
+        { label: 'Puntos acreditados', value: '+575 pts' },
+        { label: 'Bonificación primer consumo', value: '+75 pts' },
+        { label: 'Saldo resultante', value: '575 pts' },
+      ],
+    });
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+
+  it('sin bonificación no agrega la fila, y el monto lleva centavos si los tiene', () => {
+    const entry = consumptionRegisteredEntry(actor, customer, {
+      ...registration,
+      amount: 12500.5,
+      totalPoints: 125,
+      bonusPoints: 0,
+      balanceAfter: -175,
+    });
+
+    expect(entry.details).toEqual([
+      { label: 'Código de operación', value: 'C-000141' },
+      { label: 'Monto', value: '$12.500,50' },
+      { label: 'Equivalencia aplicada', value: '$1.000 = 10 pts' },
+      { label: 'Puntos acreditados', value: '+125 pts' },
+      { label: 'Saldo resultante', value: '-175 pts' },
+    ]);
+  });
+});
+
+describe('consumptionVoidedEntry() (US-22)', () => {
+  it('tiene la forma del ejemplo de §3.9.4', () => {
+    const entry = consumptionVoidedEntry(actor, customer, {
+      code: 'C-000131',
+      amount: 50000,
+      totalPoints: 500,
+      balanceAfter: -350,
+      reason: 'Consumo registrado al cliente equivocado.',
+    });
+
+    expect(entry).toEqual({
+      actor,
+      module: 'CONSUMPTIONS',
+      action: 'CONSUMPTION_VOIDED',
+      description: 'Anuló el consumo C-000131 de Sofía Ríos',
+      affectedCustomer: { customerId: 102, name: 'Sofía Ríos', documentType: 'DNI', documentNumber: '30111222' },
+      operationCode: 'C-000131',
+      details: [
+        { label: 'Código de operación', value: 'C-000131' },
+        { label: 'Monto', value: '$50.000' },
+        { label: 'Puntos revertidos', value: '−500 pts' },
+        { label: 'Saldo resultante', value: '-350 pts' },
+        { label: 'Motivo', value: 'Consumo registrado al cliente equivocado.' },
+      ],
+    });
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
   });
 });

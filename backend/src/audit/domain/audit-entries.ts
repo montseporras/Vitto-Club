@@ -174,7 +174,13 @@ export type CustomerSnapshot = {
   dateOfBirth: Date | null;
 };
 
-const affectedCustomerOf = (customer: CustomerSnapshot) => ({
+// Lo mínimo para el bloque "Cliente afectado" (el vencimiento de US-25 no tiene más datos)
+export type AffectedCustomerSnapshot = Pick<
+  CustomerSnapshot,
+  'id' | 'firstName' | 'lastName' | 'documentType' | 'documentNumber'
+>;
+
+const affectedCustomerOf = (customer: AffectedCustomerSnapshot) => ({
   customerId: customer.id,
   name: fullName(customer),
   documentType: customer.documentType,
@@ -284,6 +290,125 @@ export function pointsAdjustedEntry(
       { label: 'Cantidad', value: formatSignedPoints(adjustment.points) },
       { label: 'Saldo resultante', value: `${formatNumber(adjustment.balanceAfter)} pts` },
       { label: 'Motivo', value: adjustment.reason },
+    ],
+  };
+}
+
+// US-25: fecha en hora de Argentina (UTC−03:00, sin horario de verano), dd/mm/aaaa. La fecha
+// de acreditación es un instante (con hora), a diferencia de la fecha de nacimiento.
+const ARGENTINA_OFFSET_MS = 3 * 60 * 60 * 1000;
+const formatArgentinaDate = (date: Date): string =>
+  formatDate(new Date(date.getTime() - ARGENTINA_OFFSET_MS));
+
+export type PointsExpirationSnapshot = {
+  // Puntos que vencieron (positivo)
+  points: number;
+  accreditedAt: Date;
+  balanceAfter: number;
+};
+
+// POINTS_EXPIRED (§3.9.2 y §3.9.3): lo registra el Sistema, sin código de operación.
+export function pointsExpiredEntry(
+  customer: AffectedCustomerSnapshot,
+  expiration: PointsExpirationSnapshot,
+): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'POINTS',
+    action: 'POINTS_EXPIRED',
+    description: `Venció ${formatNumber(expiration.points)} pts de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    details: [
+      { label: 'Puntos vencidos', value: formatSignedPoints(-expiration.points) },
+      { label: 'Fecha del lote (acreditación)', value: formatArgentinaDate(expiration.accreditedAt) },
+      { label: 'Saldo resultante', value: `${formatNumber(expiration.balanceAfter)} pts` },
+    ],
+  };
+}
+
+// --- Consumos ----------------------------------------------------------------------------
+
+// Monto con $ y puntos de miles, como el ejemplo de §3.9.4 ("$50.000"); con centavos, "$12.500,50"
+const formatMoney = (amount: number): string =>
+  `$${amount.toLocaleString('es-AR', {
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+export type ConsumptionRegistrationSnapshot = {
+  code: string;
+  amount: number;
+  // Snapshot de la equivalencia del consumo (§3.3.3)
+  baseAmount: number;
+  pointsAwarded: number;
+  // Total acreditado, bonificación incluida (decisión de Jazmín, igual que "Consumo registrado")
+  totalPoints: number;
+  bonusPoints: number;
+  balanceAfter: number;
+};
+
+// CONSUMPTION_REGISTERED (US-21, §3.9.3). "Bonificación primer consumo" solo si es > 0.
+export function consumptionRegisteredEntry(
+  actor: AuditActor,
+  customer: AffectedCustomerSnapshot,
+  consumption: ConsumptionRegistrationSnapshot,
+): AuditEntryInput {
+  const details: AuditDetail[] = [
+    { label: 'Código de operación', value: consumption.code },
+    { label: 'Monto', value: formatMoney(consumption.amount) },
+    {
+      label: 'Equivalencia aplicada',
+      value: `${formatMoney(consumption.baseAmount)} = ${formatNumber(consumption.pointsAwarded)} pts`,
+    },
+    { label: 'Puntos acreditados', value: formatSignedPoints(consumption.totalPoints) },
+  ];
+  if (consumption.bonusPoints > 0) {
+    details.push({
+      label: 'Bonificación primer consumo',
+      value: formatSignedPoints(consumption.bonusPoints),
+    });
+  }
+  details.push({ label: 'Saldo resultante', value: `${formatNumber(consumption.balanceAfter)} pts` });
+
+  return {
+    actor,
+    module: 'CONSUMPTIONS',
+    action: 'CONSUMPTION_REGISTERED',
+    description: `Registró el consumo ${consumption.code} de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    operationCode: consumption.code,
+    details,
+  };
+}
+
+export type ConsumptionVoidSnapshot = {
+  code: string;
+  amount: number;
+  // Puntos revertidos (positivo): se muestran con signo menos
+  totalPoints: number;
+  balanceAfter: number;
+  reason: string;
+};
+
+// CONSUMPTION_VOIDED (US-22, §3.9.3), con la forma del ejemplo de §3.9.4.
+export function consumptionVoidedEntry(
+  actor: AuditActor,
+  customer: AffectedCustomerSnapshot,
+  consumption: ConsumptionVoidSnapshot,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'CONSUMPTIONS',
+    action: 'CONSUMPTION_VOIDED',
+    description: `Anuló el consumo ${consumption.code} de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    operationCode: consumption.code,
+    details: [
+      { label: 'Código de operación', value: consumption.code },
+      { label: 'Monto', value: formatMoney(consumption.amount) },
+      { label: 'Puntos revertidos', value: formatSignedPoints(-consumption.totalPoints) },
+      { label: 'Saldo resultante', value: `${formatNumber(consumption.balanceAfter)} pts` },
+      { label: 'Motivo', value: consumption.reason },
     ],
   };
 }

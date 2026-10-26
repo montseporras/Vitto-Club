@@ -5,6 +5,8 @@ import { PointsLot } from '../domain/points-lot.js';
 import {
   ActiveLoyaltyConfiguration,
   CustomerPointsBalance,
+  ExpirationCustomer,
+  ExpiredLotCandidate,
   InsertedMovement,
   InsertMovementData,
   PointsRepository,
@@ -162,5 +164,44 @@ export class PointsPrismaRepository implements PointsRepository {
       silverMinPoints: config.silverMinPoints,
       goldMinPoints: config.goldMinPoints,
     };
+  }
+
+  async findExpiredLotCandidates(now: Date): Promise<ExpiredLotCandidate[]> {
+    const lots = await this.prisma.pointsLot.findMany({
+      where: {
+        status: 'ACTIVE',
+        expiresAt: { lte: now },
+        remainingPoints: { gt: 0 },
+        customer: { isActive: true },
+      },
+      // Usa el índice (status, expires_at)
+      orderBy: [{ expiresAt: 'asc' }, { id: 'asc' }],
+      select: { id: true, customerId: true },
+    });
+    return lots.map((lot) => ({ lotId: lot.id, customerId: lot.customerId }));
+  }
+
+  async lockLotForExpiration(lotId: number): Promise<PointsLot | null> {
+    // SKIP LOCKED: si otra instancia ya tiene el lote, se saltea en vez de esperarla
+    const locked = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM points_lots WHERE id = ${lotId} FOR UPDATE SKIP LOCKED
+    `;
+    if (locked.length === 0) return null;
+
+    const record = await this.prisma.pointsLot.findUnique({ where: { id: lotId } });
+    return record ? toDomain(record) : null;
+  }
+
+  async findExpirationCustomer(customerId: number): Promise<ExpirationCustomer> {
+    return await this.prisma.customer.findUniqueOrThrow({
+      where: { id: customerId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        documentType: true,
+        documentNumber: true,
+      },
+    });
   }
 }

@@ -9,6 +9,7 @@ Documentos que cambian con el tiempo: estado, pendientes y pedidos entre equipos
 | [deuda-tecnica](./deuda-tecnica.md) | Deuda, limitaciones aceptadas y riesgos |
 | [pendientes-frontend](./pendientes-frontend.md) | Pendientes del frontend del módulo de clientes |
 | [diferencias-prototipo-frontend](./diferencias-prototipo-frontend.md) | Diferencias entre el prototipo v2 y el frontend tras la alineación visual (sin historia asociada) |
+| [emp-pass-frontend](./emp-pass-frontend.md) | EMP-PASS (frontend): qué se ajustó de contraseña y reactivación de usuarios, y la decisión sobre el hint compartido |
 | [pedidos/](./pedidos/) | Pedidos entre equipos (ver [plantilla](../plantillas/pedido-entre-equipos.md)) |
 | [historico/](./historico/) | Documentos de traspaso y comparación de ramas, ya superados |
 

@@ -33,7 +33,7 @@ export function PasswordField({
       id="password"
       label={label}
       error={error}
-      hint="Mínimo 8 caracteres, con una mayúscula, un número y un carácter especial."
+      hint="Entre 8 y 64 caracteres. No puede ser igual al mail."
     >
       <div className="flex gap-2">
         <Input

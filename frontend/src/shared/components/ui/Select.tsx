@@ -5,7 +5,7 @@ import { Icon } from './Icon'
 import { ICONS } from './icons'
 
 type SelectProps = ComponentProps<'select'> & {
-  options: { value: string; label: string }[]
+  options: { value: string; label: string; disabled?: boolean }[]
 }
 
 /** Lista desplegable con la estética de los campos de texto. */
@@ -17,7 +17,11 @@ export function Select({ className, options, ...props }: SelectProps) {
         {...props}
       >
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option
+            key={option.value}
+            value={option.value}
+            disabled={option.disabled}
+          >
             {option.label}
           </option>
         ))}
