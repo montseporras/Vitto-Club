@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module.js';
 import { ConsumptionsService } from './application/consumptions.service.js';
 import { ConsumptionRepository } from './domain/port/consumption.repository.js';
 import { TransactionRunner } from './domain/port/transaction-runner.js';
@@ -11,13 +12,11 @@ import { LoyaltyModule } from '../loyalty/loyalty.module.js';
 import { PointsModule } from '../points/points.module.js';
 import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
 
-// Registrado en AppModule (ver app.module.ts). La auditoría (CONSUMPTION_REGISTERED/
-// CONSUMPTION_VOIDED, US-57) todavía no está implementada: register()/anular() funcionan
-// de punta a punta (consumo real + puntos acreditados/revertidos vía PointsService), pero
-// no terminan de cumplir CA-21.5/CA-22.7 completos hasta que exista esa pieza (quedan
-// marcados con TODO en consumptions.service.ts). Nada de esto bloquea la ruta HTTP.
+// Registrado en AppModule (ver app.module.ts). register()/anular() escriben el consumo, los
+// puntos (PointsService) y la auditoría (AuditService, CONSUMPTION_REGISTERED/CONSUMPTION_VOIDED)
+// en la misma transacción. audit no importa a consumptions: la dependencia va en un solo sentido.
 @Module({
-  imports: [CustomersModule, EmployeesModule, LoyaltyModule, PointsModule],
+  imports: [AuditModule, CustomersModule, EmployeesModule, LoyaltyModule, PointsModule],
   controllers: [ConsumptionsController, CustomerConsumptionsController],
   providers: [
     ConsumptionsService,

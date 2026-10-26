@@ -326,6 +326,93 @@ export function pointsExpiredEntry(
   };
 }
 
+// --- Consumos ----------------------------------------------------------------------------
+
+// Monto con $ y puntos de miles, como el ejemplo de §3.9.4 ("$50.000"); con centavos, "$12.500,50"
+const formatMoney = (amount: number): string =>
+  `$${amount.toLocaleString('es-AR', {
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+export type ConsumptionRegistrationSnapshot = {
+  code: string;
+  amount: number;
+  // Snapshot de la equivalencia del consumo (§3.3.3)
+  baseAmount: number;
+  pointsAwarded: number;
+  // Total acreditado, bonificación incluida (decisión de Jazmín, igual que "Consumo registrado")
+  totalPoints: number;
+  bonusPoints: number;
+  balanceAfter: number;
+};
+
+// CONSUMPTION_REGISTERED (US-21, §3.9.3). "Bonificación primer consumo" solo si es > 0.
+export function consumptionRegisteredEntry(
+  actor: AuditActor,
+  customer: AffectedCustomerSnapshot,
+  consumption: ConsumptionRegistrationSnapshot,
+): AuditEntryInput {
+  const details: AuditDetail[] = [
+    { label: 'Código de operación', value: consumption.code },
+    { label: 'Monto', value: formatMoney(consumption.amount) },
+    {
+      label: 'Equivalencia aplicada',
+      value: `${formatMoney(consumption.baseAmount)} = ${formatNumber(consumption.pointsAwarded)} pts`,
+    },
+    { label: 'Puntos acreditados', value: formatSignedPoints(consumption.totalPoints) },
+  ];
+  if (consumption.bonusPoints > 0) {
+    details.push({
+      label: 'Bonificación primer consumo',
+      value: formatSignedPoints(consumption.bonusPoints),
+    });
+  }
+  details.push({ label: 'Saldo resultante', value: `${formatNumber(consumption.balanceAfter)} pts` });
+
+  return {
+    actor,
+    module: 'CONSUMPTIONS',
+    action: 'CONSUMPTION_REGISTERED',
+    description: `Registró el consumo ${consumption.code} de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    operationCode: consumption.code,
+    details,
+  };
+}
+
+export type ConsumptionVoidSnapshot = {
+  code: string;
+  amount: number;
+  // Puntos revertidos (positivo): se muestran con signo menos
+  totalPoints: number;
+  balanceAfter: number;
+  reason: string;
+};
+
+// CONSUMPTION_VOIDED (US-22, §3.9.3), con la forma del ejemplo de §3.9.4.
+export function consumptionVoidedEntry(
+  actor: AuditActor,
+  customer: AffectedCustomerSnapshot,
+  consumption: ConsumptionVoidSnapshot,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'CONSUMPTIONS',
+    action: 'CONSUMPTION_VOIDED',
+    description: `Anuló el consumo ${consumption.code} de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    operationCode: consumption.code,
+    details: [
+      { label: 'Código de operación', value: consumption.code },
+      { label: 'Monto', value: formatMoney(consumption.amount) },
+      { label: 'Puntos revertidos', value: formatSignedPoints(-consumption.totalPoints) },
+      { label: 'Saldo resultante', value: `${formatNumber(consumption.balanceAfter)} pts` },
+      { label: 'Motivo', value: consumption.reason },
+    ],
+  };
+}
+
 // --- Configuración del programa de puntos -----------------------------------------------
 
 export type LoyaltyConfigSnapshot = {
