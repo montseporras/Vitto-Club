@@ -1,6 +1,7 @@
 // Mocks de consumos: GET /customers/me/consumos (historial del Cliente, US-23, §3.10.2),
 // GET /consumos/preview y POST /consumos (US-21, §3.1.2 y §3.1.3) y PATCH /consumos/:code/anular
-// (US-22, §3.2.2). GET /customers/:id/consumos está en cashier.handlers.ts, con los mismos datos.
+// (US-22, §3.2.2), y GET /consumos y GET /consumos/:code (sección Consumos del Administrador, US-23,
+// §3.3.1 y §3.3.2). GET /customers/:id/consumos está en cashier.handlers.ts, con los mismos datos.
 import { delay, http, HttpResponse } from 'msw'
 import type {
   Consumption,
@@ -136,6 +137,25 @@ const myConsumptions: CustomerConsumption[] = [
   // El primer consumo registrado recibe la bonificación (+30)
   consumption(98, '2026-09-20T13:45:00.000Z', 20000, 30, 'REGISTERED'),
 ];
+
+// US-23: la sección Consumos es solo del Administrador (401 sin token, 403 para el resto)
+function checkAdmin(request: Request) {
+  const path = new URL(request.url).pathname
+  const account = accountFromRequest(request)
+  if (!account) return { error: errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED') }
+  if (account.role !== 'ADMIN') {
+    return { error: errorResponse(403, 'No tenés permiso para realizar esta acción.', path, 'FORBIDDEN') }
+  }
+  return { account }
+}
+
+// 'YYYY-MM-DD' en hora de Argentina, para los filtros de fecha
+const argentinaDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Cordoba' })
+
+// Sin tildes ni mayúsculas, para la búsqueda `q`
+const fold = (value: string) =>
+  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
 export const consumptionsHandlers = [
   http.get(`${API_URL}/customers/me/consumos`, ({ request }) => {
@@ -365,4 +385,78 @@ export const consumptionsHandlers = [
       })
     },
   ),
+
+  // US-23: GET /api/consumos (contrato §3.3.1). Solo el Administrador. Van después de
+  // /consumos/preview para que "preview" no se tome como un código.
+  http.get(`${API_URL}/consumos`, async ({ request }) => {
+    await delay(300)
+    const url = new URL(request.url)
+    const access = checkAdmin(request)
+    if (access.error) return access.error
+    const { account } = access
+
+    const params = url.searchParams
+    const fromDate = params.get('fromDate')
+    const toDate = params.get('toDate')
+    if (fromDate && toDate && fromDate > toDate) {
+      // El mismo texto que el backend (buildMovementDateRange)
+      return errorResponse(400, 'fromDate no puede ser posterior a toDate', url.pathname)
+    }
+    const q = (params.get('q') ?? '').trim()
+    const status = params.get('status')
+    const registeredBy = params.get('registeredByAccountId')
+    const customerId = params.get('customerId')
+    const page = Number(params.get('page') ?? 1)
+    const limit = Number(params.get('limit') ?? 20)
+
+    const items = consumptionSeeds
+      .map((seed) => {
+        const customer = customers.find((item) => item.id === seed.customerId)
+        return customer ? toConsumption(seed, customer, account) : null
+      })
+      .filter((item): item is Consumption => item !== null)
+      .filter((item) => !fromDate || argentinaDate(item.createdAt) >= fromDate)
+      .filter((item) => !toDate || argentinaDate(item.createdAt) <= toDate)
+      .filter((item) => {
+        if (!q) return true
+        // 3 dígitos o más: documento parcial. Si no: nombre y apellido, sin mayúsculas ni tildes
+        if (/^\d{3,}$/.test(q)) return item.customer.documentNumber.includes(q)
+        return fold(`${item.customer.firstName} ${item.customer.lastName}`).includes(fold(q))
+      })
+      .filter((item) => !status || item.status === status)
+      .filter((item) => !registeredBy || item.registeredBy.accountId === Number(registeredBy))
+      .filter((item) => !customerId || item.customer.id === Number(customerId))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+
+    // count incluye los anulados; los montos, solo los REGISTERED
+    const registered = items.filter((item) => item.status === 'REGISTERED')
+    return HttpResponse.json({
+      items: items.slice((page - 1) * limit, page * limit),
+      total: items.length,
+      page,
+      limit,
+      totals: {
+        count: items.length,
+        amountTotal: registered.reduce((sum, item) => sum + item.amount, 0),
+        pointsTotal: registered.reduce((sum, item) => sum + item.totalPoints, 0),
+      },
+    })
+  }),
+
+  // US-23: GET /api/consumos/:code (contrato §3.3.2). 400 por formato, 403 por rol y 404.
+  http.get<{ code: string }>(`${API_URL}/consumos/:code`, async ({ request, params }) => {
+    await delay(250)
+    const path = new URL(request.url).pathname
+    const access = checkAdmin(request)
+    if (access.error) return access.error
+    if (!/^C-\d{6}$/.test(params.code)) {
+      return errorResponse(400, `El código ${params.code} no tiene un formato válido.`, path)
+    }
+    const seed = consumptionSeeds.find((item) => item.id === Number(params.code.slice(2)))
+    const customer = seed && customers.find((item) => item.id === seed.customerId)
+    if (!seed || !customer) {
+      return errorResponse(404, `No existe el consumo ${params.code}.`, path)
+    }
+    return HttpResponse.json(toConsumption(seed, customer, access.account))
+  }),
 ]

@@ -25,6 +25,7 @@ export const PATHS = {
     audit: '/admin/auditoria',
     identifyCustomer: '/admin/buscar-cliente',
     consumptions: '/admin/consumos',
+    consumptionDetail: '/admin/consumos/:code',
     pointsMovements: '/admin/movimientos',
   },
 } as const

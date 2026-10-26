@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { DOCUMENT_TYPES } from '@/domain/documents'
 import { LEVELS } from '@/domain/levels'
 import { FormActions } from '@/shared/components/forms/FormActions'
@@ -6,6 +7,7 @@ import { Button } from '@/shared/components/ui/Button'
 import { DataList } from '@/shared/components/ui/DataList'
 import { isoToArgentinaDateTime } from '@/shared/lib/dates'
 import { formatInteger, formatMoney } from '@/shared/lib/numbers'
+import { buttonVariants } from '@/styles/ui'
 import type { CreateConsumptionResult } from '../types/consumption'
 
 type ConsumptionRegisteredProps = {
@@ -70,10 +72,14 @@ export function ConsumptionRegistered({
           Registrar otro consumo
         </Button>
         {canViewDetail && (
-          // La sección Consumos y su detalle son de US-23: todavía no hay a dónde ir
-          <Button type="button" size="lg" disabled>
+          // Detalle del consumo (US-23). Relativo a /admin/buscar-cliente: un feature no importa de app/
+          <Link
+            to={`../consumos/${consumption.code}`}
+            relative="path"
+            className={buttonVariants({ size: 'lg' })}
+          >
             Ver detalle
-          </Button>
+          </Link>
         )}
       </FormActions>
     </section>
