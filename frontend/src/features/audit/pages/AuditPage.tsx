@@ -82,7 +82,7 @@ export function AuditPage() {
   }
 
   return (
-    <Page className="items-start">
+    <Page className="max-w-6xl items-start">
       <PageCard eyebrow="Administración" title="Auditoría" variant="plain" className="w-full">
         <div className="space-y-5">
           {actors.isError && (

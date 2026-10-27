@@ -3,7 +3,7 @@ import { cva } from 'class-variance-authority'
 /** Barra superior de la app (mostrador y administración). */
 export const appHeaderStyles = {
   root: 'sticky top-0 z-20 bg-accent-700 shadow-md shadow-accent-900/20',
-  inner: 'mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5 sm:gap-4 sm:py-3',
+  inner: 'flex w-full items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-6 sm:py-3',
   back: [
     'inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-bg px-4 text-sm font-bold text-accent-800 shadow-sm transition-colors',
     'hover:bg-accent-50',

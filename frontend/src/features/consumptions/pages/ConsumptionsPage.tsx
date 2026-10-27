@@ -127,7 +127,7 @@ export function ConsumptionsPage() {
   const end = data ? Math.min(page * data.limit, data.total) : 0;
 
   return (
-    <Page>
+    <Page className="max-w-6xl">
       <PageCard eyebrow="Administración" title="Consumos" variant="plain">
         {data && !result.isError && (
           <>
@@ -151,7 +151,7 @@ export function ConsumptionsPage() {
 
         <form
           onSubmit={applyFilters}
-          className="mt-6 grid gap-4 rounded-xl border border-orange-200 p-4 sm:grid-cols-2 xl:grid-cols-[minmax(13rem,1.2fr)_minmax(12rem,1.3fr)_minmax(9rem,1fr)_minmax(11rem,1fr)_auto]"
+          className="mt-6 grid gap-4 rounded-xl border border-orange-200 p-4 sm:grid-cols-2 xl:grid-cols-[minmax(13rem,1.2fr)_minmax(12rem,1.3fr)_minmax(9rem,1fr)_minmax(11rem,1fr)]"
         >
           <DateRangePicker
             id="consumption-date-range"
@@ -193,11 +193,11 @@ export function ConsumptionsPage() {
             />
           </FormField>
 
-          <div className="flex items-end">
+          <div className="flex items-center justify-end sm:col-span-2 xl:col-span-4">
             {hasPendingFilters && (
               <span className="mr-2 text-sm text-accent-700">Sin aplicar</span>
             )}
-            <Button type="submit" size="lg" disabled={result.isFetching}>
+            <Button type="submit" size="md" disabled={result.isFetching}>
               <Icon d={ICONS.search} />
               Filtrar
             </Button>

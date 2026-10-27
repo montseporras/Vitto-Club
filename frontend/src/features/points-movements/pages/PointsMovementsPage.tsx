@@ -114,7 +114,7 @@ export function PointsMovementsPage() {
   const end = data ? Math.min(page * data.limit, data.total) : 0
 
   return (
-    <Page>
+    <Page className="max-w-6xl">
       <PageCard eyebrow="Administración" title="Movimientos de puntos" variant="plain">
         <form
           onSubmit={applyFilters}

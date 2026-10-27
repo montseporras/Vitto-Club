@@ -131,7 +131,7 @@ export function IdentifyCustomerPage({
   const showingCustomer = !loading && customer !== null && !!points.data
 
   return (
-    <Page>
+    <Page className="max-w-6xl">
       <PageCard title="Buscar cliente" variant="plain">
         {/* Solo con los datos de un cliente a la vista */}
         {showingCustomer && (

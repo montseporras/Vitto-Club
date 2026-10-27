@@ -60,10 +60,10 @@ export function AuditFilters({
   return (
     <section
       aria-label="Filtros de auditoría"
-      className="grid items-end gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
     >
       <div>
-        <label className="mb-1.5 block text-sm font-medium" htmlFor="audit-actor">
+        <label className="mb-1.5 block text-base font-semibold" htmlFor="audit-actor">
           Realizado por
         </label>
         <Select
@@ -76,7 +76,7 @@ export function AuditFilters({
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium" htmlFor="audit-module">
+        <label className="mb-1.5 block text-base font-semibold" htmlFor="audit-module">
           Módulo
         </label>
         <Select
@@ -100,7 +100,7 @@ export function AuditFilters({
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium" htmlFor="audit-action">
+        <label className="mb-1.5 block text-base font-semibold" htmlFor="audit-action">
           Acción
         </label>
         <Select
@@ -121,7 +121,7 @@ export function AuditFilters({
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium" htmlFor="audit-document-type">
+        <label className="mb-1.5 block text-base font-semibold" htmlFor="audit-document-type">
           Tipo doc.
         </label>
         <Select
@@ -135,7 +135,7 @@ export function AuditFilters({
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium" htmlFor="audit-document-number">
+        <label className="mb-1.5 block text-base font-semibold" htmlFor="audit-document-number">
           N° doc. cliente
         </label>
         <Input
@@ -148,7 +148,7 @@ export function AuditFilters({
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium" htmlFor="audit-date-preset">
+        <label className="mb-1.5 block text-base font-semibold" htmlFor="audit-date-preset">
           Fecha
         </label>
         <Select
@@ -171,7 +171,7 @@ export function AuditFilters({
         />
       )}
 
-      <div className="sm:col-span-2 lg:col-span-3">
+      <div className="sm:col-span-2 lg:col-span-3 xl:col-span-6">
         <Button type="button" variant="secondary" onClick={onClear}>
           Limpiar filtros
         </Button>
