@@ -15,16 +15,22 @@ de la raíz, preguntá.
 
 ## 1. Fuente de verdad del backend: el contrato
 
-**`docs/sprint-3/API_CONTRACT_SPRINT_3.md` es lo único que define qué se construye.** En particular:
+**`docs/sprint-4/API_CONTRACT_SPRINT_4.md` es lo único que define qué se construye en este sprint.** En
+particular:
 
-- **Rutas y métodos.**
+- **Rutas y métodos** (§1).
 - **Body, query params y respuestas**, con los nombres exactos de los campos, sus tipos y los nulos.
 - **Validaciones:** rangos, largos, formatos y mensajes en castellano.
-- **Errores:** códigos HTTP y `code` de cada uno.
+- **Errores:** códigos HTTP y `code` de cada uno (§5).
 - **Permisos por rol:** la matriz de la §4 y las reglas por rol de cada endpoint.
 - **Reglas de negocio:** las de cada endpoint y las de la §8.2.
-- **Auditoría:** qué acción, qué `description` y qué filas de `details` (§3.9).
-- **Modelo de datos:** §3.12 y §3.9.6.
+- **Auditoría:** qué acción, qué `description` y qué filas de `details` (§3.14).
+- **Modelo de datos:** §3.15.
+
+El contrato del Sprint 4 da por sabidas muchas convenciones ("igual que en el Sprint 3"): formato de error,
+paginado, fechas, transacción ambiente y reglas de auditoría. Esas están en
+`docs/sprint-3/API_CONTRACT_SPRINT_3.md` (auditoría en §3.9, modelo en §3.12 y §3.9.6, matriz en §4). Lo
+que quedó pendiente del Sprint 3 está en `docs/sprint-4/CIERRE_SPRINT_3.md`.
 
 **El prototipo no es fuente de verdad del backend.** Podés buscar en él para entender un flujo, pero ningún
 dato, regla ni mensaje sale de ahí. Si el prototipo muestra algo que el contrato no tiene, **preguntá**.
@@ -71,17 +77,22 @@ src/<modulo>/
 - **Tests unitarios:** `*.spec.ts`, al lado del archivo que prueban.
 - **Tests e2e:** en `test/<tema>.e2e-spec.ts`.
 
-**Módulos nuevos del Sprint 3** (contrato §8.4):
-- `consumptions`
-- `points`
+**Módulos del Sprint 3:** `consumptions` y `points`. **Módulos nuevos del Sprint 4** (contrato §8.4, los
+crea BASE-4):
+- `rewards`
+- `redemptions`
 
 Las dependencias van **en un solo sentido**:
 
 ```text
 consumptions ──> points ──> loyalty
+redemptions ──> rewards
+redemptions ──> points
 ```
 
-- `points` **no** importa `consumptions`.
+- `points` **no** importa `consumptions`, `rewards` ni `redemptions`.
+- `rewards` **no** importa `redemptions`: para rechazar canjes al desactivar o eliminar, publica
+  `reward.deactivated` / `reward.deleted` y `redemptions` escucha (§8.4).
 - `customers` **no** importa `accounts`: se comunican por eventos.
 
 Si necesitás romper esa dirección, frená y preguntá.
@@ -91,17 +102,20 @@ Si necesitás romper esa dirección, frená y preguntá.
 ## 4. Paso a paso de una historia de backend
 
 1. **Contrato.**
-   - Leé las secciones que indica la historia en `HISTORIAS_SPRINT_3.md`.
+   - Leé las secciones que indica la historia en `docs/sprint-4/HISTORIAS_SPRINT_4.md`.
    - Anotá cada endpoint, cada campo y cada fila de la tabla de errores.
    - Todo eso va al Plan previo.
 2. **Schema y migración.**
-   - **Solo si tu historia es dueña** de esa parte del modelo (ver la sección 1 de `HISTORIAS_SPRINT_3.md`).
-   - Columnas, tipos, `CHECK` e índices: exactamente los de §3.12 y §3.9.6.
+   - **Solo si tu historia es dueña** de esa parte del modelo (ver la sección 1 de `HISTORIAS_SPRINT_4.md`:
+     en este sprint, BASE-4).
+   - Columnas, tipos, `CHECK` e índices: exactamente los de §3.15. Los `CHECK` y los índices parciales se
+     escriben a mano en la migración y un test verifica que existan (CA-B4.1).
    - Una migración por historia, con nombre descriptivo:
-     `npx prisma migrate dev --name sprint3_us21_consumptions`.
+     `npx prisma migrate dev --name sprint4_base4_rewards_redemptions`.
    - Antes de crearla, revisá si otra persona ya tiene una migración abierta sobre las mismas tablas.
      Si la tiene, **preguntá**.
-3. **Dominio.** Reglas puras y sus tests unitarios: cálculo de puntos, FIFO, deuda, nivel, plazo de 24 h.
+3. **Dominio.** Reglas puras y sus tests unitarios: cálculo de puntos, FIFO, deuda, nivel, plazo de 24 h,
+   disponibilidad de la recompensa, código y vencimiento del canje (15 minutos).
 4. **Servicio de aplicación.** Todo lo que el contrato dice "en una transacción" va dentro de
    `PrismaTransactionRunner`. Eso incluye:
    - los movimientos de puntos;
@@ -117,7 +131,8 @@ Si necesitás romper esa dirección, frená y preguntá.
 6. **Controller.**
    - Usá `@Roles(...)` exactamente según la matriz de la §4.
    - El usuario sale de `@CurrentUser()`, **nunca** del body.
-   - Las rutas `/customers/me…` se declaran **antes** que `/customers/:id`.
+   - Las rutas `/customers/me…` se declaran **antes** que `/customers/:id`, y `/recompensas/disponibles`
+     antes que `/recompensas/:id` (§4).
 7. **Filtro de errores del módulo.**
    - Mapea cada error de dominio a su HTTP y a su `code`.
    - Deja pasar el `403` y su `code`.
@@ -125,7 +140,8 @@ Si necesitás romper esa dirección, frená y preguntá.
 8. **Auditoría.**
    - `AuditService.capture` va en la misma transacción.
    - Usa el `AuditAction` y el `AuditModule` exactos, la `description`, `affectedCustomer`, `operationCode`
-     y las filas de `details` **en el orden** de la §3.9.3.
+     y las filas de `details` **en el orden** de la §3.14.2 (las reglas generales siguen siendo las de la
+     §3.9 del contrato del Sprint 3).
    - El actor es el empleado o `SYSTEM`. **Nunca un cliente.**
 9. **Tests e2e** (sección 6).
 10. **Verificación** (sección 7).
@@ -144,8 +160,9 @@ Si necesitás romper esa dirección, frená y preguntá.
    Algunos ejemplos:
    - Cajero: `last24h` forzado a `true`.
    - Cajero: solo anula consumos propios dentro de las 24 h.
-   - Cajero: no edita el documento (`403 FORBIDDEN_FIELD`).
    - Consumos: solo el Administrador.
+   - `PATCH /customers/:id` y `…/deactivate`: solo el Administrador desde el 25/10 (D-02).
+   - `GET /canjes` y `/recompensas`: solo el Administrador.
 3. **Las respuestas tienen exactamente la forma del contrato:**
    - nombres en camelCase y nulos donde el contrato dice "Sí";
    - fechas en ISO UTC; las fechas sin hora, en `YYYY-MM-DD`;
@@ -156,15 +173,19 @@ Si necesitás romper esa dirección, frená y preguntá.
 5. **La contraseña actual incorrecta devuelve `400 CURRENT_PASSWORD_INCORRECT`, no `401`.** Así el
    interceptor del frontend no intenta renovar la sesión.
 6. **Movimientos y auditoría son solo inserción.** Los triggers rechazan `UPDATE`, `DELETE` y `TRUNCATE`.
-   Nunca los desactives fuera de la migración que indica la §3.9.6.
+   Nunca los desactives fuera de la migración que indica la §3.9.6 del contrato del Sprint 3.
 7. **Concurrencia.** Toda operación que mueve puntos toma `SELECT … FOR UPDATE` sobre la fila de
-   `customer_points` del cliente (§3.12).
+   `customer_points` del cliente (§3.12 del contrato del Sprint 3). Al usar un canje, el orden de los
+   bloqueos es recompensa → canje → `customer_points` (§3.9.1 del Sprint 4).
 8. **Snapshots.** El consumo guarda la equivalencia y la versión vigentes. El lote guarda su vencimiento.
+   El canje guarda el nombre y los puntos de la recompensa al confirmar.
    Un cambio posterior de configuración **no** los modifica (RF-014).
 9. **Fechas de filtro.** `fromDate` y `toDate` son días completos en hora de Argentina (UTC−03:00).
 10. **Nada de `any`** ni de `// @ts-ignore`. Tampoco desactives reglas de lint.
 11. **No toques `frontend/`.**
-12. **Lo que la historia no pide no se hace.** Ejemplo: si estás en US-21, no programes la anulación.
+12. **Lo que la historia no pide no se hace.** Ejemplo: si estás en US-40, no programes el registro de uso.
+13. **Sin reintegros (Sprint 4).** Confirmar un canje no descuenta nada; solo `PATCH /canjes/:code/usar`
+    toca saldo, lotes, movimientos y stock. Cancelar, rechazar y vencer no devuelven nada (decisión S4-1).
 
 ---
 
@@ -189,7 +210,7 @@ contrato. Por ejemplo:
 | Rollback | Si un paso falla (por ejemplo, la auditoría), no queda nada escrito |
 
 La lista mínima de e2e del sprint está en el contrato, §8.4. Los casos de cada historia están en
-`HISTORIAS_SPRINT_3.md`.
+`docs/sprint-4/HISTORIAS_SPRINT_4.md`.
 
 ---
 
