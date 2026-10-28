@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<x-dc>
+<div>
+  <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000; padding:16px;">
+    <div class="dialog" style="position:relative; max-width:480px; width:100%;"><button type="button" onClick="{{ cerrar }}" aria-label="Cerrar" title="Cerrar" style="position:absolute; top:16px; right:16px; width:36px; height:36px; display:grid; place-items:center; border:none; border-radius:999px; background:transparent; color:#7e3e20; cursor:pointer; z-index:1;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
+
+      <sc-if value="{{ v.enConfirmar }}" hint-placeholder-val="{{ false }}"><div>
+        <div class="dialog-title" style="padding-right:40px;">Canjear recompensa</div>
+        <div class="dialog-body">
+          <div style="display:flex; gap:14px; align-items:center;">
+            <sc-if value="{{ v.r.foto }}" hint-placeholder-val="{{ false }}"><img src="{{ v.r.foto }}" alt="" style="width:88px; height:88px; object-fit:cover; border-radius:14px; flex-shrink:0;" /></sc-if>
+            <sc-if value="{{ v.r.sinFoto }}" hint-placeholder-val="{{ true }}"><div style="width:88px; height:88px; border-radius:14px; flex-shrink:0; display:grid; place-items:center; background:#fbe6d4; color:#a8532a;"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v4H3z M12 8v13 M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7 M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"></path></svg></div></sc-if>
+            <div style="min-width:0;"><div style="font-family:var(--font-heading); font-weight:700; font-size:18px; color:#2b1a10;">{{ v.r.nombre }}</div>
+              <div style="font-size:13px; color:#5c5249; margin-top:2px;">{{ v.r.descripcion }}</div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;"><span class="tag tag-accent">{{ v.r.puntosTxt }} pts</span><span class="{{ v.r.etqCls }}">{{ v.r.etq }}</span></div></div>
+          </div>
+          <div style="margin-top:14px; border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:12px 16px; font-size:14px;">
+            <div><span style="font-weight:700; color:#7e3e20;">Cliente:</span> {{ v.cli }}</div>
+            <div style="margin-top:4px;">Saldo: {{ v.saldoTxt }} pts → <strong>{{ v.saldoFin }} pts</strong> al usarlo</div>
+          </div>
+          <p style="margin:12px 0 0; font-size:14px; color:#2b1a10;">Confirmá que el cliente acepta el canje. Los puntos se descuentan cuando se registra el uso; el canje dura 15 minutos.</p>
+          <sc-if value="{{ v.err }}" hint-placeholder-val="{{ false }}"><div role="alert" style="margin-top:12px; border:1px solid rgba(202,100,60,.4); border-left:4px solid #ca643c; background:#fdf3ea; color:#7e3e20; border-radius:12px; padding:10px 14px; font-size:13px;">{{ v.err }}</div></sc-if>
+        </div>
+        <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-secondary" onClick="{{ cerrar }}">Cancelar</button><button type="button" class="btn btn-primary" onClick="{{ confirmar }}">Confirmar</button></div>
+      </div></sc-if>
+
+      <sc-if value="{{ v.enPreguntar }}" hint-placeholder-val="{{ false }}"><div>
+        <div class="dialog-title" style="padding-right:40px;">Canje confirmado</div>
+        <div class="dialog-body">
+          <div style="text-align:center; border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px;"><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#7e3e20;">Código del canje</div><div style="font-family:'DM Serif Display', Georgia, serif; font-size:34px; letter-spacing:.12em; color:#2b1a10;">{{ v.codigo }}</div><div style="font-size:13px; color:#5c5249;">{{ v.recompensa }} · {{ v.puntosTxt }} pts</div></div>
+          <p style="margin:14px 0 0; font-size:15px; font-weight:600;">¿Aplicar el canje ahora?</p>
+        </div>
+        <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-secondary" onClick="{{ despues }}">No, después</button><button type="button" class="btn btn-primary" onClick="{{ usar }}">Sí, aplicar</button></div>
+      </div></sc-if>
+
+      <sc-if value="{{ v.enUsar }}" hint-placeholder-val="{{ false }}"><div>
+        <div class="dialog-title" style="padding-right:40px;">Registrar uso del canje {{ v.codigo }}</div>
+        <div class="dialog-body">
+          <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 16px; display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; font-size:14px;">
+            <div><div style="font-size:12px; font-weight:700; color:#7e3e20;">Código</div>{{ v.codigo }}</div><div><div style="font-size:12px; font-weight:700; color:#7e3e20;">Cliente</div>{{ v.cli }}</div>
+            <div><div style="font-size:12px; font-weight:700; color:#7e3e20;">Recompensa</div>{{ v.recompensa }}</div><div><div style="font-size:12px; font-weight:700; color:#7e3e20;">Puntos a descontar</div>−{{ v.puntosTxt }} pts</div>
+            <div style="grid-column:1 / -1; border-top:1px solid #f6d0b1; padding-top:8px;">{{ v.vence }}</div>
+          </div>
+          <p style="margin:12px 0 0; font-size:14px;">¿Registrar el uso del canje <strong>{{ v.codigo }}</strong>? Entregá: <strong>{{ v.recompensa }}</strong>. Se van a descontar {{ v.puntosTxt }} pts.</p>
+          <sc-if value="{{ v.err }}" hint-placeholder-val="{{ false }}"><div role="alert" style="margin-top:12px; border:1px solid #e0a79e; border-left:4px solid #b3261e; background:#fdeeea; color:#8e2417; border-radius:12px; padding:10px 14px; font-size:13px; font-weight:600;">{{ v.err }}</div></sc-if>
+        </div>
+        <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-secondary" onClick="{{ cerrar }}">Cancelar</button>
+          <sc-if value="{{ v.puedeRechazar }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-secondary" onClick="{{ irRechazar }}">Rechazar canje</button></sc-if>
+          <sc-if value="{{ v.puedeUsar }}" hint-placeholder-val="{{ true }}"><button type="button" class="btn btn-primary" onClick="{{ usar }}">Confirmar</button></sc-if>
+        </div>
+      </div></sc-if>
+
+      <sc-if value="{{ v.enResultado }}" hint-placeholder-val="{{ false }}"><div>
+        <div class="dialog-title" style="padding-right:40px;">Canje utilizado</div>
+        <div class="dialog-body">
+          <div role="status" style="border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:15px; font-weight:700;">Canje {{ v.codigo }} utilizado. Entregar: {{ v.recompensa }}.</div>
+          <div style="margin-top:12px; border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 16px; display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; font-size:14px;">
+            <div><div style="font-size:12px; font-weight:700; color:#7e3e20;">Puntos descontados</div><strong style="color:#b3261e;">−{{ v.puntosTxt }} pts</strong></div>
+            <div><div style="font-size:12px; font-weight:700; color:#7e3e20;">Saldo</div>{{ v.antes }} pts → <strong>{{ v.despues }} pts</strong></div>
+            <div style="grid-column:1 / -1;"><div style="font-size:12px; font-weight:700; color:#7e3e20;">Cliente</div>{{ v.cli }}</div>
+          </div>
+        </div>
+        <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px;"><button type="button" class="btn btn-primary" onClick="{{ listoUso }}">Listo</button></div>
+      </div></sc-if>
+
+      <sc-if value="{{ v.enRechazar }}" hint-placeholder-val="{{ false }}"><div>
+        <div class="dialog-title" style="padding-right:40px;">Rechazar canje {{ v.codigo }}</div>
+        <div class="dialog-body">
+          <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:12px 16px; font-size:14px;"><div><span style="font-weight:700; color:#7e3e20;">Cliente:</span> {{ v.cli }}</div><div style="margin-top:2px;"><span style="font-weight:700; color:#7e3e20;">Recompensa:</span> {{ v.recompensa }} · {{ v.puntosTxt }} pts</div></div>
+          <p style="margin:12px 0 6px; font-size:13px; color:#5c5249;">No se descontó nada, así que no hay puntos ni stock para reintegrar.</p>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;"><sc-for list="{{ v.chips }}" as="c" hint-placeholder-count="4"><button type="button" class="{{ c.cls }}" style="height:30px; padding:0 12px; font-size:12px;" onClick="{{ c.onClick }}">{{ c.label }}</button></sc-for></div>
+          <div class="field" style="margin:0;"><label>Motivo (obligatorio)</label><textarea class="input vc-input" rows="3" style="height:auto; padding:10px 12px;" aria-invalid="{{ v.motInv }}" value="{{ v.motivo }}" onChange="{{ onMotivo }}" placeholder="Ej: no hay insumos para preparar la recompensa"></textarea></div>
+          <sc-if value="{{ v.motErr }}" hint-placeholder-val="{{ false }}"><p style="font-size:12px; color:#a8532a; margin:4px 0 0;">{{ v.motErr }}</p></sc-if>
+          <sc-if value="{{ v.err }}" hint-placeholder-val="{{ false }}"><div role="alert" style="margin-top:12px; border:1px solid #e0a79e; border-left:4px solid #b3261e; background:#fdeeea; color:#8e2417; border-radius:12px; padding:10px 14px; font-size:13px; font-weight:600;">{{ v.err }}</div></sc-if>
+        </div>
+        <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-secondary" onClick="{{ cerrar }}">Volver</button><button type="button" class="btn btn-primary" onClick="{{ rechazar }}">Rechazar</button></div>
+      </div></sc-if>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:560,&quot;height&quot;:620},&quot;accion&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;confirmar&quot;,&quot;usar&quot;,&quot;rechazar&quot;],&quot;default&quot;:&quot;usar&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;codigo&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;K7MP2X&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;usuario&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Ana Pereyra&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onCerrar&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onHecho&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(msg: string) =&gt; void&quot;}}">
+class Component extends DCLogic {
+  state = { paso: '', codigo: '', motivo: '', motErr: '', err: '', res: null, puedeRechazar: false, puedeUsar: true, v: 0 };
+  CHIPS = ['Sin insumo', 'El cliente desistió', 'El cliente no está', 'Otro'];
+  componentDidMount() {
+    const p = this.props || {};
+    this.setState({ paso: p.accion || 'usar', codigo: p.codigo || '' });
+    const t = () => { if (window.VCCanjes) { this._u = window.VCCanjes.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); };
+    t(); this._i = setInterval(() => this.setState((s) => ({ v: s.v + 1 })), 1000);
+  }
+  componentWillUnmount() { clearTimeout(this._p); clearInterval(this._i); if (this._u) this._u(); }
+  K() { return window.VCCanjes; }
+  cerrar = () => { const p = this.props || {}; if (p.onCerrar) p.onCerrar(); };
+  hecho = (msg) => { const p = this.props || {}; if (p.onHecho) p.onHecho(msg); else this.cerrar(); };
+  usuario() { return (this.props && this.props.usuario) || 'Ana Pereyra'; }
+  confirmar = () => {
+    const K = this.K(); const p = this.props || {}; const c = p.cliente || {};
+    const r = K.confirmar({ rid: p.rid, tipo: c.tipo, num: c.num, nombre: c.nombre, por: this.usuario() });
+    if (!r.ok) { this.setState({ err: r.error === 'negativo' ? 'El cliente tiene un ajuste pendiente: no puede canjear.' : r.error === 'saldo' ? 'El cliente no tiene puntos suficientes para esta recompensa.' : 'La recompensa ya no está disponible.' }); return; }
+    this.setState({ paso: 'preguntar', codigo: r.canje.codigo, err: '' });
+  };
+  usar = () => {
+    const K = this.K(); const r = K.usar(this.state.codigo, this.usuario());
+    if (r.ok) { this.setState({ paso: 'resultado', res: r, err: '' }); return; }
+    const MSG = { no_existe: 'Código no encontrado.', vencido: 'El canje venció. El cliente tiene que pedirlo de nuevo.', estado: 'El canje ya está en estado "' + (r.canje ? r.canje.estado : '') + '".',
+      saldo: 'El cliente no tiene saldo suficiente para este canje. Podés rechazarlo.', no_disponible: 'La recompensa ya no está disponible. Podés rechazar el canje.' };
+    this.setState({ paso: 'usar', err: MSG[r.error] || 'No se pudo registrar el uso.', puedeRechazar: r.error === 'saldo' || r.error === 'no_disponible', puedeUsar: false });
+  };
+  rechazar = () => {
+    const m = this.state.motivo.trim();
+    if (!m) { this.setState({ motErr: 'El motivo es obligatorio.' }); return; }
+    if (m.length < 5) { this.setState({ motErr: 'Indicá un motivo de al menos 5 caracteres.' }); return; }
+    if (m.length > 500) { this.setState({ motErr: 'El motivo no puede superar los 500 caracteres.' }); return; }
+    const r = this.K().rechazar(this.state.codigo, m, this.usuario());
+    if (!r.ok) { this.setState({ err: r.error === 'vencido' ? 'El canje venció. El cliente tiene que pedirlo de nuevo.' : 'No se puede rechazar este canje.' }); return; }
+    this.hecho('Canje rechazado.');
+  };
+  renderVals() {
+    const K = this.K(); const s = this.state; const p = this.props || {};
+    const v = { enConfirmar: s.paso === 'confirmar', enPreguntar: s.paso === 'preguntar', enUsar: s.paso === 'usar', enResultado: s.paso === 'resultado', enRechazar: s.paso === 'rechazar', err: s.err, motivo: s.motivo, motErr: s.motErr, motInv: s.motErr ? 'true' : 'false', puedeRechazar: s.puedeRechazar, puedeUsar: s.puedeUsar, r: {}, chips: [] };
+    if (!K) return { v, cerrar: this.cerrar };
+    if (s.paso === 'confirmar') {
+      const r = K.recompensa(p.rid) || {}; const c = p.cliente || {}; const saldo = K.saldo(c.tipo, c.num); const e = r.id ? K.etiqueta(r) : { txt: '', cls: '' };
+      v.r = { nombre: r.nombre, descripcion: r.descripcion || '', foto: r.foto || '', sinFoto: !r.foto, puntosTxt: K.num(r.puntos || 0), etq: e.txt, etqCls: e.cls };
+      v.cli = (c.nombre || '') + ' · ' + (c.tipo || 'DNI') + ' ' + (c.num || ''); v.saldoTxt = K.num(saldo); v.saldoFin = K.num(saldo - (r.puntos || 0));
+    } else {
+      const c = K.canje(s.codigo) || {};
+      v.codigo = s.codigo; v.recompensa = c.recompensa || ''; v.puntosTxt = K.num(c.puntos || 0); v.cli = (c.nombre || '') + ' · ' + (c.tipo || 'DNI') + ' ' + (c.num || '');
+      v.vence = c.estado === 'Confirmado' ? K.venceTxt(c) : 'Estado: ' + (c.estado || '');
+      if (s.res) { v.antes = K.num(s.res.antes); v.despues = K.num(s.res.despues); }
+      v.chips = this.CHIPS.map((x) => ({ label: x, cls: 'btn ' + (s.chip === x ? 'btn-primary' : 'btn-secondary'), onClick: () => this.setState({ chip: x, motivo: x === 'Otro' ? '' : x, motErr: '' }) }));
+    }
+    return {
+      v, cerrar: this.cerrar, confirmar: this.confirmar, usar: this.usar, rechazar: this.rechazar,
+      despues: () => this.hecho('Canje ' + s.codigo + ' confirmado. Se aplica cuando el cliente lo presente.'),
+      listoUso: () => this.hecho('Canje ' + s.codigo + ' utilizado. Entregar: ' + v.recompensa + '.'),
+      irRechazar: () => this.setState({ paso: 'rechazar', err: '' }),
+      onMotivo: (e) => this.setState({ motivo: e.target.value, motErr: '' })
+    };
+  }
+}
+</script>
+</body>
+</html>

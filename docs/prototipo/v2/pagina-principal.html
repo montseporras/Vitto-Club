@@ -362,6 +362,7 @@ textarea.input { min-height: 90px; resize: vertical; }
   <script src="45cf122a-33e1-46b6-b873-000239a30209"></script>
   <script src="5c6c1815-bc47-41d5-9e91-3dd64bf93367"></script>
   <script src="f62f3ae9-4ff5-4631-ac82-4ec7589be7df"></script>
+  <script src="a7c0e1d2-5b3f-4c8e-9d21-6f4a8b0c3e57"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <style>/* latin-ext */
 @font-face {
@@ -1082,7 +1083,8 @@ textarea.input { min-height: 90px; resize: vertical; }
                     </sc-for>
                   </div>
 </sc-if>
-                  <div class="card" style="border:2px dashed var(--color-divider); padding:16px; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:10px; font-size:12px; opacity:.8;"><span><strong style="display:block;">Recompensas</strong><span class="text-muted">El catálogo y los canjes van a estar disponibles próximamente.</span></span><span class="tag tag-accent" style="font-size:10px; white-space:nowrap;">Próximamente</span></div>
+                  <sc-if value="{{ cliCanje.hayVigente }}" hint-placeholder-val="{{ false }}"><div class="card" style="border:2px solid #d9804f; background:#fffaf3; padding:14px 16px; margin-bottom:12px; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:10px; font-size:12px;"><span><strong style="display:block;">Tenés un canje para usar</strong><span class="text-muted">{{ cliCanje.vigenteTxt }}</span></span><button type="button" class="btn btn-primary" style="font-size:11px; padding:6px 10px; white-space:nowrap;" sc-camel-on-click="{{ cliCanje.goMis }}">Ver código</button></div></sc-if>
+                  <div class="card" style="border:2px solid var(--color-divider); padding:16px; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:10px; font-size:12px;" sc-camel-on-mouse-enter="{{ on_c_tab_canjes }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><span><strong style="display:block;">Recompensas</strong><span class="text-muted">Mirá lo que podés canjear con tus {{ cliente.puntos }} pts</span></span><button type="button" class="btn btn-primary" style="font-size:11px; padding:6px 10px; white-space:nowrap;" sc-camel-on-click="{{ cliCanje.goCat }}">Ver catálogo</button></div>
 
                 </div>
               </sc-if>
@@ -1131,28 +1133,7 @@ textarea.input { min-height: 90px; resize: vertical; }
               </sc-if>
 
               <sc-if value="{{ ctIsCanjes }}" hint-placeholder-val="{{ false }}">
-                <div sc-camel-on-mouse-enter="{{ on_c_tab_canjes }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
-                  <h4 style="margin:0 0 12px; padding-bottom:6px; border-bottom:1px solid #f0d9c4; font-size:14px; line-height:1.2; text-transform:uppercase; letter-spacing:.08em;">Mis canjes</h4>
-                  <sc-for list="{{ canjesCliente }}" as="c" hint-placeholder-count="1">
-                    <div class="card" style="border:2px solid var(--color-divider); padding:16px; margin-bottom:14px;">
-                      <div style="display:flex; justify-content:space-between;"><strong style="font-size:13px;">{{ c.recompensa }}</strong><span class="{{ c.claseTag }}">{{ c.estado }}</span></div>
-                      <div style="font-size:12px;" class="text-muted">{{ c.puntos }} pts · {{ c.etiquetaVencimientoCanje }}</div>
-                      <sc-if value="{{ c.abierto }}" hint-placeholder-val="{{ false }}">
-                        <div class="hr" style="margin:8px 0;"></div>
-                        <sc-if value="{{ c.codigoVisible }}" hint-placeholder-val="{{ false }}">
-                          <div style="font-size:13px;">Código: <strong>{{ c.codigo }}</strong></div>
-                          <div style="font-size:11px;" class="text-muted">Presentá este código en caja. Tenés 30 minutos desde la solicitud para usarlo estando en el local.</div>
-                        </sc-if>
-                        <sc-if value="{{ c.puedeCancelar }}" hint-placeholder-val="{{ false }}">
-                          <button class="btn btn-ghost" style="font-size:12px; margin-top:8px; padding:4px 0;" sc-camel-on-click="{{ c.onCancelar }}">Cancelar canje</button>
-                        </sc-if>
-                      </sc-if>
-                      <button class="btn btn-ghost btn-block" style="font-size:11px; margin-top:8px; padding:6px;" sc-camel-on-click="{{ c.onToggleAbierto }}">{{ c.toggleLabel }}</button>
-                    </div>
-                  </sc-for>
-                  <p style="font-size:10px; margin-top:var(--space-3);" class="text-muted">Si un canje vence sin utilizarse, se reintegra la totalidad de los puntos canjeados.</p>
-
-                </div>
+                <div sc-camel-on-mouse-enter="{{ on_c_tab_canjes }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><dc-import name="ClienteCanjes" tipo="{{ cliCanje.tipo }}" num="{{ cliCanje.num }}" nombre="{{ cliCanje.nombre }}" saldo-base="{{ cliCanje.saldoBase }}" vista-inicial="{{ cliCanje.vista }}" hint-size="100%,700px"></dc-import></div>
               </sc-if>
 
               <sc-if value="{{ ctIsPerfil }}" hint-placeholder-val="{{ false }}">
@@ -1375,33 +1356,7 @@ textarea.input { min-height: 90px; resize: vertical; }
             </div>
           </sc-if>
           <sc-if value="{{ eIsCanje }}" hint-placeholder-val="{{ false }}">
-            <div class="card" style="display:flex; flex-direction:row; flex-wrap:wrap; padding:0; overflow:hidden;" sc-camel-on-mouse-enter="{{ on_e_nav_canje }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
-              <div style="flex:1 1 260px; box-sizing:border-box; background:#a9532b; color:#ffffff; padding:30px 26px; display:flex; flex-direction:column; gap:14px;">
-                <div class="vc-kicker" style="color:#ffffff;">Canjes</div>
-                <div style="font-family:var(--font-heading); font-weight:700; font-size:34px; line-height:1.05;">Por código</div>
-              </div>
-              <div style="flex:999 1 420px; box-sizing:border-box; padding:26px; min-width:0;">
-                <p style="margin:0 0 20px; font-size:14px; color:#6b5446;">Uso alternativo cuando el cliente solo presenta el código (por ejemplo, impreso o de memoria) sin pasar por identificación.</p>
-                <div class="field" style="max-width:360px;"><label>Código de canje</label><input class="input" placeholder="VC-8841" value="{{ canjeCodigo }}" sc-camel-on-change="{{ setCanjeCodigo }}"></div>
-                <sc-if value="{{ canjeEncontrado }}" hint-placeholder-val="{{ false }}">
-                <div class="vc-panel" style="margin:var(--space-3) 0;">
-                  <div class="text-muted" style="font-size:11px;">Cliente que solicitó el canje</div>
-                  <div style="font-weight:800; font-size:13px;">{{ cliente.nombre }}</div>
-                  <div class="text-muted" style="font-size:12px; margin-bottom:var(--space-3);">{{ cliente.tipoDocumento }} {{ cliente.dni }}</div>
-                  <div class="hr" style="margin:var(--space-2) 0;"></div>
-                  <div class="text-muted" style="font-size:11px;">Recompensa</div>
-                  <div style="font-weight:800; font-size:13px;">{{ canjeEncontrado.recompensa }}</div>
-                  <div style="font-size:12px; margin-top:2px;">{{ canjeEncontrado.puntos }} pts · vence {{ canjeEncontrado.vencimiento }} · <span class="{{ canjeEncontrado.claseTag }}">{{ canjeEncontrado.estado }}</span></div>
-                </div>
-              </sc-if>
-
-              <div style="display:flex; gap:var(--space-2); flex-wrap:wrap;">
-                <button class="btn btn-secondary" sc-camel-on-click="{{ rechazarCanje }}" sc-camel-on-mouse-enter="{{ on_e_canje_rechazar }}" sc-camel-on-mouse-leave="{{ leaveTip }}">Rechazar</button>
-                <button class="btn btn-primary" sc-camel-on-click="{{ confirmarCanje }}" sc-camel-on-mouse-enter="{{ on_e_canje_confirmar }}" sc-camel-on-mouse-leave="{{ leaveTip }}">Aplicar</button>
-              </div>
-              <sc-if value="{{ canjeMsg }}" hint-placeholder-val="{{ false }}"><p style="font-size:13px; color:var(--color-accent-700);">{{ canjeMsg }}</p></sc-if>
-              </div>
-            </div>
+            <div sc-camel-on-mouse-enter="{{ on_e_nav_canje }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><dc-import name="CanjePorCodigo" usuario="{{ consumoUsuario }}" hint-size="100%,520px"></dc-import></div>
           </sc-if>
         </div>
       </div>
@@ -1427,23 +1382,14 @@ textarea.input { min-height: 90px; resize: vertical; }
         <div class="vc-main" style="flex:1 1 0; min-width:0; padding:32px 24px 32px 32px; box-sizing:border-box;">
           <sc-if value="{{ aIsConsumo }}" hint-placeholder-val="{{ false }}"><dc-import name="RegistrarConsumo" usuario="{{ consumoUsuario }}" niveles="{{ nivelesLista }}" hist-por-doc="{{ histPorDoc }}" clientes="{{ consumoClientes }}" recompensas="{{ consumoRecompensas }}" canjes-cliente="{{ consumoCanjesCliente }}" movs-cliente="{{ consumoMovsCliente }}" monto-base="{{ configGuardada.montoBase }}" puntos-por-monto="{{ configGuardada.puntosPorMonto }}" bonif-tipo="{{ configGuardada.bonificacionTipo }}" bonif-valor="{{ configGuardada.bonificacionPrimeraCompra }}" on-ir-alta="{{ consumoIrAltaAdm }}" rol="{{ consumoRolAdm }}" dni-inicial="{{ consumoPrefill }}" on-ver-detalle="{{ consumoVerAdm }}" hint-size="100%,420px"></dc-import></sc-if>
           <sc-if value="{{ aIsFicha }}" hint-placeholder-val="{{ false }}"><dc-import name="FichaCliente" cliente="{{ fichaCliente }}" niveles="{{ nivelesLista }}" rol="{{ consumoRolAdm }}" on-volver="{{ fichaVolver }}" on-registrar-consumo="{{ consumoNuevoAdm }}" on-ver-consumo="{{ consumoVerAdm }}" on-ver-todos="{{ fichaVerTodosAdm }}" on-ver-todos-movs="{{ fichaVerMovsAdm }}" usuario="{{ consumoUsuario }}" hint-size="100%,560px"></dc-import></sc-if>
-          <sc-if value="{{ aIsMovimientos }}" hint-placeholder-val="{{ false }}"><dc-import name="MovimientosPuntos" cliente-inicial="{{ movFiltro }}" hint-size="100%,520px"></dc-import></sc-if>
           <sc-if value="{{ aIsConsumos }}" hint-placeholder-val="{{ false }}"><dc-import name="Consumos" usuario="{{ consumoUsuario }}" rol="{{ consumoRolAdm }}" codigo="{{ consumoDet }}" cliente-inicial="{{ consumoFiltro }}" on-ver-cliente="{{ consumoVerClienteAdm }}" on-ver="{{ consumoVerAdm }}" on-volver="{{ consumoVolverAdm }}" on-registrar-nuevo="{{ consumoNuevoAdm }}" hint-size="100%,520px"></dc-import></sc-if>
-          <sc-if value="{{ aIsRecompensas }}" hint-placeholder-val="{{ true }}">
-            <div class="card" style="padding:22px;" sc-camel-on-mouse-enter="{{ on_a_nav_recompensas }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
-              <h4>Catálogo de recompensas</h4>
-              <div style="overflow-x:auto; overflow-y:hidden; max-width:100%;"><sc-raw-table class="table">
-                <sc-raw-thead><sc-raw-tr><sc-raw-th>Nombre</sc-raw-th><sc-raw-th>Puntos</sc-raw-th><sc-raw-th>Stock</sc-raw-th><sc-raw-th>Vencimiento</sc-raw-th><sc-raw-th>Estado</sc-raw-th><sc-raw-th></sc-raw-th></sc-raw-tr></sc-raw-thead>
-                <sc-raw-tbody>
-                  <sc-for list="{{ recompensasAdmin }}" as="r" hint-placeholder-count="4">
-                    <sc-raw-tr><sc-raw-td>{{ r.nombre }}</sc-raw-td><sc-raw-td>{{ r.puntos }}</sc-raw-td><sc-raw-td>{{ r.stock }}</sc-raw-td><sc-raw-td>{{ r.fechaVencimiento }}</sc-raw-td><sc-raw-td><span class="{{ r.claseTag }}">{{ r.estado }}</span></sc-raw-td>
-                      <sc-raw-td><div style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn btn-ghost" sc-camel-on-click="{{ r.onEditar }}">Editar</button><button class="btn btn-ghost" sc-camel-on-click="{{ r.onToggle }}" sc-camel-on-mouse-enter="{{ on_a_recompensa_toggle }}" sc-camel-on-mouse-leave="{{ leaveTip }}">{{ r.toggleLabel }}</button></div></sc-raw-td></sc-raw-tr>
-                  </sc-for>
-                </sc-raw-tbody>
-              </sc-raw-table></div>
-              <button class="btn btn-primary" style="margin-top:var(--space-3);" sc-camel-on-click="{{ crearRecompensa }}" sc-camel-on-mouse-enter="{{ on_a_recompensa_crear }}" sc-camel-on-mouse-leave="{{ leaveTip }}">+ Crear recompensa</button>
-            </div>
+          <sc-if value="{{ aIsRecompensas }}" hint-placeholder-val="{{ false }}">
+            <div sc-camel-on-mouse-enter="{{ on_a_nav_recompensas }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><dc-import name="Recompensas" usuario="{{ consumoUsuario }}" hint-size="100%,620px"></dc-import></div>
           </sc-if>
+          <sc-if value="{{ aIsCanjes }}" hint-placeholder-val="{{ false }}">
+            <div sc-camel-on-mouse-enter="{{ on_a_nav_canjes }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><dc-import name="GestionCanjes" usuario="{{ consumoUsuario }}" hint-size="100%,620px"></dc-import></div>
+          </sc-if>
+
 
           <sc-if value="{{ aIsMisiones }}" hint-placeholder-val="{{ false }}">
             <div class="card" style="padding:22px;" sc-camel-on-mouse-enter="{{ on_a_nav_misiones }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
@@ -1465,7 +1411,7 @@ textarea.input { min-height: 90px; resize: vertical; }
             <div class="card" style="padding:22px;" sc-camel-on-mouse-enter="{{ on_a_nav_clientes }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
               <h4>Clientes</h4>
               <div style="display:flex; gap:var(--space-2); flex-wrap:wrap; align-items:flex-end; margin-bottom:var(--space-3);">
-                <div class="field" style="max-width:280px;"><label>Buscar</label><input class="input vc-input" placeholder="Apellido, nombre o documento" value="{{ clienteBusqueda }}" sc-camel-on-change="{{ setClienteBusqueda }}"></div>
+                <div class="field" style="max-width:180px;"><label>Tipo de documento</label><sc-raw-select class="input vc-input" value="{{ clienteTipoDoc }}" sc-camel-on-change="{{ setClienteTipoDoc }}"><option value="DNI">DNI</option><option value="Pasaporte">Pasaporte</option></sc-raw-select></div><div class="field" style="max-width:240px;"><label>Número de documento</label><input class="input vc-input" placeholder="{{ clienteDocPh }}" value="{{ clienteBusqueda }}" sc-camel-on-change="{{ setClienteBusqueda }}"></div>
                 <div class="field" style="max-width:200px;"><label>Nivel</label>
                   <sc-raw-select class="input vc-input" value="{{ clienteFiltroNivel }}" sc-camel-on-change="{{ setClienteFiltroNivel }}">
                     <sc-for list="{{ nivelFiltroOptions }}" as="o" hint-placeholder-count="1">
@@ -1758,11 +1704,11 @@ textarea.input { min-height: 90px; resize: vertical; }
       <div class="dialog" style="position:relative; max-width:360px;"><button type="button" class="vc-mx" sc-camel-on-click="{{ cerrarCanjeGeneradoMsg }}" aria-label="Cerrar" title="Cerrar"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
         <sc-if value="{{ canjeGeneradoMsg.cancelado }}" hint-placeholder-val="{{ false }}">
           <div class="dialog-title">Canje cancelado</div>
-          <div class="dialog-body">Se canceló el canje de "{{ canjeGeneradoMsg.nombre }}". Se reintegraron {{ canjeGeneradoMsg.puntos }} puntos a tu cuenta.</div>
+          <div class="dialog-body">Se canceló el canje de "{{ canjeGeneradoMsg.nombre }}". No se descontaron puntos.</div>
         </sc-if>
         <sc-if value="{{ canjeGeneradoMsg.noCancelado }}" hint-placeholder-val="{{ true }}">
           <div class="dialog-title">Canje generado</div>
-          <div class="dialog-body">Se generó el canje de "{{ canjeGeneradoMsg.nombre }}". Presentá el código en caja en los próximos 30 minutos para que el cajero lo aplique.</div>
+          <div class="dialog-body">Se generó el canje de "{{ canjeGeneradoMsg.nombre }}". Presentá el código en caja en los próximos 15 minutos para que el cajero lo aplique.</div>
         </sc-if>
         <div class="dialog-actions">
           <button class="btn btn-primary" sc-camel-on-click="{{ cerrarCanjeGeneradoMsg }}">Entendido</button>
@@ -1775,7 +1721,7 @@ textarea.input { min-height: 90px; resize: vertical; }
     <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000;">
       <div class="dialog" style="position:relative; max-width:360px;"><button type="button" class="vc-mx" sc-camel-on-click="{{ cerrarCancelarCanje }}" aria-label="Cerrar" title="Cerrar"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
         <div class="dialog-title">¿Cancelar este canje?</div>
-        <div class="dialog-body">Se cancelará el canje de "{{ cancelarCanjeConfirm.recompensa }}" y se te reintegrarán la totalidad de los {{ cancelarCanjeConfirm.puntos }} puntos utilizados. Esta acción no se puede deshacer.</div>
+        <div class="dialog-body">¿Cancelar el canje de "{{ cancelarCanjeConfirm.recompensa }}"? Lo vas a poder volver a pedir si tenés puntos.</div>
         <div class="dialog-actions">
           <button class="btn btn-secondary" sc-camel-on-click="{{ cerrarCancelarCanje }}">Volver</button>
           <button class="btn btn-primary" sc-camel-on-click="{{ confirmarCancelarCanje }}">Sí, cancelar y devolver puntos</button>
@@ -1883,6 +1829,8 @@ class Component extends DCLogic {
   componentDidMount() {
     this._canjeTimer = setInterval(() => this.chequearVencimientosCanjes(), 15000);
     const sub = () => { if (window.VCStore) window.VCStore.subscribe(() => this.forceUpdate()); else setTimeout(sub, 40); }; sub();
+    const subK = () => { if (window.VCCanjes) window.VCCanjes.subscribe(() => this.forceUpdate()); else setTimeout(subK, 40); }; subK();
+    this._kTimer = setInterval(() => { if (this.state.view === 'cliente' && this.state.clienteTab === 'recompensas') this.forceUpdate(); }, 20000);
   }
   componentWillUnmount() {
     if (this._canjeTimer) clearInterval(this._canjeTimer);
@@ -1930,7 +1878,7 @@ class Component extends DCLogic {
     notifModalKey: null,
     notifModalActivo: false,
     notifModalMensaje: '',
-    clienteBusqueda: '',
+    clienteBusqueda: '', clienteTipoDoc: 'DNI',
     clienteFiltroNivel: 'todos',
     clienteAdminModalId: null,
     clienteAdminEditando: false,
@@ -1955,7 +1903,6 @@ class Component extends DCLogic {
         { id: 2, nombre: 'Probá el brunch de domingo', objetivo: 1, progreso: 1, estado: 'Completada', recompensa: 'Café gratis' }
       ],
       canjes: [
-        { id: 1, recompensa: 'Merienda gratis', codigo: 'VC-8841', estado: 'Pendiente', puntos: 500, creadoTs: Date.now() - 5 * 60 * 1000, vencimientoTs: Date.now() + 25 * 60 * 1000 }
       ]
     },
     recompensas: [
@@ -2024,16 +1971,16 @@ class Component extends DCLogic {
     c_auth: 'Ingreso único por mail y contraseña para clientes, cajeros y administradores. El autorregistro (extensión de este prototipo, inspirada en RF-015) crea solo usuarios con rol Cliente',
     c_inicio: 'US-19 · RF-017 / RF-025 / RF-029 — Consultar datos, saldo de puntos y nivel del cliente',
     c_avatar: 'RF-016 — Editar / completar los datos del cliente (el alta la realiza el Cajero, RF-015)',
-    c_filtro: 'US-39 · RF-042 — Filtrar el catálogo de recompensas (más canjeadas, próximas a vencer, agotadas)',
-    c_canjear: 'US-40 · RF-043 / RF-044 — Solicitar el canje de una recompensa',
-    c_confirmar_canje: 'US-40 · RF-043 / RF-044 — Confirmar el canje antes de descontar los puntos',
-    c_tab_recompensas: 'US-39 · RF-042 — Consultar el catálogo de recompensas',
+    c_filtro: 'US-39 · RF-043 — Filtrar el catálogo: todas, más canjeadas, próximas a vencer',
+    c_canjear: 'US-40 · RF-044 — Confirmar el canje de una recompensa',
+    c_confirmar_canje: 'US-40 · RF-044 — Confirmar el canje: los puntos se descuentan al usarlo en caja',
+    c_tab_recompensas: 'US-19 / US-39 · RF-017 / RF-043 — Inicio: saldo, nivel y acceso al catálogo de recompensas',
     c_tab_historial: 'US-23 / US-26 · RF-022 / RF-027 — Historial de consumos y de movimientos de puntos',
     c_hist_compra: 'US-23 · RF-022 — Consultar el historial de consumos',
     c_hist_mov: 'US-26 · RF-027 — Consultar el historial de movimientos de puntos',
     c_tab_misiones: 'US-33 · RF-036 — Consultar las misiones vigentes y el progreso',
     c_mision_reclamar: 'US-31 · RF-034 — Reclamar la recompensa de una misión completada',
-    c_tab_canjes: 'US-45 · RF-049 — Consultar mis canjes y su estado',
+    c_tab_canjes: 'US-39 / US-40 / US-45 · RF-043 / RF-044 / RF-049 — Catálogo de recompensas y mis canjes',
     e_nav_cliente: 'US-46 · RNF-1 / RNF-2 — Identificar cliente, parte del flujo de Registrar consumo (US-21)',
     e_cliente_buscar: 'US-46 · RNF-2 — Identificar cliente por tipo y número de documento en máximo 3 pasos',
     e_cliente_resumen: 'US-46 / US-19 · RNF-1 / RF-017 — Ver el resumen del cliente al identificarlo (puntos, nivel)',
@@ -2041,11 +1988,11 @@ class Component extends DCLogic {
     e_compra_registrar: 'US-21 · RF-019 / RF-020 / RF-023 — Registrar consumo: calcula y acredita puntos, actualiza nivel',
     e_compra_anular: 'US-22 · RF-021 — Anular consumo revirtiendo los puntos acreditados (requiere motivo)',
     e_cliente_historial: 'US-23 / US-26 · RF-022 / RF-027 — Ver historial de consumos y movimientos de puntos del cliente',
-    e_cliente_canjes: 'US-45 · RF-049 — Consultar y gestionar los canjes del cliente identificado',
-    e_cliente_recompensas: 'US-42 (contexto) · RF-042 — Ver a qué recompensas del catálogo alcanzan los puntos del cliente',
-    e_nav_canje: 'US-41 · RF-045 — Confirmar canje por código, sin pasar por identificación',
-    e_canje_confirmar: 'US-41 / US-42 · RF-045 / RF-046 — Usar / aplicar el canje verificando el código presentado por el cliente',
-    e_canje_rechazar: 'US-43 · RF-047 — Rechazar o cancelar canje, reintegrando puntos y stock',
+    e_cliente_canjes: 'US-42 / US-43 · RF-046 / RF-047 — Canjes confirmados del cliente: registrar uso o rechazar',
+    e_cliente_recompensas: 'US-40 · RF-044 — Canjear en nombre del cliente una recompensa que le alcanza',
+    e_nav_canje: 'US-41 · RF-045 — Canjes por código: buscar el canje sin identificar al cliente',
+    e_canje_confirmar: 'US-42 · RF-046 — Registrar el uso del canje: recién acá se descuentan puntos y stock',
+    e_canje_rechazar: 'US-43 · RF-047 — Rechazar el canje con motivo (no hay reintegro: no se había descontado nada)',
     e_cliente_alta: 'US-17 · RF-015 — Registrar cliente cuando no se encuentran coincidencias por documento',
     a_nav_empleados: 'EP01 · RF-01 a RF-08 — Gestión de empleados y roles. Cada empleado ingresa con su mail',
     a_empleado_alta: 'US-01 · RF-01 — Registrar empleado',
@@ -2061,10 +2008,11 @@ class Component extends DCLogic {
     a_nav_misiones: 'EP05 · RF-030 a RF-036 — Gestión de misiones mensuales',
     a_mision_crear: 'US-28 · RF-030 — Crear misión mensual con objetivo medible',
     a_mision_baja: 'US-29 · RF-031 — Editar o dar de baja una misión',
-    a_nav_recompensas: 'EP06 · RF-037 a RF-042 — Catálogo de recompensas',
-    a_recompensa_crear: 'US-34 · RF-037 — Crear recompensa (incluye foto y fecha de vencimiento)',
-    a_recompensa_toggle: 'US-36 · RF-039 — Activar o desactivar una recompensa',
-    a_recompensa_baja: 'US-38 · RF-041 — Dar de baja lógica de una recompensa',
+    a_nav_recompensas: 'EP06 · US-34 a US-38 · RF-038 a RF-042 — Catálogo de recompensas',
+    a_recompensa_crear: 'US-34 · RF-038 — Crear recompensa (foto, stock y vencimiento opcionales)',
+    a_recompensa_toggle: 'US-36 · RF-040 — Activar o desactivar una recompensa',
+    a_recompensa_baja: 'US-38 · RF-042 — Eliminar recompensa (baja lógica)',
+    a_nav_canjes: 'US-45 · RF-049 — Consultar canjes; aplicar (US-42 · RF-046) o rechazar (US-43 · RF-047)',
     a_nav_notif: 'RF-012 / RF-050 a RF-053 — Configuración de mensajes y notificaciones automáticas',
     a_notif_toggle: 'US-48 a US-51 · RF-050 a RF-053 — Activar / desactivar un tipo de notificación automática',
     a_nav_stats: 'EP09 · RF-054 a RF-057 — Estadísticas del programa',
@@ -2087,7 +2035,8 @@ class Component extends DCLogic {
     const DOC = 'enum', NUM = 'int', MAIL = 'String';
     const emp = [['Apellido', 'String', 'si'], ['Nombre', 'String', 'si'], ['Mail', MAIL, 'si'], ['Teléfono', 'String', 'no'], ['Rol', 'enum', 'si'], ['Contraseña', 'String', 'si'], ['Estado', 'enum', 'auto']];
     const mis = [['Nombre', 'String', 'si'], ['Objetivo', 'String', 'si'], ['Recompensa', 'int', 'si'], ['Vigencia desde', 'Date', 'si'], ['Vigencia hasta', 'Date', 'si'], ['Horario desde', 'Time', 'no'], ['Horario hasta', 'Time', 'no'], ['Período', 'enum', 'si'], ['Cantidad de períodos', 'int', 'si'], ['Estado', 'enum', 'auto']];
-    const rec = [['Nombre', 'String', 'si'], ['Puntos', 'int', 'si'], ['Stock', 'int', 'si'], ['Vencimiento', 'Date', 'si'], ['Foto', 'Image', 'no'], ['Estado', 'enum', 'auto']];
+    const rec = [['Foto', 'Image (JPG, PNG o WebP, hasta 2 MB)', 'no'], ['Nombre', 'String (1 a 80)', 'si'], ['Descripción', 'String (hasta 255)', 'no'], ['Puntos', 'int (1 a 1.000.000)', 'si'], ['Stock', 'int (1 a 100.000) · vacío = sin límite', 'no'], ['Vencimiento', 'Date · vacío = no vence', 'no'], ['Canjes confirmados', 'int', 'auto'], ['Estado', 'enum', 'auto']];
+    const cjc = [['Código de canje', 'String (6)', 'si'], ['Cliente', 'String', 'auto'], ['Recompensa', 'String', 'auto'], ['Puntos', 'int', 'auto'], ['Vence', 'DateTime (15 min)', 'auto'], ['Estado', 'enum', 'auto'], ['Motivo de rechazo', 'String (5 a 500)', 'si']];
     const niv = [['Nombre', 'String', 'si'], ['Puntaje mínimo', 'int', 'si'], ['Observaciones', 'String', 'no']];
     const cli = [['Nombre', 'String', 'si'], ['Apellido', 'String', 'si'], ['Tipo de documento', DOC, 'si'], ['Número de documento', NUM, 'si'], ['Mail', MAIL, 'si'], ['Teléfono', 'String', 'no']];
     return {
@@ -2096,19 +2045,20 @@ class Component extends DCLogic {
       c_recompensas: { t: 'Inicio · Recompensas', c: [['Puntos disponibles', 'int', 'auto'], ['Nivel', 'String', 'auto'], ['Recompensa', 'String', 'si'], ['Puntos requeridos', 'int', 'si'], ['Vencimiento', 'Date', 'si'], ['Foto', 'Image', 'no'], ['Filtro', 'enum', 'no']] },
       c_historial: { t: 'Historial', c: [['Fecha de consumo', 'Date', 'auto'], ['Monto', 'float', 'si'], ['Puntos acreditados', 'int', 'auto'], ['Estado de consumo', 'enum', 'auto'], ['Fecha de movimiento', 'Date', 'auto'], ['Cantidad de puntos', 'int', 'auto'], ['Motivo', 'String', 'auto'], ['Estado de puntos', 'enum', 'auto']] },
       c_misiones: { t: 'Misiones', c: [['Nombre', 'String', 'si'], ['Progreso', 'int', 'auto'], ['Objetivo', 'int', 'si'], ['Recompensa', 'int', 'si'], ['Estado', 'enum', 'auto']] },
-      c_canjes: { t: 'Mis canjes', c: [['Recompensa', 'String', 'si'], ['Código', 'String', 'auto'], ['Puntos', 'int', 'auto'], ['Vencimiento del canje', 'DateTime', 'auto'], ['Estado', 'enum', 'auto']] },
+      c_canjes: { t: 'Canjes', c: [['Recompensa', 'String', 'auto'], ['Puntos', 'int', 'auto'], ['Código', 'String (6)', 'auto'], ['Vence', 'DateTime (15 min)', 'auto'], ['Estado', 'enum', 'auto'], ['Filtro del catálogo', 'enum', 'no'], ['Filtro: estado', 'enum', 'no'], ['Filtro: fecha o rango', 'Date', 'no'], ['Orden', 'enum', 'no']] },
       c_perfil: { t: 'Mi perfil', c: [['Nombre y apellido', 'String', 'auto'], ['Documento', 'enum + String', 'auto'], ['Teléfono', 'String', 'no'], ['Mail', MAIL, 'si'], ['Fecha de nacimiento', 'Date', 'no'], ['Contraseña actual · solo si cambia el correo', 'String', 'si']] },
       c_password: { t: 'Cambiá tu contraseña', c: [['Contraseña actual', 'String', 'si'], ['Nueva contraseña', 'String', 'si'], ['Confirmar nueva contraseña', 'String', 'si']] },
       e_cliente: { t: 'Registrar consumo', c: [['Tipo de documento', DOC, 'si'], ['Número de documento', 'String', 'si'], ['Monto del consumo', 'float', 'si'], ['Observaciones', 'String', 'no']] },
       e_consumo: { t: 'Registrar consumo', c: [['Tipo de documento', DOC, 'si'], ['Número de documento', 'String', 'si'], ['Monto del consumo', 'float', 'si'], ['Observaciones', 'String', 'no']] },
       a_consumo: { t: 'Registrar consumo', c: [['Tipo de documento', DOC, 'si'], ['Número de documento', 'String', 'si'], ['Monto del consumo', 'float', 'si'], ['Observaciones', 'String', 'no']] },
       e_altaCliente: { t: 'Nuevo cliente', c: cli.concat([['Rol', 'enum', 'auto']]) },
-      e_canje: { t: 'Gestionar canje por código', c: [['Código de canje', 'String', 'si'], ['Estado', 'enum', 'auto']] },
+      e_canje: { t: 'Canjes por código', c: cjc },
+      a_canjes: { t: 'Canjes', c: [['Filtro: cliente (DNI o nombre)', 'String', 'no'], ['Filtro: código', 'String', 'no'], ['Filtro: recompensa', 'enum', 'no'], ['Filtro: estado', 'enum', 'no'], ['Filtro: fecha o rango', 'Date', 'no'], ['Orden', 'enum', 'no'], ['Motivo de rechazo', 'String (5 a 500)', 'si']] },
       e_anulacion: { t: 'Anular consumo', c: [['Motivo de la anulación', 'String', 'si']] },
       canje_confirm: { t: 'Confirmar canje', c: [['Recompensa', 'String', 'si'], ['Puntos', 'int', 'si'], ['Vencimiento', 'Date', 'si']] },
       a_recompensas: { t: 'Catálogo de recompensas', c: rec },
       a_misiones: { t: 'Misiones', c: mis },
-      a_clientes: { t: 'Clientes', c: [['Apellido', 'String', 'si'], ['Nombre', 'String', 'si'], ['Nivel', 'String', 'auto'], ['Saldo', 'int', 'auto'], ['Fecha de alta', 'Date', 'auto'], ['Estado', 'enum', 'auto'], ['Búsqueda', 'String', 'no'], ['Filtro de nivel', 'enum', 'no']] },
+      a_clientes: { t: 'Clientes', c: [['Apellido', 'String', 'si'], ['Nombre', 'String', 'si'], ['Nivel', 'String', 'auto'], ['Saldo', 'int', 'auto'], ['Fecha de alta', 'Date', 'auto'], ['Estado', 'enum', 'auto'], ['Filtro: tipo de documento', 'enum', 'no'], ['Filtro: número de documento', 'String', 'no'], ['Filtro de nivel', 'enum', 'no']] },
       a_cliente_edit: { t: 'Editar cliente', c: [['Nombre', 'String', 'si'], ['Apellido', 'String', 'si'], ['Número de documento', 'String', 'si'], ['Teléfono', 'String', 'no'], ['Mail', MAIL, 'si'], ['Motivo del cambio', 'String', 'si']] },
       a_stats: { t: 'Estadísticas', c: [['Clientes activos', 'int', 'auto'], ['Consumos del mes', 'int', 'auto'], ['Puntos otorgados', 'int', 'auto'], ['Recompensas canjeadas', 'int', 'auto']] },
       a_auditoria: { t: 'Auditoría', c: [['Fecha y hora', 'DateTime', 'auto'], ['Realizado por', 'String', 'auto'], ['Módulo', 'enum', 'auto'], ['Acción', 'String', 'auto'], ['Cliente afectado', 'String', 'auto'], ['Detalle', 'lista', 'auto'], ['Filtro: realizado por', 'enum', 'no'], ['Filtro: módulo', 'enum', 'no'], ['Filtro: acción', 'enum', 'no'], ['Filtro: tipo y N° de documento', 'enum + String', 'no'], ['Filtro: fecha o rango', 'Date', 'no']] },
@@ -2528,7 +2478,7 @@ class Component extends DCLogic {
     if (estado === 'Rechazado') {
       const recompensas = this.state.recompensas.map((r) => (r.nombre === canje.recompensa ? { ...r, stock: r.stock + 1, estado: 'Activa' } : r));
       const clienteActualizado = { ...cliente, puntos: cliente.puntos + canje.puntos, canjes: cliente.canjes.map((c) => (c.id === id ? { ...c, estado: 'Rechazado' } : c)) };
-      this.setState({ cliente: clienteActualizado, mostrador: { ...this.state.mostrador, encontrado: clienteActualizado }, recompensas, accionMsg: 'Canje rechazado. Se reintegraron ' + canje.puntos + ' puntos y se repuso el stock.' });
+      this.setState({ cliente: clienteActualizado, mostrador: { ...this.state.mostrador, encontrado: clienteActualizado }, recompensas, accionMsg: 'Canje rechazado.' });
     } else {
       const clienteActualizado = { ...cliente, canjes: cliente.canjes.map((c) => (c.id === id ? { ...c, estado } : c)) };
       this.setState({ cliente: clienteActualizado, mostrador: { ...this.state.mostrador, encontrado: clienteActualizado }, accionMsg: 'Canje actualizado a "' + estado + '".' });
@@ -2679,6 +2629,7 @@ class Component extends DCLogic {
   };
 
   setClienteBusqueda = (e) => this.setState({ clienteBusqueda: e.target.value });
+  setClienteTipoDoc = (e) => this.setState({ clienteTipoDoc: e.target.value });
   setClienteFiltroNivel = (e) => this.setState({ clienteFiltroNivel: e.target.value });
   abrirClienteVerMas = (cliente) => this.setState({ errores: {}, clienteAdminModalId: cliente.id, clienteAdminEditando: false, clienteAdminDraft: { ...cliente }, clienteAdminMotivo: '', clienteAdminError: '' });
   cerrarClienteVerMas = () => this.setState({ clienteAdminModalId: null });
@@ -3105,11 +3056,11 @@ class Component extends DCLogic {
       { key: 'canjes', label: 'Canjes', tip: 'on_c_tab_canjes' }
     ];
     const clienteTabs = clienteTabsBase.map((t) => ({
-      ...t, active: s.clienteTab === t.key, prox: t.key === 'misiones' || t.key === 'canjes',
+      ...t, active: s.clienteTab === t.key, prox: t.key === 'misiones',
       bg: s.clienteTab === t.key ? 'var(--color-accent)' : 'transparent',
       fg: s.clienteTab === t.key ? 'var(--color-bg)' : 'var(--color-text)',
-      cursor: (t.key === 'misiones' || t.key === 'canjes') ? 'default' : 'pointer', op: (t.key === 'misiones' || t.key === 'canjes') ? '.5' : '1', title: (t.key === 'misiones' || t.key === 'canjes') ? 'Próximamente' : '',
-      onClick: () => { if (t.key !== 'misiones' && t.key !== 'canjes') this.setClienteTab(t.key); }, onEnter: tipHandlers[t.tip]
+      cursor: t.key === 'misiones' ? 'default' : 'pointer', op: t.key === 'misiones' ? '.5' : '1', title: t.key === 'misiones' ? 'Próximamente' : '',
+      onClick: () => { if (t.key !== 'misiones') this.setState({ clienteTab: t.key, clienteCanjesVista: 'catalogo' }); }, onEnter: tipHandlers[t.tip]
     }));
 
     const IC = {
@@ -3126,7 +3077,8 @@ class Component extends DCLogic {
       history: 'M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5 M12 7v5l4 2',
       coins: 'M2 8a6 6 0 1 0 12 0a6 6 0 1 0-12 0 M18.09 10.37A6 6 0 1 1 10.34 18 M7 6h1v4 M16.71 13.88l.7.71-2.82 2.82',
       award: 'M6 8a6 6 0 1 0 12 0a6 6 0 1 0-12 0 M15.48 12.89 17 22l-5-3-5 3 1.52-9.11',
-      bell: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0'
+      bell: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0',
+      scan: 'M3 7V5a2 2 0 0 1 2-2h2 M17 3h2a2 2 0 0 1 2 2v2 M21 17v2a2 2 0 0 1-2 2h-2 M7 21H5a2 2 0 0 1-2-2v-2 M7 12h10'
     };
     const prox = (this.props && this.props.marcarProximamente) ?? true;
     const mkNav = (base, current, setter, collapsed) => base.map((n) => ({
@@ -3137,17 +3089,16 @@ class Component extends DCLogic {
     const empleadoNavItems = mkNav([
       { key: 'cliente', label: 'Buscar cliente', ic: 'user', tip: 'on_e_nav_cliente' },
       { key: 'altaCliente', label: 'Nuevo cliente', ic: 'userPlus', tip: 'on_e_cliente_alta' },
-      { key: 'canje', label: 'Gestionar canje por código', ic: 'ticket', tip: 'on_e_nav_canje', prox: true }
+      { key: 'canje', label: 'Canjes por código', ic: 'scan', tip: 'on_e_nav_canje' }
     ], s.empleadoScreen, this.setEmpleadoScreen, s.navColapsado);
     const adminNavItems = mkNav([
-      { key: 'recompensas', label: 'Catálogo de recompensas', ic: 'gift', tip: 'on_a_nav_recompensas', prox: true },
+      { key: 'recompensas', label: 'Recompensas', ic: 'gift', tip: 'on_a_nav_recompensas' },
+      { key: 'canjes', label: 'Canjes', ic: 'ticket', tip: 'on_a_nav_canjes' },
       { key: 'misiones', label: 'Misiones', ic: 'target', tip: 'on_a_nav_misiones', prox: true },
       { key: 'clientes', label: 'Clientes', ic: 'users', tip: 'on_a_nav_clientes' },
       { key: 'stats', label: 'Estadísticas y reportes', ic: 'chart', tip: 'on_a_nav_stats', prox: true },
       { key: 'auditoria', label: 'Auditoría', ic: 'history', tip: 'on_a_nav_auditoria' },
-      { key: 'consumo', label: 'Buscar cliente', ic: 'user', tip: 'on_e_cliente_compra' },
-      { key: 'consumos', label: 'Consumos', ic: 'receiptList', tip: 'on_e_cliente_historial' },
-      { key: 'movimientos', label: 'Movimientos de puntos', ic: 'arrowsLR', tip: 'on_e_cliente_historial' }
+      { key: 'consumos', label: 'Consumos', ic: 'receiptList', tip: 'on_e_cliente_historial' }
     ], s.adminScreen, this.setAdminScreen, s.navColapsado);
     const configNavItems = mkNav([
       { key: 'empleados', label: 'Empleados', ic: 'users', tip: 'on_a_nav_empleados' },
@@ -3278,8 +3229,8 @@ class Component extends DCLogic {
 
     const clientesConNivel = s.clientes.map((c) => ({ ...c, estado: c.estado || 'Activo', claseTag: this.claseEstado(c.estado || 'Activo'), nivel: this.getNivel(this.historicosDe(c)).actual.nombre }));
     const clientesFiltrados = clientesConNivel.filter((c) => c.estado === 'Activo').slice().sort((a, b) => a.apellido.localeCompare(b.apellido, 'es')).filter((c) => {
-      const q = s.clienteBusqueda.trim().toLowerCase();
-      const okBusqueda = q === '' || (c.nombre + ' ' + c.apellido + ' ' + c.numeroDocumento).toLowerCase().includes(q);
+      const nd = (x) => String(x || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase(); const q = nd(s.clienteBusqueda);
+      const okBusqueda = (c.tipoDocumento || 'DNI') === (s.clienteTipoDoc || 'DNI') && (q === '' || nd(c.numeroDocumento).includes(q));
       const okNivel = s.clienteFiltroNivel === 'todos' || c.nivel === s.clienteFiltroNivel;
       return okBusqueda && okNivel;
     }).map((c) => { const sc = window.VCStore && window.VCStore.porDni(c.numeroDocumento); const sal = sc ? sc.saldo : c.puntos; return { ...c, onVerMas: () => this.abrirClienteVerMas(c), saldoTxt: String(sal).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' pts', saldoColor: sal < 0 ? '#b3261e' : 'inherit', altaTxt: c.alta || '—', onVerFicha: () => this.setState({ fichaId: c.id }) }; });
@@ -3349,10 +3300,10 @@ class Component extends DCLogic {
       consumoVerClienteEmp: (dni) => { const d = String(dni).replace(/\D/g, ''); const fc = s.clientes.find((x) => x.numeroDocumento === d); if (fc) this.setState({ empleadoScreen: 'cliente', fichaId: fc.id, consumoDet: '' }); },
       consumoVerClienteAdm: (dni) => { const d = String(dni).replace(/\D/g, ''); const fc = s.clientes.find((x) => x.numeroDocumento === d); if (fc) this.setState({ adminScreen: 'clientes', fichaId: fc.id, consumoDet: '' }); },
       consumoVolverEmp: () => this.setState({ consumoDet: '' }), consumoVolverAdm: () => this.setState({ consumoDet: '' }),
-      consumoNuevoEmp: (dni) => this.setState({ empleadoScreen: 'cliente', consumoDet: '', fichaId: null, consumoPrefill: dni }), consumoNuevoAdm: (dni) => this.setState({ adminScreen: 'consumo', consumoDet: '', fichaId: null, consumoPrefill: dni }),
+      consumoNuevoEmp: (dni) => this.setState({ empleadoScreen: 'cliente', consumoDet: '', fichaId: null, consumoPrefill: dni }), consumoNuevoAdm: (dni) => this.setState({ view: 'empleado', empleadoScreen: 'cliente', consumoDet: '', fichaId: null, consumoPrefill: dni, accionMsg: '' }),
       empleadoNavItems,
 
-      aIsMisiones: s.adminScreen === 'misiones', aIsRecompensas: s.adminScreen === 'recompensas', aIsStats: s.adminScreen === 'stats', aIsClientes: s.adminScreen === 'clientes' && !s.fichaId, aIsFicha: s.adminScreen === 'clientes' && !!s.fichaId, aIsAuditoria: s.adminScreen === 'auditoria',
+      aIsMisiones: s.adminScreen === 'misiones', aIsRecompensas: s.adminScreen === 'recompensas', aIsCanjes: s.adminScreen === 'canjes', aIsStats: s.adminScreen === 'stats', aIsClientes: s.adminScreen === 'clientes' && !s.fichaId, aIsFicha: s.adminScreen === 'clientes' && !!s.fichaId, aIsAuditoria: s.adminScreen === 'auditoria',
       adminNavItems,
       configAbierto: s.configAbierto, abrirConfig: this.abrirConfig, cerrarConfig: this.cerrarConfig, configNavItems,
       cIsEmpleados: s.configScreen === 'empleados', cIsConfig: s.configScreen === 'config', cIsNiveles: s.configScreen === 'niveles',
@@ -3388,7 +3339,7 @@ class Component extends DCLogic {
       } : null,
       cerrarNotifModal: this.cerrarNotifModal,
 
-      clienteBusqueda: s.clienteBusqueda, setClienteBusqueda: this.setClienteBusqueda,
+      clienteBusqueda: s.clienteBusqueda, setClienteBusqueda: this.setClienteBusqueda, clienteTipoDoc: s.clienteTipoDoc || 'DNI', setClienteTipoDoc: this.setClienteTipoDoc, clienteDocPh: (s.clienteTipoDoc || 'DNI') === 'DNI' ? '38.456.123' : 'AAB123456',
       clienteFiltroNivel: s.clienteFiltroNivel, setClienteFiltroNivel: this.setClienteFiltroNivel,
       nivelFiltroOptions: [{ value: 'todos', label: 'Todos los niveles' }, ...s.niveles.map((n) => ({ value: n.nombre, label: n.nombre }))],
       clientesFiltrados, clientesSinResultados: clientesFiltrados.length === 0,
@@ -3411,7 +3362,11 @@ class Component extends DCLogic {
       } : null,
       cerrarClienteVerMas: this.cerrarClienteVerMas, activarEdicionCliente: this.activarEdicionCliente,
 
-      cliente: { ...s.cliente, compras: clienteConClase(s.cliente.compras), movimientos: clienteConClase(s.cliente.movimientos) },
+      cliente: { ...s.cliente, puntos: (mpSaldo < 0 ? '-' : '') + mpNum(mpSaldo), compras: clienteConClase(s.cliente.compras), movimientos: clienteConClase(s.cliente.movimientos) },
+      cliCanje: (() => { const K = window.VCCanjes; const tipo = s.cliente.tipoDocumento || 'DNI'; const num = String(s.cliente.dni || ''); const vig = K ? K.canjesDe(tipo, num).filter((c) => K.vigente(c)) : [];
+        return { tipo, num, nombre: s.cliente.nombre, saldoBase: Number(s.cliente.puntos) || 0, vista: s.clienteCanjesVista || 'catalogo', hayVigente: vig.length > 0,
+          vigenteTxt: vig.length ? vig[0].recompensa + ' · ' + K.venceTxt(vig[0]).toLowerCase() + (vig.length > 1 ? ' (y ' + (vig.length - 1) + ' más)' : '') : '',
+          goCat: () => this.setState({ clienteTab: 'canjes', clienteCanjesVista: 'catalogo' }), goMis: () => this.setState({ clienteTab: 'canjes', clienteCanjesVista: 'mis' }) }; })(),
       comprasEmpleado, movimientosEmpleado, hayMovFueraDe24h,
       nivHistTxt: this.fmtN(histCli), progresoPctTxt: progresoPct + '%', nivMsgCliente: nivelInfo.siguiente ? 'Te faltan ' + this.fmtN(nivelInfo.faltante) + ' pts para llegar a ' + nivelInfo.siguiente.nombre : '¡Llegaste al nivel máximo!',
       nivDraft: s.nivDraft || { plata: String((s.niveles.find((n) => n.nombre === 'Plata') || {}).minimo || ''), oro: String((s.niveles.find((n) => n.nombre === 'Oro') || {}).minimo || '') }, nivErr: s.nivErr || {}, nivInv: { plata: (s.nivErr || {}).plata ? 'true' : 'false', oro: (s.nivErr || {}).oro ? 'true' : 'false' }, nivOk: !!s.nivOk,

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<x-dc>
+<div style="width:100%; display:flex; flex-direction:column; gap:14px; font-family:var(--font-body); color:#2b1a10;">
+  <div style="display:flex; border:1px solid #f0d9c4; border-radius:999px; background:#ffffff; padding:3px;">
+    <button type="button" onClick="{{ verCatalogo }}" style="flex:1; border:none; border-radius:999px; padding:7px 12px; font-family:var(--font-heading); font-weight:700; font-size:12px; cursor:pointer; background:{{ seg.catBg }}; color:{{ seg.catFg }};">Catálogo</button>
+    <button type="button" onClick="{{ verMis }}" style="flex:1; border:none; border-radius:999px; padding:7px 12px; font-family:var(--font-heading); font-weight:700; font-size:12px; cursor:pointer; background:{{ seg.misBg }}; color:{{ seg.misFg }};">Mis canjes</button>
+  </div>
+
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div role="status" style="border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:10px 12px; font-size:12px; font-weight:600;">{{ toast }}</div></sc-if>
+  <sc-if value="{{ neg }}" hint-placeholder-val="{{ false }}"><div role="status" style="border:1px solid rgba(202,100,60,.4); border-left:4px solid #ca643c; background:#fdf3ea; color:#7e3e20; border-radius:12px; padding:10px 12px; font-size:12px; line-height:1.45;">Tenés un ajuste pendiente, por eso no podés canjear por ahora. Comunicate con el restaurante.</div></sc-if>
+
+  <!-- ===== Catálogo ===== -->
+  <sc-if value="{{ esCatalogo }}" hint-placeholder-val="{{ true }}"><div style="display:flex; flex-direction:column; gap:12px;">
+    <div style="font-size:13px; color:#5c5249;">Tenés <strong style="font-family:'DM Serif Display', Georgia, serif; font-weight:400; font-size:20px; color:{{ saldoColor }};">{{ saldoTxt }} pts</strong> para canjear</div>
+    <div style="display:flex; gap:6px; flex-wrap:wrap;"><sc-for list="{{ filtros }}" as="f" hint-placeholder-count="3"><button type="button" onClick="{{ f.onClick }}" style="border:1px solid {{ f.bd }}; border-radius:999px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer; background:{{ f.bg }}; color:{{ f.fg }};">{{ f.label }}</button></sc-for></div>
+    <sc-if value="{{ hayRec }}" hint-placeholder-val="{{ true }}"><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      <sc-for list="{{ recs }}" as="r" hint-placeholder-count="4">
+        <div style="border:2px solid #f0d9c4; border-radius:14px; background:#ffffff; overflow:hidden; display:flex; flex-direction:column; opacity:{{ r.op }};">
+          <div style="height:84px; background:linear-gradient(135deg,#fbe6d4,#f1d5a7); display:grid; place-items:center; color:#a9532b; position:relative;">
+            <sc-if value="{{ r.foto }}" hint-placeholder-val="{{ false }}"><img src="{{ r.foto }}" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" /></sc-if>
+            <sc-if value="{{ r.sinFoto }}" hint-placeholder-val="{{ true }}"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v4H3z M12 8v13 M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7 M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"></path></svg></sc-if>
+          </div>
+          <div style="padding:8px; display:flex; flex-direction:column; gap:3px; flex:1;">
+            <strong style="font-size:12px; line-height:1.25;">{{ r.nombre }}</strong>
+            <div style="font-size:10px; line-height:1.3; color:#7a6e63; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ r.desc }}</div>
+            <div style="font-size:12px; font-weight:700; color:#a8532a;">{{ r.puntos }} pts</div>
+            <div style="font-size:10px;"><span class="{{ r.tagCls }}">{{ r.tag }}</span></div>
+            <div style="flex:1;"></div>
+            <span title="{{ r.title }}" style="display:block; margin-top:4px;"><button type="button" class="btn btn-primary btn-block" style="font-size:11px; padding:6px;" disabled="{{ r.dis }}" onClick="{{ r.canjear }}">Canjear</button></span>
+            <sc-if value="{{ r.faltan }}" hint-placeholder-val="{{ false }}"><div style="font-size:10px; color:#7e3e20; text-align:center;">{{ r.faltan }}</div></sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div></sc-if>
+    <sc-if value="{{ sinRec }}" hint-placeholder-val="{{ false }}"><p style="margin:0; padding:20px 12px; text-align:center; font-size:12px; color:#7a6e63; border:1px dashed #f0d9c4; border-radius:12px;">{{ sinRecTxt }}</p></sc-if>
+    <p style="margin:0; font-size:10px; color:#7a6e63;">Al canjear recibís un código que dura 15 minutos. Los puntos se descuentan recién cuando lo usás en el local.</p>
+  </div></sc-if>
+
+  <!-- ===== Mis canjes ===== -->
+  <sc-if value="{{ esMis }}" hint-placeholder-val="{{ false }}"><div style="display:flex; flex-direction:column; gap:10px;">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <label style="display:flex; flex-direction:column; gap:2px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Estado<select style="height:32px; border:1px solid #f0d9c4; border-radius:8px; background:#ffffff; padding:0 6px; font-size:12px; color:#2b1a10; font-family:var(--font-body); text-transform:none; letter-spacing:0; font-weight:400;" value="{{ mf.estado }}" onChange="{{ onMf.estado }}"><option>Todos</option><option>Confirmados</option><option>Finalizados</option></select></label>
+      <label style="display:flex; flex-direction:column; gap:2px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Orden<select style="height:32px; border:1px solid #f0d9c4; border-radius:8px; background:#ffffff; padding:0 6px; font-size:12px; color:#2b1a10; font-family:var(--font-body); text-transform:none; letter-spacing:0; font-weight:400;" value="{{ mf.orden }}" onChange="{{ onMf.orden }}"><option>Más recientes</option><option>Más antiguos</option></select></label>
+      <label style="grid-column:1 / -1; display:flex; flex-direction:column; gap:2px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Fecha<select style="height:32px; border:1px solid #f0d9c4; border-radius:8px; background:#ffffff; padding:0 6px; font-size:12px; color:#2b1a10; font-family:var(--font-body); text-transform:none; letter-spacing:0; font-weight:400;" value="{{ mf.fecha }}" onChange="{{ onMf.fecha }}"><option value="cualquiera">Cualquiera</option><option value="hoy">Hoy</option><option value="7d">Últimos 7 días</option><option value="mes">Este mes</option><option value="dia">Día específico</option><option value="rango">Rango</option></select></label>
+      <sc-if value="{{ conDia }}" hint-placeholder-val="{{ false }}"><input type="date" aria-label="Día" style="grid-column:1 / -1; height:32px; border:1px solid #f0d9c4; border-radius:8px; background:#ffffff; padding:0 6px; font-size:12px; font-family:var(--font-body);" value="{{ mf.desde }}" onChange="{{ onMf.desde }}" /></sc-if>
+      <sc-if value="{{ conRango }}" hint-placeholder-val="{{ false }}"><input type="date" aria-label="Desde" style="height:32px; border:1px solid #f0d9c4; border-radius:8px; background:#ffffff; padding:0 6px; font-size:12px; font-family:var(--font-body);" value="{{ mf.desde }}" onChange="{{ onMf.desde }}" /></sc-if>
+      <sc-if value="{{ conRango }}" hint-placeholder-val="{{ false }}"><input type="date" aria-label="Hasta" style="height:32px; border:1px solid #f0d9c4; border-radius:8px; background:#ffffff; padding:0 6px; font-size:12px; font-family:var(--font-body);" value="{{ mf.hasta }}" onChange="{{ onMf.hasta }}" /></sc-if>
+    </div>
+    <sc-if value="{{ errRango }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:11px; color:#a8532a;">{{ errRango }}</p></sc-if>
+    <sc-if value="{{ hayMis }}" hint-placeholder-val="{{ true }}"><div style="display:flex; flex-direction:column; gap:10px;">
+      <sc-for list="{{ mis }}" as="c" hint-placeholder-count="3">
+        <div style="border:2px solid {{ c.bd }}; border-radius:14px; background:#ffffff; padding:12px 14px; display:flex; flex-direction:column; gap:4px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;"><strong style="font-size:13px;">{{ c.recompensa }}</strong><span class="{{ c.badge }}" style="flex-shrink:0;">{{ c.estado }}</span></div>
+          <div style="font-size:11px; color:#7a6e63;">{{ c.fecha }} · {{ c.puntos }} pts</div>
+          <sc-if value="{{ c.abierto }}" hint-placeholder-val="{{ false }}"><div style="margin-top:4px; padding-top:8px; border-top:1px solid #fbe6d4; display:flex; flex-direction:column; gap:4px;">
+            <sc-if value="{{ c.conf }}" hint-placeholder-val="{{ false }}"><div style="border:1px dashed #d9804f; background:#fffaf3; border-radius:10px; padding:8px 10px; text-align:center;">
+              <div style="font-family:var(--font-heading); font-weight:800; font-size:22px; letter-spacing:.18em; color:#7e3e20;">{{ c.codigo }}</div>
+              <div style="font-size:11px; font-weight:700; color:{{ c.cdColor }};">{{ c.vence }}</div>
+              <div style="font-size:11px; color:#5c5249;">Presentá este código en caja.</div>
+            </div>
+            <button type="button" class="btn btn-ghost" style="align-self:flex-start; font-size:12px; padding:4px 0;" onClick="{{ c.cancelar }}">Cancelar canje</button></sc-if>
+            <sc-for list="{{ c.notas }}" as="n" hint-placeholder-count="1"><div style="font-size:12px; color:#5c5249;">{{ n }}</div></sc-for>
+          </div></sc-if>
+          <button type="button" class="btn btn-ghost btn-block" style="font-size:11px; padding:4px; margin-top:2px;" onClick="{{ c.toggle }}">{{ c.toggleTxt }}</button>
+        </div>
+      </sc-for>
+    </div></sc-if>
+    <sc-if value="{{ sinMis }}" hint-placeholder-val="{{ false }}"><p style="margin:0; padding:20px 12px; text-align:center; font-size:12px; color:#7a6e63; border:1px dashed #f0d9c4; border-radius:12px;">{{ sinMisTxt }}</p></sc-if>
+    <p style="margin:0; font-size:10px; color:#7a6e63;">Si un canje se cancela, se rechaza o vence, no se descuentan puntos. Lo podés volver a pedir si tenés puntos.</p>
+  </div></sc-if>
+
+  <!-- ===== Confirmar ===== -->
+  <sc-if value="{{ conf.open }}" hint-placeholder-val="{{ false }}"><div style="position:fixed; inset:0; z-index:10050; background:rgba(43,26,16,.45); display:grid; place-items:center; padding:16px;">
+    <div role="dialog" aria-modal="true" style="width:100%; max-width:340px; background:#fdf5ec; border-radius:20px; overflow:hidden; box-shadow:0 30px 60px -24px rgba(45,24,14,.6);">
+      <div style="height:110px; background:linear-gradient(135deg,#fbe6d4,#f1d5a7); display:grid; place-items:center; color:#a9532b; position:relative;">
+        <sc-if value="{{ conf.foto }}" hint-placeholder-val="{{ false }}"><img src="{{ conf.foto }}" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" /></sc-if>
+        <sc-if value="{{ conf.sinFoto }}" hint-placeholder-val="{{ true }}"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v4H3z M12 8v13 M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7 M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"></path></svg></sc-if>
+      </div>
+      <div style="padding:18px 20px 20px;">
+        <h3 style="margin:0; font-family:var(--font-heading); font-size:18px;">{{ conf.nombre }}</h3>
+        <sc-if value="{{ conf.desc }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#5c5249;">{{ conf.desc }}</p></sc-if>
+        <div style="margin-top:6px; font-size:15px; font-weight:700; color:#a8532a;">{{ conf.puntos }} pts</div>
+        <div style="margin-top:10px; border:1px solid #f0d9c4; background:#ffffff; border-radius:12px; padding:8px 12px; font-size:12px;">Saldo: <strong>{{ conf.saldo }} pts</strong> → <strong>{{ conf.despues }} pts</strong> al usarlo</div>
+        <p style="margin:10px 0 0; font-size:11px; line-height:1.45; color:#5c5249;">Vas a canjear {{ conf.puntos }} puntos por esta recompensa. Los puntos se descuentan cuando lo uses en el local. Tenés 15 minutos para presentar el código en caja.</p>
+        <sc-if value="{{ conf.err }}" hint-placeholder-val="{{ false }}"><p style="margin:10px 0 0; font-size:12px; font-weight:600; color:#a8532a;">{{ conf.err }}</p></sc-if>
+        <div style="display:flex; gap:8px; margin-top:16px;"><button type="button" class="btn btn-secondary" style="flex:1;" onClick="{{ conf.cerrar }}">Cancelar</button><button type="button" class="btn btn-primary" style="flex:1;" disabled="{{ conf.dis }}" onClick="{{ conf.ok }}">Confirmar</button></div>
+      </div>
+    </div>
+  </div></sc-if>
+
+  <!-- ===== Canje confirmado ===== -->
+  <sc-if value="{{ listo.open }}" hint-placeholder-val="{{ false }}"><div style="position:fixed; inset:0; z-index:10050; background:rgba(43,26,16,.45); display:grid; place-items:center; padding:16px;">
+    <div role="dialog" aria-modal="true" style="width:100%; max-width:340px; background:#fdf5ec; border-radius:20px; padding:22px 20px; text-align:center; box-shadow:0 30px 60px -24px rgba(45,24,14,.6);">
+      <div style="width:44px; height:44px; margin:0 auto 8px; border-radius:50%; background:#eef1e8; color:#4e5e41; display:grid; place-items:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div>
+      <h3 style="margin:0; font-family:var(--font-heading); font-size:18px;">¡Canje confirmado!</h3>
+      <p style="margin:4px 0 12px; font-size:12px; color:#5c5249;">{{ listo.nombre }} · {{ listo.puntos }} pts</p>
+      <div style="border:2px dashed #d9804f; background:#ffffff; border-radius:14px; padding:12px;">
+        <div style="font-family:var(--font-heading); font-weight:800; font-size:32px; letter-spacing:.22em; color:#7e3e20;">{{ listo.codigo }}</div>
+        <div style="font-size:13px; font-weight:700; color:{{ listo.cdColor }};">{{ listo.cd }}</div>
+      </div>
+      <p style="margin:10px 0 0; font-size:12px; color:#5c5249;">Presentá este código en caja.</p>
+      <div style="display:flex; gap:8px; margin-top:16px;"><button type="button" class="btn btn-secondary" style="flex:1;" onClick="{{ listo.cerrar }}">Volver al catálogo</button><button type="button" class="btn btn-primary" style="flex:1;" onClick="{{ listo.verMis }}">Ver mis canjes</button></div>
+    </div>
+  </div></sc-if>
+
+  <!-- ===== Cancelar ===== -->
+  <sc-if value="{{ canc.open }}" hint-placeholder-val="{{ false }}"><div style="position:fixed; inset:0; z-index:10050; background:rgba(43,26,16,.45); display:grid; place-items:center; padding:16px;">
+    <div role="dialog" aria-modal="true" style="width:100%; max-width:340px; background:#fdf5ec; border-radius:20px; padding:20px; box-shadow:0 30px 60px -24px rgba(45,24,14,.6);">
+      <h3 style="margin:0 0 6px; font-family:var(--font-heading); font-size:18px;">Cancelar canje</h3>
+      <p style="margin:0; font-size:13px; color:#5c5249;">¿Cancelar el canje de <strong>{{ canc.rec }}</strong>? Lo vas a poder volver a pedir si tenés puntos.</p>
+      <div style="display:flex; gap:8px; margin-top:16px;"><button type="button" class="btn btn-secondary" style="flex:1;" onClick="{{ canc.cerrar }}">Volver</button><button type="button" class="btn btn-primary" style="flex:1;" onClick="{{ canc.ok }}">Cancelar canje</button></div>
+    </div>
+  </div></sc-if>
+
+  <div style="border:1px dashed #d9804f; background:#fffaf3; border-radius:12px; padding:8px 10px; font-size:10px; color:#6b5446;"><strong style="color:#7a3a1d;">Nota del prototipo:</strong> US-39 · RF-043 (catálogo), US-40 · RF-044 (confirmar canje), US-43 · RF-047 (cancelar), US-44 · RF-048 (vence a los 15 min) y US-45 · RF-049 (mis canjes).</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:360,&quot;height&quot;:720},&quot;tipo&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;DNI&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;num&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;30111222&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;nombre&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Marcos Peralta&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;saldoBase&quot;:{&quot;editor&quot;:&quot;number&quot;,&quot;default&quot;:480,&quot;tsType&quot;:&quot;number&quot;},&quot;vistaInicial&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;catalogo&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  MF0 = { estado: 'Todos', orden: 'Más recientes', fecha: 'cualquiera', desde: '', hasta: '' };
+  state = { vista: '', filtro: 'todas', mf: { ...this.MF0 }, open: {}, confId: null, confErr: '', listo: '', cancCod: '', toast: '', v: 0 };
+  componentDidMount() {
+    const t = () => { if (window.VCCanjes) { this.reg(); this._u = window.VCCanjes.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); };
+    t(); this._i = setInterval(() => { window.VCCanjes && window.VCCanjes.canjes(); this.setState((s) => ({ v: s.v + 1 })); }, 1000);
+  }
+  componentWillUnmount() { clearTimeout(this._p); clearTimeout(this._t); clearInterval(this._i); if (this._u) this._u(); }
+  p() { const p = this.props || {}; return { tipo: p.tipo || 'DNI', num: String(p.num || '30111222'), nombre: p.nombre || 'Marcos Peralta', saldoBase: Number(p.saldoBase ?? 480) }; }
+  reg() { const K = window.VCCanjes; const p = this.p(); if (K) K.registrarCliente({ tipo: p.tipo, num: p.num, nombre: p.nombre, saldo: p.saldoBase }); }
+  z(x) { return String(x).padStart(2, '0'); }
+  fd(ts) { const d = new Date(ts); return this.z(d.getDate()) + '/' + this.z(d.getMonth() + 1) + '/' + d.getFullYear(); }
+  hm(ts) { const d = new Date(ts); return this.z(d.getHours()) + ':' + this.z(d.getMinutes()); }
+  aviso(msg) { this.setState({ toast: msg }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 4000); }
+  confirmar = () => {
+    const K = window.VCCanjes; const p = this.p(); const r = K.recompensa(this.state.confId);
+    const res = K.confirmar({ rid: r.id, tipo: p.tipo, num: p.num, nombre: p.nombre });
+    if (!res.ok) { this.setState({ confErr: res.error === 'no_disponible' ? 'Esta recompensa ya no está disponible.' : res.error === 'negativo' ? 'Tenés un ajuste pendiente. Comunicate con el restaurante.' : 'No te alcanzan los puntos para esta recompensa.' }); return; }
+    this.setState({ confId: null, confErr: '', listo: res.canje.codigo });
+  };
+  renderVals() {
+    const K = window.VCCanjes; const s = this.state; const p = this.props || {}; const pp = this.p();
+    if (K) this.reg();
+    const vista = s.vista || (p.vistaInicial === 'mis' ? 'mis' : 'catalogo');
+    const saldo = K ? K.saldo(pp.tipo, pp.num) : pp.saldoBase; const neg = saldo < 0;
+    const fmt = (n) => K ? K.num(n) : String(n);
+    // ---- catálogo (Activas y Deshabilitadas; las Inactivas y Dadas de baja no se muestran) ----
+    let lista = K ? K.recompensas().filter((r) => r.estado === 'Activa' || r.estado === 'Deshabilitada') : [];
+    if (s.filtro === 'mas') lista = lista.slice().sort((a, b) => b.usadas - a.usadas);
+    else if (s.filtro === 'prox') lista = lista.filter((r) => r.estado === 'Activa' && r.vence && K.diasHasta(r.vence) >= 0 && K.diasHasta(r.vence) <= 7).sort((a, b) => a.vence.localeCompare(b.vence));
+    else lista = lista.slice().sort((a, b) => a.puntos - b.puntos);
+    const recs = lista.map((r) => {
+      const chk = K.puedeCanjear(r, saldo); const et = K.etiqueta(r);
+      return { nombre: r.nombre, desc: r.descripcion || '', puntos: fmt(r.puntos), foto: r.foto || '', sinFoto: !r.foto, tag: et.txt, tagCls: et.cls, op: r.estado === 'Activa' ? '1' : '.7',
+        dis: !chk.ok, title: chk.motivo === 'negativo' ? 'Tenés un ajuste pendiente. Comunicate con el restaurante' : chk.motivo === 'no_disponible' ? 'Esta recompensa no está disponible' : '',
+        faltan: chk.motivo === 'saldo' ? 'Te faltan ' + fmt(chk.faltan) + ' pts' : '',
+        canjear: () => this.setState({ confId: r.id, confErr: '' }) };
+    });
+    const FL = [['todas', 'Todas'], ['mas', 'Más canjeadas'], ['prox', 'Próx. a vencer']];
+    const filtros = FL.map(([k, l]) => { const on = s.filtro === k; return { label: l, bg: on ? '#a9532b' : '#ffffff', fg: on ? '#ffffff' : '#7e3e20', bd: on ? '#a9532b' : '#f0d9c4', onClick: () => this.setState({ filtro: k }) }; });
+    // ---- mis canjes ----
+    const mf = s.mf; const now = new Date(); const d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const errRango = mf.fecha === 'rango' && mf.desde && mf.hasta && mf.hasta < mf.desde ? 'La fecha "hasta" no puede ser anterior a "desde".' : '';
+    const okF = (ts) => { const i = K.iso(ts);
+      if (mf.fecha === 'hoy') return ts >= d0; if (mf.fecha === '7d') return ts >= d0 - 6 * 864e5; if (mf.fecha === 'mes') return ts >= new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      if (mf.fecha === 'dia') return !mf.desde || i === mf.desde; if (mf.fecha === 'rango') return errRango ? true : (!mf.desde || i >= mf.desde) && (!mf.hasta || i <= mf.hasta); return true; };
+    const okE = (c) => mf.estado === 'Todos' || (mf.estado === 'Confirmados' ? c.estado === 'Confirmado' : c.estado !== 'Confirmado');
+    const propios = K ? K.canjesDe(pp.tipo, pp.num) : [];
+    const misL = propios.filter((c) => okE(c) && okF(c.creadoTs)).slice().sort((a, b) => mf.orden === 'Más antiguos' ? a.creadoTs - b.creadoTs : b.creadoTs - a.creadoTs);
+    const mis = misL.map((c) => { const conf = c.estado === 'Confirmado'; const ab = s.open[c.codigo] ?? conf;
+      const notas = c.estado === 'Utilizado' ? ['Usado el ' + this.fd(c.resueltoTs) + ' a las ' + this.hm(c.resueltoTs), 'Se descontaron ' + fmt(c.puntos) + ' pts']
+        : c.estado === 'Rechazado' ? ['Motivo: ' + (c.motivo || '—')]
+        : c.estado === 'Cancelado' ? ['Cancelado el ' + this.fd(c.resueltoTs) + ' a las ' + this.hm(c.resueltoTs)]
+        : c.estado === 'Vencido' ? ['Venció el ' + this.fd(c.venceTs) + ' a las ' + this.hm(c.venceTs)] : [];
+      return { recompensa: c.recompensa, estado: c.estado, badge: K.badge(c.estado), fecha: this.fd(c.creadoTs) + ' ' + this.hm(c.creadoTs), puntos: fmt(c.puntos), conf, codigo: c.codigo,
+        vence: K.venceTxt(c), cdColor: K.minutosRestantes(c) <= 2 ? '#b3261e' : '#4e5e41', bd: conf ? '#d9804f' : '#f0d9c4', notas,
+        abierto: ab, toggleTxt: ab ? 'Ocultar detalle ▴' : 'Ver detalle ▾', toggle: () => this.setState((st) => ({ open: { ...st.open, [c.codigo]: !ab } })),
+        cancelar: () => this.setState({ cancCod: c.codigo }) }; });
+    const setMf = (k) => (e) => { const v = e.target.value; this.setState((st) => ({ mf: { ...st.mf, [k]: v, ...(k === 'fecha' ? { desde: '', hasta: '' } : {}) } })); };
+    const filtroActivo = mf.estado !== 'Todos' || mf.fecha !== 'cualquiera';
+    // ---- modales ----
+    const rc = s.confId && K ? K.recompensa(s.confId) : null; const chkC = rc ? K.puedeCanjear(rc, saldo) : { ok: false };
+    const cl = s.listo && K ? K.canje(s.listo) : null;
+    let cd = ''; if (cl) { const ms = cl.venceTs - Date.now(); cd = cl.estado !== 'Confirmado' ? (cl.estado === 'Vencido' ? 'El canje venció' : 'Canje ' + cl.estado.toLowerCase()) : ms < 60000 ? 'Vence en menos de 1 min' : 'Vence en ' + K.cuentaRegresiva(cl); }
+    const cc = s.cancCod && K ? K.canje(s.cancCod) : null;
+    return {
+      seg: { catBg: vista === 'catalogo' ? '#a9532b' : 'transparent', catFg: vista === 'catalogo' ? '#ffffff' : '#7e3e20', misBg: vista === 'mis' ? '#a9532b' : 'transparent', misFg: vista === 'mis' ? '#ffffff' : '#7e3e20' },
+      verCatalogo: () => this.setState({ vista: 'catalogo' }), verMis: () => this.setState({ vista: 'mis' }),
+      saldoTxt: fmt(saldo), saldoColor: neg ? '#b3261e' : '#7e3e20', neg,
+      esCatalogo: vista === 'catalogo', esMis: vista === 'mis', filtros, recs, hayRec: recs.length > 0, sinRec: !!K && recs.length === 0,
+      sinRecTxt: s.filtro === 'prox' ? 'No hay recompensas que venzan en los próximos 7 días.' : 'No hay recompensas disponibles por ahora.',
+      mf, onMf: { estado: setMf('estado'), orden: setMf('orden'), fecha: setMf('fecha'), desde: setMf('desde'), hasta: setMf('hasta') },
+      conDia: mf.fecha === 'dia', conRango: mf.fecha === 'rango', errRango,
+      mis, hayMis: mis.length > 0, sinMis: !!K && mis.length === 0, sinMisTxt: filtroActivo ? 'No hay canjes para los filtros elegidos.' : 'Todavía no tenés canjes.',
+      conf: { open: !!rc, nombre: rc ? rc.nombre : '', desc: rc ? (rc.descripcion || '') : '', foto: rc && rc.foto ? rc.foto : '', sinFoto: !(rc && rc.foto), puntos: rc ? fmt(rc.puntos) : '', saldo: fmt(saldo), despues: rc ? fmt(saldo - rc.puntos) : '',
+        err: s.confErr || (rc && !chkC.ok ? (chkC.motivo === 'saldo' ? 'No te alcanzan los puntos para esta recompensa.' : chkC.motivo === 'negativo' ? 'Tenés un ajuste pendiente. Comunicate con el restaurante.' : 'Esta recompensa ya no está disponible.') : ''), dis: !chkC.ok,
+        cerrar: () => this.setState({ confId: null, confErr: '' }), ok: this.confirmar },
+      listo: { open: !!cl, nombre: cl ? cl.recompensa : '', puntos: cl ? fmt(cl.puntos) : '', codigo: cl ? cl.codigo : '', cd, cdColor: cl && K.minutosRestantes(cl) <= 2 ? '#b3261e' : '#4e5e41',
+        cerrar: () => this.setState({ listo: '', vista: 'catalogo' }), verMis: () => this.setState({ listo: '', vista: 'mis', mf: { ...this.MF0 } }) },
+      canc: { open: !!cc, rec: cc ? cc.recompensa : '',
+        cerrar: () => this.setState({ cancCod: '' }), ok: () => { const r = K.cancelar(s.cancCod); this.setState({ cancCod: '' }); this.aviso(r.ok ? 'Canje cancelado.' : r.error === 'vencido' ? 'El canje ya venció.' : 'El canje ya no se puede cancelar.'); } },
+      toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

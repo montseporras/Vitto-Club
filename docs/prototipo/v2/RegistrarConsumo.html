@@ -27,12 +27,12 @@
       </div></sc-if>
       <sc-if value="{{ encontrado }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;"><button type="button" class="btn btn-secondary" onClick="{{ toggleInfo }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:{{ infoRot }}; transition:transform .15s;"><path d="m9 18 6-6-6-6"></path></svg>{{ infoTxt }}</button>
         <sc-if value="{{ verInfo }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px; border:1px solid #f6d0b1; border-radius:16px; padding:16px 18px; display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px 24px; font-size:13px;">
-          <div><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20; margin-bottom:6px;">Canjes</div>
-            <sc-for list="{{ info.canjes }}" as="c" hint-placeholder-count="1"><div style="display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-top:1px solid #fbe6d4;"><span><strong>{{ c.recompensa }}</strong><br /><span style="color:#7a6e63; font-size:12px;">Código {{ c.codigo }}</span></span><span style="white-space:nowrap;">{{ c.puntos }} pts</span></div></sc-for>
-            <sc-if value="{{ info.sinCanjes }}" hint-placeholder-val="{{ false }}"><p style="margin:0; color:#7a6e63;">No tiene canjes.</p></sc-if></div>
+          <div><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20; margin-bottom:6px;">Canjes para usar ahora</div>
+            <sc-for list="{{ info.canjes }}" as="c" hint-placeholder-count="1"><div style="padding:8px 0; border-top:1px solid #fbe6d4;"><div style="display:flex; justify-content:space-between; gap:8px;"><span><strong>{{ c.recompensa }}</strong><br /><span style="color:#7a6e63; font-size:12px;">Código <strong style="letter-spacing:.06em; color:#2b1a10;">{{ c.codigo }}</strong> · <span style="color:{{ c.venceColor }};">{{ c.vence }}</span></span></span><span style="white-space:nowrap;">{{ c.puntos }} pts</span></div><div style="display:flex; justify-content:flex-end; gap:6px; margin-top:6px;"><button type="button" class="btn btn-secondary" style="height:30px; padding:0 10px; font-size:12px;" onClick="{{ c.rechazar }}">Rechazar</button><button type="button" class="btn btn-primary" style="height:30px; padding:0 10px; font-size:12px;" onClick="{{ c.usar }}">Registrar uso</button></div></div></sc-for>
+            <sc-if value="{{ info.sinCanjes }}" hint-placeholder-val="{{ false }}"><p style="margin:0; color:#7a6e63;">No tiene canjes para usar.</p></sc-if></div>
           <div><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20; margin-bottom:6px;">Recompensas a las que puede acceder</div>
-            <sc-for list="{{ info.recompensas }}" as="r" hint-placeholder-count="2"><div style="display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-top:1px solid #fbe6d4;"><span>{{ r.nombre }}</span><span style="white-space:nowrap;">{{ r.puntos }} pts</span></div></sc-for>
-            <sc-if value="{{ info.sinRec }}" hint-placeholder-val="{{ false }}"><p style="margin:0; color:#7a6e63;">No tiene puntos suficientes para ninguna recompensa disponible.</p></sc-if></div>
+            <sc-for list="{{ info.recompensas }}" as="r" hint-placeholder-count="2"><div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 0; border-top:1px solid #fbe6d4;"><span>{{ r.nombre }}<br /><span style="color:#7a6e63; font-size:12px;">{{ r.puntos }} pts</span></span><button type="button" class="btn btn-secondary" style="height:30px; padding:0 10px; font-size:12px; flex-shrink:0;" onClick="{{ r.canjear }}">Canjear</button></div></sc-for>
+            <sc-if value="{{ info.sinRec }}" hint-placeholder-val="{{ false }}"><p style="margin:0; color:#7a6e63;">{{ info.sinRecTxt }}</p></sc-if></div>
           <div><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20; margin-bottom:6px;">{{ info.movTitulo }}</div>
             <sc-for list="{{ info.movs }}" as="m" hint-placeholder-count="3"><div style="display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-top:1px solid #fbe6d4;"><span>{{ m.detalle }}<br /><span style="color:#7a6e63; font-size:12px;">{{ m.fecha }}</span></span><strong style="white-space:nowrap; color:{{ m.color }};">{{ m.pts }}</strong></div></sc-for>
             <sc-if value="{{ info.sinMovs }}" hint-placeholder-val="{{ false }}"><p style="margin:0; color:#7a6e63;">Sin movimientos registrados.</p></sc-if></div>
@@ -52,7 +52,6 @@
         <div style="display:flex; align-items:center; margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid #fbe6d4;"><span style="font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Consumo</span></div>
         <div class="field" style="max-width:320px;"><label>Monto del consumo ($)</label><input class="input" inputMode="decimal" placeholder="50.000" aria-invalid="{{ montoInv }}" value="{{ monto }}" onChange="{{ onMonto }}" />
           <sc-if value="{{ montoErr }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ montoErr }}</p></sc-if></div>
-        <div class="field" style="max-width:520px; margin-top:12px;"><label>Observaciones (opcional)</label><input class="input" maxLength="255" value="{{ obs }}" onChange="{{ onObs }}" onInput="{{ onObs }}" /><p style="margin:2px 0 0; font-size:12px; color:#7a6e63; text-align:right;">{{ obsLen }}</p></div>
         <sc-if value="{{ preview }}" hint-placeholder-val="{{ false }}"><div style="margin-top:14px; border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 18px;"><div style="font-size:16px; font-weight:700; color:#7e3e20;">Se acreditarán {{ ptsTxt }} puntos{{ ptsDesglose }}</div><div style="font-size:14px; color:#2b1a10; margin-top:2px;">Saldo resultante: <strong>{{ resTxt }} pts</strong></div></div></sc-if>
         <p style="margin:10px 0 0; font-size:12px; color:#7a6e63;">Equivalencia vigente: {{ eqTxt }}</p>
         <div style="margin-top:20px; padding-top:16px; border-top:1px solid #fbe6d4; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:12px;"><button type="button" class="btn btn-secondary" onClick="{{ cancelar }}">Cancelar</button><button type="button" class="btn btn-primary" onClick="{{ registrar }}">Registrar consumo</button></div>
@@ -69,6 +68,19 @@
     <div style="margin-top:20px; padding-top:16px; border-top:1px solid #fbe6d4; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:12px;"><button type="button" class="btn btn-secondary" onClick="{{ otro }}">Registrar otro consumo</button><sc-if value="{{ esAdmin }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-primary" onClick="{{ verDetalle }}">Ver detalle</button></sc-if></div>
   </div></sc-if>
 
+  <!-- Igual que frontend/src/features/cashier/components/ConfirmConsumptionModal.tsx: las observaciones se cargan en el modal de confirmación (decisión de Denise) -->
+  <sc-if value="{{ rc.open }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000; padding:16px;">
+      <div class="dialog" style="position:relative; max-width:480px; width:100%;"><button type="button" onClick="{{ cerrarRc }}" aria-label="Cerrar" title="Cerrar" style="position:absolute; top:16px; right:16px; width:36px; height:36px; display:grid; place-items:center; border:none; border-radius:999px; background:transparent; color:#7e3e20; cursor:pointer; z-index:1;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
+        <div class="dialog-title">Registrar consumo</div>
+        <div class="dialog-body">
+          <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 20px;"><div style="font-size:16px; font-weight:700; color:#7e3e20;">Se acreditarán {{ ptsTxt }} puntos{{ ptsDesglose }}</div><div style="font-size:14px; color:#2b1a10; margin-top:2px;">Saldo resultante: <strong>{{ resTxt }} pts</strong></div><p style="margin:8px 0 0; font-size:12px; color:#7a6e63;">Equivalencia vigente: {{ eqTxt }}</p></div>
+          <div class="field" style="margin-top:20px;"><label>Observaciones <span style="font-weight:400; color:#7a6e63;">(opcional)</span></label><input class="input" maxLength="255" value="{{ obs }}" onChange="{{ onObs }}" onInput="{{ onObs }}" /><p style="margin:2px 0 0; font-size:12px; color:#7a6e63; text-align:right;">{{ obsLen }}</p></div>
+        </div>
+        <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-secondary btn-lg" onClick="{{ cerrarRc }}">Cancelar</button><button type="button" class="btn btn-primary btn-lg" onClick="{{ aceptarRc }}">Aceptar</button></div>
+      </div>
+    </div>
+  </sc-if>
   <sc-if value="{{ m.open }}" hint-placeholder-val="{{ false }}">
     <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000; padding:16px;">
       <div class="dialog" style="position:relative; max-width:480px; width:100%;"><button type="button" onClick="{{ cerrarAn }}" aria-label="Cerrar" title="Cerrar" style="position:absolute; top:16px; right:16px; width:36px; height:36px; display:grid; place-items:center; border:none; border-radius:999px; background:transparent; color:#7e3e20; cursor:pointer; z-index:1;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
@@ -95,17 +107,20 @@
       </div>
     </div>
   </sc-if>
+  <sc-if value="{{ acc.open }}" hint-placeholder-val="{{ false }}"><dc-import name="CanjeAccion" accion="{{ acc.accion }}" codigo="{{ acc.codigo }}" rid="{{ acc.rid }}" cliente="{{ acc.cliente }}" usuario="{{ acc.usuario }}" on-cerrar="{{ acc.cerrar }}" on-hecho="{{ acc.hecho }}" hint-size="100%,100%"></dc-import></sc-if>
   <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed; right:20px; bottom:20px; z-index:10060; max-width:calc(100vw - 40px); border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; font-weight:600; box-shadow:0 12px 30px -12px rgba(45,24,14,.4);">{{ toast }}</div></sc-if>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:960,&quot;height&quot;:720},&quot;usuario&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Lucía Fernández&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;montoBase&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1000,&quot;tsType&quot;:&quot;number&quot;},&quot;puntosPorMonto&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:10,&quot;tsType&quot;:&quot;number&quot;},&quot;bonifTipo&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;bonifValor&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;number&quot;},&quot;onIrAlta&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
 class Component extends DCLogic {
-  state = { obs: '', tipo: 'DNI', verInfo: false, ver24: false, an: { open: false, ask: false, codigo: '', motivo: '', err: '' }, dni: '', dniErr: '', buscado: false, cid: null, monto: '', montoErr: '', paso: 'form', conf: null, codigo: null, toast: '', v: 0 };
+  state = { obs: '', tipo: 'DNI', verInfo: false, ver24: false, an: { open: false, ask: false, codigo: '', motivo: '', err: '' }, dni: '', dniErr: '', buscado: false, cid: null, monto: '', montoErr: '', paso: 'form', conf: null, codigo: null, toast: '', v: 0, acc: null };
   componentDidMount() {
     const t = () => { if (window.VCStore) { this._u = window.VCStore.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.prefill(); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); };
     t();
+    const t2 = () => { if (window.VCCanjes) this._u2 = window.VCCanjes.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); else this._p2 = setTimeout(t2, 40); }; t2();
+    this._i = setInterval(() => { if (this.state.verInfo) this.setState((s) => ({ v: s.v + 1 })); }, 5000);
   }
-  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._p); if (this._u) this._u(); }
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._p); clearTimeout(this._p2); clearInterval(this._i); if (this._u) this._u(); if (this._u2) this._u2(); }
   prefill() { const d = this.props && this.props.dniInicial; if (d) this.setState({ dni: d }, this.buscar); }
   st() { return window.VCStore; }
   num(n) { const s = String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); return (n < 0 ? '-' : '') + s; }
@@ -132,9 +147,16 @@ class Component extends DCLogic {
       if (x) c = S.agregar({ nombre: x.nombre + ' ' + x.apellido, tipo, dni: String(x.numeroDocumento), email: x.email, tel: x.telefono, alta: x.alta, base: x.puntos, histBase: ((this.props && this.props.histPorDoc) || {})[tipo + '|' + x.numeroDocumento] || 0 }); }
     this.setState({ dniErr: '', buscado: true, cid: c ? c.id : null, monto: '', montoErr: '', verInfo: false });
   };
+  // "Registrar consumo" valida el monto y abre el modal de confirmación; "Aceptar" registra
+  pedirConf = () => {
+    const p = this.parse(this.state.monto);
+    if (p.err) { this.setState({ montoErr: p.err }); return; }
+    this.setState({ rcOpen: true, obs: '' });
+  };
   registrar = () => {
     const s = this.state; const p = this.parse(s.monto);
-    if (p.err) { this.setState({ montoErr: p.err }); return; }
+    if (p.err) { this.setState({ montoErr: p.err, rcOpen: false }); return; }
+    this.setState({ rcOpen: false });
     const S = this.st(); const c = S.cliente(s.cid); const base = this.puntos(p.n); const bono = S.primeraCompra(c.id) ? this.bono(base) : 0; const pts = base + bono; const e = this.eq(); const por = (this.props && this.props.usuario) || ''; const obs = s.obs.trim();
     const nivAntes = this.nivel(S.historicos(c.id));
     const r = S.registrar({ cid: c.id, monto: p.n, pts, por, obs, bono, eq: this.money(e.base) + ' = ' + this.num(e.pts) + ' pts' });
@@ -155,15 +177,18 @@ class Component extends DCLogic {
   info(c) {
     if (!c) return { canjes: [], recompensas: [], movs: [], sinCanjes: true, sinRec: true, sinMovs: true, movTitulo: '' };
     const p = this.props || {}; const S = this.st(); const d = String(c.dni).replace(/\D/g, ''); const hoy = new Date().toISOString().slice(0, 10);
-    const cp = p.canjesCliente && String(p.canjesCliente.dni).replace(/\D/g, '') === d ? (p.canjesCliente.lista || []).filter((k) => /pendiente/i.test(k.estado || '')) : [];
-    const rec = c.saldo < 0 ? [] : (p.recompensas || []).filter((r) => (r.estado === 'Activa') && r.stock > 0 && (!r.fechaVencimiento || r.fechaVencimiento >= hoy) && r.puntos <= c.saldo);
+    const K = window.VCCanjes; const cliK = { tipo: c.tipo || 'DNI', num: d, nombre: c.nombre };
+    const cp = K ? K.canjesDe(cliK.tipo, d).filter((k) => K.vigente(k)).sort((a, b) => a.venceTs - b.venceTs) : [];
+    const rec = !K || c.saldo < 0 ? [] : K.recompensas().filter((r) => K.puedeCanjear(r, c.saldo).ok).sort((a, b) => a.puntos - b.puntos); void hoy;
     const lim = p.rol === 'Administrador' ? 0 : Date.now() - 864e5;
     let mv = (S ? S.movsConSaldo().filter((m) => m.cid === c.id && m.ts >= lim).reverse() : []).map((m) => ({ detalle: m.detalle, fecha: this.fdt(m.ts), pts: m.pts }));
     const ml = p.movsCliente && String(p.movsCliente.dni).replace(/\D/g, '') === d ? (p.movsCliente.lista || []) : [];
     if (!mv.length && ml.length) mv = ml.filter((m) => !lim || (typeof m.ts === 'number' && m.ts >= lim)).map((m) => ({ detalle: m.motivo, fecha: m.fecha, pts: Number(m.cantidad) || 0 }));
     mv = mv.slice(0, 5);
-    return { canjes: cp.map((k) => ({ recompensa: k.recompensa, codigo: k.codigo, puntos: this.num(k.puntos) })), sinCanjes: !cp.length,
-      recompensas: rec.map((r) => ({ nombre: r.nombre, puntos: this.num(r.puntos) })), sinRec: !rec.length,
+    return { canjes: cp.map((k) => ({ recompensa: k.recompensa, codigo: k.codigo, puntos: this.num(k.puntos), vence: K.venceTxt(k), venceColor: K.minutosRestantes(k) <= 2 ? '#b3261e' : '#7a6e63',
+        usar: () => this.setState({ acc: { accion: 'usar', codigo: k.codigo } }), rechazar: () => this.setState({ acc: { accion: 'rechazar', codigo: k.codigo } }) })), sinCanjes: !cp.length,
+      recompensas: rec.map((r) => ({ nombre: r.nombre, puntos: this.num(r.puntos), canjear: () => this.setState({ acc: { accion: 'confirmar', rid: r.id, cliente: cliK } }) })), sinRec: !rec.length,
+      sinRecTxt: c.saldo < 0 ? 'El cliente tiene un ajuste pendiente: no puede canjear.' : 'No tiene puntos suficientes para ninguna recompensa disponible.',
       movs: mv.map((m) => ({ detalle: m.detalle, fecha: m.fecha, pts: (m.pts > 0 ? '+' : '−') + this.num(Math.abs(m.pts)) + ' pts', color: m.pts < 0 ? '#b3261e' : '#4e5e41' })), sinMovs: !mv.length, movTitulo: lim ? 'Movimientos de las últimas 24 hs' : 'Últimos movimientos' };
   }
   datos24(c) {
@@ -191,7 +216,8 @@ class Component extends DCLogic {
       preview: !!p.n && !!c, bono: (c && p.n && S.primeraCompra(c.id)) ? this.bono(pts) : 0, ptsTxt: this.num(pts + ((c && p.n && S.primeraCompra(c.id)) ? this.bono(pts) : 0)), ptsDesglose: (c && p.n && S.primeraCompra(c.id) && this.bono(pts) > 0) ? ' (' + this.num(pts) + ' + ' + this.num(this.bono(pts)) + ' de bonificación por primer consumo)' : '', resTxt: c ? this.num(c.saldo + pts + ((p.n && S.primeraCompra(c.id)) ? this.bono(pts) : 0)) : '',
       obs: s.obs, obsLen: s.obs.length + '/255', onObs: (ev) => this.setState({ obs: String(ev.target.value).slice(0, 255) }),
       eqTxt: this.money(e.base) + ' = ' + this.num(e.pts) + ' pts',
-      cancelar: this.reset, registrar: this.registrar, otro: this.reset,
+      cancelar: this.reset, registrar: this.pedirConf, otro: this.reset,
+      rc: { open: !!s.rcOpen }, cerrarRc: () => this.setState({ rcOpen: false }), aceptarRc: this.registrar,
       esAdmin: (this.props || {}).rol === 'Administrador',
       ver24: s.ver24, toggle24: () => this.setState({ ver24: !s.ver24 }), rot24: s.ver24 ? 'rotate(90deg)' : 'none', txt24: s.ver24 ? 'Ocultar movimientos de las últimas 24 hs' : 'Ver movimientos de las últimas 24 hs',
       nota24: (this.props || {}).rol === 'Administrador' ? 'Consumos registrados en las últimas 24 hs. Como administrador podés anular cualquiera.' : 'Consumos registrados en las últimas 24 hs. Solo podés anular los que registraste vos.',
@@ -202,6 +228,8 @@ class Component extends DCLogic {
       onMotivo: (e) => this.setState({ an: { ...this.state.an, motivo: e.target.value, err: '' } }),
       cerrarAn: () => this.setState({ an: { ...s.an, open: false, ask: false } }), confirmarAn: this.confirmarAn,
       anNuevo: () => this.setState({ an: { ...s.an, open: false, ask: false }, monto: '', obs: '', montoErr: '', ver24: false }),
+      acc: s.acc ? { open: true, accion: s.acc.accion, codigo: s.acc.codigo || '', rid: s.acc.rid || 0, cliente: s.acc.cliente || {}, usuario: (this.props || {}).usuario || '',
+        cerrar: () => this.setState({ acc: null }), hecho: (msg) => { this.setState({ acc: null, toast: msg }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 4000); } } : { open: false },
       verDetalle: () => { if (this.props && this.props.onVerDetalle) this.props.onVerDetalle(s.codigo); }
     };
   }
