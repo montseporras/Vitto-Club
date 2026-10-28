@@ -153,9 +153,9 @@ export function ConsumptionDetailPage() {
         <VoidConsumptionModal
           consumption={data}
           onClose={closeVoidModal}
-          // "Sí, registrar consumo": Buscar cliente con el mismo cliente cargado, como la ficha
+          // "Sí, registrar consumo": Buscar cliente del panel de Caja con el mismo cliente cargado
           onRegisterNew={() =>
-            navigate('../../buscar-cliente', {
+            navigate('../../../caja/cliente', {
               relative: 'path',
               state: {
                 documentType: customer.documentType,

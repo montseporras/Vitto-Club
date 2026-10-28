@@ -139,23 +139,14 @@ export const router = createBrowserRouter([
           return { Component: CustomerDetailPage }
         },
       },
+      // Buscar cliente se usa desde Caja; Movimientos de puntos se ve en la ficha (CA-NAV.3)
       {
-        // El mismo "Buscar cliente" de Caja; "Registrar cliente" lleva a Clientes (§3.1.1)
-        path: PATHS.admin.identifyCustomer,
-        lazy: async () => {
-          const { IdentifyCustomerPage } = await import('@/features/cashier')
-          return {
-            Component: () => <IdentifyCustomerPage newCustomerPath={PATHS.admin.customers} />,
-          }
-        },
+        path: PATHS.admin.oldIdentifyCustomer,
+        element: <Navigate to={PATHS.cashier.customer} replace />,
       },
       {
-        // Listado de movimientos de puntos (US-26)
-        path: PATHS.admin.pointsMovements,
-        lazy: async () => {
-          const { PointsMovementsPage } = await import('@/features/points-movements')
-          return { Component: PointsMovementsPage }
-        },
+        path: PATHS.admin.oldPointsMovements,
+        element: <Navigate to={PATHS.admin.customers} replace />,
       },
       {
         // Sección Consumos: listado y detalle (US-23)

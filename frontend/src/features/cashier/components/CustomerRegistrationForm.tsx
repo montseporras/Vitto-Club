@@ -54,6 +54,8 @@ type CustomerRegistrationFormProps = {
   onCreated?: (customer: Customer) => void
   /** Muestra el aviso de éxito arriba del formulario (Caja). Sin él, lo muestra quien lo usa. */
   showSuccess?: boolean
+  /** Con él, la botonera suma "Cancelar" (Nuevo cliente de Caja, prototipo v2). */
+  onCancel?: () => void
   /**
    * Cómo se ubican los avisos (éxito y error) respecto del formulario. Por defecto, uno abajo
    * del otro; "Nuevo cliente" de Caja pone los avisos arriba de la tarjeta.
@@ -80,6 +82,7 @@ export function CustomerRegistrationForm({
   initialDocument,
   onCreated,
   showSuccess = true,
+  onCancel,
   layout = defaultLayout,
 }: CustomerRegistrationFormProps) {
   const {
@@ -270,6 +273,17 @@ export function CustomerRegistrationForm({
       </FormSection>
 
       <FormActions message="Los campos marcados con * son obligatorios">
+        {onCancel && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={onCancel}
+            className="w-full sm:w-auto"
+          >
+            Cancelar
+          </Button>
+        )}
         <Button
           type="submit"
           size="lg"

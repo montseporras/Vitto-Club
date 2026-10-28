@@ -76,10 +76,11 @@ export const useCustomerMovements = (
   customerId: number | null,
   limit: number,
   enabled: boolean,
+  page = 1,
 ) =>
   useQuery<Paginated<PointsMovement>, ApiError>({
-    queryKey: cashierKeys.movements(customerId ?? 0, limit),
-    queryFn: () => getCustomerMovements(customerId!, limit),
+    queryKey: cashierKeys.movements(customerId ?? 0, limit, page),
+    queryFn: () => getCustomerMovements(customerId!, limit, page),
     enabled: enabled && customerId !== null,
     retry: (count, error) => error.status === undefined && count < 1,
   })

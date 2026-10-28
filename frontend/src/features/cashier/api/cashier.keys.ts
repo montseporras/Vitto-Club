@@ -15,6 +15,6 @@ export const cashierKeys = {
   points: (customerId: number) => ['customers', customerId, 'points'] as const,
   consumptionPreview: (customerId: number, amount: number) =>
     ['consumptions', 'preview', customerId, amount] as const,
-  movements: (customerId: number, limit: number) =>
-    ['customers', customerId, 'movements', { limit }] as const,
+  movements: (customerId: number, limit: number, page: number) =>
+    ['customers', customerId, 'movements', { limit, page }] as const,
 }

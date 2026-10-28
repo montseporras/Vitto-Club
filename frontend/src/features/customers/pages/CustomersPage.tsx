@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES, type DocumentType } from '@/domain/documents'
 import { LEVELS, type Level } from '@/domain/levels'
 import { CUSTOMER_REGISTERED_MESSAGE } from '@/features/cashier'
 import { StatusText } from '@/shared/components/feedback/StatusText'
@@ -32,6 +33,17 @@ import { DeactivateCustomerDialog } from '../components/DeactivateCustomerDialog
 import { RegisterCustomerModal } from '../components/RegisterCustomerModal'
 import type { CustomerListItem } from '../types/customers'
 
+const DOCUMENT_TYPE_OPTIONS = DOCUMENT_TYPE_VALUES.map((value) => ({
+  value,
+  label: DOCUMENT_TYPES[value].label,
+}))
+
+// Placeholder del número según el tipo (Sprint 4, §3.13.4)
+const DOCUMENT_PLACEHOLDERS: Record<DocumentType, string> = {
+  DNI: '38.456.123',
+  PASSPORT: 'AAB123456',
+}
+
 const LEVEL_OPTIONS = [
   { value: '', label: 'Todos los niveles' },
   ...(Object.keys(LEVELS) as Level[]).map((level) => ({ value: level, label: LEVELS[level] })),
@@ -39,12 +51,13 @@ const LEVEL_OPTIONS = [
 
 /** Clientes del Administrador (CLI-ADM, contrato §3.8): listado, Ver más, editar, eliminar y alta. */
 export function CustomersPage() {
+  const [documentType, setDocumentType] = useState<DocumentType>('DNI')
   const [search, setSearch] = useState('')
   const [level, setLevel] = useState<Level | ''>('')
   const [page, setPage] = useState(1)
   // Se busca cuando se deja de escribir, para no pedir el listado en cada tecla
-  const q = useDebounce(search.trim(), 300)
-  const customers = useCustomers({ q, level, page })
+  const documentNumber = useDebounce(search.trim(), 300)
+  const customers = useCustomers({ documentType, documentNumber, level, page })
 
   const [selected, setSelected] = useState<CustomerListItem | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -65,12 +78,23 @@ export function CustomersPage() {
   return (
     <Page className="max-w-6xl">
       <PageCard title="Clientes" variant="plain">
-        <div className="grid gap-4 sm:grid-cols-[1fr_16rem]">
-          <FormField id="customers-search" label="Buscar" hideRequiredMark>
+        <div className="grid gap-4 sm:grid-cols-[11rem_1fr_16rem]">
+          <FormField id="customers-document-type" label="Tipo de documento" hideRequiredMark>
+            <Select
+              id="customers-document-type"
+              options={DOCUMENT_TYPE_OPTIONS}
+              value={documentType}
+              onChange={(event) => {
+                setDocumentType(event.target.value as DocumentType)
+                setPage(1)
+              }}
+            />
+          </FormField>
+          <FormField id="customers-search" label="Número de documento" hideRequiredMark>
             <Input
               id="customers-search"
               type="search"
-              placeholder="Apellido, nombre o documento"
+              placeholder={DOCUMENT_PLACEHOLDERS[documentType]}
               autoComplete="off"
               value={search}
               onChange={(event) => {

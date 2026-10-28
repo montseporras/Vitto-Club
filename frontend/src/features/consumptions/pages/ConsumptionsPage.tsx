@@ -198,7 +198,7 @@ export function ConsumptionsPage() {
               <span className="mr-2 text-sm text-accent-700">Sin aplicar</span>
             )}
             <Button type="submit" size="md" disabled={result.isFetching}>
-              <Icon d={ICONS.search} />
+              <Icon d={ICONS.filter} />
               Filtrar
             </Button>
           </div>

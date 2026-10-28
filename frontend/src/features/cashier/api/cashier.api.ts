@@ -60,11 +60,11 @@ export async function getCustomerPoints(customerId: number) {
   }
 }
 
-export async function getCustomerMovements(customerId: number, limit: number) {
+export async function getCustomerMovements(customerId: number, limit: number, page = 1) {
   try {
     const res = await http.get<Paginated<PointsMovement>>(
       `/customers/${customerId}/movimientos`,
-      { params: { limit } },
+      { params: { limit, page } },
     )
     return res.data
   } catch (error) {

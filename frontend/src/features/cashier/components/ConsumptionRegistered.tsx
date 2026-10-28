@@ -72,9 +72,9 @@ export function ConsumptionRegistered({
           Registrar otro consumo
         </Button>
         {canViewDetail && (
-          // Detalle del consumo (US-23). Relativo a /admin/buscar-cliente: un feature no importa de app/
+          // Detalle del consumo (US-23). Relativo a /caja/cliente: un feature no importa de app/
           <Link
-            to={`../consumos/${consumption.code}`}
+            to={`../../admin/consumos/${consumption.code}`}
             relative="path"
             className={buttonVariants({ size: 'lg' })}
           >
