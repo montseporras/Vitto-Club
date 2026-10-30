@@ -4,7 +4,7 @@
 > partir de:
 > - el prototipo *Vitto Club Prototipo v2* con las pantallas del Sprint 4 (`docs/prototipo/v2/`, 25/10/2026);
 > - `PROMPT_PROTOTIPO_SPRINT_4.md` (lo que la PO aprobó para cada pantalla);
-> - las decisiones de la PO del 25/10/2026 (`DECISIONES_PO_2026-10-25.md`);
+> - las decisiones de la PO del 25/10/2026 (ver [8.3](#83-decisiones-del-sprint-4));
 > - la sección 9 de la *Definición del Producto* (máquinas de estado de Canje y Recompensa);
 > - el contrato del Sprint 3, que ya dejó definidas las acciones de auditoría del Sprint 4.
 >
@@ -1118,8 +1118,8 @@ El prototipo del Sprint 4 se armó con este contrato en mente, así que hay poca
 
 | # | Tema | Decisión | Quién / cuándo |
 |---|---|---|---|
-| S4-1 | Cuándo se descuentan puntos y stock | **Opción B:** al registrar el uso. Confirmar no descuenta; cancelar, rechazar y vencer no reintegran | Deni, 25/10 (`DECISIONES_PO_2026-10-25.md`, CANJE) |
-| S4-2 | Validación del saldo al confirmar | **Solo en la pantalla**, con el saldo que ya tiene cargado, para no ir a la base a cada rato. La validación real es al usar. Reemplaza la regla 2 de CANJE de `DECISIONES_PO_2026-10-25.md` (saldo y stock "disponibles"), que **queda sin efecto** | Deni, 25/10 (respuesta 18 del prompt del prototipo) |
+| S4-1 | Cuándo se descuentan puntos y stock | **Opción B:** al registrar el uso. Confirmar no descuenta; cancelar, rechazar y vencer no reintegran | Deni, 25/10 |
+| S4-2 | Validación del saldo al confirmar | **Solo en la pantalla**, con el saldo que ya tiene cargado, para no ir a la base a cada rato. La validación real es al usar. | Deni, 25/10 |
 | S4-3 | Plazo del canje | **15 minutos** desde que se confirma, constante | Deni, 25/10 |
 | S4-4 | Cómo vence | Al leer + barrido cada 5 min + al iniciar (máquina de estados v1.0) | Máquina v1.0; Deni, 25/10 |
 | S4-5 | Código del canje | 6 caracteres sin 0/O/1/I, aleatorio, único; con él se sabe el cliente y la recompensa. Se escribe a mano | Deni, 25/10 (respuesta 11) |

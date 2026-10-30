@@ -148,9 +148,8 @@ decida, se completa la columna "Decisión" y se corrige el contrato si hace falt
 | PD-5 | Textos de US-43 y US-44 en el backlog ("reintegrando puntos…") y RF del Story Map | Solo documentación | |
 | PD-6 | ¿Se avisa al Cliente cuando un canje suyo se rechaza? Propuesta: no en este sprint | US-43 | |
 
-> **Corrección de `DECISIONES_PO_2026-10-25.md`:** la regla 2 de CANJE (validar saldo y stock "disponibles"
-> al confirmar) **quedó reemplazada** por la decisión S4-2 del contrato: el saldo se valida solo en la
-> pantalla al confirmar, y de verdad al usar. No es un pendiente: está decidido.
+> **Saldo al confirmar:** se valida solo en la pantalla, con el saldo que ya tiene cargado, y de verdad al usar
+> (decisión S4-2 del contrato). No es un pendiente: está decidido.
 
 ---
 
