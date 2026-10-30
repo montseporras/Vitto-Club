@@ -13,6 +13,14 @@
 >   "Movimientos de puntos" fuera del menú de Administración ([3.13](#313-cambios-en-pantallas-y-endpoints-existentes));
 > - el efecto de la **baja de un cliente** sobre sus canjes ([3.13](#313-cambios-en-pantallas-y-endpoints-existentes)).
 >
+> **Versión 1.2 (30/10/2026):** `usedCount + 1` al registrar el uso ([3.9.1](#391-patch-apicanjescodeusar-a-c));
+> validación de `rewardId` al confirmar ([3.7.1](#371-post-apicustomersmecanjes-cl-y-post-apicustomersidcanjes-a-c));
+> mensajes de validación y de pantalla que faltaban ([3.2.3](#323-post-apirecompensas--crear-us-34),
+> [3.7.2](#372-pantallas)); la fecha de vencimiento se valida siempre al editar una recompensa
+> ([3.2.4](#324-patch-apirecompensasid--editar-us-35)); límites de "Hoy", "Últimos 7 días" y "Este mes"
+> ([3.12.1](#3121-get-apicustomersmecanjes--mis-canjes-cl)); "El cliente" como quien resolvió un canje Cancelado
+> en la tabla del Administrador ([3.12.3](#3123-get-apicanjes--pantalla-canjes-del-administrador)).
+>
 > **Versión 1.1 (27/10/2026):** la foto de la recompensa pasa al Sprint 5; las filas de Recompensas y Canjes
 > se abren con un clic (sin botones); los filtros de cliente de Canjes y de Clientes son por tipo y número de
 > documento; el filtro de recompensa de Canjes es por nombre (decisiones S4-17 a S4-20).
@@ -268,9 +276,12 @@ botón **"+ Crear recompensa"**.
 |---|---|---|---|---|
 | `name` | string | Sí | Se recorta. 1 a 80 caracteres. **Único** entre las recompensas que no están `DELETED`, sin distinguir mayúsculas ni espacios de los extremos | Vacío: "Completá este campo." · > 80: "Máximo 80 caracteres." · repetido: `409 REWARD_NAME_IN_USE` "Ya existe una recompensa con ese nombre." |
 | `description` | string \| null | No | Se recorta. Hasta 255. Vacío = `null` | "Máximo 255 caracteres." |
-| `points` | entero | Sí | 1 a 1.000.000 | "Ingresá un número entero mayor a 0." · "El máximo es 1.000.000 puntos." |
-| `stock` | entero \| null | Sí (puede ser `null`) | `null` = sin límite. Si tiene valor: **1** a 100.000 al crear | "Ingresá un número entero mayor a 0." · "El máximo es 100.000." |
+| `points` | entero | Sí | 1 a 1.000.000 | Vacío: "Completá este campo." · "Ingresá un número entero mayor a 0." · "El máximo es 1.000.000 puntos." |
+| `stock` | entero \| null | Sí (puede ser `null`) | `null` = sin límite. Si tiene valor: **1** a 100.000 al crear | "Ingresá un número entero mayor a 0." · no entero (con decimales o texto): "Ingresá un número entero, sin decimales." · "El máximo es 100.000." |
 | `expiresAt` | `YYYY-MM-DD` \| null | Sí (puede ser `null`) | `null` = no vence. Si tiene valor: hoy o posterior (hora de Argentina) | "La fecha no puede ser anterior a hoy." |
+
+Si el body no trae `name`, `points`, `stock` o `expiresAt`, la respuesta es `400` "Completá este campo." (`stock` y
+`expiresAt` pueden valer `null`, pero tienen que venir).
 
 **Qué hace:** crea la recompensa en `ACTIVE` y audita `REWARD_CREATED`.
 
@@ -297,7 +308,7 @@ venir al menos uno (`400` "Indicá al menos un campo para modificar."). Diferenc
 | Campo | Regla al editar |
 |---|---|
 | `stock` | 0 a 100.000 o `null`. **No puede ser menor que `confirmedCount`**: `409 STOCK_BELOW_CONFIRMED` "El stock no puede ser menor a los {n} canjes confirmados." |
-| `expiresAt` | Si viene con valor, hoy o posterior (igual que al crear). Para dejarla sin vencimiento se manda `null` |
+| `expiresAt` | Si viene con valor, hoy o posterior (igual que al crear). Se valida **siempre** que venga, aunque sea la misma fecha que ya tiene: una recompensa vencida no se puede guardar con su fecha vieja (hay que cambiarla o mandar `null` para dejarla sin vencimiento) |
 | `points` | Cambiarlos **no** afecta a los canjes ya confirmados: conservan los puntos con los que se pidieron |
 
 **No se puede editar** una recompensa `DELETED` (`404`). Sí se puede editar una `INACTIVE` o `DISABLED`.
@@ -535,8 +546,9 @@ Para el bloque "Recompensas a las que puede acceder" del panel del cliente en Ca
 
 | Orden | Validación | Error |
 |---|---|---|
-| 1 | El cliente existe y está activo. En la ruta del Cliente sale del token | `404` · `409 CUSTOMER_INACTIVE` "El cliente está dado de baja." |
-| 2 | La recompensa existe, no está `DELETED` y está **disponible** ([3.1](#31-tipo-reward)) | `404` "No existe la recompensa." · `409 REWARD_NOT_AVAILABLE` "La recompensa ya no está disponible." |
+| 1 | `rewardId` viene y es un entero ≥ 1 | Falta: `400` "Completá este campo." · No es entero o es < 1: `400` "Ingresá un número entero mayor a 0." |
+| 2 | El cliente existe y está activo. En la ruta del Cliente sale del token | `404` · `409 CUSTOMER_INACTIVE` "El cliente está dado de baja." |
+| 3 | La recompensa existe, no está `DELETED` y está **disponible** ([3.1](#31-tipo-reward)) | `404` "No existe la recompensa." (no existe o está `DELETED`, igual que [3.2.2](#322-get-apirecompensasid)) · `409 REWARD_NOT_AVAILABLE` "La recompensa ya no está disponible." |
 
 **Qué hace:**
 
@@ -565,6 +577,9 @@ con `INSUFFICIENT_BALANCE` y el Cajero los rechaza.
 - "Vas a canjear {n} puntos por esta recompensa. Los puntos se descuentan cuando lo uses en el local. Tenés 15
   minutos para presentar el código en caja."
 - Botones: Cancelar · Confirmar.
+- Validación de pantalla (decisión S4-2), con el botón Confirmar deshabilitado: `balance < points` → "No te
+  alcanzan los puntos para esta recompensa."; `balance < 0` → "Tenés un ajuste pendiente. Comunicate con el
+  restaurante.".
 - Errores del backend: `REWARD_NOT_AVAILABLE` → "Esta recompensa ya no está disponible." y se refresca el
   catálogo.
 
@@ -578,8 +593,9 @@ con `INSUFFICIENT_BALANCE` y el Cajero los rechaza.
 
 **Caja → panel del cliente → "Recompensas a las que puede acceder" → Canjear:**
 
-- Ventana "Canjear recompensa": cliente, recompensa, puntos y el texto "Confirmá que el cliente acepta el
-  canje. Los puntos se descuentan cuando se registra el uso; el canje dura 15 minutos."
+- Ventana "Canjear recompensa": cliente, recompensa, puntos, "Saldo: {saldo} pts → {saldo − n} pts al usarlo" y el
+  texto "Confirmá que el cliente acepta el canje. Los puntos se descuentan cuando se registra el uso; el canje
+  dura 15 minutos."
 - Validación de pantalla, antes de llamar: "El cliente no tiene puntos suficientes para esta recompensa." o
   "El cliente tiene un ajuste pendiente: no puede canjear.".
 - Al confirmar (`201`), pregunta **"¿Aplicar el canje ahora?"** (No, después · Sí, aplicar). "Sí, aplicar"
@@ -635,7 +651,7 @@ Sin body.
 | 5 | La recompensa está disponible ([3.1](#31-tipo-reward)) | `409 REWARD_NOT_AVAILABLE` "La recompensa ya no está disponible. Podés rechazar el canje." |
 | 6 | **Saldo real:** `balance >= redemption.points` y `balance >= 0` | `409 INSUFFICIENT_BALANCE` "El cliente no tiene saldo suficiente para este canje. Podés rechazarlo." |
 | 7 | Descuenta los puntos con `PointsService.canjear`: de los lotes `ACTIVE` en orden de vencimiento (FIFO), igual que el ajuste `SUBTRACT`. Registra el movimiento `REDEMPTION` por `−points` con `balanceAfter`, `redemptionId` y la descripción "Canje: {recompensa}". **No cambia `lifetimePoints`** (canjear no baja el nivel) | — |
-| 8 | Si la recompensa tiene stock (`!= null`): `stock − 1`. Si llega a 0 → `DISABLED` / `OUT_OF_STOCK` y `REWARD_DISABLED` (Sistema) | — |
+| 8 | `usedCount + 1`, siempre (tenga o no stock). Si la recompensa tiene stock (`!= null`): `stock − 1`; si llega a 0 → `DISABLED` / `OUT_OF_STOCK` y `REWARD_DISABLED` (Sistema). Todo en la misma transacción | — |
 | 9 | Pasa el canje a `USED`: `resolvedAt`, `resolvedBy` (el empleado del token), `balanceBefore` y `balanceAfter` | — |
 | 10 | Audita `REDEMPTION_USED` a nombre del empleado | — |
 
@@ -748,7 +764,7 @@ Sin endpoint. ✅ Mecanismo de la máquina de estados v1.0 (decisión S4-4):
 | Query param | Tipo | Regla | UI |
 |---|---|---|---|
 | `status` | `RedemptionStatusGroup` | Sin valor = todos | "Estado": Todos · Confirmados · Finalizados |
-| `fromDate` / `toDate` | `YYYY-MM-DD` | Inclusivos, por `createdAt`, en hora de Argentina. `fromDate > toDate` → `400` | "Fecha": Cualquiera · Hoy · Últimos 7 días · Este mes · Día específico (`fromDate = toDate`) · Rango |
+| `fromDate` / `toDate` | `YYYY-MM-DD` | Inclusivos, por `createdAt`, en hora de Argentina. `fromDate > toDate` → `400`. La pantalla arma los atajos así: **Hoy** = hoy a hoy; **Últimos 7 días** = hoy−6 a hoy (7 días contando hoy); **Este mes** = día 1 del mes a hoy | "Fecha": Cualquiera · Hoy · Últimos 7 días · Este mes · Día específico (`fromDate = toDate`) · Rango |
 | `order` | `desc` \| `asc` | Por defecto `desc` (por `createdAt`) | "Orden": Más recientes · Más antiguos |
 | `page` / `limit` | | Por defecto `1` / `20`. La pantalla usa `limit=100` | |
 
@@ -811,7 +827,7 @@ Sin endpoint. ✅ Mecanismo de la máquina de estados v1.0 (decisión S4-4):
   Consumos).
 - **Columnas:** Código · Fecha y hora · Cliente (nombre y documento) · Recompensa · Puntos · Estado (badge) ·
   "Vence / resuelto" (con `CONFIRMED`: "Vence en {n} min"; con un estado final: fecha y hora y quién lo
-  resolvió) · chevron (›). **Las filas no tienen botones** (decisión S4-19). Debajo del título: "Hacé clic en
+  resolvió; en `CANCELLED`, "El cliente") · chevron (›). **Las filas no tienen botones** (decisión S4-19). Debajo del título: "Hacé clic en
   un canje para ver el detalle y aplicarlo o rechazarlo.".
 - **Clic en la fila** abre el modal **"Canje {código}"**:
   - arriba, el badge del estado y, con `CONFIRMED`, "Vence en {n} min";

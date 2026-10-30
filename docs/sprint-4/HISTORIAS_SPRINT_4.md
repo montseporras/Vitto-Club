@@ -11,6 +11,10 @@
 > (`docs/prototipo/v2/`). Si un criterio de acá choca con el contrato, **manda el contrato**. Hay que
 > avisar para corregir este archivo.
 >
+> **Versión 1.2 (30/10/2026):** se alinea con el contrato v1.2: CA-35.2 (fecha vencida), CA-40.8 (saldo en
+> "Canjear recompensa"), CA-40.11 (nuevo, `rewardId`), CA-45.1 (límites de las fechas rápidas) y el nombre de
+> `rechazarConfirmados(filtro, motivo)`.
+>
 > **Versión 1.1 (27/10/2026):** foto de la recompensa al Sprint 5; filas de Recompensas y Canjes sin
 > botones (clic → modal); buscadores de cliente por tipo y número de documento; recompensa por nombre en
 > Canjes. Se agrega el ítem **CLI-DOC**.
@@ -123,7 +127,7 @@ FRONTEND
 | Generador del código de canje | **BASE-4** | US-40 |
 | "Vencer al leer" (`vencerVencidos`) y el barrido de 5 minutos | **US-44** | US-41, US-42, US-43, US-45 |
 | Disponibilidad de la recompensa (`estaDisponible`, con la fecha de Argentina) | **BASE-4** | US-35, US-37, US-39, US-40, US-42 |
-| Rechazo automático de canjes (`rechazarConfirmados(motivo)`) y listeners de `reward.deactivated`, `reward.deleted` y `customer.deactivated` | **US-43** | US-36, US-38, baja de clientes |
+| Rechazo automático de canjes (`rechazarConfirmados(filtro, motivo)`) y listeners de `reward.deactivated`, `reward.deleted` y `customer.deactivated` | **US-43** | US-36, US-38, baja de clientes |
 | Etiqueta de vencimiento ("Vence en {n} d", "Agotada", etc.) (frontend) | **US-39** | US-34, US-35 (listado), US-40 |
 | Cuenta regresiva del canje (frontend) | **US-40** | US-41, US-42, US-45 |
 | Ventana "Registrar uso del canje" (frontend) | **US-42** | Panel de Caja, Canjes por código, Canjes del Administrador |
@@ -333,8 +337,9 @@ base con datos del Sprint 3.
   - se guarda y sube a la primera fila del listado;
   - se audita `REWARD_UPDATED` con "Stock: 0 → 20";
   - si cambió más de un campo, hay una fila por cada uno.
-- **CA-35.2 [B] Sin cambios.** Dado un `PATCH` con los mismos valores, entonces responde `200` y **no**
-  audita. Un body vacío responde `400` "Indicá al menos un campo para modificar.".
+- **CA-35.2 [B] Sin cambios.** Dado un `PATCH` con los mismos valores y la fecha de vencimiento todavía
+  vigente (o `null`), entonces responde `200` y **no** audita. Si la recompensa está vencida y el body trae su
+  fecha vieja, responde `400` (CA-35.8): la fecha se valida siempre. Un body vacío responde `400` "Indicá al menos un campo para modificar.".
 - **CA-35.3 [B+F] Stock y canjes confirmados.**
   - Dada una recompensa con 2 canjes confirmados vigentes, el modal muestra "Hay 2 canjes confirmados. El stock
     no puede ser menor a 2.".
@@ -609,7 +614,7 @@ estado nuevo en la fila.
   - En el panel del cliente, "Recompensas a las que puede acceder" muestra solo las de
     `GET /recompensas/disponibles` con `points <= saldo` (el saldo que ya cargó la búsqueda).
   - Con saldo negativo, ninguna, y el texto "El cliente tiene un ajuste pendiente: no puede canjear.".
-  - Canjear abre "Canjear recompensa" con "Confirmá que el cliente acepta el canje. Los puntos se descuentan
+  - Canjear abre "Canjear recompensa" con "Saldo: {saldo} pts → {saldo − n} pts al usarlo" y "Confirmá que el cliente acepta el canje. Los puntos se descuentan
     cuando se registra el uso; el canje dura 15 minutos.".
 - **CA-40.9 [F] "¿Aplicar el canje ahora?"** Después del `201`:
   - "Sí, aplicar" sigue con la ventana de registrar uso de US-42.
@@ -619,6 +624,9 @@ estado nuevo en la fila.
   - `/customers/me/canjes` es solo del Cliente.
   - `POST /customers/:id/canjes` es solo de Cajero y Administrador.
   - Un Cliente no puede confirmar a nombre de otro (no hay `customerId` en su body: `400` si lo manda).
+- **CA-40.11 [B] `rewardId`.** Un body sin `rewardId` responde `400` "Completá este campo."; con un valor que
+  no es entero o es menor a 1, `400` "Ingresá un número entero mayor a 0."; con una recompensa inexistente o
+  dada de baja, `404` "No existe la recompensa." (contrato §3.7.1).
 
 **Casos de prueba (e2e):**
 - Confirmar desde la app y desde la caja: saldo, movimientos, stock y auditoría sin cambios, salvo
@@ -626,6 +634,7 @@ estado nuevo en la fila.
 - Formato y unicidad del código.
 - Recompensa en cada estado no disponible.
 - Saldo insuficiente → `201`.
+- `rewardId` ausente, no entero o menor a 1 (`400`); recompensa inexistente o dada de baja (`404`).
 - Cliente inactivo.
 - Permisos.
 
@@ -867,7 +876,7 @@ estado nuevo en la fila.
 
 - **CA-45.1 [B+F] Mis canjes: filtros.**
   - Estado: Todos · Confirmados · Finalizados.
-  - Fecha: Cualquiera · Hoy · Últimos 7 días · Este mes · Día específico · Rango. La pantalla los traduce a
+  - Fecha: Cualquiera · Hoy · Últimos 7 días (hoy−6 a hoy) · Este mes (día 1 a hoy) · Día específico · Rango. La pantalla los traduce a
     `fromDate` / `toDate` en hora de Argentina; un rango invertido muestra "La fecha "hasta" no puede ser
     anterior a "desde"." sin llamar.
   - Orden: Más recientes · Más antiguos.
@@ -902,7 +911,7 @@ estado nuevo en la fila.
   - Se aplican con **Filtrar**; mientras tanto, "Sin aplicar".
 - **CA-45.8 [F] Canjes del Administrador: tabla.**
   - Las columnas de la §3.12.3, con un chevron (›) al final.
-  - "Vence en {n} min" o "fecha y quién lo resolvió".
+  - "Vence en {n} min" o "fecha y quién lo resolvió" (en Cancelado, "El cliente").
   - **Las filas no tienen botones.** Debajo del título: "Hacé clic en un canje para ver el detalle y aplicarlo o
     rechazarlo.".
   - Paginado de a 10.
