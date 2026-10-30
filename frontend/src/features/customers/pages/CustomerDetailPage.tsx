@@ -41,15 +41,17 @@ import {
 } from '@/styles/ui'
 import { useCustomer, useCustomerConsumptions } from '../api/customers.queries'
 
-// Las pestañas de la ficha muestran 5 ítems cada una (contrato §3.4.1)
+// La pestaña de consumos muestra los últimos 5 (contrato del Sprint 3, §3.4.1). La de movimientos
+// muestra todos, de a 10 (contrato del Sprint 4, §3.13.3)
 const TAB_LIMIT = 5
+const MOVEMENTS_PAGE_SIZE = 10
 
 type Tab = 'consumptions' | 'movements'
 
 /**
  * "Ver ficha" de Clientes: la ficha del cliente con rol Administrador (contrato §3.8.5 y §3.4.1,
- * prototipo FichaCliente). "Ajustar puntos" abre el modal de US-24; "Ver todos" lleva a
- * pantallas que todavía no existen: quedan como "Próximamente".
+ * prototipo FichaCliente). "Ajustar puntos" abre el modal de US-24; "Ver todos" lleva a Consumos
+ * filtrado por el cliente.
  */
 export function CustomerDetailPage() {
   const id = Number(useParams().id)
@@ -118,9 +120,9 @@ export function CustomerDetailPage() {
             {data.firstName} {data.lastName}
           </h2>
           <div className="flex flex-wrap gap-2">
-            {/* Va a "Buscar cliente" con el documento ya cargado, como el prototipo */}
+            {/* Va a "Buscar cliente" del panel de Caja con el documento ya cargado */}
             <Link
-              to="../../buscar-cliente"
+              to="../../../caja/cliente"
               relative="path"
               state={{ documentType: data.documentType, documentNumber: data.documentNumber }}
               className={buttonVariants({ size: 'lg' })}
@@ -289,7 +291,7 @@ function ConsumptionsTab({
                 <Link
                   to={`../../consumos/${consumption.code}`}
                   relative="path"
-                  className={buttonVariants({ variant: 'ghost' })}
+                  className={buttonVariants({ variant: 'secondary' })}
                 >
                   Ver
                 </Link>
@@ -298,13 +300,13 @@ function ConsumptionsTab({
           ))}
         </tbody>
       </Table>
-      <div className="mt-4 flex justify-end">
+      <div className="mt-3">
         {/* Consumos filtrado por este cliente; el documento se muestra en el filtro Cliente (US-23) */}
         <Link
           to={`../../consumos?customerId=${customerId}`}
           relative="path"
           state={{ documentNumber }}
-          className={buttonVariants({ variant: 'secondary' })}
+          className={buttonVariants({ variant: 'ghost' })}
         >
           Ver todos
         </Link>
@@ -314,7 +316,8 @@ function ConsumptionsTab({
 }
 
 function MovementsTab({ customerId }: { customerId: number }) {
-  const movements = useCustomerMovements(customerId, TAB_LIMIT, true)
+  const [page, setPage] = useState(1)
+  const movements = useCustomerMovements(customerId, MOVEMENTS_PAGE_SIZE, true, page)
 
   if (movements.isPending) return <StatusText>Cargando…</StatusText>
   if (movements.isError) {
@@ -328,6 +331,11 @@ function MovementsTab({ customerId }: { customerId: number }) {
   if (movements.data.items.length === 0) {
     return <StatusText>Este cliente todavía no tiene movimientos de puntos.</StatusText>
   }
+
+  const { total } = movements.data
+  const totalPages = Math.ceil(total / MOVEMENTS_PAGE_SIZE)
+  const start = (page - 1) * MOVEMENTS_PAGE_SIZE + 1
+  const end = Math.min(page * MOVEMENTS_PAGE_SIZE, total)
 
   return (
     <>
@@ -362,15 +370,33 @@ function MovementsTab({ customerId }: { customerId: number }) {
           ))}
         </tbody>
       </Table>
-      <div className="mt-4 flex justify-end">
-        <Link
-          to="../../movimientos"
-          relative="path"
-          className={buttonVariants({ variant: 'secondary' })}
-        >
-          Ver todos
-        </Link>
-      </div>
+
+      {/* Como el prototipo: el paginado aparece solo si hay más de una página */}
+      {totalPages > 1 && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <StatusText>
+            Mostrando {start}–{end} de {total}
+          </StatusText>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={page <= 1 || movements.isFetching}
+              onClick={() => setPage((current) => current - 1)}
+            >
+              Anterior
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={page >= totalPages || movements.isFetching}
+              onClick={() => setPage((current) => current + 1)}
+            >
+              Siguiente
+            </Button>
+          </div>
+        </div>
+      )}
     </>
   )
 }

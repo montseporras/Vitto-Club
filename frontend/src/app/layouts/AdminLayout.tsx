@@ -2,7 +2,7 @@
 // modal de Configuración. Decide qué pantalla de cada feature se muestra en cada sección.
 //
 // El menú lateral lleva a las pantallas del Administrador (el router las pone en el <Outlet>):
-// Clientes (CLI-ADM) y Buscar cliente ya están; el resto muestra "Próximamente". Acá se
+// Clientes (CLI-ADM), Auditoría y Consumos ya están; el resto muestra "Próximamente". Acá se
 // cablean también las secciones de Configuración ya implementadas: Empleados (RF-01) y
 // Puntos (RF-011).
 import { useState } from 'react';
@@ -37,14 +37,7 @@ const NAV: SideNavItem[] = [
     icon: ICONS.chart,
   },
   { id: 'audit', to: PATHS.admin.audit, label: 'Auditoría', icon: ICONS.history },
-  { id: 'identify', to: PATHS.admin.identifyCustomer, label: 'Buscar cliente', icon: ICONS.user },
   { id: 'consumptions', to: PATHS.admin.consumptions, label: 'Consumos', icon: ICONS.receipt },
-  {
-    id: 'movements',
-    to: PATHS.admin.pointsMovements,
-    label: 'Movimientos de puntos',
-    icon: ICONS.arrowsLeftRight,
-  },
 ];
 
 // Secciones del menú lateral del modal de Configuración.
@@ -64,7 +57,8 @@ const SECTIONS = [
     icon: ICONS.coins,
     description: 'Reglas con las que los clientes suman puntos en sus consumos.',
   },
-  { id: 'notifications', label: 'Notificaciones', icon: ICONS.bell },
+  // Otro sprint: deshabilitada con "Próx.", como en el prototipo v2
+  { id: 'notifications', label: 'Notificaciones', icon: ICONS.bell, soon: true },
 ] as const;
 
 type Section = (typeof SECTIONS)[number];
@@ -136,13 +130,17 @@ export function AdminLayout() {
             size="md"
             storageKey="vitto:menu-configuracion"
             className="self-start"
-            items={SECTIONS.map((item) => ({
-              id: item.id,
-              label: item.label,
-              icon: item.icon,
-              active: item.id === activeSection.id,
-              onSelect: () => setActiveSection(item),
-            }))}
+            items={SECTIONS.map((item): SideNavItem =>
+              'soon' in item
+                ? { id: item.id, label: item.label, icon: item.icon, disabled: true, tag: SOON }
+                : {
+                    id: item.id,
+                    label: item.label,
+                    icon: item.icon,
+                    active: item.id === activeSection.id,
+                    onSelect: () => setActiveSection(item),
+                  },
+            )}
           />
 
           {/* Contenido de la sección elegida. */}
@@ -154,7 +152,7 @@ export function AdminLayout() {
               // "pendiente (otro RF)"; ahora muestra la pantalla nueva.
               <PointsSettingsPage />
             ) : (
-              // Notificaciones sigue pendiente (otra historia). Los niveles van dentro de Puntos.
+              // No se llega: Notificaciones está deshabilitada en el menú. Los niveles van dentro de Puntos.
               <StatusText>{activeSection.label}: pendiente (otro RF).</StatusText>
             )}
           </section>

@@ -24,8 +24,8 @@ const NAV: SideNavItem[] = [
   {
     id: 'redemption',
     to: PATHS.cashier.redemption,
-    label: 'Gestionar canje por código',
-    icon: ICONS.ticket,
+    label: 'Canjes por código',
+    icon: ICONS.scan,
   },
 ]
 

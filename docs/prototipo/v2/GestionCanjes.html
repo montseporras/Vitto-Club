@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<x-dc>
+<div class="vc-r" style="width:100%; display:flex; flex-direction:column; gap:20px;">
+  <div style="border-radius:24px; border:1px solid #f6d0b1; background:#ffffff; box-shadow:0 20px 25px -5px rgba(126,62,32,.1), 0 8px 10px -6px rgba(126,62,32,.1); padding:32px;">
+    <h2 style="margin:0; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.2; color:#2b1a10;">Canjes</h2>
+    <p style="margin:4px 0 20px; font-size:13px; color:#7a6e63;">Hacé clic en un canje para ver el detalle y aplicarlo o rechazarlo.</p>
+    <div style="position:relative; display:flex; flex-wrap:wrap; align-items:stretch; border:1px solid #f6d0b1; border-radius:12px; background:#ffffff;">
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:.7 1 110px;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Tipo doc.</span><select style="height:34px; width:100%; box-sizing:border-box; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none; cursor:pointer;" value="{{ fd.tipo }}" onChange="{{ on.tipo }}"><option value="DNI">DNI</option><option value="Pasaporte">Pasaporte</option></select></div>
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1 1 150px; border-left:1px solid #f6d0b1;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">N° de documento</span><input style="height:34px; width:100%; box-sizing:border-box; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none;" placeholder="{{ docPh }}" value="{{ fd.num }}" onChange="{{ on.num }}" /></div>
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:.8 1 110px; border-left:1px solid #f6d0b1;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Código</span><input style="height:34px; width:100%; box-sizing:border-box; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none; text-transform:uppercase;" placeholder="K7MP2X" value="{{ fd.codigo }}" onChange="{{ on.codigo }}" /></div>
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1.2 1 170px; border-left:1px solid #f6d0b1;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Recompensa</span><input style="height:34px; width:100%; box-sizing:border-box; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none;" placeholder="Nombre de la recompensa" value="{{ fd.rec }}" onChange="{{ on.rec }}" /></div>
+      <div style="flex-basis:100%; height:0; border-top:1px solid #f6d0b1;"></div>
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:.9 1 140px;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Estado</span><select style="height:34px; width:100%; box-sizing:border-box; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none; cursor:pointer;" value="{{ fd.estado }}" onChange="{{ on.estado }}"><option>Todos</option><option>Confirmado</option><option>Utilizado</option><option>Cancelado</option><option>Rechazado</option><option>Vencido</option></select></div>
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1.3 1 220px; border-left:1px solid #f6d0b1; position:relative;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Fechas</span>
+        <button type="button" onClick="{{ toggleCal }}" style="display:flex; align-items:center; gap:8px; height:34px; padding:0; border:none; background:transparent; cursor:pointer; font-family:var(--font-body); font-size:13px; color:{{ rangoColor }}; text-align:left;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7e3e20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"></path></svg>{{ rangoTxt }}</button>
+        <sc-if value="{{ cal.open }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; top:calc(100% + 6px); left:0; z-index:60; width:280px; background:#ffffff; border:1px solid #f6d0b1; border-radius:14px; box-shadow:0 20px 25px -5px rgba(126,62,32,.15), 0 8px 10px -6px rgba(126,62,32,.12); padding:12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;"><button type="button" class="btn btn-ghost" style="height:28px; padding:0 8px;" onClick="{{ cal.prev }}" aria-label="Mes anterior">‹</button><span style="font-family:var(--font-heading); font-weight:700; font-size:14px; color:#2b1a10;">{{ cal.titulo }}</span><button type="button" class="btn btn-ghost" style="height:28px; padding:0 8px;" onClick="{{ cal.next }}" aria-label="Mes siguiente">›</button></div>
+          <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:2px; text-align:center; font-size:11px; font-weight:700; color:#7a6e63; margin-bottom:4px;"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+          <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:2px;"><sc-for list="{{ cal.dias }}" as="d" hint-placeholder-count="35"><button type="button" onClick="{{ d.onClick }}" style="height:32px; border:none; border-radius:8px; cursor:pointer; font-family:var(--font-body); font-size:13px; background:{{ d.bg }}; color:{{ d.color }}; font-weight:{{ d.fw }};">{{ d.n }}</button></sc-for></div>
+          <p style="margin:8px 0 0; font-size:12px; color:#7a6e63;">{{ cal.ayuda }}</p>
+          <div style="display:flex; justify-content:space-between; gap:8px; margin-top:10px;"><button type="button" class="btn btn-ghost" style="height:30px; padding:0 10px; font-size:13px;" onClick="{{ cal.limpiar }}">Limpiar</button><button type="button" class="btn btn-secondary" style="height:30px; padding:0 12px; font-size:13px;" onClick="{{ toggleCal }}">Listo</button></div>
+        </div></sc-if>
+      </div>
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:.9 1 140px; border-left:1px solid #f6d0b1;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Orden</span><select style="height:34px; width:100%; box-sizing:border-box; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none; cursor:pointer;" value="{{ fd.orden }}" onChange="{{ on.orden }}"><option>Más recientes</option><option>Más antiguos</option></select></div>
+      <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-left:1px solid #f6d0b1;"><sc-if value="{{ hayPendientes }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; color:#7e3e20;">Sin aplicar</span></sc-if><button type="button" class="btn btn-primary" style="height:36px;" onClick="{{ filtrar }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg>Filtrar</button></div>
+    </div>
+    <sc-if value="{{ cal.open }}" hint-placeholder-val="{{ false }}"><div onClick="{{ toggleCal }}" style="position:fixed; inset:0; z-index:50;"></div></sc-if>
+
+    <sc-if value="{{ hay }}" hint-placeholder-val="{{ true }}"><div style="margin-top:20px; overflow-x:auto;"><table class="table"><thead><tr><th>Código</th><th>Fecha y hora</th><th>Cliente</th><th>Recompensa</th><th style="text-align:right;">Puntos</th><th>Estado</th><th>Vence / resuelto</th><th style="width:28px;"></th></tr></thead><tbody>
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+        <tr class="vc-rowlink" title="Ver canje" onClick="{{ r.abrir }}">
+          <td style="font-weight:700; white-space:nowrap; letter-spacing:.04em;">{{ r.codigo }}</td>
+          <td style="white-space:nowrap;">{{ r.fecha }}</td>
+          <td>{{ r.cliente }}<div style="font-size:12px; color:#7a6e63;">{{ r.doc }}</div></td>
+          <td>{{ r.recompensa }}</td>
+          <td style="text-align:right;">{{ r.puntos }}</td>
+          <td><span class="{{ r.badge }}">{{ r.estado }}</span></td>
+          <td style="font-size:13px; color:{{ r.infoColor }};">{{ r.info }}<div style="font-size:12px; color:#7a6e63;">{{ r.info2 }}</div></td>
+          <td style="color:#a8532a;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></td>
+        </tr>
+      </sc-for>
+    </tbody></table></div>
+    <div style="margin-top:16px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;"><span style="font-size:14px; color:#5c5249;">{{ pg.info }}</span><div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary" disabled="{{ pg.prevDis }}" onClick="{{ pg.prev }}">Anterior</button><button type="button" class="btn btn-secondary" disabled="{{ pg.nextDis }}" onClick="{{ pg.next }}">Siguiente</button></div></div></sc-if>
+    <sc-if value="{{ vacio }}" hint-placeholder-val="{{ false }}"><p style="margin:24px 0 0; padding:28px 16px; text-align:center; font-size:16px; color:#5c5249; border:1px dashed #f6d0b1; border-radius:16px;">No hay canjes para los filtros seleccionados.</p></sc-if>
+  </div>
+  <div style="border:1px dashed #d9804f; background:#fffaf3; border-radius:12px; padding:10px 14px; font-size:13px; color:#6b5446;"><strong style="color:#7a3a1d;">Nota del prototipo:</strong> US-45 · RF-049 (consultar canjes con filtros). Desde el detalle de un canje confirmado el Administrador también lo aplica (US-42 · RF-046) o lo rechaza (US-43 · RF-047). Los Confirmados pasan solos a Vencido a los 15 minutos (US-44 · RF-048). En "Fechas", un solo día filtra ese día; dos días, el rango.</div>
+
+  <sc-if value="{{ det.open }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000; padding:16px;">
+      <div class="dialog" style="position:relative; max-width:520px; width:100%; max-height:calc(100vh - 32px); overflow:auto;"><button type="button" onClick="{{ cerrarDet }}" aria-label="Cerrar" title="Cerrar" style="position:absolute; top:16px; right:16px; width:36px; height:36px; display:grid; place-items:center; border:none; border-radius:999px; background:transparent; color:#7e3e20; cursor:pointer; z-index:1;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
+        <div class="dialog-title" style="padding-right:40px;">Canje {{ det.codigo }}</div>
+        <div class="dialog-body">
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:12px;"><span class="{{ det.badge }}">{{ det.estado }}</span><sc-if value="{{ det.conf }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px; font-weight:700; color:{{ det.venceColor }};">{{ det.vence }}</span></sc-if></div>
+          <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 16px; display:grid; grid-template-columns:max-content 1fr; gap:8px 16px; font-size:14px;">
+            <sc-for list="{{ det.filas }}" as="d" hint-placeholder-count="6"><span style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20; padding-top:2px;">{{ d.k }}</span><span style="color:#2b1a10; overflow-wrap:anywhere;">{{ d.v }}</span></sc-for>
+          </div>
+        </div>
+        <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-secondary" onClick="{{ cerrarDet }}">Cerrar</button><sc-if value="{{ det.conf }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-secondary" onClick="{{ det.rechazar }}">Rechazar</button><button type="button" class="btn btn-primary" onClick="{{ det.usar }}">Aplicar</button></sc-if></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ accion }}" hint-placeholder-val="{{ false }}"><dc-import name="CanjeAccion" accion="{{ accion }}" codigo="{{ accionCodigo }}" usuario="{{ usuario }}" on-cerrar="{{ cerrarAccion }}" on-hecho="{{ hecho }}" hint-size="100%,100%"></dc-import></sc-if>
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed; right:20px; bottom:20px; z-index:10060; max-width:calc(100vw - 40px); border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; font-weight:600; box-shadow:0 12px 30px -12px rgba(45,24,14,.4);">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:780},&quot;usuario&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Denise Nagel&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  F0 = { tipo: 'DNI', num: '', codigo: '', rec: '', estado: 'Todos', desde: '', hasta: '', orden: 'Más recientes' };
+  state = { f: { ...this.F0 }, fd: { ...this.F0 }, cal: { open: false, y: new Date().getFullYear(), m: new Date().getMonth() }, page: 1, det: '', accion: '', accionCodigo: '', toast: '', v: 0 };
+  componentDidMount() {
+    const t = () => { if (window.VCCanjes) { this._u = window.VCCanjes.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); };
+    t(); this._i = setInterval(() => this.setState((s) => ({ v: s.v + 1 })), 15000);
+  }
+  componentWillUnmount() { clearTimeout(this._p); clearTimeout(this._t); clearInterval(this._i); if (this._u) this._u(); }
+  z(x) { return String(x).padStart(2, '0'); }
+  fdt(ts) { const d = new Date(ts); return this.z(d.getDate()) + '/' + this.z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + this.z(d.getHours()) + ':' + this.z(d.getMinutes()); }
+  iso(ts) { const d = new Date(ts); return d.getFullYear() + '-' + this.z(d.getMonth() + 1) + '-' + this.z(d.getDate()); }
+  dmy(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : ''; }
+  nrm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+  doc(x) { return String(x || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase(); }
+  setF = (k) => (e) => { const v = e.target.value; this.setState((s) => ({ fd: { ...s.fd, [k]: k === 'codigo' ? String(v).toUpperCase() : v } })); };
+  pickDay = (iso) => this.setState((s) => { const d = s.fd; let desde = d.desde, hasta = d.hasta; if (!desde || hasta) { desde = iso; hasta = ''; } else if (iso < desde) { desde = iso; } else if (iso > desde) { hasta = iso; } return { fd: { ...d, desde, hasta } }; });
+  calData() {
+    const s = this.state, y = s.cal.y, m = s.cal.m; const MES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const off = (new Date(y, m, 1).getDay() + 6) % 7; const n = new Date(y, m + 1, 0).getDate(); const dias = []; const { desde, hasta } = s.fd; const hoy = this.iso(Date.now());
+    for (let i = 0; i < off; i++) dias.push({ n: '', bg: 'transparent', color: 'transparent', fw: '400', onClick: () => {} });
+    for (let d = 1; d <= n; d++) { const iso = y + '-' + this.z(m + 1) + '-' + this.z(d); const ext = iso === desde || iso === hasta; const mid = desde && hasta && iso > desde && iso < hasta;
+      dias.push({ n: d, bg: ext ? '#a8532a' : mid ? '#fbe6d4' : 'transparent', color: ext ? '#ffffff' : '#2b1a10', fw: ext || iso === hoy ? '700' : '400', onClick: () => this.pickDay(iso) }); }
+    const mv = (k) => () => this.setState((st) => { const dt = new Date(st.cal.y, st.cal.m + k, 1); return { cal: { ...st.cal, y: dt.getFullYear(), m: dt.getMonth() } }; });
+    return { open: s.cal.open, titulo: MES[m] + ' ' + y, dias, prev: mv(-1), next: mv(1),
+      ayuda: !desde ? 'Elegí un día, o el primer día de un rango.' : !hasta ? 'Filtra el ' + this.dmy(desde) + '. Para un rango, elegí el último día.' : 'Rango seleccionado.',
+      limpiar: () => this.setState((st) => ({ fd: { ...st.fd, desde: '', hasta: '' } })) };
+  }
+  filas(c, K) {
+    const f = [['Cliente', c.nombre], ['Documento', (c.tipo || 'DNI') + ' ' + c.num], ['Recompensa', c.recompensa], ['Puntos', K.num(c.puntos) + ' pts'], ['Fecha y hora', this.fdt(c.creadoTs)], ['Confirmado por', c.confirmadoPor || 'Cliente (app)'], ['Vence', this.fdt(c.venceTs)]];
+    if (c.estado === 'Utilizado') f.push(['Aplicado por', c.resueltoPor + ' · ' + this.fdt(c.resueltoTs)], ['Puntos descontados', '−' + K.num(c.puntos) + ' pts'], ['Saldo', K.num(c.saldoAntes) + ' → ' + K.num(c.saldoDespues) + ' pts']);
+    if (c.estado === 'Rechazado') f.push(['Rechazado por', c.resueltoPor + ' · ' + this.fdt(c.resueltoTs)], ['Motivo', c.motivo || '—']);
+    if (c.estado === 'Cancelado') f.push(['Cancelado por', 'El cliente, desde la app · ' + this.fdt(c.resueltoTs)]);
+    if (c.estado === 'Vencido') f.push(['Vencido', 'Pasaron 15 minutos sin usarse (Sistema)']);
+    return f.map(([k, v]) => ({ k, v }));
+  }
+  renderVals() {
+    const K = window.VCCanjes; const s = this.state; const f = s.f; const p = this.props || {};
+    const todos = K ? K.canjes() : [];
+    const okF = (ts) => { const i = this.iso(ts); if (!f.desde) return true; if (!f.hasta) return i === f.desde; return i >= f.desde && i <= f.hasta; };
+    const nd = this.doc(f.num); const cq = this.doc(f.codigo); const rq = this.nrm(f.rec.trim());
+    const lista = todos.filter((c) => (f.estado === 'Todos' || c.estado === f.estado) && (!cq || c.codigo.includes(cq)) && (!rq || this.nrm(c.recompensa).includes(rq)) && okF(c.creadoTs)
+      && (!nd || ((c.tipo || 'DNI') === f.tipo && this.doc(c.num).includes(nd))))
+      .slice().sort((a, b) => f.orden === 'Más antiguos' ? a.creadoTs - b.creadoTs : b.creadoTs - a.creadoTs);
+    const size = 10, pages = Math.max(1, Math.ceil(lista.length / size)), pg = Math.min(s.page, pages);
+    const rows = lista.slice((pg - 1) * size, pg * size).map((c) => {
+      const conf = c.estado === 'Confirmado';
+      return { codigo: c.codigo, fecha: this.fdt(c.creadoTs), cliente: c.nombre, doc: (c.tipo || 'DNI') + ' ' + c.num, recompensa: c.recompensa, puntos: K.num(c.puntos), estado: c.estado, badge: K.badge(c.estado),
+        info: conf ? K.venceTxt(c) : (c.resueltoTs ? this.fdt(c.resueltoTs) : ''), info2: conf ? '' : (c.resueltoPor || ''), infoColor: conf && K.minutosRestantes(c) <= 2 ? '#b3261e' : '#2b1a10',
+        abrir: () => this.setState({ det: c.codigo }) };
+    });
+    const dc = s.det && K ? K.canje(s.det) : null; const dConf = !!dc && dc.estado === 'Confirmado';
+    const det = dc ? { open: true, codigo: dc.codigo, estado: dc.estado, badge: K.badge(dc.estado), conf: dConf, vence: dConf ? K.venceTxt(dc) : '', venceColor: dConf && K.minutosRestantes(dc) <= 2 ? '#b3261e' : '#4e5e41', filas: this.filas(dc, K),
+      usar: () => this.setState({ det: '', accion: 'usar', accionCodigo: dc.codigo }), rechazar: () => this.setState({ det: '', accion: 'rechazar', accionCodigo: dc.codigo }) } : { open: false, filas: [] };
+    const fd = s.fd;
+    return {
+      fd, on: { tipo: this.setF('tipo'), num: this.setF('num'), codigo: this.setF('codigo'), rec: this.setF('rec'), estado: this.setF('estado'), orden: this.setF('orden') },
+      docPh: fd.tipo === 'Pasaporte' ? 'AAB123456' : '38.456.123',
+      cal: this.calData(), toggleCal: () => this.setState((st) => ({ cal: { ...st.cal, open: !st.cal.open } })),
+      rangoTxt: fd.desde ? (fd.hasta ? this.dmy(fd.desde) + ' – ' + this.dmy(fd.hasta) : this.dmy(fd.desde)) : 'Cualquier fecha', rangoColor: fd.desde ? '#2b1a10' : '#9c8f82',
+      filtrar: () => this.setState((st) => ({ f: { ...st.fd }, page: 1, cal: { ...st.cal, open: false } })), hayPendientes: JSON.stringify(s.fd) !== JSON.stringify(s.f),
+      rows, hay: lista.length > 0, vacio: !!K && lista.length === 0, toast: s.toast,
+      pg: { info: 'Mostrando ' + (lista.length ? (pg - 1) * size + 1 : 0) + '–' + Math.min(lista.length, pg * size) + ' de ' + lista.length, prevDis: pg <= 1, nextDis: pg >= pages, prev: () => this.setState({ page: pg - 1 }), next: () => this.setState({ page: pg + 1 }) },
+      det, cerrarDet: () => this.setState({ det: '' }),
+      accion: s.accion, accionCodigo: s.accionCodigo, usuario: p.usuario || 'Denise Nagel',
+      cerrarAccion: () => this.setState({ accion: '' }),
+      hecho: (msg) => { this.setState({ accion: '', toast: msg }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 4000); }
+    };
+  }
+}
+</script>
+</body>
+</html>

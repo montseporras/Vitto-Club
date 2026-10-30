@@ -1,5 +1,5 @@
 ---
-description: Arranca una historia del Sprint 3 siguiendo CLAUDE.md (uso /historia US-21 backend Tomás)
+description: Arranca una historia del Sprint 4 siguiendo CLAUDE.md (uso /historia US-40 backend Tomás)
 argument-hint: US-XX backend|frontend Nombre
 ---
 
@@ -11,7 +11,7 @@ Con ese pedido, hacé esto en orden y no te saltees ningún paso.
    Si falta alguno, preguntalo y frená.
 2. **Leé las instrucciones.** Leé `CLAUDE.md` de la raíz y el `CLAUDE.md` de la capa (`backend/CLAUDE.md` o
    `frontend/CLAUDE.md`). Seguilos al pie de la letra.
-3. **Buscá la historia.** Abrí `docs/sprint-3/HISTORIAS_SPRINT_3.md`. Buscá la historia en la tabla de
+3. **Buscá la historia.** Abrí `docs/sprint-4/HISTORIAS_SPRINT_4.md`. Buscá la historia en la tabla de
    asignaciones (sección 0) y en su sección propia. Hay que frenar y preguntar en cualquiera de estos casos:
    - en esa capa figura otro responsable;
    - la capa no tiene responsable;
@@ -21,8 +21,11 @@ Con ese pedido, hacé esto en orden y no te saltees ningún paso.
    dependencia no está hecha en el código, preguntá cómo seguir. Si es frontend, simulala con MSW según el
    contrato.
 5. **Leé las fuentes de la historia:**
-   - las secciones del contrato (`docs/sprint-3/API_CONTRACT_SPRINT_3.md`) que la historia indica;
+   - las secciones del contrato (`docs/sprint-4/API_CONTRACT_SPRINT_4.md`) que la historia indica;
    - la §8.1 y la §8.3 del contrato;
+   - si la historia toca algo que ya existe del Sprint 3, la sección que corresponda de
+     `docs/sprint-3/API_CONTRACT_SPRINT_3.md`;
+   - si la historia figura en la sección 2 (pendientes) de las historias, preguntá antes de empezar;
    - si es frontend, las pantallas del prototipo (`docs/prototipo/v2/`) que la historia indica, buscando
      con grep;
    - el código existente que vas a tocar o reutilizar.

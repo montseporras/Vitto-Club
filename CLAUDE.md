@@ -7,8 +7,8 @@ Grupo 11 · 3K2). Es un monorepo con:
 - `frontend/`: React con Vite, Tailwind, shadcn/ui, TanStack Query, React Hook Form con Zod y MSW.
 - `docs/`: la documentación del equipo.
 
-**Sprint en curso: 3.** Las historias del sprint y quién hace cada una están en
-[`docs/sprint-3/HISTORIAS_SPRINT_3.md`](docs/sprint-3/HISTORIAS_SPRINT_3.md).
+**Sprint en curso: 4** (Recompensas y Canjes). Las historias del sprint y quién hace cada una están en
+[`docs/sprint-4/HISTORIAS_SPRINT_4.md`](docs/sprint-4/HISTORIAS_SPRINT_4.md).
 
 Además de este archivo, hay un `CLAUDE.md` en cada capa con sus reglas:
 
@@ -61,11 +61,12 @@ datos que el contrato no tenga.
 
 | Qué necesitás saber | Fuente de verdad | Dónde está |
 |---|---|---|
-| **Backend:** endpoints, rutas, body, query params, respuestas, tipos, enums, validaciones, códigos HTTP, `code` de error, permisos por rol, reglas de negocio, auditoría, modelo de datos | **Contrato de API del Sprint 3** | `docs/sprint-3/API_CONTRACT_SPRINT_3.md` |
+| **Backend:** endpoints, rutas, body, query params, respuestas, tipos, enums, validaciones, códigos HTTP, `code` de error, permisos por rol, reglas de negocio, auditoría, modelo de datos | **Contrato de API del Sprint 4** | `docs/sprint-4/API_CONTRACT_SPRINT_4.md` |
+| **Las dos capas:** lo que ya existe del Sprint 3 (consumos, puntos, clientes, auditoría) y las convenciones que el contrato del Sprint 4 da por sabidas ("igual que en el Sprint 3") | **Contrato de API del Sprint 3** y el cierre del Sprint 3 | `docs/sprint-3/API_CONTRACT_SPRINT_3.md` y `docs/sprint-4/CIERRE_SPRINT_3.md` |
 | **Backend:** lo que ya existe de los Sprints 1 y 2, y lo que hay que corregir de eso | Archivo de verificación, `docs/funcionalidades/`, `docs/domain/` y `backend/prisma/schema.prisma` | `docs/sprint-3/VERIFICACION_SPRINTS_1_2.md` |
 | **Frontend:** cómo se ve cada pantalla, textos, orden de campos, botones, estados vacíos, modales, flujo de navegación | **Prototipo v2** (export de Claude Design) | `docs/prototipo/v2/` |
-| **Frontend:** qué endpoint llamar, qué campos llegan, qué `code` puede devolver y qué hacer con cada uno | **Contrato de API del Sprint 3** | `docs/sprint-3/API_CONTRACT_SPRINT_3.md` |
-| **Las dos capas:** qué hay que hacer en cada historia, criterios de aceptación y quién la hace | Historias del sprint | `docs/sprint-3/HISTORIAS_SPRINT_3.md` |
+| **Frontend:** qué endpoint llamar, qué campos llegan, qué `code` puede devolver y qué hacer con cada uno | **Contrato de API del Sprint 4** | `docs/sprint-4/API_CONTRACT_SPRINT_4.md` |
+| **Las dos capas:** qué hay que hacer en cada historia, criterios de aceptación y quién la hace | Historias del sprint | `docs/sprint-4/HISTORIAS_SPRINT_4.md` |
 | **Las dos capas:** cómo se escribe el código (arquitectura, errores, roles, transacciones, eventos) | Documentación del repo | `docs/architecture/`, `docs/conceptos-transversales/`, `docs/decisions/` |
 | **Las dos capas:** nombres de los estados y transiciones (Canje, lote de puntos, Recompensa, Misión) | **Definición del Producto, sección 9** ("Diagramas de Transición de Estados"). Todo enum de estado tiene que coincidir con esos nombres | Documento *Definición del Producto - Vitto Club - Grupo 11* (fuera del repo) |
 
@@ -73,7 +74,7 @@ datos que el contrato no tenga.
 
 | Choque | Qué manda |
 |---|---|
-| Contrato vs. prototipo, en **datos, reglas, permisos o mensajes de error** | **El contrato.** Las secciones 8.1 (diferencias del prototipo que el contrato corrige) y 8.3 (decisiones del 17/10/2026) existen para eso |
+| Contrato vs. prototipo, en **datos, reglas, permisos o mensajes de error** | **El contrato.** Las secciones 8.1 (diferencias del prototipo que el contrato corrige) y 8.3 (decisiones S4-1 a S4-20; en el contrato del Sprint 3, las del 17/10/2026) existen para eso |
 | Contrato vs. prototipo, en un **texto de pantalla** | Si el contrato cita ese texto, **el contrato**: ya está corregido. Si no lo cita, **el prototipo** |
 | Contrato vs. prototipo, en **disposición, estilo o componentes** | **El prototipo.** El contrato no define cómo se ve |
 | Criterio de `HISTORIAS_SPRINT_3.md` vs. contrato | **El contrato.** Avisá del choque en el resumen final |
@@ -88,6 +89,9 @@ datos que el contrato no tenga.
   la pantalla porque no tiene backend. La aplicación real se los pide al backend.
 - **El código del prototipo.** No es React (usa `dc-import`, `sc-if`, plantillas `{{ }}`). Se reproduce con
   los componentes del proyecto; no se copia.
+- **La lógica vieja de canjes de `pagina-principal.html`** (estado "Pendiente", 30 minutos, reintegros). Las
+  pantallas de canjes son los componentes `Recompensas`, `GestionCanjes`, `CanjePorCodigo`, `CanjeAccion` y
+  `ClienteCanjes` (contrato del Sprint 4, §8.1 #5).
 - **El archivo único del prototipo** (`docs/prototipo/Vitto Club Prototipo - archivo unico.html`): guarda
   los componentes comprimidos y no se puede buscar. Se usan los `.html` de `docs/prototipo/v2/`
   (`pagina-principal.html` y sus componentes).
@@ -111,7 +115,7 @@ Si no encontrás el contrato, el archivo de historias o la carpeta del prototipo
    - **quién la pide**.
 
    Si falta alguna, preguntá antes de leer código.
-2. Buscá esa historia en `docs/sprint-3/HISTORIAS_SPRINT_3.md`. Hay que frenar y preguntar en cualquiera
+2. Buscá esa historia en `docs/sprint-4/HISTORIAS_SPRINT_4.md`. Hay que frenar y preguntar en cualquiera
    de estos casos:
    - en la tabla de asignaciones, esa capa tiene **otro responsable**;
    - la sección dice **PENDIENTE**;
@@ -176,11 +180,13 @@ Al final de cada paso, revisá que no te desviaste del contrato. No hace falta m
 
 ## 5. Reglas que no se negocian
 
-1. **Solo el Sprint 3.** Lo de otros sprints (canjes, recompensas, misiones, foto de perfil, estadísticas)
-   aparece como "Próximamente" o con el texto fijo que indica el contrato, y nada más.
+1. **Solo el Sprint 4.** Lo de otros sprints (misiones, foto de la recompensa y de perfil, estadísticas,
+   notificaciones) aparece como "Próximamente" o con el texto fijo que indica el contrato, y nada más.
 2. **No inventes** endpoints, campos, enums, códigos de error, textos, rutas, roles ni estados. Si no está,
    preguntá.
 3. **No modifiques las fuentes de verdad:**
+   - `docs/sprint-4/API_CONTRACT_SPRINT_4.md`
+   - `docs/sprint-4/HISTORIAS_SPRINT_4.md`
    - `docs/sprint-3/API_CONTRACT_SPRINT_3.md`
    - `docs/sprint-3/VERIFICACION_SPRINTS_1_2.md`
    - `docs/sprint-3/HISTORIAS_SPRINT_3.md`
@@ -189,7 +195,8 @@ Al final de cada paso, revisá que no te desviaste del contrato. No hace falta m
    Si te parece que algo está mal, decilo. Lo cambia el equipo.
 4. **No toques la otra capa.** Una tarea de backend no modifica `frontend/`, y al revés.
 5. **No instales dependencias** sin permiso explícito. La única ya autorizada en el contrato es
-   `@nestjs/schedule`, para US-25. Aun así, avisá cuando la agregues.
+   `@nestjs/schedule` (US-25; el Sprint 4 la reusa para recompensas y canjes vencidos). Aun así, avisá
+   cuando la agregues.
 6. **No cambies configuración compartida** sin preguntar: `tsconfig`, ESLint, Vite, Jest, Docker,
    `.env.example` y `package.json` (salvo la dependencia autorizada).
 7. **No toques código que no es de tu historia**, aunque esté mal. Anotalo en el resumen.
@@ -213,7 +220,27 @@ Al final de cada paso, revisá que no te desviaste del contrato. No hace falta m
 
 ## 6. Reglas del dominio que más se olvidan
 
-Si dudás de alguna, el contrato manda. La sección está entre paréntesis.
+Si dudás de alguna, el contrato manda. La sección está entre paréntesis: **S4** es el contrato del
+Sprint 4; sin marca, el del Sprint 3.
+
+**Recompensas y canjes (Sprint 4)**
+- **Las cinco reglas** (S4 §encabezado, decisión S4-1):
+  1. El canje **nace Confirmado** (lo confirma el Cliente en la app o el Cajero en la caja).
+  2. Confirmar **no descuenta nada**: ni puntos ni stock.
+  3. Dura **15 minutos**.
+  4. Puntos y stock se descuentan **al registrar el uso**, y ahí se valida contra la base.
+  5. Cancelar, rechazar y vencer **no reintegran nada**.
+- **Estados del canje:** Confirmado, Utilizado, Rechazado, Cancelado, Vencido. **No existe "Pendiente"**
+  (S4 §2.3). **Recompensa:** Activa, Deshabilitada (solo la pone el Sistema), Inactiva y Dada de baja (el
+  botón dice "Eliminar") (S4 §2.1).
+- **El saldo al confirmar** lo valida **solo la pantalla**, con el saldo que ya tiene cargado (decisión S4-2).
+- **Código del canje:** 6 caracteres sin `0`, `O`, `1` ni `I`, aleatorio y único (S4 §3.6.1).
+- **Vence al leer** y con un barrido cada 5 minutos (S4 §3.11).
+- **Confirmar desde la app no se audita**; desde la caja, sí (decisión S4-6).
+- **El Cliente nunca ve qué empleado** resolvió su canje (S4 §3.6.2).
+- **Foto de la recompensa: Sprint 5.** En el Sprint 4 todas usan la imagen genérica (S4 §3.3).
+- **Menús (25/10):** "Buscar cliente" y "Canjes por código" solo en Caja; "Movimientos de puntos" fuera de
+  Administración (S4 §3.13.3).
 
 **Consumos y puntos**
 - **Consumo, no compra.** Código visible `C-000141`, derivado del id (§3.3.3).
@@ -320,7 +347,7 @@ Preguntas abiertas:
 Lo más simple es el comando `/historia` (está en `.claude/commands/historia.md`):
 
 ```text
-/historia US-21 backend Tomás
+/historia US-40 backend Tomás
 ```
 
 Si preferís escribirlo a mano, copiá esto:
@@ -328,7 +355,7 @@ Si preferís escribirlo a mano, copiá esto:
 ```text
 Soy {nombre}. Me toca la US-XX, capa {backend | frontend}.
 Seguí CLAUDE.md y {backend | frontend}/CLAUDE.md.
-Leé la US-XX en docs/sprint-3/HISTORIAS_SPRINT_3.md y las secciones del contrato que indica.
+Leé la US-XX en docs/sprint-4/HISTORIAS_SPRINT_4.md y las secciones del contrato que indica.
 No asumas nada: si algo no está en el contrato (o en el prototipo, si es frontend), preguntame.
 Antes de codear, mandame el Plan previo y esperá mi OK.
 ```

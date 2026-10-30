@@ -46,7 +46,7 @@
         <sc-if value="{{ hayM }}" hint-placeholder-val="{{ true }}"><div style="overflow-x:auto;"><table class="table"><thead><tr><th>Fecha y hora</th><th>Tipo</th><th>Detalle</th><th style="text-align:right;">Puntos</th></tr></thead><tbody>
           <sc-for list="{{ movs }}" as="r" hint-placeholder-count="3"><tr><td style="white-space:nowrap;">{{ r.fecha }}</td><td><span class="{{ r.badge }}">{{ r.tipo }}</span></td><td>{{ r.detalle }}</td><td style="text-align:right; font-weight:700; color:{{ r.color }};">{{ r.pts }}</td></tr></sc-for>
         </tbody></table></div>
-        <sc-if value="{{ esAdmin }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;"><button type="button" class="btn btn-ghost" onClick="{{ verTodosMovs }}">Ver todos</button></div></sc-if></sc-if>
+        <sc-if value="{{ mpg.varias }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;"><span style="font-size:14px; color:#5c5249;">{{ mpg.info }}</span><div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary" disabled="{{ mpg.prevDis }}" onClick="{{ mpg.prev }}">Anterior</button><button type="button" class="btn btn-secondary" disabled="{{ mpg.nextDis }}" onClick="{{ mpg.next }}">Siguiente</button></div></div></sc-if></sc-if>
         <sc-if value="{{ sinM }}" hint-placeholder-val="{{ false }}"><p style="margin:0; padding:24px 16px; text-align:center; font-size:16px; color:#5c5249; border:1px dashed #f6d0b1; border-radius:16px;">Este cliente todavía no tiene movimientos de puntos.</p></sc-if>
       </div></sc-if>
     </div>
@@ -75,7 +75,7 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:960,&quot;height&quot;:820},&quot;cliente&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{nombre:string; dni:string; email:string; telefono:string; alta:string; puntos:number}&quot;},&quot;rol&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Cajero&quot;,&quot;Administrador&quot;],&quot;default&quot;:&quot;Cajero&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onVolver&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onRegistrarConsumo&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(dni: string) =&gt; void&quot;},&quot;onVerConsumo&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(codigo: string) =&gt; void&quot;},&quot;onVerTodos&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(dni: string) =&gt; void&quot;}}">
 class Component extends DCLogic {
-  state = { tab: 'c', v: 0, aj: { open: false, tipo: 'Sumar', cant: '', motivo: '', cantErr: '', motErr: '' }, toast: '' };
+  state = { tab: 'c', mpage: 1, v: 0, aj: { open: false, tipo: 'Sumar', cant: '', motivo: '', cantErr: '', motErr: '' }, toast: '' };
   componentDidMount() {
     const t = () => { if (window.VCStore) { this._u = window.VCStore.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); };
     t();
@@ -118,7 +118,8 @@ class Component extends DCLogic {
       verC: () => this.setState({ tab: 'c' }), verM: () => this.setState({ tab: 'm' }),
       cons: cons.slice(0, 5).map((k) => ({ codigo: k.codigo, fecha: this.fdt(k.ts), monto: this.money(k.monto), pts: this.num(k.pts), estado: k.estado, badge: 'vc-b ' + (k.estado === 'Anulado' ? 'vc-b-off' : 'vc-b-ok'), ver: () => p.onVerConsumo && p.onVerConsumo(k.codigo) })),
       hayC: cons.length > 0, sinC: !!S && cons.length === 0,
-      movs: movs.slice(0, 5).map((m) => ({ fecha: this.fdt(m.ts), tipo: m.tipo, detalle: m.detalle, pts: (m.pts > 0 ? '+' : '−') + this.num(Math.abs(m.pts)), color: m.pts < 0 ? '#b3261e' : '#4e5e41', badge: 'vc-b ' + (m.pts < 0 ? 'vc-b-off' : 'vc-b-ok') })),
+      mpg: (() => { const n = movs.length, pages = Math.max(1, Math.ceil(n / 10)), pg = Math.min(s.mpage, pages); return { varias: n > 10, info: 'Mostrando ' + (n ? (pg - 1) * 10 + 1 : 0) + '–' + Math.min(n, pg * 10) + ' de ' + n, prevDis: pg <= 1, nextDis: pg >= pages, prev: () => this.setState({ mpage: pg - 1 }), next: () => this.setState({ mpage: pg + 1 }) }; })(),
+      movs: movs.slice((Math.min(s.mpage, Math.max(1, Math.ceil(movs.length / 10))) - 1) * 10, Math.min(s.mpage, Math.max(1, Math.ceil(movs.length / 10))) * 10).map((m) => ({ fecha: this.fdt(m.ts), tipo: m.tipo, detalle: m.detalle, pts: (m.pts > 0 ? '+' : '−') + this.num(Math.abs(m.pts)), color: m.pts < 0 ? '#b3261e' : '#4e5e41', badge: 'vc-b ' + (m.pts < 0 ? 'vc-b-off' : 'vc-b-ok') })),
       hayM: movs.length > 0, sinM: !!S && movs.length === 0,
       volver: () => p.onVolver && p.onVolver(),
       registrar: () => p.onRegistrarConsumo && p.onRegistrarConsumo(c.dni),

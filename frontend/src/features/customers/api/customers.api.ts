@@ -12,13 +12,20 @@ import type {
 /** Clientes por página (contrato §3.8.1). */
 export const CUSTOMERS_PAGE_SIZE = 20
 
-export async function listCustomers({ q, level, page }: CustomerListFilters) {
+export async function listCustomers({
+  documentType,
+  documentNumber,
+  level,
+  page,
+}: CustomerListFilters) {
   try {
     const res = await http.get<Paginated<CustomerListItem>>('/customers', {
       params: {
         active: true,
         sort: 'lastName',
-        q: q || undefined,
+        // El tipo solo filtra si viene el número (Sprint 4, §3.13.4)
+        documentType: documentNumber ? documentType : undefined,
+        documentNumber: documentNumber || undefined,
         level: level || undefined,
         page,
         limit: CUSTOMERS_PAGE_SIZE,

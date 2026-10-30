@@ -71,13 +71,14 @@ class Component extends DCLogic {
     Consumos: ['Registró consumo', 'Anuló consumo'],
     Puntos: ['Ajustó puntos', 'Venció puntos'],
     Canjes: ['Confirmó canje', 'Registró uso de canje', 'Rechazó canje', 'Venció canje'],
-    Recompensas: ['Creó recompensa', 'Editó recompensa', 'Activó recompensa', 'Desactivó recompensa', 'Dio de baja recompensa', 'Deshabilitó recompensa', 'Habilitó recompensa'],
+    Recompensas: ['Creó recompensa', 'Editó recompensa', 'Activó recompensa', 'Desactivó recompensa', 'Eliminó recompensa', 'Deshabilitó recompensa', 'Habilitó recompensa'],
     Misiones: ['Creó misión', 'Editó misión', 'Dio de baja misión', 'Completó misión', 'Reclamó recompensa de misión', 'Venció misiones del mes'],
     'Configuración': ['Modificó equivalencia de puntos', 'Modificó vigencia de puntos', 'Modificó bonificación por primer consumo', 'Modificó logo y mensajes', 'Modificó promociones', 'Modificó niveles']
   };
   ICON_P = 'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8';
   ICON_S = 'M4 4h16v12H4z M8 20h8 M12 16v4 M8 8h.01 M12 8h4';
-  componentDidMount() { const t = () => { if (window.VCStore) { this._u = window.VCStore.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); }; t(); }
+  componentDidMount() { const t = () => { if (window.VCStore) { this._u = window.VCStore.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); }; t();
+    const t2 = () => { if (window.VCCanjes) this._u2 = window.VCCanjes.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); else this._p2 = setTimeout(t2, 40); }; t2(); }
   componentWillUnmount() { clearTimeout(this._p); if (this._u) this._u(); }
   num(n) { return String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
   sg(n) { return (n < 0 ? '−' : '+') + this.num(n) + ' pts'; }
@@ -123,7 +124,7 @@ class Component extends DCLogic {
       else if (m.tipo === S.T.RE) out.push({ ts: m.ts, usuario: m.por, modulo: 'Consumos', accion: 'Anuló consumo', texto: 'Anuló el consumo ' + code + ' de ' + c.nombre, cliente: c, codigo: code, filas: [['Código de operación', code], ['Monto', this.money(k ? k.monto : 0)], ['Puntos revertidos', this.sg(m.pts)], sal, ['Motivo', (k && k.motivo) || '—']] });
       else if (m.tipo === S.T.AJ) out.push({ ts: m.ts, usuario: m.por, modulo: 'Puntos', accion: 'Ajustó puntos', texto: 'Ajustó puntos de ' + c.nombre, cliente: c, codigo: '', filas: [['Cantidad', this.sg(m.pts)], sal, ['Motivo', m.detalle.replace(/^Ajuste:\s*/, '')]] });
       else if (m.tipo === S.T.VE) out.push({ ts: m.ts, usuario: 'Sistema', modulo: 'Puntos', accion: 'Venció puntos', texto: 'Venció ' + this.num(m.pts) + ' pts de ' + c.nombre, cliente: c, codigo: '', filas: [['Puntos vencidos', this.sg(m.pts)], ['Fecha del lote', (m.detalle.match(/\d{2}\/\d{2}\/\d{4}/) || ['—'])[0]], sal] });
-      else if (m.tipo === S.T.CA) { const cj = 'CJ-' + String(300 + m.id).padStart(5, '0'); out.push({ ts: m.ts, usuario: m.por, modulo: 'Canjes', accion: 'Registró uso de canje', texto: 'Registró el uso del canje de ' + c.nombre, cliente: c, codigo: cj, filas: [['Recompensa', m.detalle.replace(/^Canje:\s*/, '')], ['Código del canje', cj], ['Puntos descontados', this.sg(m.pts)], sal] }); }
+      else if (m.tipo === S.T.CA && !m.codigoCanje) { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let n = 7919 * (m.id + 11), cj = ''; for (let q = 0; q < 6; q++) { cj += A[n % 32]; n = Math.floor(n / 32) + 13 * (q + 1); } out.push({ ts: m.ts, usuario: m.por, modulo: 'Canjes', accion: 'Registró uso de canje', texto: 'Registró el uso del canje de ' + c.nombre, cliente: c, codigo: cj, filas: [['Recompensa', m.detalle.replace(/^Canje:\s*/, '')], ['Código del canje', cj], ['Puntos descontados', this.sg(m.pts)], sal] }); }
     });
     return out;
   }
@@ -132,12 +133,7 @@ class Component extends DCLogic {
     return [
       { ts: this.at(16, 10, 15, 40), usuario: 'Ana Pereyra', modulo: 'Consumos', accion: 'Registró consumo', texto: 'Registró el consumo C-000141 de Carolina Fernández', cliente: car, codigo: 'C-000141', filas: [['Código de operación', 'C-000141'], ['Monto', '$50.000'], ['Puntos acreditados', '+500 pts'], ['Saldo resultante', '1.240 pts']] },
       { ts: this.at(16, 10, 14, 5), usuario: 'Valeria Vitto', modulo: 'Configuración', accion: 'Modificó niveles', texto: 'Modificó niveles', cliente: null, codigo: '', filas: [['Plata', '250 → 300 pts']] },
-      { ts: this.at(16, 10, 11, 30), usuario: 'Jorge Molina', modulo: 'Canjes', accion: 'Registró uso de canje', texto: 'Registró el uso del canje de Carolina Fernández', cliente: car, codigo: 'CJ-00412', filas: [['Recompensa', 'Postre a elección'], ['Código del canje', 'CJ-00412'], ['Puntos descontados', '−300 pts'], ['Saldo resultante', '740 pts']] },
-      { ts: this.at(16, 10, 9, 0), usuario: 'Sistema', modulo: 'Canjes', accion: 'Venció canje', texto: 'Venció el canje de Sofía Ríos', cliente: sof, codigo: 'CJ-00398', filas: [['Recompensa', 'Merienda gratis'], ['Código del canje', 'CJ-00398']] },
       { ts: this.at(16, 10, 0, 5), usuario: 'Sistema', modulo: 'Puntos', accion: 'Venció puntos', texto: 'Venció 200 pts de Carolina Fernández', cliente: car, codigo: '', filas: [['Puntos vencidos', '−200 pts'], ['Fecha del lote', '16/08/2026'], ['Saldo resultante', '1.040 pts']] },
-      { ts: this.at(15, 10, 18, 45) + 1, usuario: 'Sistema', modulo: 'Recompensas', accion: 'Habilitó recompensa', texto: 'Habilitó la recompensa "Café + medialuna"', cliente: null, codigo: '', filas: [['Motivo', 'Stock repuesto']] },
-      { ts: this.at(15, 10, 18, 45), usuario: 'Valeria Vitto', modulo: 'Recompensas', accion: 'Editó recompensa', texto: 'Editó la recompensa "Café + medialuna"', cliente: null, codigo: '', filas: [['Stock', '0 → 20']] },
-      { ts: this.at(15, 10, 18, 30), usuario: 'Sistema', modulo: 'Recompensas', accion: 'Deshabilitó recompensa', texto: 'Deshabilitó la recompensa "Café + medialuna"', cliente: null, codigo: '', filas: [['Motivo', 'Sin stock']] },
       { ts: this.at(14, 10, 12, 0), usuario: 'Sistema', modulo: 'Misiones', accion: 'Completó misión', texto: 'Completó la misión "Vení 3 veces esta semana" de Carolina Fernández', cliente: car, codigo: '', filas: [['Misión', 'Vení 3 veces esta semana'], ['Puntos otorgados', '+50 pts']] },
       { ts: this.at(1, 10, 0, 0), usuario: 'Sistema', modulo: 'Misiones', accion: 'Venció misiones del mes', texto: 'Venció las misiones del mes', cliente: null, codigo: '', filas: [['Misiones vencidas', 'Vení 3 veces esta semana · Probá el brunch de domingo']] }
     ];
@@ -160,7 +156,7 @@ class Component extends DCLogic {
     const emps = (p.empleados || []).filter(Boolean);
     const empSet = new Set(emps);
     const base = (p.registros || []).map((a) => this.clasificar(a)).filter((a) => a && (a.usuario === 'Sistema' || empSet.has(a.usuario)));
-    const todos = [...base, ...this.desdeStore(), ...this.mock()].filter((a) => a.usuario === 'Sistema' || empSet.has(a.usuario)).sort((a, b) => b.ts - a.ts);
+    const todos = [...base, ...this.desdeStore(), ...this.mock(), ...((window.VCCanjes && window.VCCanjes.audit) || [])].filter((a) => a.usuario === 'Sistema' || empSet.has(a.usuario)).sort((a, b) => b.ts - a.ts);
     const now = new Date(); const d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     const okF = (ts) => f.fecha === 'hoy' ? ts >= d0 : f.fecha === '7d' ? ts >= d0 - 6 * 864e5 : f.fecha === 'mes' ? ts >= new Date(now.getFullYear(), now.getMonth(), 1).getTime() : f.fecha === 'rango' ? ((!f.desde || this.iso(ts) >= f.desde) && (!f.hasta || this.iso(ts) <= f.hasta)) : true;
     const nd = f.numDoc.replace(/\D/g, ''); const cq = f.codigo.trim().toLowerCase();
@@ -172,7 +168,7 @@ class Component extends DCLogic {
         toggle: () => this.setState((st) => ({ open: { ...st.open, [key]: !st.open[key] } })), tieneCliente: !!a.cliente, cliente: a.cliente || {}, filas: (a.filas || []).map(([k, v]) => ({ k, v })), sinFilas: !(a.filas || []).length }; });
     return {
       f, on: { usuario: this.setF('usuario'), modulo: this.setF('modulo'), accion: this.setF('accion'), tipoDoc: this.setF('tipoDoc'), numDoc: this.setF('numDoc'), fecha: this.setF('fecha'), desde: this.setF('desde'), hasta: this.setF('hasta'), codigo: this.setF('codigo') },
-      usuarios: ['Todos', ...emps, 'Sistema'], modulos: ['Todos', ...Object.keys(this.CAT)].map((m) => ({ v: m, dis: m === 'Recompensas' || m === 'Misiones', label: (m === 'Recompensas' || m === 'Misiones') ? m + ' (Próximamente)' : m })), acciones: ['Todas', ...(this.CAT[f.modulo] || [])], accionDis: f.modulo === 'Todos', esRango: f.fecha === 'rango',
+      usuarios: ['Todos', ...emps, 'Sistema'], modulos: ['Todos', ...Object.keys(this.CAT)].map((m) => ({ v: m, dis: m === 'Misiones', label: (m === 'Misiones') ? m + ' (Próximamente)' : m })), acciones: ['Todas', ...(this.CAT[f.modulo] || [])], accionDis: f.modulo === 'Todos', esRango: f.fecha === 'rango',
       limpiar: () => this.setState((st) => ({ f: { ...this.F0 }, page: 1, cal: { ...st.cal, open: false } })),
       cal: this.calData(), toggleCal: () => this.setState((st) => ({ cal: { ...st.cal, open: !st.cal.open } })),
       rangoTxt: f.desde ? this.dmy(f.desde) + ' – ' + (f.hasta ? this.dmy(f.hasta) : 'dd/mm/aaaa') : 'dd/mm/aaaa – dd/mm/aaaa', rangoColor: f.desde ? '#2b1a10' : '#9c8f82',

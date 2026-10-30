@@ -17,6 +17,11 @@ texto adentro. Desempaquetado, cada pantalla es un `.html` que se busca con grep
 | `MiPerfil.html` | Mi perfil del Cliente |
 | `CambiarPassword.html` | Ventana "Cambiá tu contraseña" |
 | `SidebarMenu.html` | Menú lateral |
+| `Recompensas.html` | Catálogo de recompensas del Administrador y modal Crear / Editar (Sprint 4) |
+| `GestionCanjes.html` | Canjes del Administrador y modal "Canje {código}" (Sprint 4) |
+| `CanjePorCodigo.html` | Caja → Canjes por código (Sprint 4) |
+| `CanjeAccion.html` | Ventanas Canjear, Registrar uso y Rechazar canje (Sprint 4) |
+| `ClienteCanjes.html` | Cliente → Canjes: Catálogo y Mis canjes (Sprint 4) |
 
 ## Cómo actualizarlo cuando cambie el prototipo
 
@@ -30,7 +35,13 @@ texto adentro. Desempaquetado, cada pantalla es un `.html` que se busca con grep
 
 Si no se actualiza, Claude programa contra una versión vieja.
 
-Último export cargado: **(completar fecha)**
+Último export cargado: **27/10/2026** (pantallas del Sprint 4, a pedido de Denise). Se exportó sobre la
+versión editada a mano de esta carpeta: los cambios del 20/10 de abajo siguen incluidos. Se desempaquetó con
+un script de Node fuera del repo (el `.py` de arriba sigue sin existir).
+
+**Ojo:** la lógica vieja de canjes de `pagina-principal.html` (estado "Pendiente", 30 minutos, reintegros)
+sigue en el código del prototipo sin uso. **No se toma** (contrato del Sprint 4, §8.1 #5): las pantallas
+buenas son los cinco componentes nuevos de la tabla.
 
 ## Cambios hechos a mano (20/10/2026, a pedido de Denise)
 
@@ -67,6 +78,15 @@ Las clases nuevas del prototipo que copian los estilos de la app empiezan con `v
 `vc-m` (modales), y están en el `<style>` de `pagina-principal.html`.
 
 **Ojo con el paso 2 de arriba:** `scripts/desempaquetar_prototipo.py` no está en el repo.
+
+## Cambios hechos a mano (27/10/2026, a pedido de Denise)
+
+| Dónde | Cambio |
+|---|---|
+| `RegistrarConsumo.html` | "Observaciones (opcional)" sale de la pantalla y pasa al modal de confirmación "Registrar consumo" (vista previa, Observaciones con contador "n/255", Cancelar · Aceptar), igual que `ConfirmConsumptionModal.tsx` de la app. "Registrar consumo" valida el monto y abre el modal; "Aceptar" registra |
+
+Este cambio se hizo en el `.html` de esta carpeta **y** en el archivo único (se volvió a empaquetar solo ese
+componente, con la misma compresión). Si se vuelve a exportar desde Claude Design sin hacerlo allá, se pierde.
 
 ## Cambios de textos (20/10/2026, a pedido de Magali)
 

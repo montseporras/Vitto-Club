@@ -22,21 +22,23 @@ primera tarea.
 | Pregunta | Fuente |
 |---|---|
 | ¿Cómo se ve? ¿Qué texto dice? ¿Qué campos tiene y en qué orden? ¿Qué pasa al apretar el botón? ¿Qué se muestra vacío? | **Prototipo v2**, en `docs/prototipo/v2/` |
-| ¿A qué endpoint llamo? ¿Qué campos mando y cuáles llegan? ¿Qué `code` puede volver y qué muestro? ¿Qué rol ve esto? | **Contrato**, en `docs/sprint-3/API_CONTRACT_SPRINT_3.md` |
+| ¿A qué endpoint llamo? ¿Qué campos mando y cuáles llegan? ¿Qué `code` puede volver y qué muestro? ¿Qué rol ve esto? | **Contrato del Sprint 4**, en `docs/sprint-4/API_CONTRACT_SPRINT_4.md`. Para lo que ya existe del Sprint 3, `docs/sprint-3/API_CONTRACT_SPRINT_3.md` |
 
 **Si no coinciden:**
 - Datos, reglas, permisos y mensajes de error → **el contrato**.
 - Textos que el contrato cita → **el contrato**, porque ya están corregidos.
 - El resto de los textos, la disposición y los estilos → **el prototipo**.
 
-El contrato lista en la **§8.1** las 13 diferencias del prototipo que corrige. Leela antes de cada pantalla.
-Algunos ejemplos:
-- "Compra" pasa a ser "Consumo".
-- Se muestra el tipo de documento real, no "DNI" fijo.
-- Se agrega el campo "Observaciones".
-- Se saca la columna "Puntos" en Clientes.
-- El teléfono lleva entre 8 y 15 dígitos.
-- La pantalla pide la contraseña actual para cambiar el correo.
+Cada contrato lista en su **§8.1** las diferencias del prototipo que corrige. Leela antes de cada pantalla.
+Del Sprint 4 (5 diferencias), por ejemplo:
+- La lógica vieja de canjes de `pagina-principal.html` (estado "Pendiente", 30 minutos, reintegros) **no se
+  usa**. Las pantallas de canjes son los componentes nuevos de la tabla de abajo.
+- Ninguna recompensa tiene foto: todas usan la imagen genérica (la foto es del Sprint 5).
+- Los canjes del prototipo vencen 15 minutos después de abrir el archivo; en la app, 15 minutos después de
+  confirmar.
+
+Del Sprint 3 (13 diferencias), por ejemplo: "Compra" pasa a ser "Consumo", se muestra el tipo de documento
+real y no "DNI" fijo, y la pantalla pide la contraseña actual para cambiar el correo.
 
 **Si una pantalla, un texto o un estado no está en ninguna de las dos fuentes, preguntá.** No lo diseñes vos.
 
@@ -49,13 +51,18 @@ Algunos ejemplos:
 | Archivo | Qué tiene |
 |---|---|
 | `pagina-principal.html` | Login y las tres vistas (`view === 'login' \| 'cliente' \| 'empleado' \| 'admin'`), la configuración y los modales. Pesa unos 350 KB: **buscá con grep, no lo leas entero** |
-| `RegistrarConsumo.html` | "Buscar cliente", la tarjeta del cliente, el monto, la vista previa, "Consumo registrado" y los paneles de 24 h |
+| `RegistrarConsumo.html` | "Buscar cliente", la tarjeta del cliente, el monto, la vista previa, el modal de confirmación con Observaciones, "Consumo registrado", los paneles de 24 h y el panel "Canjes para usar ahora" / "Recompensas a las que puede acceder" |
 | `FichaCliente.html` | Ficha del cliente (Cajero y Administrador) |
 | `Consumos.html` | Listado y detalle de consumos (Administrador) y el modal de anulación |
-| `MovimientosPuntos.html` | Movimientos de puntos (Administrador) |
+| `MovimientosPuntos.html` | Movimientos de puntos (Administrador). **Sin uso desde el Sprint 4:** salió del menú (S4 §3.13.3) |
+| `Recompensas.html` | Recompensas del Administrador: listado y modal Crear / Editar (Sprint 4) |
+| `GestionCanjes.html` | Canjes del Administrador y modal "Canje {código}" (Sprint 4) |
+| `CanjePorCodigo.html` | Caja → Canjes por código (Sprint 4) |
+| `CanjeAccion.html` | Ventanas Canjear, Registrar uso y Rechazar canje (Sprint 4) |
+| `ClienteCanjes.html` | Cliente → Canjes: Catálogo y Mis canjes (Sprint 4) |
 | `Auditoria.html` | Auditoría (Administrador) |
 | `MiPerfil.html` | Mi perfil del Cliente |
-| `CambiarPassword.html` | Ventana "Cambiá tu contraseña" que se abre al ingresar (§3.11.3) |
+| `CambiarPassword.html` | Ventana "Cambiá tu contraseña" que se abre al ingresar (contrato del Sprint 3, §3.11.3) |
 | `SidebarMenu.html` | Menú lateral de mostrador y de administración |
 
 `docs/prototipo/v2/LEEME.md` explica cómo se desempaquetó la carpeta y qué se cambió a mano. Leelo si
@@ -69,9 +76,9 @@ comprimidos y no se puede buscar con grep. La carpeta `v2/` es su versión desem
 | Vista | Qué buscar |
 |---|---|
 | Cajero | `empleadoScreen === 'consumo'`, `'cliente'`, `'altaCliente'` |
-| Administrador | `adminScreen === 'consumo'`, `'consumos'`, `'clientes'`, `'movimientos'`, `'auditoria'` |
+| Administrador | `adminScreen === 'consumos'`, `'clientes'`, `'recompensas'`, `'canjes'`, `'auditoria'` (`adminNavItems`) |
 | Configuración | `configScreen === 'config'`, `'empleados'` |
-| Cliente | `clienteTab === 'historial'`, `'perfil'` |
+| Cliente | `clienteTab === 'recompensas'` (Inicio), `'historial'`, `'canjes'`, `'perfil'` |
 
 Los componentes se insertan con `<dc-import name="RegistrarConsumo" …>`. Para encontrar un texto, buscalo
 literal. Por ejemplo: `grep -n "Ver movimientos de las últimas 24 hs" docs/prototipo/v2/*.html`.
@@ -159,8 +166,13 @@ literal. Por ejemplo: `grep -n "Ver movimientos de las últimas 24 hs" docs/prot
    - si se puede anular (`canVoid`);
    - las 24 h.
 
-   **Hay solo dos excepciones:** la vista previa del modal "Ajustar puntos" (§3.5) y el saldo resultante del
-   modal "Anular consumo" (§3.2.2). Las dos están escritas en el contrato.
+   **Las únicas excepciones son las que el contrato escribe:**
+   - del Sprint 3: la vista previa del modal "Ajustar puntos" (§3.5) y el saldo resultante del modal "Anular
+     consumo" (§3.2.2);
+   - del Sprint 4 (decisión S4-2): comparar el saldo ya cargado con los puntos de la recompensa para
+     deshabilitar "Canjear", "Te faltan {n} pts", "Saldo: {saldo} → {saldo − n} pts al usarlo" y filtrar en
+     Caja las recompensas con `points <= saldo`; además, la etiqueta de vencimiento (S4 §3.1) y la cuenta
+     regresiva del canje con `expiresAt` (S4 §3.7.2).
 2. **Decidí por `code`, nunca por el texto del error.** Usá `ApiError` y `toApiError` de
    `@/shared/api/ApiError`. `message` puede ser un arreglo, y `details` marca el campo con el error.
 3. **Roles:**
@@ -180,7 +192,7 @@ literal. Por ejemplo: `grep -n "Ver movimientos de las últimas 24 hs" docs/prot
 6. **Puntos:** siempre enteros. En los movimientos van con signo: verde si es +, rojo si es −. El saldo
    negativo va en rojo.
 7. **Tipo de documento real.** Mostrá "DNI" o "Pasaporte" según `documentType`. Nunca "DNI" fijo.
-8. **Lo de otros sprints** (canjes, recompensas, misiones, foto) se muestra **exactamente** como dice el
+8. **Lo de otros sprints** (misiones, foto, estadísticas, notificaciones) se muestra **exactamente** como dice el
    contrato: "Próximamente", un botón deshabilitado o un texto fijo. Usá `ComingSoon` si corresponde.
 9. **Imports:**
    - Usá el alias `@/`.
@@ -201,8 +213,9 @@ literal. Por ejemplo: `grep -n "Ver movimientos de las últimas 24 hs" docs/prot
 
 ## 5. Carpeta de cada pantalla
 
-Cada historia de `HISTORIAS_SPRINT_3.md` indica la **carpeta del feature**. Si está vacía o dice
-"a confirmar", preguntá antes de crearla.
+Cada historia de `docs/sprint-4/HISTORIAS_SPRINT_4.md` indica la **carpeta del feature** (sección 0). Si
+está vacía o dice "a confirmar", preguntá antes de crearla. `features/redemptions` es nueva en el Sprint 4:
+la crea la primera historia que la necesite, según la tabla de asignaciones.
 
 Features que ya existen:
 - `auth`
@@ -213,6 +226,8 @@ Features que ya existen:
 - `levels`
 - `audit`
 - `my-account`
+- `consumptions`
+- `points-movements` (sin pantalla desde el Sprint 4: salió del menú)
 - `rewards`
 - `missions`
 - `notifications`

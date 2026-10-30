@@ -622,7 +622,13 @@ export const cashierHandlers = [
     const name = params.get('name')?.trim() ?? ''
     const level = params.get('level')
     const sort = params.get('sort') ?? 'id'
+    // Sprint 4, §3.13.4: tipo + número de documento (parcial). El tipo solo filtra con número
+    const documentNumber = normalizeDocument(params.get('documentNumber') ?? '')
+    const documentType = params.get('documentType') ?? 'DNI'
     if (q && name) return errorResponse(400, 'No se puede buscar por q y por name a la vez.', path)
+    if (q && documentNumber) {
+      return errorResponse(400, 'No se puede buscar por q y por documento a la vez.', path)
+    }
     if (level && !LEVELS_API.includes(level as Level)) {
       return errorResponse(400, ['level must be one of the following values: BRONZE, SILVER, GOLD'], path)
     }
@@ -637,6 +643,11 @@ export const cashierHandlers = [
     const items = customers
       .filter((c) => active === null || String(c.active) === active)
       .filter((c) => !name || fold(`${c.firstName} ${c.lastName}`).includes(fold(name)))
+      .filter(
+        (c) =>
+          !documentNumber ||
+          (c.documentType === documentType && c.documentNumber.includes(documentNumber)),
+      )
       // Cada palabra tiene que aparecer en el nombre, el apellido o el documento
       .filter((c) =>
         words.every((word) =>

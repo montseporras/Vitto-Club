@@ -11,9 +11,13 @@ export type CustomerListItem = Customer & {
   level: Level
 }
 
-/** Filtros de la pantalla Clientes. `active=true` y `sort=lastName` van siempre (§3.8.1). */
+/**
+ * Filtros de la pantalla Clientes. `active=true` y `sort=lastName` van siempre (§3.8.1). La
+ * pantalla busca por tipo y número de documento; ya no usa `q` (contrato del Sprint 4, §3.13.4).
+ */
 export type CustomerListFilters = {
-  q: string
+  documentType: DocumentType
+  documentNumber: string
   level: Level | ''
   page: number
 }
