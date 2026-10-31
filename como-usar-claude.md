@@ -1,25 +1,9 @@
--- BACKEND --
-
-Me toca la US-21, capa backend.
-Seguí CLAUDE.md y backend/CLAUDE.md.
-Leé la US-21 en docs/sprint-3/HISTORIAS_SPRINT_3.md y las secciones del
-contrato que indica (§3.1.2, §3.1.3, §3.3.3, §3.9.3).
-No asumas nada: si algo no está en el contrato, preguntame.
+Soy {nombre}. Me toca la US-XX, capa {backend | frontend}.
+Seguí CLAUDE.md y {backend | frontend}/CLAUDE.md.
+Leé la US-XX en docs/sprint-4/HISTORIAS_SPRINT_4.md y las secciones del contrato que indica.
+No asumas nada: si algo no está en el contrato (o en el prototipo, si es frontend), preguntame.
 Antes de codear, mandame el Plan previo y esperá mi OK.
 
-
-
--- FRONTEND --
-por ejemplo...
-
-Me toca la US-22, capa frontend.
-Seguí CLAUDE.md y frontend/CLAUDE.md.
-Leé la US-22 en docs/sprint-3/HISTORIAS_SPRINT_3.md, las secciones del
-contrato que indica (§3.2.1, §3.2.2) y las pantallas del prototipo:
-RegistrarConsumo.dc.html (panel de 24 hs) y Consumos.dc.html (modal).
-Si el prototipo y el contrato chocan, mandá lo que dice CLAUDE.md y avisame.
-Si algo no está en ninguno de los dos, preguntame.
-Antes de codear, mandame el Plan previo y esperá mi OK.
 
 
 
