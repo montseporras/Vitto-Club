@@ -12,6 +12,7 @@ import type {
 import { API_URL } from '@/shared/api/http'
 import { accountFromRequest } from './auth.handlers'
 import { customers, errorResponse } from './cashier.handlers'
+import { isAvailable, rewardSeeds } from './rewards.handlers'
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
@@ -30,6 +31,8 @@ type Seed = {
   status: RedemptionStatus
   createdAt: number
   origin?: 'APP' | 'COUNTER'
+  // Empleado que lo confirmó en la caja (los de ejemplo usan EMPLOYEE)
+  confirmedBy?: { accountId: number; name: string }
   reason?: string
 }
 
@@ -94,7 +97,7 @@ function toRedemption(seed: Seed): Redemption {
     reward: { id: seed.id, name: seed.rewardName, points: seed.points },
     customer: customerOf(seed.customerId),
     origin,
-    confirmedBy: origin === 'COUNTER' ? EMPLOYEE : null,
+    confirmedBy: origin === 'COUNTER' ? (seed.confirmedBy ?? EMPLOYEE) : null,
     resolvedAt: resolvedTs === null ? null : new Date(resolvedTs).toISOString(),
     resolvedBy: byEmployee
       ? { actorType: 'EMPLOYEE', ...EMPLOYEE }
@@ -269,5 +272,109 @@ export const redemptionsHandlers = [
     const result = filterByDatesAndOrder(matching, params, path)
     if (result.error) return result.error
     return HttpResponse.json(paginate(result.seeds.map(toRedemption), params, 20))
+  }),
+]
+
+// --- Confirmar canje (US-40, §3.7.1). Confirmar no descuenta nada: ni saldo ni stock. ---
+
+// Alfabeto del código (§3.6.1): sin 0, O, 1 ni I
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
+function newCode() {
+  let code: string
+  do {
+    code = Array.from({ length: 6 }, () => CODE_ALPHABET[Math.floor(Math.random() * 32)]).join('')
+  } while (seeds.some((seed) => seed.code === code))
+  return code
+}
+
+// Validaciones de `rewardId` del body, en el orden del contrato (paso 1) y sin campos de más
+function checkConfirmBody(body: Record<string, unknown>, path: string) {
+  const extra = Object.keys(body).filter((key) => key !== 'rewardId')
+  if (extra.length) {
+    return errorResponse(400, extra.map((key) => `property ${key} should not exist`), path)
+  }
+  if (body.rewardId === undefined || body.rewardId === null || body.rewardId === '') {
+    return errorResponse(400, 'Completá este campo.', path)
+  }
+  if (typeof body.rewardId !== 'number' || !Number.isInteger(body.rewardId) || body.rewardId < 1) {
+    return errorResponse(400, 'Ingresá un número entero mayor a 0.', path)
+  }
+  return null
+}
+
+// Pasos 2 y 3: cliente activo, y recompensa que existe, no dada de baja y disponible
+function confirmRedemption(
+  customerId: number,
+  rewardId: number,
+  path: string,
+  confirmedBy: { accountId: number; name: string } | null,
+) {
+  const customer = customers.find((item) => item.id === customerId)
+  if (!customer) return { error: errorResponse(404, `No existe el cliente ${customerId}.`, path) }
+  if (!customer.active) {
+    return { error: errorResponse(409, 'El cliente está dado de baja.', path, 'CUSTOMER_INACTIVE') }
+  }
+  const reward = rewardSeeds.find((item) => item.id === rewardId)
+  if (!reward || reward.status === 'DELETED') {
+    return { error: errorResponse(404, 'No existe la recompensa.', path) }
+  }
+  if (!isAvailable(reward)) {
+    return {
+      error: errorResponse(409, 'La recompensa ya no está disponible.', path, 'REWARD_NOT_AVAILABLE'),
+    }
+  }
+  // Se guarda con el snapshot del nombre y de los puntos; el saldo no se valida (S4-2)
+  const seed: Seed = {
+    id: Math.max(...seeds.map((item) => item.id)) + 1,
+    code: newCode(),
+    customerId,
+    rewardName: reward.name,
+    points: reward.points,
+    status: 'CONFIRMED',
+    createdAt: Date.now(),
+    origin: confirmedBy ? 'COUNTER' : 'APP',
+    ...(confirmedBy ? { confirmedBy } : {}),
+  }
+  seeds.push(seed)
+  return { seed }
+}
+
+export const confirmRedemptionHandlers = [
+  // Cliente: el cliente sale del token. Solo del Cliente.
+  http.post(`${API_URL}/customers/me/canjes`, async ({ request }) => {
+    await delay(400)
+    const path = new URL(request.url).pathname
+    const account = accountFromRequest(request)
+    if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+    if (account.role !== 'CUSTOMER' || account.customerId === undefined) return forbidden(path)
+
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
+    const invalid = checkConfirmBody(body, path)
+    if (invalid) return invalid
+
+    const result = confirmRedemption(account.customerId, body.rewardId as number, path, null)
+    if (result.error) return result.error
+    return HttpResponse.json({ redemption: toMyRedemption(toRedemption(result.seed)) }, { status: 201 })
+  }),
+
+  // Caja: en nombre del cliente. Solo Cajero y Administrador; `confirmedBy` es el empleado.
+  http.post<{ id: string }>(`${API_URL}/customers/:id/canjes`, async ({ params, request }) => {
+    await delay(400)
+    const path = new URL(request.url).pathname
+    const account = accountFromRequest(request)
+    if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+    if (account.role === 'CUSTOMER') return forbidden(path)
+
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
+    const invalid = checkConfirmBody(body, path)
+    if (invalid) return invalid
+
+    const result = confirmRedemption(Number(params.id), body.rewardId as number, path, {
+      accountId: account.accountId,
+      name: `${account.firstName} ${account.lastName}`,
+    })
+    if (result.error) return result.error
+    return HttpResponse.json({ redemption: toRedemption(result.seed) }, { status: 201 })
   }),
 ]

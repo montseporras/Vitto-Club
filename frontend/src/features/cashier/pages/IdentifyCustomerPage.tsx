@@ -248,7 +248,8 @@ export function IdentifyCustomerPage({
                 <CustomerActivityPanel
                   // Al cambiar de cliente, el panel vuelve a arrancar cerrado
                   key={customer.id}
-                  customerId={customer.id}
+                  customer={customer}
+                  balance={points.data.balance}
                   role={session.user.role}
                 />
                 {/* Segundo panel de la búsqueda (contrato §3.1.4): consumos de 24 hs y anulación */}

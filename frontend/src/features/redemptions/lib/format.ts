@@ -29,6 +29,20 @@ export function expiresInText(expiresAt: string, now: number) {
   return `Vence en ${Math.ceil(ms / MINUTE)} min`
 }
 
+/**
+ * Cuenta regresiva de "¡Canje confirmado!" (§3.7.2): "Vence en 14:59"; "Vence en menos de 1 min"
+ * en el último minuto. En 0 dice "El canje venció", como el prototipo (decisión tomada a pedido de
+ * Deni, 02/11).
+ */
+export function countdownText(expiresAt: string, now: number) {
+  const ms = msUntil(expiresAt, now)
+  if (ms <= 0) return 'El canje venció'
+  if (ms < MINUTE) return 'Vence en menos de 1 min'
+  const seconds = Math.floor(ms / 1000)
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `Vence en ${pad(Math.floor(seconds / 60))}:${pad(seconds % 60)}`
+}
+
 /** En rojo cuando faltan 2 minutos o menos (§3.7.2). */
 export const isExpiringSoon = (expiresAt: string, now: number) =>
   msUntil(expiresAt, now) <= 2 * MINUTE

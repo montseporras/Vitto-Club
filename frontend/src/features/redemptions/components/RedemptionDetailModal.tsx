@@ -9,6 +9,7 @@ import { formatInteger } from '@/shared/lib/numbers'
 import { cn } from '@/shared/lib/utils'
 import { expiresInText, isExpiringSoon } from '../lib/format'
 import { resolverName } from '../lib/resolver'
+import { useEscapeKey } from '../lib/use-escape-key'
 import type { Redemption } from '../types/redemption'
 import { RedemptionStatusBadge } from './RedemptionStatusBadge'
 
@@ -76,6 +77,7 @@ export function RedemptionDetailModal({
   onApply,
   onReject,
 }: RedemptionDetailModalProps) {
+  useEscapeKey(onClose)
   const confirmed = redemption.status === 'CONFIRMED'
 
   return (

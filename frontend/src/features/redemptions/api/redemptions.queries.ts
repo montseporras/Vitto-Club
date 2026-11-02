@@ -1,14 +1,22 @@
-// Hooks para consultar canjes con carga, error y caché (US-45).
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+// Hooks para consultar y confirmar canjes con carga, error y caché (US-45 y US-40).
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { rewardsKeys } from '@/features/rewards'
 import type { ApiError } from '@/shared/api/ApiError'
 import type {
+  ConfirmedRedemption,
   MyRedemption,
   MyRedemptionFilters,
   Paginated,
   Redemption,
   RedemptionFilters,
 } from '../types/redemption'
-import { getCustomerRedemptions, getMyRedemptions, listRedemptions } from './redemptions.api'
+import {
+  confirmCustomerRedemption,
+  confirmMyRedemption,
+  getCustomerRedemptions,
+  getMyRedemptions,
+  listRedemptions,
+} from './redemptions.api'
 import { redemptionsKeys } from './redemptions.keys'
 
 // Mis canjes del Cliente (§3.12.1). `enabled` deja de pedir cuando el filtro de fechas está
@@ -36,4 +44,33 @@ export const useRedemptions = (filters: RedemptionFilters, page: number) =>
     queryKey: redemptionsKeys.list(filters, page),
     queryFn: () => listRedemptions(filters, page),
     placeholderData: keepPreviousData,
+  })
+
+// Después de confirmar, los listados de canjes se vuelven a pedir. Confirmar no toca el saldo ni
+// el stock (§3.7.1), así que no se invalida nada de puntos. Si la recompensa ya no estaba
+// disponible, se refrescan las recompensas (catálogo y mostrador).
+function useConfirmationEffects() {
+  const queryClient = useQueryClient()
+  return {
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: redemptionsKeys.all }),
+    onError: (error: ApiError) => {
+      if (error.code === 'REWARD_NOT_AVAILABLE') {
+        void queryClient.invalidateQueries({ queryKey: rewardsKeys.all })
+      }
+    },
+  }
+}
+
+// Confirmar canje desde la app (US-40, §3.7.1)
+export const useConfirmMyRedemption = () =>
+  useMutation<ConfirmedRedemption, ApiError, number>({
+    mutationFn: confirmMyRedemption,
+    ...useConfirmationEffects(),
+  })
+
+// Confirmar canje desde la caja, en nombre del cliente (US-40, §3.7.1)
+export const useConfirmCustomerRedemption = (customerId: number) =>
+  useMutation<ConfirmedRedemption, ApiError, number>({
+    mutationFn: (rewardId) => confirmCustomerRedemption(customerId, rewardId),
+    ...useConfirmationEffects(),
   })

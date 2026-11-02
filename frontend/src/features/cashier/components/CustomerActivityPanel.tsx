@@ -8,26 +8,33 @@ import { ICONS } from '@/shared/components/ui/icons'
 import { isoToDisplayDateTime } from '@/shared/lib/dates'
 import { cn } from '@/shared/lib/utils'
 import { dataListTermStyles, pointsToneStyles } from '@/styles/ui'
+import { AvailableRewards, CounterRedeemFlow } from '@/features/redemptions'
+import type { Reward } from '@/features/rewards'
 import { useCustomerMovements } from '../api/cashier.queries'
 import { formatSignedInteger } from '@/shared/lib/numbers'
+import type { Customer } from '../types/customer'
 
 // El panel muestra los últimos 5 movimientos (contrato §3.1.4)
 const MOVEMENTS_LIMIT = 5
 
 type CustomerActivityPanelProps = {
-  customerId: number
+  customer: Customer
+  /** Saldo que ya cargó la búsqueda (`GET /customers/:id/puntos`) */
+  balance: number
   role: Role
 }
 
 /**
  * Panel desplegable "Ver canjes, recompensas y movimientos" (US-46, CA-46.7).
- * Canjes y recompensas son textos fijos hasta el Sprint 4. Al Cajero el backend
- * le devuelve solo los movimientos de las últimas 24 h.
+ * "Recompensas a las que puede acceder" es de US-40; "Canjes" sigue con su texto fijo hasta
+ * US-42. Al Cajero el backend le devuelve solo los movimientos de las últimas 24 h.
  */
-export function CustomerActivityPanel({ customerId, role }: CustomerActivityPanelProps) {
+export function CustomerActivityPanel({ customer, balance, role }: CustomerActivityPanelProps) {
   const [open, setOpen] = useState(false)
+  // Recompensa que se está por canjear en nombre del cliente (ventana "Canjear recompensa")
+  const [redeeming, setRedeeming] = useState<Reward | null>(null)
   const panelId = useId()
-  const movements = useCustomerMovements(customerId, MOVEMENTS_LIMIT, open)
+  const movements = useCustomerMovements(customer.id, MOVEMENTS_LIMIT, open)
   const isAdmin = role === 'ADMIN'
 
   const toggleText = open
@@ -60,9 +67,7 @@ export function CustomerActivityPanel({ customerId, role }: CustomerActivityPane
             <h4 className={cn(dataListTermStyles, 'mb-1.5')}>
               Recompensas a las que puede acceder
             </h4>
-            <StatusText>
-              No tiene puntos suficientes para ninguna recompensa disponible.
-            </StatusText>
+            <AvailableRewards balance={balance} onRedeem={setRedeeming} />
           </section>
 
           <section aria-live="polite">
@@ -113,6 +118,16 @@ export function CustomerActivityPanel({ customerId, role }: CustomerActivityPane
             )}
           </section>
         </div>
+      )}
+
+      {redeeming && (
+        <CounterRedeemFlow
+          customer={customer}
+          balance={balance}
+          reward={redeeming}
+          onClose={() => setRedeeming(null)}
+          // "Sí, aplicar" sigue con la ventana "Registrar uso" (US-42): se conecta cuando exista
+        />
       )}
     </div>
   )

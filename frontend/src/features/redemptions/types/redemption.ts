@@ -53,6 +53,15 @@ export type Redemption = RedemptionCommon & {
   balanceAfter: number | null
 }
 
+/**
+ * Canje recién confirmado (`201 { redemption }`, §3.7.1). Lo que usan las pantallas de las dos
+ * rutas: la del Cliente no trae datos de empleados ni de otro cliente.
+ */
+export type ConfirmedRedemption = Pick<
+  MyRedemption,
+  'id' | 'code' | 'createdAt' | 'expiresAt' | 'status' | 'reward'
+>
+
 export type Paginated<TItem> = {
   items: TItem[]
   total: number
