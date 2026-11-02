@@ -71,6 +71,14 @@ export const router = createBrowserRouter([
         },
       },
       {
+        // US-45: Mis canjes
+        path: PATHS.customer.redemptions,
+        lazy: async () => {
+          const { MyRedemptionsPage } = await import('@/features/my-account')
+          return { Component: MyRedemptionsPage }
+        },
+      },
+      {
         path: PATHS.customer.profile,
         lazy: async () => {
           const { MyProfilePage } = await import('@/features/my-account')
@@ -161,6 +169,14 @@ export const router = createBrowserRouter([
         lazy: async () => {
           const { ConsumptionDetailPage } = await import('@/features/consumptions')
           return { Component: ConsumptionDetailPage }
+        },
+      },
+      {
+        // Sección Canjes del Administrador (US-45)
+        path: PATHS.admin.redemptions,
+        lazy: async () => {
+          const { RedemptionsAdminPage } = await import('@/features/redemptions')
+          return { Component: RedemptionsAdminPage }
         },
       },
       {

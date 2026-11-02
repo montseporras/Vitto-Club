@@ -7,6 +7,7 @@ export const PATHS = {
     root: '/mi-cuenta',
     history: '/mi-cuenta/historial',
     profile: '/mi-cuenta/perfil',
+    redemptions: '/mi-cuenta/canjes',
   },
   cashier: {
     root: '/caja',
@@ -18,6 +19,7 @@ export const PATHS = {
     root: '/admin',
     // Menú del Administrador (prototipo v2, en el orden del menú)
     rewards: '/admin/recompensas',
+    redemptions: '/admin/canjes',
     missions: '/admin/misiones',
     customers: '/admin/clientes',
     customerDetail: '/admin/clientes/:id',
