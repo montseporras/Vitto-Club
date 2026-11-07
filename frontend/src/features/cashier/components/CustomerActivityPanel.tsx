@@ -8,7 +8,13 @@ import { ICONS } from '@/shared/components/ui/icons'
 import { isoToDisplayDateTime } from '@/shared/lib/dates'
 import { cn } from '@/shared/lib/utils'
 import { dataListTermStyles, pointsToneStyles } from '@/styles/ui'
-import { AvailableRewards, CounterRedeemFlow } from '@/features/redemptions'
+import {
+  AvailableRewards,
+  CounterRedeemFlow,
+  RedemptionsToUse,
+  RegisterUseModal,
+  type ConfirmedRedemption,
+} from '@/features/redemptions'
 import type { Reward } from '@/features/rewards'
 import { useCustomerMovements } from '../api/cashier.queries'
 import { formatSignedInteger } from '@/shared/lib/numbers'
@@ -22,17 +28,26 @@ type CustomerActivityPanelProps = {
   /** Saldo que ya cargó la búsqueda (`GET /customers/:id/puntos`) */
   balance: number
   role: Role
+  /** Se avisa cuando se registra el uso de un canje: el saldo del cliente cambió. */
+  onBalanceChanged?: () => void
 }
 
 /**
  * Panel desplegable "Ver canjes, recompensas y movimientos" (US-46, CA-46.7).
- * "Recompensas a las que puede acceder" es de US-40; "Canjes" sigue con su texto fijo hasta
- * US-42. Al Cajero el backend le devuelve solo los movimientos de las últimas 24 h.
+ * "Recompensas a las que puede acceder" es de US-40 y "Canjes para usar ahora" de US-42. Al
+ * Cajero el backend le devuelve solo los movimientos de las últimas 24 h.
  */
-export function CustomerActivityPanel({ customer, balance, role }: CustomerActivityPanelProps) {
+export function CustomerActivityPanel({
+  customer,
+  balance,
+  role,
+  onBalanceChanged,
+}: CustomerActivityPanelProps) {
   const [open, setOpen] = useState(false)
   // Recompensa que se está por canjear en nombre del cliente (ventana "Canjear recompensa")
   const [redeeming, setRedeeming] = useState<Reward | null>(null)
+  // Canje al que se le está registrando el uso (ventana "Registrar uso del canje")
+  const [using, setUsing] = useState<ConfirmedRedemption | null>(null)
   const panelId = useId()
   const movements = useCustomerMovements(customer.id, MOVEMENTS_LIMIT, open)
   const isAdmin = role === 'ADMIN'
@@ -59,8 +74,13 @@ export function CustomerActivityPanel({ customer, balance, role }: CustomerActiv
       {open && (
         <div id={panelId} className="mt-4 grid gap-5 sm:grid-cols-3">
           <section>
-            <h4 className={cn(dataListTermStyles, 'mb-1.5')}>Canjes</h4>
-            <StatusText>No tiene canjes.</StatusText>
+            <h4 className={cn(dataListTermStyles, 'mb-1.5')}>Canjes para usar ahora</h4>
+            <RedemptionsToUse
+              customerId={customer.id}
+              onUse={setUsing}
+              // "Rechazar" abre la ventana de US-43: se conecta cuando exista
+              onReject={() => undefined}
+            />
           </section>
 
           <section>
@@ -126,7 +146,18 @@ export function CustomerActivityPanel({ customer, balance, role }: CustomerActiv
           balance={balance}
           reward={redeeming}
           onClose={() => setRedeeming(null)}
-          // "Sí, aplicar" sigue con la ventana "Registrar uso" (US-42): se conecta cuando exista
+          // "Sí, aplicar" sigue con la ventana "Registrar uso"
+          onApplyNow={setUsing}
+        />
+      )}
+
+      {using && (
+        <RegisterUseModal
+          redemption={using}
+          customer={customer}
+          onClose={() => setUsing(null)}
+          onUsed={onBalanceChanged}
+          // "Rechazar canje" abre la ventana de US-43: se conecta cuando exista
         />
       )}
     </div>

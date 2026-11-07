@@ -1,5 +1,5 @@
 // Este archivo hace las llamadas al backend de canjes: consultar (US-45, contrato §3.12) y
-// confirmar (US-40, §3.7.1). Lo usan los hooks de redemptions.queries.ts; las pantallas no lo
+// confirmar (US-40, §3.7.1) y usar (US-42, §3.9.1). Lo usan los hooks de redemptions.queries.ts; las pantallas no lo
 // llaman directo.
 import { toApiError } from '@/shared/api/ApiError'
 import { http } from '@/shared/api/http'
@@ -10,6 +10,7 @@ import type {
   Paginated,
   Redemption,
   RedemptionFilters,
+  RegisterUseResult,
 } from '../types/redemption'
 
 // Mis canjes pide todo de una (§3.12.1: "La pantalla usa limit=100")
@@ -81,6 +82,16 @@ export async function confirmCustomerRedemption(
       { rewardId },
     )
     return data.redemption
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+// Registrar el uso de un canje: recién acá se descuentan los puntos y el stock (US-42, §3.9.1)
+export async function registerRedemptionUse(code: string): Promise<RegisterUseResult> {
+  try {
+    const { data } = await http.patch<RegisterUseResult>(`/canjes/${code}/usar`)
+    return data
   } catch (error) {
     throw toApiError(error)
   }

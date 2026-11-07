@@ -11,7 +11,7 @@ import type {
 } from '@/features/redemptions'
 import { API_URL } from '@/shared/api/http'
 import { accountFromRequest } from './auth.handlers'
-import { customers, errorResponse } from './cashier.handlers'
+import { customers, errorResponse, movementSeeds, pointsByCustomer } from './cashier.handlers'
 import { isAvailable, rewardSeeds } from './rewards.handlers'
 
 const MINUTE = 60_000
@@ -34,6 +34,12 @@ type Seed = {
   // Empleado que lo confirmó en la caja (los de ejemplo usan EMPLOYEE)
   confirmedBy?: { accountId: number; name: string }
   reason?: string
+  // Recompensa de la que salió (los de ejemplo se buscan por nombre)
+  rewardId?: number
+  // Lo que deja registrar el uso (US-42)
+  usedBy?: { accountId: number; name: string }
+  usedAt?: number
+  balanceBefore?: number
 }
 
 const now = Date.now()
@@ -45,6 +51,10 @@ const seeds: Seed[] = [
   { id: 1, code: 'K7MP2X', customerId: 1, rewardName: 'Café con medialuna', points: 150, status: 'CONFIRMED', createdAt: now - 1 * MINUTE },
   { id: 2, code: 'Q4TN8B', customerId: 1, rewardName: 'Porción de torta', points: 300, status: 'CONFIRMED', createdAt: now - 13.5 * MINUTE, origin: 'COUNTER' },
   { id: 3, code: 'H9ZW3D', customerId: 4, rewardName: 'Café con medialuna', points: 150, status: 'CONFIRMED', createdAt: now - 6 * MINUTE },
+  // Para probar los errores de registrar uso: Martín tiene saldo negativo (INSUFFICIENT_BALANCE) y
+  // la recompensa de Sofía está agotada (REWARD_NOT_AVAILABLE)
+  { id: 19, code: 'S5NB7X', customerId: 2, rewardName: 'Sandwich de miga', points: 200, status: 'CONFIRMED', createdAt: now - 2 * MINUTE },
+  { id: 20, code: 'J8UC3V', customerId: 4, rewardName: 'Jugo exprimido', points: 250, status: 'CONFIRMED', createdAt: now - 3 * MINUTE },
   // Finalizados
   { id: 4, code: 'M2RC6F', customerId: 1, rewardName: 'Café con medialuna', points: 150, status: 'USED', createdAt: now - 1 * DAY, origin: 'COUNTER' },
   { id: 5, code: 'P5VY7G', customerId: 1, rewardName: 'Desayuno completo', points: 400, status: 'REJECTED', createdAt: now - 2 * DAY, reason: 'La recompensa se agotó.' },
@@ -86,27 +96,28 @@ function toRedemption(seed: Seed): Redemption {
       ? expiresAt
       : seed.status === 'CONFIRMED'
         ? null
-        : seed.createdAt + 4 * MINUTE
+        : (seed.usedAt ?? seed.createdAt + 4 * MINUTE)
   const byEmployee = seed.status === 'USED' || seed.status === 'REJECTED'
+  const balanceBefore = seed.balanceBefore ?? 480
   return {
     id: seed.id,
     code: seed.code,
     createdAt: new Date(seed.createdAt).toISOString(),
     expiresAt: new Date(expiresAt).toISOString(),
     status: seed.status,
-    reward: { id: seed.id, name: seed.rewardName, points: seed.points },
+    reward: { id: seed.rewardId ?? seed.id, name: seed.rewardName, points: seed.points },
     customer: customerOf(seed.customerId),
     origin,
     confirmedBy: origin === 'COUNTER' ? (seed.confirmedBy ?? EMPLOYEE) : null,
     resolvedAt: resolvedTs === null ? null : new Date(resolvedTs).toISOString(),
     resolvedBy: byEmployee
-      ? { actorType: 'EMPLOYEE', ...EMPLOYEE }
+      ? { actorType: 'EMPLOYEE', ...(seed.usedBy ?? EMPLOYEE) }
       : seed.status === 'EXPIRED'
         ? SYSTEM
         : null,
     rejectionReason: seed.status === 'REJECTED' ? (seed.reason ?? null) : null,
-    balanceBefore: seed.status === 'USED' ? 480 : null,
-    balanceAfter: seed.status === 'USED' ? 480 - seed.points : null,
+    balanceBefore: seed.status === 'USED' ? balanceBefore : null,
+    balanceAfter: seed.status === 'USED' ? balanceBefore - seed.points : null,
   }
 }
 
@@ -329,6 +340,7 @@ function confirmRedemption(
     id: Math.max(...seeds.map((item) => item.id)) + 1,
     code: newCode(),
     customerId,
+    rewardId: reward.id,
     rewardName: reward.name,
     points: reward.points,
     status: 'CONFIRMED',
@@ -376,5 +388,117 @@ export const confirmRedemptionHandlers = [
     })
     if (result.error) return result.error
     return HttpResponse.json({ redemption: toRedemption(result.seed) }, { status: 201 })
+  }),
+]
+
+// --- Registrar uso (US-42, §3.9.1). Recién acá se descuentan los puntos y el stock. ---
+
+const REDEMPTION_STATUS_LABELS: Record<RedemptionStatus, string> = {
+  CONFIRMED: 'Confirmado',
+  USED: 'Utilizado',
+  REJECTED: 'Rechazado',
+  CANCELLED: 'Cancelado',
+  EXPIRED: 'Vencido',
+}
+
+// Mismo código, normalizado como el de los empleados: mayúsculas, sin espacios ni guiones (§3.6.1)
+const normalizeCode = (value: string) => value.replace(/[\s-]/g, '').toUpperCase()
+
+export const registerUseHandlers = [
+  http.patch<{ code: string }>(`${API_URL}/canjes/:code/usar`, async ({ params, request }) => {
+    await delay(400)
+    const path = new URL(request.url).pathname
+    const account = accountFromRequest(request)
+    if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+    if (account.role === 'CUSTOMER') return forbidden(path)
+
+    // 1. El canje existe
+    const seed = seeds.find((item) => item.code === normalizeCode(params.code))
+    if (!seed) return errorResponse(404, 'Código no encontrado.', path)
+
+    // 2. Si estaba Confirmado y venció, pasa a Vencido y el uso falla
+    if (seed.status === 'CONFIRMED' && seed.createdAt + REDEMPTION_DURATION <= Date.now()) {
+      seed.status = 'EXPIRED'
+      return errorResponse(
+        409,
+        'El canje venció. El cliente tiene que pedirlo de nuevo.',
+        path,
+        'REDEMPTION_EXPIRED',
+      )
+    }
+    // 3. Tiene que seguir Confirmado
+    if (seed.status !== 'CONFIRMED') {
+      return errorResponse(
+        409,
+        `El canje ya está en estado "${REDEMPTION_STATUS_LABELS[seed.status]}".`,
+        path,
+        'REDEMPTION_NOT_CONFIRMED',
+      )
+    }
+    // 4. El cliente está activo
+    const customer = customers.find((item) => item.id === seed.customerId)
+    if (!customer?.active) {
+      return errorResponse(409, 'El cliente está dado de baja.', path, 'CUSTOMER_INACTIVE')
+    }
+    // 5. La recompensa está disponible (si no, el canje sigue Confirmado y se puede rechazar)
+    const reward = rewardSeeds.find((item) =>
+      seed.rewardId ? item.id === seed.rewardId : item.name === seed.rewardName,
+    )
+    if (!reward || !isAvailable(reward)) {
+      return errorResponse(
+        409,
+        'La recompensa ya no está disponible. Podés rechazar el canje.',
+        path,
+        'REWARD_NOT_AVAILABLE',
+      )
+    }
+    // 6. Saldo real: alcanza y no es negativo
+    const state = pointsByCustomer[customer.id]
+    const balance = state?.balance ?? 0
+    if (balance < 0 || balance < seed.points) {
+      return errorResponse(
+        409,
+        'El cliente no tiene saldo suficiente para este canje. Podés rechazarlo.',
+        path,
+        'INSUFFICIENT_BALANCE',
+      )
+    }
+
+    // 7 a 10. Descuenta los puntos del canje (snapshot), registra el movimiento, baja el stock y
+    // pasa el canje a Utilizado. No cambia `lifetimePoints`: canjear no baja el nivel.
+    const employee = { accountId: account.accountId, name: `${account.firstName} ${account.lastName}` }
+    const balanceAfter = balance - seed.points
+    state.balance = balanceAfter
+    movementSeeds.push({
+      customerId: customer.id,
+      createdAt: new Date().toISOString(),
+      type: 'REDEMPTION',
+      points: -seed.points,
+      balanceAfter,
+      description: `Canje: ${seed.rewardName}`,
+      consumptionCode: null,
+      redemptionCode: seed.code,
+      reason: null,
+      lot: null,
+      performedBy: { actorType: 'EMPLOYEE', ...employee },
+    })
+    reward.usedCount += 1
+    if (reward.stock !== null) {
+      reward.stock -= 1
+      if (reward.stock === 0) {
+        reward.status = 'DISABLED'
+        reward.disabledReason = 'OUT_OF_STOCK'
+      }
+    }
+    seed.status = 'USED'
+    seed.usedBy = employee
+    seed.usedAt = Date.now()
+    seed.balanceBefore = balance
+
+    return HttpResponse.json({
+      redemption: toRedemption(seed),
+      balanceBefore: balance,
+      balanceAfter,
+    })
   }),
 ]

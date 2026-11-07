@@ -38,6 +38,7 @@ const recentMovementRows: PointsMovement[] = [
     balanceAfter: 1250,
     description: 'Consumo C-000131',
     consumptionCode: 'C-000131',
+    redemptionCode: null,
     reason: null,
     lot: {
       id: 31,
@@ -60,6 +61,7 @@ const recentMovementRows: PointsMovement[] = [
     balanceAfter: 1000,
     description: 'Anulación de C-000132',
     consumptionCode: 'C-000132',
+    redemptionCode: null,
     reason: null,
     lot: null,
     performedBy: {
@@ -77,6 +79,7 @@ const recentMovementRows: PointsMovement[] = [
     balanceAfter: 1080,
     description: 'Ajuste: Atención por demora',
     consumptionCode: null,
+    redemptionCode: null,
     reason: 'Atención por demora',
     lot: {
       id: 30,
@@ -99,6 +102,7 @@ const recentMovementRows: PointsMovement[] = [
     balanceAfter: 1050,
     description: 'Vencimiento de lote del 16/08/2026',
     consumptionCode: null,
+    redemptionCode: null,
     reason: null,
     lot: {
       id: 18,
@@ -117,6 +121,7 @@ const recentMovementRows: PointsMovement[] = [
     balanceAfter: 65,
     description: 'Consumo C-000133',
     consumptionCode: 'C-000133',
+    redemptionCode: null,
     reason: null,
     lot: {
       id: 32,
@@ -146,6 +151,7 @@ const historicalCredits: PointsMovement[] = Array.from(
       balanceAfter: 800 + index * 40,
       description: `Consumo ${code}`,
       consumptionCode: code,
+      redemptionCode: null,
       reason: null,
       lot: {
         id: 40 + index,
@@ -243,6 +249,7 @@ const toCustomerMovement = ({
   balanceAfter,
   description,
   consumptionCode,
+  redemptionCode,
   reason,
   lot,
 }: PointsMovement): CustomerPointsMovement => ({
@@ -253,6 +260,7 @@ const toCustomerMovement = ({
   balanceAfter,
   description,
   consumptionCode,
+  redemptionCode,
   reason,
   lot,
 })

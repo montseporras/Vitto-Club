@@ -9,9 +9,10 @@ import { useRedemptions } from '../api/redemptions.queries'
 import { AdminRedemptionFilters } from '../components/AdminRedemptionFilters'
 import { AdminRedemptionsTable } from '../components/AdminRedemptionsTable'
 import { RedemptionDetailModal } from '../components/RedemptionDetailModal'
+import { RegisterUseModal } from '../components/RegisterUseModal'
 import { emptyDraftFilters, type DraftRedemptionFilters } from '../lib/draft-filters'
 import { useExpiryRefetch } from '../lib/use-expiry-refetch'
-import type { RedemptionFilters } from '../types/redemption'
+import type { Redemption, RedemptionFilters } from '../types/redemption'
 
 // Del formulario a los parámetros de GET /canjes. Un día elegido filtra ese día (fromDate = toDate).
 function toFilters(draft: DraftRedemptionFilters): RedemptionFilters {
@@ -35,6 +36,8 @@ export function RedemptionsAdminPage() {
   const [page, setPage] = useState(1)
   // Código del canje abierto en el modal; se busca en la lista para que se refresque con ella
   const [openCode, setOpenCode] = useState<string | null>(null)
+  // Canje al que se le está registrando el uso (ventana de US-42)
+  const [using, setUsing] = useState<Redemption | null>(null)
   const result = useRedemptions(filters, page)
   const now = useExpiryRefetch(result.data?.items, result.refetch)
 
@@ -51,9 +54,13 @@ export function RedemptionsAdminPage() {
     setPage(1)
   }
 
-  // Aplicar (US-42) y Rechazar (US-43): el modal se cierra y acá se abren sus ventanas cuando
-  // esas historias estén hechas.
-  const closeForAction = () => setOpenCode(null)
+  // Aplicar cierra el modal y abre "Registrar uso" (US-42); Rechazar abre la ventana de US-43,
+  // que todavía no existe: por ahora solo cierra el modal.
+  const applyRedemption = (redemption: Redemption) => {
+    setOpenCode(null)
+    setUsing(redemption)
+  }
+  const rejectRedemption = () => setOpenCode(null)
 
   return (
     <Page className="max-w-6xl">
@@ -124,8 +131,16 @@ export function RedemptionsAdminPage() {
           redemption={opened}
           now={now}
           onClose={() => setOpenCode(null)}
-          onApply={closeForAction}
-          onReject={closeForAction}
+          onApply={applyRedemption}
+          onReject={rejectRedemption}
+        />
+      )}
+
+      {using && (
+        <RegisterUseModal
+          redemption={using}
+          customer={using.customer}
+          onClose={() => setUsing(null)}
         />
       )}
     </Page>

@@ -4,6 +4,8 @@ export { RedemptionStatusBadge } from './components/RedemptionStatusBadge'
 export { AvailableRewards } from './components/AvailableRewards'
 export { CounterRedeemFlow } from './components/CounterRedeemFlow'
 export { RewardSummary } from './components/RewardSummary'
+export { RedemptionsToUse } from './components/RedemptionsToUse'
+export { RegisterUseModal } from './components/RegisterUseModal'
 export {
   useConfirmMyRedemption,
   useCustomerRedemptions,

@@ -39,6 +39,8 @@ export type PointsMovement = {
   balanceAfter: number
   description: string
   consumptionCode: string | null
+  /** Código del canje, en los movimientos REDEMPTION (contrato del Sprint 4, §3.13.2) */
+  redemptionCode: string | null
   reason: string | null
   lot: PointsMovementLot | null
   performedBy: PointsMovementActor

@@ -88,3 +88,10 @@ export type RedemptionFilters = {
   toDate?: string
   order?: 'asc' | 'desc'
 }
+
+/** Respuesta `200` de `PATCH /canjes/:code/usar` (§3.9.1). */
+export type RegisterUseResult = {
+  redemption: Redemption
+  balanceBefore: number
+  balanceAfter: number
+}

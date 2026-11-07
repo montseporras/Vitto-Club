@@ -1,4 +1,4 @@
-// Hooks para consultar y confirmar canjes con carga, error y caché (US-45 y US-40).
+// Hooks para consultar, confirmar y usar canjes con carga, error y caché (US-45, US-40 y US-42).
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { rewardsKeys } from '@/features/rewards'
 import type { ApiError } from '@/shared/api/ApiError'
@@ -8,6 +8,7 @@ import type {
   MyRedemptionFilters,
   Paginated,
   Redemption,
+  RegisterUseResult,
   RedemptionFilters,
 } from '../types/redemption'
 import {
@@ -16,6 +17,7 @@ import {
   getCustomerRedemptions,
   getMyRedemptions,
   listRedemptions,
+  registerRedemptionUse,
 } from './redemptions.api'
 import { redemptionsKeys } from './redemptions.keys'
 
@@ -74,3 +76,23 @@ export const useConfirmCustomerRedemption = (customerId: number) =>
     mutationFn: (rewardId) => confirmCustomerRedemption(customerId, rewardId),
     ...useConfirmationEffects(),
   })
+
+// Registrar el uso (US-42, §3.9.1). Cambia el saldo, los movimientos y el stock del cliente, y el
+// estado del canje: se vuelven a pedir los canjes, los movimientos y las recompensas. También con
+// un error, porque el canje pudo cambiar de estado (por ejemplo, vencer). El saldo lo vuelve a
+// pedir quien tiene la tarjeta del cliente a la vista (ver `onUsed` de RegisterUseModal): pedirlo
+// desde acá haría que la pantalla de Caja esconda al cliente y cierre la ventana.
+export const useRegisterRedemptionUse = (customerId: number) => {
+  const queryClient = useQueryClient()
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: redemptionsKeys.all })
+    void queryClient.invalidateQueries({ queryKey: ['customers', customerId, 'movements'] })
+    void queryClient.invalidateQueries({ queryKey: ['points-movements'] })
+    void queryClient.invalidateQueries({ queryKey: rewardsKeys.all })
+  }
+  return useMutation<RegisterUseResult, ApiError, string>({
+    mutationFn: registerRedemptionUse,
+    onSuccess: refresh,
+    onError: refresh,
+  })
+}
