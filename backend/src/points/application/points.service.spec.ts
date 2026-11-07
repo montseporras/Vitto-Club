@@ -645,4 +645,119 @@ describe('PointsService', () => {
       expect(result.expiredPoints).toBe(40);
     });
   });
+
+  describe('canjear (BASE-4, CA-B4.6)', () => {
+    const accreditedAt = new Date('2026-01-10T15:00:00.000Z');
+
+    // Dos lotes: 100 que vencen antes y 200 después (saldo 300)
+    function seedTwoLots(customerId = 101) {
+      repository.seedBalance({ customerId, balance: 300, debt: 0, lifetimePoints: 300 });
+      repository.seedLot({ id: 1, customerId, consumptionId: 141, initialPoints: 100, remainingPoints: 100, accreditedAt, expiresAt: new Date('2027-01-10T15:00:00.000Z') });
+      repository.seedLot({ id: 2, customerId, consumptionId: 142, initialPoints: 200, remainingPoints: 200, accreditedAt, expiresAt: new Date('2027-06-10T15:00:00.000Z') });
+    }
+
+    it('descuenta FIFO: el lote que vence antes queda CONSUMED con 0 y el otro ACTIVE con 150', async () => {
+      seedTwoLots();
+
+      const result = await service.canjear({ customerId: 101, points: 150, redemptionId: 7, performedBy });
+
+      expect(result).toEqual({ balanceBefore: 300, balanceAfter: 150 });
+      expect(repository.lots.get(1)?.getStatus()).toBe('CONSUMED');
+      expect(repository.lots.get(1)?.getRemainingPoints()).toBe(0);
+      expect(repository.lots.get(2)?.getStatus()).toBe('ACTIVE');
+      expect(repository.lots.get(2)?.getRemainingPoints()).toBe(150);
+    });
+
+    it('inserta un movimiento REDEMPTION por −points con balanceAfter y redemptionId', async () => {
+      seedTwoLots();
+
+      await service.canjear({ customerId: 101, points: 150, redemptionId: 7, performedBy });
+
+      expect(repository.movements).toEqual([
+        {
+          customerId: 101,
+          type: 'REDEMPTION',
+          points: -150,
+          balanceAfter: 150,
+          consumptionId: null,
+          lotId: null,
+          redemptionId: 7,
+          performedByAccountId: 12,
+          performedByName: 'Ana Pereyra',
+        },
+      ]);
+    });
+
+    it('no cambia lifetimePoints ni la deuda (canjear no baja el nivel)', async () => {
+      seedTwoLots();
+
+      await service.canjear({ customerId: 101, points: 150, redemptionId: 7, performedBy });
+
+      expect(await repository.findBalance(101)).toEqual({
+        customerId: 101,
+        balance: 150,
+        debt: 0,
+        lifetimePoints: 300,
+      });
+    });
+
+    it('con todo el saldo: deja el saldo en 0', async () => {
+      seedTwoLots();
+
+      const result = await service.canjear({ customerId: 101, points: 300, redemptionId: 7, performedBy });
+
+      expect(result).toEqual({ balanceBefore: 300, balanceAfter: 0 });
+      expect(await repository.findActiveLotsByCustomerId(101)).toEqual([]);
+    });
+
+    it('balance < points: INSUFFICIENT_BALANCE y no toca nada', async () => {
+      seedTwoLots();
+
+      await expect(
+        service.canjear({ customerId: 101, points: 301, redemptionId: 7, performedBy }),
+      ).rejects.toBeInstanceOf(InsufficientBalanceError);
+      expect(repository.movements).toEqual([]);
+      expect(repository.lots.get(1)?.getRemainingPoints()).toBe(100);
+      expect(repository.lots.get(2)?.getRemainingPoints()).toBe(200);
+      expect((await repository.findBalance(101))?.balance).toBe(300);
+    });
+
+    it('saldo negativo (deuda): INSUFFICIENT_BALANCE y no toca nada', async () => {
+      repository.seedBalance({ customerId: 101, balance: -50, debt: 50, lifetimePoints: 400 });
+
+      await expect(
+        service.canjear({ customerId: 101, points: 10, redemptionId: 7, performedBy }),
+      ).rejects.toBeInstanceOf(InsufficientBalanceError);
+      expect(repository.movements).toEqual([]);
+      expect((await repository.findBalance(101))?.balance).toBe(-50);
+    });
+
+    it('con deuda pero saldo suficiente: canjea (solo mira el saldo, decisión de Deni)', async () => {
+      // Lote de 300 y deuda 100: balance = 300 − 100 = 200
+      repository.seedBalance({ customerId: 101, balance: 200, debt: 100, lifetimePoints: 500 });
+      repository.seedLot({ id: 1, customerId: 101, consumptionId: 141, initialPoints: 300, remainingPoints: 300, accreditedAt, expiresAt: new Date('2027-01-10T15:00:00.000Z') });
+
+      const result = await service.canjear({ customerId: 101, points: 200, redemptionId: 7, performedBy });
+
+      expect(result).toEqual({ balanceBefore: 200, balanceAfter: 0 });
+      // Invariante balance = Σ remaining − debt: 100 − 100 = 0
+      expect(repository.lots.get(1)?.getRemainingPoints()).toBe(100);
+      expect(await repository.findBalance(101)).toEqual({ customerId: 101, balance: 0, debt: 100, lifetimePoints: 500 });
+    });
+
+    it('cliente sin fila de puntos: saldo 0, INSUFFICIENT_BALANCE', async () => {
+      await expect(
+        service.canjear({ customerId: 999, points: 1, redemptionId: 7, performedBy }),
+      ).rejects.toBeInstanceOf(InsufficientBalanceError);
+    });
+
+    it.each([0, -10, 1.5])('points = %p: error (siempre positivo y entero)', async (points) => {
+      seedTwoLots();
+
+      await expect(
+        service.canjear({ customerId: 101, points, redemptionId: 7, performedBy }),
+      ).rejects.toThrow('Redemption points must be a positive integer');
+      expect(repository.movements).toEqual([]);
+    });
+  });
 });

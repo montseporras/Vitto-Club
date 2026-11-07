@@ -75,7 +75,7 @@ cosa, manda esto:
 | Ítem | Título | Backend: responsable | Backend: rama | Frontend: responsable | Frontend: rama | Carpeta del front | Estado |
 |---|---|---|---|---|---|---|---|
 | ARRASTRE-S3 | Cierre del Sprint 3 (`CIERRE_SPRINT_3.md`) | | | | | Según el ítem | Sin empezar |
-| BASE-4 | Modelo de recompensas y canjes, módulos y `PointsService.canjear` | | | — (no tiene pantalla) | — | — | Sin empezar |
+| BASE-4 | Modelo de recompensas y canjes, módulos y `PointsService.canjear` | Deni (revisa Maga) | `docs/actualizar-BASE4` | — (no tiene pantalla) | — | — | En curso |
 | US-34 | Crear recompensa | | | | | `features/rewards` | Sin empezar |
 | US-35 | Editar recompensa | | | | | `features/rewards` | Sin empezar |
 | US-36 | Activar / desactivar recompensa | | | | | `features/rewards` | Sin empezar |

@@ -59,6 +59,35 @@ enum PointsMovementType {
   REDEMPTION // Sprint 4
 }
 
+// Sprint 4 (contrato S4 §2.1). DISABLED only by the System; DELETED is final ("Dada de baja")
+enum RewardStatus {
+  ACTIVE
+  DISABLED
+  INACTIVE
+  DELETED
+}
+
+// Sprint 4 (§2.2). Only when status = DISABLED (CHECK)
+enum RewardDisabledReason {
+  OUT_OF_STOCK
+  EXPIRED
+}
+
+// Sprint 4 (§2.3). Born CONFIRMED; the other four are final. There is no "PENDING"
+enum RedemptionStatus {
+  CONFIRMED
+  USED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
+// Sprint 4 (§2.4)
+enum RedemptionOrigin {
+  APP
+  COUNTER
+}
+
 enum AuditActorType {
   EMPLOYEE
   SYSTEM
@@ -181,6 +210,7 @@ model Customer {
   consumptions    Consumption[]
   pointsLots      PointsLot[]
   pointsMovements PointsMovement[]
+  redemptions     Redemption[]
 
   // Document and email must not repeat among ACTIVE customers (PO decision, 2026-10-08): a
   // deactivated customer lost their points and can sign up again as a new customer.
@@ -243,6 +273,8 @@ model Account {
   registeredConsumptions   Consumption[]    @relation("ConsumptionRegisteredBy")
   voidedConsumptions       Consumption[]    @relation("ConsumptionVoidedBy")
   performedPointsMovements PointsMovement[] @relation("PointsMovementPerformedBy")
+  confirmedRedemptions     Redemption[]     @relation("RedemptionConfirmedBy")
+  resolvedRedemptions      Redemption[]     @relation("RedemptionResolvedBy")
 
   @@unique([email], map: "accounts_active_email_key", where: { isActive: true })
   @@index([email])
@@ -437,6 +469,8 @@ model PointsMovement {
   // Required for CONSUMPTION_CREDIT and VOID_REVERSAL (CHECK)
   consumptionId Int? @map("consumption_id")
   lotId         Int? @map("lot_id")
+  // Sprint 4: required for REDEMPTION and only for it (CHECK points_movements_redemption_check)
+  redemptionId  Int? @map("redemption_id")
 
   type         PointsMovementType
   // Signed, never 0 (CHECK). Sign depends on the type
@@ -456,6 +490,7 @@ model PointsMovement {
   customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Restrict)
   consumption Consumption? @relation(fields: [consumptionId], references: [id], onDelete: Restrict)
   lot         PointsLot?   @relation(fields: [lotId], references: [id], onDelete: Restrict)
+  redemption  Redemption?  @relation(fields: [redemptionId], references: [id], onDelete: Restrict)
   performedBy Account?     @relation("PointsMovementPerformedBy", fields: [performedByAccountId], references: [id], onDelete: Restrict)
 
   @@index([customerId, createdAt])
@@ -464,6 +499,96 @@ model PointsMovement {
   @@index([consumptionId])
   @@index([lotId])
   @@map("points_movements")
+}
+
+// =====================================================================
+// REWARDS AND REDEMPTIONS (Sprint 4, BASE-4, contrato S4 §3.15)
+// =====================================================================
+
+/// Reward of the catalog. CHECK constraints and the partial unique index on the name are
+/// written by hand in the migration 20261107120000_sprint4_base4_rewards_redemptions (Prisma
+/// cannot model them):
+/// - points BETWEEN 1 AND 1000000; stock NULL (no limit) or BETWEEN 0 AND 100000; used_count >= 0
+/// - disabled_reason set if and only if status = DISABLED
+/// - deleted_at set if and only if status = DELETED
+/// - UNIQUE (lower(trim(name))) WHERE status <> 'DELETED' ("rewards_active_name_key")
+model Reward {
+  id             Int                   @id @default(autoincrement())
+  name           String                @db.VarChar(80)
+  description    String?               @db.VarChar(255)
+  points         Int
+  // null = no stock limit ("Sin límite")
+  stock          Int?
+  // Last day it can be redeemed, Argentina time. null = never expires ("No vence")
+  expiresAt      DateTime?             @map("expires_at") @db.Date
+  status         RewardStatus          @default(ACTIVE)
+  disabledReason RewardDisabledReason? @map("disabled_reason")
+  // USED redemptions ("Más canjeadas")
+  usedCount      Int                   @default(0) @map("used_count")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+  deletedAt      DateTime?             @map("deleted_at")
+
+  redemptions Redemption[]
+
+  // Daily expiration job (US-37)
+  @@index([status, expiresAt])
+  // Admin listing order
+  @@index([updatedAt])
+  @@map("rewards")
+}
+
+/// A redemption. Born CONFIRMED and lasts 15 minutes; it discounts nothing until it is USED.
+/// CHECK constraints written by hand in the same migration:
+/// - code ~ '^[A-HJ-NP-Z2-9]{6}$' (no 0, O, 1 or I)
+/// - points > 0; expires_at = created_at + 15 minutes
+/// - confirmed_by_account_id set if and only if origin = COUNTER
+/// - resolved_at null if and only if status = CONFIRMED
+/// - rejection_reason set if and only if status = REJECTED
+/// - balance_before and balance_after set if and only if status = USED
+model Redemption {
+  id         Int              @id @default(autoincrement())
+  code       String           @unique @db.Char(6)
+  customerId Int              @map("customer_id")
+  rewardId   Int              @map("reward_id")
+  // Snapshot of the reward when confirmed: later changes do not modify it
+  rewardName String           @map("reward_name") @db.VarChar(80)
+  points     Int
+  status     RedemptionStatus @default(CONFIRMED)
+  origin     RedemptionOrigin
+
+  // Employee who confirmed it at the counter (null when origin = APP)
+  confirmedByAccountId Int?    @map("confirmed_by_account_id")
+  confirmedByName      String? @map("confirmed_by_name") @db.VarChar(161)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+
+  resolvedAt          DateTime? @map("resolved_at")
+  // null for the System and for CANCELLED (the customer is never an actor)
+  resolvedByAccountId Int?      @map("resolved_by_account_id")
+  // Employee's name snapshot or "Sistema"; null for CANCELLED
+  resolvedByName      String?   @map("resolved_by_name") @db.VarChar(200)
+  rejectionReason     String?   @map("rejection_reason") @db.VarChar(500)
+
+  // Only for USED: balance before and after the discount
+  balanceBefore Int? @map("balance_before")
+  balanceAfter  Int? @map("balance_after")
+
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  reward      Reward   @relation(fields: [rewardId], references: [id], onDelete: Restrict)
+  confirmedBy Account? @relation("RedemptionConfirmedBy", fields: [confirmedByAccountId], references: [id], onDelete: Restrict)
+  resolvedBy  Account? @relation("RedemptionResolvedBy", fields: [resolvedByAccountId], references: [id], onDelete: Restrict)
+
+  pointsMovements PointsMovement[]
+
+  @@index([customerId, createdAt])
+  // Expiration (US-44)
+  @@index([status, expiresAt])
+  // confirmedCount
+  @@index([rewardId, status])
+  @@index([createdAt])
+  @@map("redemptions")
 }
 
 // =====================================================================

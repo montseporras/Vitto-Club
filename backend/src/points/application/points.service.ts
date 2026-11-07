@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PointsLot } from '../domain/points-lot.js';
 import { calculateLevel, Level, LevelSummary } from '../domain/level.js';
-import { toArgentinaDateString } from '../domain/argentina-date.js';
+import { toArgentinaDateString } from '../../shared/time/argentina-date.js';
 import { InsufficientBalanceError } from '../domain/errors/insufficient-balance.error.js';
 import {
   ExpirationCustomer,
@@ -53,6 +53,22 @@ export type AjustarInput = {
   points: number;
   reason: string;
   performedBy: PerformedBy;
+};
+
+// BASE-4 (contrato S4 §8.4, CA-B4.6). Lo usa US-42 al registrar el uso de un canje. Solo lleva
+// el id del canje: la descripción "Canje: {recompensa}" y el redemptionCode del listado se
+// arman al leer, desde redemptions (§3.13.2, US-42). Decisión tomada a pedido de Deni.
+export type CanjearInput = {
+  customerId: number;
+  // Puntos del canje (snapshot de redemptions.points), positivos
+  points: number;
+  redemptionId: number;
+  performedBy: PerformedBy;
+};
+
+export type CanjearResult = {
+  balanceBefore: number;
+  balanceAfter: number;
 };
 
 // US-24: el movimiento MANUAL_ADJUSTMENT que se acaba de guardar, para la respuesta 201 (§3.5.1)
@@ -335,6 +351,61 @@ export class PointsService {
         performedBy: input.performedBy,
       },
     };
+  }
+
+  // BASE-4 (CA-B4.6, §3.9.1 pasos 6 y 7): descuenta los puntos de un canje al registrar su uso.
+  // - Bloquea primero la fila de customer_points (FOR UPDATE), como todo lo que mueve puntos.
+  // - Saldo real: si balance < points o el saldo es negativo, InsufficientBalanceError y no toca
+  //   nada (quien llama lo mapea a 409 INSUFFICIENT_BALANCE). Una deuda con saldo suficiente no
+  //   bloquea: se mira solo el saldo, como en §3.9.1 (decisión tomada a pedido de Deni).
+  // - Descuenta de los lotes ACTIVE en orden de vencimiento (FIFO). Como
+  //   balance = Σ remaining − debt, con balance >= points siempre alcanza.
+  // - Inserta el movimiento REDEMPTION por −points con balanceAfter y redemption_id.
+  // - No toca lifetimePoints ni la deuda: canjear no baja el nivel.
+  // No existe la operación inversa: cancelar, rechazar y vencer no reintegran nada (S4-1).
+  async canjear(input: CanjearInput): Promise<CanjearResult> {
+    if (!Number.isInteger(input.points) || input.points <= 0) {
+      throw new Error('Redemption points must be a positive integer');
+    }
+
+    return await this.transactionRunner.run(async () => {
+      const row = await this.pointsRepository.lockOrCreateBalance(input.customerId);
+      if (row.balance < 0 || input.points > row.balance) {
+        throw new InsufficientBalanceError();
+      }
+
+      const lots = await this.pointsRepository.findActiveLotsByCustomerId(input.customerId);
+      let remainingToSubtract = input.points;
+      for (const lot of lots) {
+        if (remainingToSubtract === 0) break;
+        const take = Math.min(lot.getRemainingPoints(), remainingToSubtract);
+        if (take > 0) {
+          lot.consume(take);
+          await this.pointsRepository.updateLot(lot);
+          remainingToSubtract -= take;
+        }
+      }
+
+      const newBalance = row.balance - input.points;
+      await this.pointsRepository.updateBalance(input.customerId, {
+        balance: newBalance,
+        debt: row.debt,
+        lifetimePoints: row.lifetimePoints,
+      });
+      await this.pointsRepository.insertMovement({
+        customerId: input.customerId,
+        type: 'REDEMPTION',
+        points: -input.points,
+        balanceAfter: newBalance,
+        consumptionId: null,
+        lotId: null,
+        redemptionId: input.redemptionId,
+        performedByAccountId: input.performedBy.accountId,
+        performedByName: input.performedBy.name,
+      });
+
+      return { balanceBefore: row.balance, balanceAfter: newBalance };
+    });
   }
 
   // US-25 (§3.6.3): vence los lotes ACTIVE con expiresAt <= now y saldo, de clientes activos.

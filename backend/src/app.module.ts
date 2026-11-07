@@ -15,6 +15,8 @@ import { AuthModule } from './auth/auth.module.js';
 import { LoyaltyModule } from './loyalty/loyalty.module.js';
 import { ConsumptionsModule } from './consumptions/consumptions.module.js';
 import { AuditModule } from './audit/audit.module.js';
+import { RewardsModule } from './rewards/rewards.module.js';
+import { RedemptionsModule } from './redemptions/redemptions.module.js';
 
 @Module({
   imports: [
@@ -45,6 +47,8 @@ import { AuditModule } from './audit/audit.module.js';
     LoyaltyModule,
     ConsumptionsModule,
     AuditModule,
+    RewardsModule,
+    RedemptionsModule,
   ],
 })
 export class AppModule {}
