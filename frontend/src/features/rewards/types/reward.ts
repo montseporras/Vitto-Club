@@ -28,3 +28,18 @@ export type Reward = {
   confirmedCount?: number
   updatedAt: string
 }
+
+/** Botones de filtro del catálogo del Cliente (§2.5). Sin valor = `ALL`. */
+export type CatalogFilter = 'ALL' | 'MOST_REDEEMED' | 'EXPIRING_SOON'
+
+/**
+ * Recompensa del catálogo del Cliente (§3.5.1): la respuesta de ejemplo del contrato no trae
+ * `confirmedCount` (es del Administrador) ni `updatedAt`.
+ */
+export type CatalogReward = Omit<Reward, 'confirmedCount' | 'updatedAt'>
+
+/** Respuesta `200` de `GET /customers/me/recompensas` (§3.5.1): saldo actual y recompensas. */
+export type CustomerCatalog = {
+  balance: number
+  items: CatalogReward[]
+}

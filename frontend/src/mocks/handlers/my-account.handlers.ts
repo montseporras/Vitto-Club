@@ -63,6 +63,10 @@ const emptyPoints = (customerId: number): MyPoints => ({
   nextExpirations: [],
 })
 
+/** Saldo del Cliente, el mismo de `GET /customers/me/puntos` (lo usa el catálogo, US-39 §3.5.1). */
+export const myBalanceOf = (customerId: number) =>
+  (points[customerId] ?? emptyPoints(customerId)).balance
+
 // Límite de intentos: más de 5 contraseñas actuales incorrectas en 15 minutos.
 // El contador es uno solo para el cambio de correo y el de contraseña.
 const MAX_FAILED_ATTEMPTS = 5

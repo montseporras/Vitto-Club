@@ -1,14 +1,22 @@
 // Pantalla Inicio del Cliente (US-19, contrato §3.10.1). Pide los puntos del cliente de la sesión
-// y arma la pantalla con los componentes del feature, en el orden del prototipo.
+// y arma la pantalla con los componentes del feature, en el orden del prototipo. Desde el Sprint 4
+// (US-39, CA-39.6) termina con "Tenés un canje para usar" (si hay) y la tarjeta "Recompensas".
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert } from '@/shared/components/ui/Alert'
 import { useMyPoints } from '../api/my-account.queries'
 import { NegativeBalanceNotice } from '../components/NegativeBalanceNotice'
 import { NextExpirations } from '../components/NextExpirations'
 import { PointsSummary } from '../components/PointsSummary'
-import { RewardsComingSoonCard } from '../components/RewardsComingSoonCard'
+import { RedemptionToUseCard } from '../components/RedemptionToUseCard'
+import { RewardsCard } from '../components/RewardsCard'
+import { myRedemptionsUrl } from '../components/redemptions-view'
 
-export function CustomerHomePage() {
+type CustomerHomePageProps = {
+  /** Ruta de la pestaña Canjes (la pasa el router: un feature no importa rutas de `app/`) */
+  redemptionsPath: string
+}
+
+export function CustomerHomePage({ redemptionsPath }: CustomerHomePageProps) {
   const points = useMyPoints()
 
   if (points.isPending) {
@@ -26,7 +34,10 @@ export function CustomerHomePage() {
       <PointsSummary points={points.data} />
       {points.data.negativeBalance && <NegativeBalanceNotice />}
       <NextExpirations expirations={points.data.nextExpirations} />
-      <RewardsComingSoonCard />
+      <div className="grid gap-3">
+        <RedemptionToUseCard myRedemptionsUrl={myRedemptionsUrl(redemptionsPath)} />
+        <RewardsCard balance={points.data.balance} catalogUrl={redemptionsPath} />
+      </div>
     </div>
   )
 }

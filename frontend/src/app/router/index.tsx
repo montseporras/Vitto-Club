@@ -44,11 +44,13 @@ export const router = createBrowserRouter([
     },
     children: [
       {
-        // US-19: Inicio del Cliente
+        // US-19: Inicio del Cliente. US-39: sus tarjetas llevan a la pestaña Canjes
         index: true,
         lazy: async () => {
           const { CustomerHomePage } = await import('@/features/my-account')
-          return { Component: CustomerHomePage }
+          return {
+            element: <CustomerHomePage redemptionsPath={PATHS.customer.redemptions} />,
+          }
         },
       },
       // Historial: consumos (US-23) y puntos (US-26), una sección debajo de la otra, como el
@@ -71,7 +73,7 @@ export const router = createBrowserRouter([
         },
       },
       {
-        // US-45: Mis canjes
+        // Pestaña Canjes: Catálogo (US-39) y Mis canjes (US-45)
         path: PATHS.customer.redemptions,
         lazy: async () => {
           const { MyRedemptionsPage } = await import('@/features/my-account')
