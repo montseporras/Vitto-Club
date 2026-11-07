@@ -2,7 +2,14 @@
 // §3.5.2) y GET /customers/me/recompensas (catálogo del Cliente, US-39, §3.5.1). Las recompensas de
 // ejemplo las comparte la confirmación de canjes (redemptions.handlers.ts).
 import { delay, http, HttpResponse } from 'msw'
-import type { CatalogFilter, CatalogReward, Reward } from '@/features/rewards'
+import type {
+  AdminReward,
+  CatalogFilter,
+  CatalogReward,
+  CreateRewardBody,
+  Reward,
+  RewardListStatus,
+} from '@/features/rewards'
 import { API_URL } from '@/shared/api/http'
 import { accountFromRequest } from './auth.handlers'
 import { errorResponse } from './cashier.handlers'
@@ -115,6 +122,15 @@ function toCatalogReward(item: Reward): CatalogReward {
 }
 
 const CATALOG_FILTERS: CatalogFilter[] = ['ALL', 'MOST_REDEEMED', 'EXPIRING_SOON']
+const ADMIN_STATUSES: RewardListStatus[] = ['ACTIVE', 'DISABLED', 'INACTIVE']
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function normalizeSearch(value: string) {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-AR')
+}
 
 /** Disponible (§3.1): Activa, con stock (o sin límite) y no vencida. */
 export const isAvailable = (item: Reward) =>
@@ -123,6 +139,164 @@ export const isAvailable = (item: Reward) =>
   (item.expiresAt === null || item.expiresAt >= argentinaToday())
 
 export const rewardsHandlers = [
+  // US-34: listado de Administración, con filtros, orden y paginado de §3.2.1.
+  http.get(`${API_URL}/recompensas`, async ({ request }) => {
+    await delay(250)
+    const url = new URL(request.url)
+    const path = url.pathname
+    const account = accountFromRequest(request)
+    if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+    if (account.role !== 'ADMIN') {
+      return errorResponse(403, 'No tenés permiso para realizar esta acción.', path, 'FORBIDDEN')
+    }
+
+    const q = url.searchParams.get('q') ?? ''
+    const requestedStatus = url.searchParams.get('status') ?? ''
+    if (requestedStatus && !ADMIN_STATUSES.includes(requestedStatus as RewardListStatus)) {
+      return errorResponse(
+        400,
+        'status must be one of the following values: ACTIVE, DISABLED, INACTIVE',
+        path,
+      )
+    }
+
+    const requestedPage = Number(url.searchParams.get('page') ?? '1')
+    const requestedLimit = Number(url.searchParams.get('limit') ?? '20')
+    const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1
+    const limit =
+      Number.isInteger(requestedLimit) && requestedLimit >= 1 && requestedLimit <= 100
+        ? requestedLimit
+        : 20
+    const normalizedQuery = normalizeSearch(q)
+    const filtered = rewardSeeds
+      .filter(
+        (item): item is Omit<Reward, 'status'> & { status: RewardListStatus } =>
+          item.status !== 'DELETED',
+      )
+      .filter((item) => !requestedStatus || item.status === requestedStatus)
+      .filter((item) => !normalizedQuery || normalizeSearch(item.name).includes(normalizedQuery))
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+    const items: AdminReward[] = filtered
+      .slice((page - 1) * limit, page * limit)
+      .map((item) => ({ ...item, confirmedCount: item.confirmedCount ?? 0 }))
+
+    return HttpResponse.json({ items, total: filtered.length, page, limit })
+  }),
+
+  // US-34: creación de recompensa. El mock valida el mismo body que la API (§3.2.3).
+  http.post(`${API_URL}/recompensas`, async ({ request }) => {
+    await delay(300)
+    const path = new URL(request.url).pathname
+    const account = accountFromRequest(request)
+    if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+    if (account.role !== 'ADMIN') {
+      return errorResponse(403, 'No tenés permiso para realizar esta acción.', path, 'FORBIDDEN')
+    }
+
+    const bodyValue: unknown = await request.json()
+    if (!isRecord(bodyValue)) {
+      return errorResponse(400, 'El cuerpo de la solicitud no es válido.', path)
+    }
+    const allowedFields = ['name', 'description', 'points', 'stock', 'expiresAt']
+    const extraField = Object.keys(bodyValue).find((field) => !allowedFields.includes(field))
+    if (extraField) {
+      return errorResponse(400, `property ${extraField} should not exist`, path)
+    }
+
+    for (const field of ['name', 'points', 'stock', 'expiresAt']) {
+      if (!Object.hasOwn(bodyValue, field)) {
+        return errorResponse(400, 'Completá este campo.', path)
+      }
+    }
+
+    if (typeof bodyValue.name !== 'string') {
+      return errorResponse(400, 'Completá este campo.', path)
+    }
+    const name = bodyValue.name.trim()
+    if (!name) return errorResponse(400, 'Completá este campo.', path)
+    if (name.length > 80) return errorResponse(400, 'Máximo 80 caracteres.', path)
+
+    if (
+      typeof bodyValue.description !== 'undefined' &&
+      bodyValue.description !== null &&
+      typeof bodyValue.description !== 'string'
+    ) {
+      return errorResponse(400, 'description must be a string', path)
+    }
+    const description =
+      typeof bodyValue.description === 'string' ? bodyValue.description.trim() || null : null
+    if (description && description.length > 255) {
+      return errorResponse(400, 'Máximo 255 caracteres.', path)
+    }
+
+    if (typeof bodyValue.points !== 'number' || !Number.isInteger(bodyValue.points)) {
+      return errorResponse(400, 'Ingresá un número entero mayor a 0.', path)
+    }
+    if (bodyValue.points < 1) {
+      return errorResponse(400, 'Ingresá un número entero mayor a 0.', path)
+    }
+    if (bodyValue.points > 1_000_000) {
+      return errorResponse(400, 'El máximo es 1.000.000 puntos.', path)
+    }
+
+    let stock: number | null
+    if (bodyValue.stock === null) {
+      stock = null
+    } else if (typeof bodyValue.stock !== 'number' || !Number.isInteger(bodyValue.stock)) {
+      return errorResponse(400, 'Ingresá un número entero, sin decimales.', path)
+    } else if (bodyValue.stock < 1) {
+      return errorResponse(400, 'Ingresá un número entero mayor a 0.', path)
+    } else if (bodyValue.stock > 100_000) {
+      return errorResponse(400, 'El máximo es 100.000.', path)
+    } else {
+      stock = bodyValue.stock
+    }
+
+    let expiresAt: string | null
+    if (bodyValue.expiresAt === null) {
+      expiresAt = null
+    } else if (typeof bodyValue.expiresAt !== 'string') {
+      return errorResponse(400, 'Elegí una fecha o marcá «No vence».', path)
+    } else if (bodyValue.expiresAt < argentinaToday()) {
+      return errorResponse(400, 'La fecha no puede ser anterior a hoy.', path)
+    } else {
+      expiresAt = bodyValue.expiresAt
+    }
+
+    const normalizedName = name.toLocaleLowerCase('es-AR')
+    const duplicate = rewardSeeds.some(
+      (item) =>
+        item.status !== 'DELETED' &&
+        item.name.trim().toLocaleLowerCase('es-AR') === normalizedName,
+    )
+    if (duplicate) {
+      return errorResponse(
+        409,
+        'Ya existe una recompensa con ese nombre.',
+        path,
+        'REWARD_NAME_IN_USE',
+      )
+    }
+
+    const body: CreateRewardBody = { name, description, points: bodyValue.points, stock, expiresAt }
+    const newReward = reward(
+      Math.max(0, ...rewardSeeds.map((item) => item.id)) + 1,
+      body.name,
+      body.points,
+      {
+        description: body.description,
+        stock: body.stock,
+        expiresAt: body.expiresAt,
+        daysToExpire: daysToExpire(body.expiresAt),
+        photoUrl: null,
+        confirmedCount: 0,
+        updatedAt: new Date().toISOString(),
+      },
+    )
+    rewardSeeds.unshift(newReward)
+    return HttpResponse.json(newReward, { status: 201 })
+  }),
+
   // US-40: recompensas del mostrador. Solo Cajero y Administrador; por puntos ascendentes.
   http.get(`${API_URL}/recompensas/disponibles`, async ({ request }) => {
     await delay(250)
