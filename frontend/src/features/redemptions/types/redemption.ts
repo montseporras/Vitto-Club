@@ -89,6 +89,15 @@ export type RedemptionFilters = {
   order?: 'asc' | 'desc'
 }
 
+/** Body de `PATCH /canjes/:code/rechazar` (§3.10.1): el motivo, de 5 a 500 caracteres. */
+export type RejectRedemptionBody = { reason: string }
+
+/** Respuesta `200` de `PATCH /canjes/:code/rechazar` (§3.10.1). */
+export type RejectRedemptionResult = { redemption: Redemption }
+
+/** Respuesta `200` de `PATCH /customers/me/canjes/:code/cancelar` (§3.10.3): la vista del Cliente. */
+export type CancelRedemptionResult = { redemption: MyRedemption }
+
 /** Respuesta `200` de `PATCH /canjes/:code/usar` (§3.9.1). */
 export type RegisterUseResult = {
   redemption: Redemption

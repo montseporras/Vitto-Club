@@ -43,7 +43,7 @@ const DATE_OPTIONS = [
 const RANGE_ERROR = 'La fecha "hasta" no puede ser anterior a "desde".'
 
 type MyRedemptionsProps = {
-  /** Abre la ventana "Cancelar canje" (US-43). Mientras no exista, el botón no hace nada. */
+  /** Abre el diálogo "Cancelar canje" (US-43). */
   onCancel?: (redemption: MyRedemption) => void
 }
 

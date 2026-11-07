@@ -6,7 +6,9 @@ export { CounterRedeemFlow } from './components/CounterRedeemFlow'
 export { RewardSummary } from './components/RewardSummary'
 export { RedemptionsToUse } from './components/RedemptionsToUse'
 export { RegisterUseModal } from './components/RegisterUseModal'
+export { RejectRedemptionModal } from './components/RejectRedemptionModal'
 export {
+  useCancelMyRedemption,
   useConfirmMyRedemption,
   useCustomerRedemptions,
   useMyRedemptions,

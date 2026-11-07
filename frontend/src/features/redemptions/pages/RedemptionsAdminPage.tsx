@@ -10,6 +10,7 @@ import { AdminRedemptionFilters } from '../components/AdminRedemptionFilters'
 import { AdminRedemptionsTable } from '../components/AdminRedemptionsTable'
 import { RedemptionDetailModal } from '../components/RedemptionDetailModal'
 import { RegisterUseModal } from '../components/RegisterUseModal'
+import { RejectRedemptionModal } from '../components/RejectRedemptionModal'
 import { emptyDraftFilters, type DraftRedemptionFilters } from '../lib/draft-filters'
 import { useExpiryRefetch } from '../lib/use-expiry-refetch'
 import type { Redemption, RedemptionFilters } from '../types/redemption'
@@ -38,6 +39,8 @@ export function RedemptionsAdminPage() {
   const [openCode, setOpenCode] = useState<string | null>(null)
   // Canje al que se le está registrando el uso (ventana de US-42)
   const [using, setUsing] = useState<Redemption | null>(null)
+  // Canje que se está por rechazar (ventana de US-43)
+  const [rejecting, setRejecting] = useState<Redemption | null>(null)
   const result = useRedemptions(filters, page)
   const now = useExpiryRefetch(result.data?.items, result.refetch)
 
@@ -54,13 +57,16 @@ export function RedemptionsAdminPage() {
     setPage(1)
   }
 
-  // Aplicar cierra el modal y abre "Registrar uso" (US-42); Rechazar abre la ventana de US-43,
-  // que todavía no existe: por ahora solo cierra el modal.
+  // Aplicar cierra el modal y abre "Registrar uso" (US-42); Rechazar lo cierra y abre "Rechazar
+  // canje" (US-43)
   const applyRedemption = (redemption: Redemption) => {
     setOpenCode(null)
     setUsing(redemption)
   }
-  const rejectRedemption = () => setOpenCode(null)
+  const rejectRedemption = (redemption: Redemption) => {
+    setOpenCode(null)
+    setRejecting(redemption)
+  }
 
   return (
     <Page className="max-w-6xl">
@@ -141,6 +147,16 @@ export function RedemptionsAdminPage() {
           redemption={using}
           customer={using.customer}
           onClose={() => setUsing(null)}
+          // "Rechazar canje" (saldo insuficiente o recompensa no disponible) sigue con US-43
+          onReject={() => setRejecting(using)}
+        />
+      )}
+
+      {rejecting && (
+        <RejectRedemptionModal
+          redemption={rejecting}
+          customer={rejecting.customer}
+          onClose={() => setRejecting(null)}
         />
       )}
     </Page>

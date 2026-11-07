@@ -13,6 +13,7 @@ import {
   CounterRedeemFlow,
   RedemptionsToUse,
   RegisterUseModal,
+  RejectRedemptionModal,
   type ConfirmedRedemption,
 } from '@/features/redemptions'
 import type { Reward } from '@/features/rewards'
@@ -48,6 +49,8 @@ export function CustomerActivityPanel({
   const [redeeming, setRedeeming] = useState<Reward | null>(null)
   // Canje al que se le está registrando el uso (ventana "Registrar uso del canje")
   const [using, setUsing] = useState<ConfirmedRedemption | null>(null)
+  // Canje que se está por rechazar (ventana "Rechazar canje", US-43)
+  const [rejecting, setRejecting] = useState<ConfirmedRedemption | null>(null)
   const panelId = useId()
   const movements = useCustomerMovements(customer.id, MOVEMENTS_LIMIT, open)
   const isAdmin = role === 'ADMIN'
@@ -78,8 +81,7 @@ export function CustomerActivityPanel({
             <RedemptionsToUse
               customerId={customer.id}
               onUse={setUsing}
-              // "Rechazar" abre la ventana de US-43: se conecta cuando exista
-              onReject={() => undefined}
+              onReject={setRejecting}
             />
           </section>
 
@@ -157,7 +159,16 @@ export function CustomerActivityPanel({
           customer={customer}
           onClose={() => setUsing(null)}
           onUsed={onBalanceChanged}
-          // "Rechazar canje" abre la ventana de US-43: se conecta cuando exista
+          // "Rechazar canje" sigue con la ventana de US-43, para el mismo canje
+          onReject={() => setRejecting(using)}
+        />
+      )}
+
+      {rejecting && (
+        <RejectRedemptionModal
+          redemption={rejecting}
+          customer={customer}
+          onClose={() => setRejecting(null)}
         />
       )}
     </div>

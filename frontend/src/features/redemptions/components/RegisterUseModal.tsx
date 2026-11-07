@@ -30,8 +30,8 @@ type RegisterUseModalProps = {
   /** Se avisa cuando el uso quedó registrado: cambió el saldo del cliente. */
   onUsed?: () => void
   /**
-   * "Rechazar canje" (con saldo insuficiente o recompensa no disponible): abre la ventana de
-   * US-43. Mientras no exista, el botón cierra esta ventana.
+   * "Rechazar canje" (con saldo insuficiente o recompensa no disponible): cierra esta ventana y
+   * el que la abrió muestra "Rechazar canje" (US-43).
    */
   onReject?: (code: string) => void
 }

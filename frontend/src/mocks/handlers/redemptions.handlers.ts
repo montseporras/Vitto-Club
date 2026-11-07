@@ -36,7 +36,8 @@ type Seed = {
   reason?: string
   // Recompensa de la que salió (los de ejemplo se buscan por nombre)
   rewardId?: number
-  // Lo que deja registrar el uso (US-42)
+  // Lo que deja registrar el uso (US-42) o el rechazo (US-43): el empleado y la hora. Al cancelar
+  // (US-43) solo se guarda la hora: el Cliente nunca queda como quien lo resolvió.
   usedBy?: { accountId: number; name: string }
   usedAt?: number
   balanceBefore?: number
@@ -55,6 +56,8 @@ const seeds: Seed[] = [
   // la recompensa de Sofía está agotada (REWARD_NOT_AVAILABLE)
   { id: 19, code: 'S5NB7X', customerId: 2, rewardName: 'Sandwich de miga', points: 200, status: 'CONFIRMED', createdAt: now - 2 * MINUTE },
   { id: 20, code: 'J8UC3V', customerId: 4, rewardName: 'Jugo exprimido', points: 250, status: 'CONFIRMED', createdAt: now - 3 * MINUTE },
+  // Para rechazar y cancelar (US-43) sin gastar los de arriba: otro Confirmado de Lucía
+  { id: 21, code: 'B6RW4Y', customerId: 1, rewardName: 'Porción de torta', points: 300, status: 'CONFIRMED', createdAt: now - 4 * MINUTE },
   // Finalizados
   { id: 4, code: 'M2RC6F', customerId: 1, rewardName: 'Café con medialuna', points: 150, status: 'USED', createdAt: now - 1 * DAY, origin: 'COUNTER' },
   { id: 5, code: 'P5VY7G', customerId: 1, rewardName: 'Desayuno completo', points: 400, status: 'REJECTED', createdAt: now - 2 * DAY, reason: 'La recompensa se agotó.' },
@@ -501,4 +504,104 @@ export const registerUseHandlers = [
       balanceAfter,
     })
   }),
+]
+
+// --- Rechazar y cancelar (US-43, §3.10). Sin reintegro: no se toca saldo, movimientos ni stock. ---
+
+// Motivo del rechazo (§3.10.1): obligatorio, se recorta, de 5 a 500 caracteres, sin campos de más
+function checkRejectBody(body: Record<string, unknown>, path: string) {
+  const extra = Object.keys(body).filter((key) => key !== 'reason')
+  if (extra.length) {
+    return errorResponse(400, extra.map((key) => `property ${key} should not exist`), path)
+  }
+  const reason = typeof body.reason === 'string' ? body.reason.trim() : ''
+  if (!reason) return errorResponse(400, 'El motivo es obligatorio.', path)
+  if (reason.length < 5) return errorResponse(400, 'Indicá un motivo de al menos 5 caracteres.', path)
+  if (reason.length > 500) {
+    return errorResponse(400, 'El motivo no puede superar los 500 caracteres.', path)
+  }
+  return null
+}
+
+// Vence al leer (§3.11): si estaba Confirmado y pasó el plazo, queda Vencido
+function expireIfDue(seed: Seed) {
+  if (seed.status === 'CONFIRMED' && seed.createdAt + REDEMPTION_DURATION <= Date.now()) {
+    seed.status = 'EXPIRED'
+    return true
+  }
+  return false
+}
+
+export const rejectCancelHandlers = [
+  // Rechazar (CA-43.1 a CA-43.3 y CA-43.8): Cajero y Administrador; el Cliente recibe 403.
+  http.patch<{ code: string }>(`${API_URL}/canjes/:code/rechazar`, async ({ params, request }) => {
+    await delay(400)
+    const path = new URL(request.url).pathname
+    const account = accountFromRequest(request)
+    if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+    if (account.role === 'CUSTOMER') return forbidden(path)
+
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
+    const invalid = checkRejectBody(body, path)
+    if (invalid) return invalid
+
+    const seed = seeds.find((item) => item.code === normalizeCode(params.code))
+    if (!seed) return errorResponse(404, 'Código no encontrado.', path)
+    if (expireIfDue(seed)) {
+      return errorResponse(
+        409,
+        'El canje venció. El cliente tiene que pedirlo de nuevo.',
+        path,
+        'REDEMPTION_EXPIRED',
+      )
+    }
+    if (seed.status !== 'CONFIRMED') {
+      return errorResponse(
+        409,
+        `El canje ya está en estado "${REDEMPTION_STATUS_LABELS[seed.status]}".`,
+        path,
+        'REDEMPTION_NOT_CONFIRMED',
+      )
+    }
+
+    seed.status = 'REJECTED'
+    seed.reason = (body.reason as string).trim()
+    seed.usedBy = { accountId: account.accountId, name: `${account.firstName} ${account.lastName}` }
+    seed.usedAt = Date.now()
+    return HttpResponse.json({ redemption: toRedemption(seed) })
+  }),
+
+  // Cancelar (CA-43.4 a CA-43.6 y CA-43.8): solo el Cliente dueño. Uno ajeno responde 404, igual
+  // que uno que no existe, para no revelar que existe.
+  http.patch<{ code: string }>(
+    `${API_URL}/customers/me/canjes/:code/cancelar`,
+    async ({ params, request }) => {
+      await delay(400)
+      const path = new URL(request.url).pathname
+      const account = accountFromRequest(request)
+      if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+      if (account.role !== 'CUSTOMER' || account.customerId === undefined) return forbidden(path)
+
+      const seed = seeds.find(
+        (item) =>
+          item.code === normalizeCode(params.code) && item.customerId === account.customerId,
+      )
+      if (!seed) return errorResponse(404, 'No existe el canje.', path)
+      if (expireIfDue(seed)) {
+        return errorResponse(409, 'El canje ya venció.', path, 'REDEMPTION_EXPIRED')
+      }
+      if (seed.status !== 'CONFIRMED') {
+        return errorResponse(
+          409,
+          'El canje ya no se puede cancelar.',
+          path,
+          'REDEMPTION_NOT_CONFIRMED',
+        )
+      }
+
+      seed.status = 'CANCELLED'
+      seed.usedAt = Date.now()
+      return HttpResponse.json({ redemption: toMyRedemption(toRedemption(seed)) })
+    },
+  ),
 ]

@@ -1,9 +1,10 @@
-// Este archivo hace las llamadas al backend de canjes: consultar (US-45, contrato §3.12) y
-// confirmar (US-40, §3.7.1) y usar (US-42, §3.9.1). Lo usan los hooks de redemptions.queries.ts; las pantallas no lo
-// llaman directo.
+// Este archivo hace las llamadas al backend de canjes: consultar (US-45, contrato §3.12),
+// confirmar (US-40, §3.7.1), usar (US-42, §3.9.1) y rechazar o cancelar (US-43, §3.10). Lo usan
+// los hooks de redemptions.queries.ts; las pantallas no lo llaman directo.
 import { toApiError } from '@/shared/api/ApiError'
 import { http } from '@/shared/api/http'
 import type {
+  CancelRedemptionResult,
   ConfirmedRedemption,
   MyRedemption,
   MyRedemptionFilters,
@@ -11,6 +12,8 @@ import type {
   Redemption,
   RedemptionFilters,
   RegisterUseResult,
+  RejectRedemptionBody,
+  RejectRedemptionResult,
 } from '../types/redemption'
 
 // Mis canjes pide todo de una (§3.12.1: "La pantalla usa limit=100")
@@ -91,6 +94,33 @@ export async function confirmCustomerRedemption(
 export async function registerRedemptionUse(code: string): Promise<RegisterUseResult> {
   try {
     const { data } = await http.patch<RegisterUseResult>(`/canjes/${code}/usar`)
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+// Rechazar un canje Confirmado, con motivo (US-43, §3.10.1). Solo Cajero y Administrador. No
+// reintegra nada: confirmar no había descontado ni puntos ni stock.
+export async function rejectRedemption(
+  code: string,
+  body: RejectRedemptionBody,
+): Promise<RejectRedemptionResult> {
+  try {
+    const { data } = await http.patch<RejectRedemptionResult>(`/canjes/${code}/rechazar`, body)
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+// El Cliente cancela un canje propio Confirmado (US-43, §3.10.3). Sin body: el cliente sale del
+// token. No se audita ni reintegra nada.
+export async function cancelMyRedemption(code: string): Promise<CancelRedemptionResult> {
+  try {
+    const { data } = await http.patch<CancelRedemptionResult>(
+      `/customers/me/canjes/${code}/cancelar`,
+    )
     return data
   } catch (error) {
     throw toApiError(error)

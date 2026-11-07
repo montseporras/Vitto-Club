@@ -1,8 +1,10 @@
-// Hooks para consultar, confirmar y usar canjes con carga, error y caché (US-45, US-40 y US-42).
+// Hooks para consultar, confirmar, usar, rechazar y cancelar canjes con carga, error y caché
+// (US-45, US-40, US-42 y US-43).
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { rewardsKeys } from '@/features/rewards'
 import type { ApiError } from '@/shared/api/ApiError'
 import type {
+  CancelRedemptionResult,
   ConfirmedRedemption,
   MyRedemption,
   MyRedemptionFilters,
@@ -10,14 +12,17 @@ import type {
   Redemption,
   RegisterUseResult,
   RedemptionFilters,
+  RejectRedemptionResult,
 } from '../types/redemption'
 import {
+  cancelMyRedemption,
   confirmCustomerRedemption,
   confirmMyRedemption,
   getCustomerRedemptions,
   getMyRedemptions,
   listRedemptions,
   registerRedemptionUse,
+  rejectRedemption,
 } from './redemptions.api'
 import { redemptionsKeys } from './redemptions.keys'
 
@@ -92,6 +97,36 @@ export const useRegisterRedemptionUse = (customerId: number) => {
   }
   return useMutation<RegisterUseResult, ApiError, string>({
     mutationFn: registerRedemptionUse,
+    onSuccess: refresh,
+    onError: refresh,
+  })
+}
+
+// Rechazar y cancelar solo cambian el estado del canje: no tocan saldo, movimientos ni stock
+// (§3.10, sin reintegro). Se vuelven a pedir los canjes, también con un error, porque el canje pudo
+// cambiar de estado (por ejemplo, vencer al leer o haberlo resuelto otro empleado).
+function useRefreshRedemptions() {
+  const queryClient = useQueryClient()
+  return () => void queryClient.invalidateQueries({ queryKey: redemptionsKeys.all })
+}
+
+type RejectVariables = { code: string; reason: string }
+
+// Rechazar un canje con motivo (US-43, §3.10.1). Cajero y Administrador.
+export const useRejectRedemption = () => {
+  const refresh = useRefreshRedemptions()
+  return useMutation<RejectRedemptionResult, ApiError, RejectVariables>({
+    mutationFn: ({ code, reason }) => rejectRedemption(code, { reason }),
+    onSuccess: refresh,
+    onError: refresh,
+  })
+}
+
+// El Cliente cancela un canje propio (US-43, §3.10.3).
+export const useCancelMyRedemption = () => {
+  const refresh = useRefreshRedemptions()
+  return useMutation<CancelRedemptionResult, ApiError, string>({
+    mutationFn: cancelMyRedemption,
     onSuccess: refresh,
     onError: refresh,
   })

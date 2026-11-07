@@ -11,6 +11,7 @@ import {
   confirmRedemptionHandlers,
   redemptionsHandlers,
   registerUseHandlers,
+  rejectCancelHandlers,
 } from './redemptions.handlers'
 import { rewardsHandlers } from './rewards.handlers'
 import { pointsMovementsHandlers } from './points-movements.handlers'
@@ -30,6 +31,7 @@ export const handlers = [
   ...redemptionsHandlers,
   ...confirmRedemptionHandlers,
   ...registerUseHandlers,
+  ...rejectCancelHandlers,
   ...rewardsHandlers,
   ...cashierHandlers,
   ...employeesHandlers,
