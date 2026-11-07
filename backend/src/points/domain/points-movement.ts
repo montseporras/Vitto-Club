@@ -1,4 +1,4 @@
-import { toArgentinaDateString } from './argentina-date.js';
+import { toArgentinaDateString } from '../../shared/time/argentina-date.js';
 import type { PointsLotStatus } from './points-lot.js';
 
 export type { PointsLotStatus };

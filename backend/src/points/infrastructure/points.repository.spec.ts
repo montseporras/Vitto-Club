@@ -231,6 +231,8 @@ describe('PointsPrismaRepository', () => {
           balanceAfter: 500,
           consumptionId: 141,
           lotId: 7,
+          // BASE-4: sin canje, redemption_id va null
+          redemptionId: null,
           reason: null,
           performedByAccountId: 12,
           performedByName: 'Ana Pereyra',
@@ -238,6 +240,30 @@ describe('PointsPrismaRepository', () => {
         select: { id: true, createdAt: true },
       });
       expect(inserted).toEqual({ id: 88, createdAt });
+    });
+
+    it('BASE-4: el movimiento REDEMPTION guarda su redemption_id', async () => {
+      const prisma = fakePrisma();
+      prisma.pointsMovement.create.mockResolvedValue({ id: 89, createdAt: new Date() });
+      const repo = new PointsPrismaRepository(fakeTransactionRunner(prisma));
+
+      await repo.insertMovement({
+        customerId: 101,
+        type: 'REDEMPTION',
+        points: -150,
+        balanceAfter: 150,
+        consumptionId: null,
+        lotId: null,
+        redemptionId: 7,
+        performedByAccountId: 12,
+        performedByName: 'Ana Pereyra',
+      });
+
+      expect(prisma.pointsMovement.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ type: 'REDEMPTION', points: -150, redemptionId: 7 }),
+        }),
+      );
     });
   });
 
