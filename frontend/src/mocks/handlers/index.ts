@@ -7,6 +7,13 @@ import { consumptionsHandlers } from './consumptions.handlers'
 import { employeesHandlers } from './employees.handlers'
 import { myAccountHandlers } from './my-account.handlers'
 import { pointsHandlers } from './points.handlers'
+import {
+  confirmRedemptionHandlers,
+  redemptionsHandlers,
+  registerUseHandlers,
+  rejectCancelHandlers,
+} from './redemptions.handlers'
+import { rewardsHandlers } from './rewards.handlers'
 import { pointsMovementsHandlers } from './points-movements.handlers'
 
 export const handlers = [
@@ -20,6 +27,12 @@ export const handlers = [
   // /customers/:id/consumos
   ...consumptionsHandlers,
   ...auditHandlers,
+  // También antes que los de caja: /customers/me/canjes le tiene que ganar a /customers/:id/canjes
+  ...redemptionsHandlers,
+  ...confirmRedemptionHandlers,
+  ...registerUseHandlers,
+  ...rejectCancelHandlers,
+  ...rewardsHandlers,
   ...cashierHandlers,
   ...employeesHandlers,
   ...pointsHandlers,

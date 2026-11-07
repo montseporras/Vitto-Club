@@ -193,15 +193,15 @@ const lot = (
 
 export const movementSeeds: MovementSeed[] = [
   // Lucía
-  { customerId: 1, createdAt: ago(400 * DAY), type: 'CONSUMPTION_CREDIT', points: 10, balanceAfter: 10, description: 'Consumo C-000101', consumptionCode: 'C-000101', reason: null, lot: lot(1, 400, 'EXPIRED'), performedBy: ANA },
-  { customerId: 1, createdAt: ago(10 * DAY), type: 'CONSUMPTION_CREDIT', points: 750, balanceAfter: 760, description: 'Consumo C-000120', consumptionCode: 'C-000120', reason: null, lot: lot(2, 10, 'ACTIVE'), performedBy: BRUNO },
-  { customerId: 1, createdAt: ago(5 * DAY), type: 'EXPIRATION', points: -10, balanceAfter: 750, description: 'Vencimiento de lote del ' + new Date(Date.now() - 400 * DAY).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Cordoba', day: '2-digit', month: '2-digit', year: 'numeric' }), consumptionCode: null, reason: null, lot: lot(1, 400, 'EXPIRED'), performedBy: SYSTEM },
-  { customerId: 1, createdAt: ago(2 * HOUR), type: 'CONSUMPTION_CREDIT', points: 500, balanceAfter: 1250, description: 'Consumo C-000141', consumptionCode: 'C-000141', reason: null, lot: lot(3, 0, 'ACTIVE'), performedBy: BRUNO },
+  { customerId: 1, createdAt: ago(400 * DAY), type: 'CONSUMPTION_CREDIT', points: 10, balanceAfter: 10, description: 'Consumo C-000101', consumptionCode: 'C-000101', redemptionCode: null, reason: null, lot: lot(1, 400, 'EXPIRED'), performedBy: ANA },
+  { customerId: 1, createdAt: ago(10 * DAY), type: 'CONSUMPTION_CREDIT', points: 750, balanceAfter: 760, description: 'Consumo C-000120', consumptionCode: 'C-000120', redemptionCode: null, reason: null, lot: lot(2, 10, 'ACTIVE'), performedBy: BRUNO },
+  { customerId: 1, createdAt: ago(5 * DAY), type: 'EXPIRATION', points: -10, balanceAfter: 750, description: 'Vencimiento de lote del ' + new Date(Date.now() - 400 * DAY).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Cordoba', day: '2-digit', month: '2-digit', year: 'numeric' }), consumptionCode: null, redemptionCode: null, reason: null, lot: lot(1, 400, 'EXPIRED'), performedBy: SYSTEM },
+  { customerId: 1, createdAt: ago(2 * HOUR), type: 'CONSUMPTION_CREDIT', points: 500, balanceAfter: 1250, description: 'Consumo C-000141', consumptionCode: 'C-000141', redemptionCode: null, reason: null, lot: lot(3, 0, 'ACTIVE'), performedBy: BRUNO },
   // Martín
-  { customerId: 2, createdAt: ago(5 * DAY), type: 'CONSUMPTION_CREDIT', points: 500, balanceAfter: 500, description: 'Consumo C-000110', consumptionCode: 'C-000110', reason: null, lot: lot(4, 5, 'VOIDED'), performedBy: BRUNO },
-  { customerId: 2, createdAt: ago(4 * DAY), type: 'MANUAL_ADJUSTMENT', points: -500, balanceAfter: 0, description: 'Ajuste: Corrección de saldo', consumptionCode: null, reason: 'Corrección de saldo', lot: null, performedBy: ANA },
-  { customerId: 2, createdAt: ago(20 * HOUR), type: 'VOID_REVERSAL', points: -500, balanceAfter: -500, description: 'Anulación de C-000110', consumptionCode: 'C-000110', reason: null, lot: null, performedBy: ANA },
-  { customerId: 2, createdAt: ago(3 * HOUR), type: 'CONSUMPTION_CREDIT', points: 150, balanceAfter: -350, description: 'Consumo C-000139', consumptionCode: 'C-000139', reason: null, lot: null, performedBy: BRUNO },
+  { customerId: 2, createdAt: ago(5 * DAY), type: 'CONSUMPTION_CREDIT', points: 500, balanceAfter: 500, description: 'Consumo C-000110', consumptionCode: 'C-000110', redemptionCode: null, reason: null, lot: lot(4, 5, 'VOIDED'), performedBy: BRUNO },
+  { customerId: 2, createdAt: ago(4 * DAY), type: 'MANUAL_ADJUSTMENT', points: -500, balanceAfter: 0, description: 'Ajuste: Corrección de saldo', consumptionCode: null, redemptionCode: null, reason: 'Corrección de saldo', lot: null, performedBy: ANA },
+  { customerId: 2, createdAt: ago(20 * HOUR), type: 'VOID_REVERSAL', points: -500, balanceAfter: -500, description: 'Anulación de C-000110', consumptionCode: 'C-000110', redemptionCode: null, reason: null, lot: null, performedBy: ANA },
+  { customerId: 2, createdAt: ago(3 * HOUR), type: 'CONSUMPTION_CREDIT', points: 150, balanceAfter: -350, description: 'Consumo C-000139', consumptionCode: 'C-000139', redemptionCode: null, reason: null, lot: null, performedBy: BRUNO },
 ]
 
 const LEVEL_ORDER: { level: Level; min: number }[] = [
@@ -377,7 +377,7 @@ export const cashierHandlers = [
         points: seed.points,
         balanceAfter: seed.balanceAfter,
         description: seed.description,
-        consumptionCode: seed.consumptionCode,
+        consumptionCode: seed.consumptionCode, redemptionCode: null,
         reason: seed.reason,
         lot: seed.lot,
         performedBy: seed.performedBy,
@@ -486,7 +486,7 @@ export const cashierHandlers = [
         points: signed,
         balanceAfter: state.balance,
         description: `Ajuste: ${reason}`,
-        consumptionCode: null,
+        consumptionCode: null, redemptionCode: null,
         reason,
         lot: null,
         performedBy,

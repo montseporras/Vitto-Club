@@ -8,26 +8,51 @@ import { ICONS } from '@/shared/components/ui/icons'
 import { isoToDisplayDateTime } from '@/shared/lib/dates'
 import { cn } from '@/shared/lib/utils'
 import { dataListTermStyles, pointsToneStyles } from '@/styles/ui'
+import {
+  AvailableRewards,
+  CounterRedeemFlow,
+  RedemptionsToUse,
+  RegisterUseModal,
+  RejectRedemptionModal,
+  type ConfirmedRedemption,
+} from '@/features/redemptions'
+import type { Reward } from '@/features/rewards'
 import { useCustomerMovements } from '../api/cashier.queries'
 import { formatSignedInteger } from '@/shared/lib/numbers'
+import type { Customer } from '../types/customer'
 
 // El panel muestra los últimos 5 movimientos (contrato §3.1.4)
 const MOVEMENTS_LIMIT = 5
 
 type CustomerActivityPanelProps = {
-  customerId: number
+  customer: Customer
+  /** Saldo que ya cargó la búsqueda (`GET /customers/:id/puntos`) */
+  balance: number
   role: Role
+  /** Se avisa cuando se registra el uso de un canje: el saldo del cliente cambió. */
+  onBalanceChanged?: () => void
 }
 
 /**
  * Panel desplegable "Ver canjes, recompensas y movimientos" (US-46, CA-46.7).
- * Canjes y recompensas son textos fijos hasta el Sprint 4. Al Cajero el backend
- * le devuelve solo los movimientos de las últimas 24 h.
+ * "Recompensas a las que puede acceder" es de US-40 y "Canjes para usar ahora" de US-42. Al
+ * Cajero el backend le devuelve solo los movimientos de las últimas 24 h.
  */
-export function CustomerActivityPanel({ customerId, role }: CustomerActivityPanelProps) {
+export function CustomerActivityPanel({
+  customer,
+  balance,
+  role,
+  onBalanceChanged,
+}: CustomerActivityPanelProps) {
   const [open, setOpen] = useState(false)
+  // Recompensa que se está por canjear en nombre del cliente (ventana "Canjear recompensa")
+  const [redeeming, setRedeeming] = useState<Reward | null>(null)
+  // Canje al que se le está registrando el uso (ventana "Registrar uso del canje")
+  const [using, setUsing] = useState<ConfirmedRedemption | null>(null)
+  // Canje que se está por rechazar (ventana "Rechazar canje", US-43)
+  const [rejecting, setRejecting] = useState<ConfirmedRedemption | null>(null)
   const panelId = useId()
-  const movements = useCustomerMovements(customerId, MOVEMENTS_LIMIT, open)
+  const movements = useCustomerMovements(customer.id, MOVEMENTS_LIMIT, open)
   const isAdmin = role === 'ADMIN'
 
   const toggleText = open
@@ -52,17 +77,19 @@ export function CustomerActivityPanel({ customerId, role }: CustomerActivityPane
       {open && (
         <div id={panelId} className="mt-4 grid gap-5 sm:grid-cols-3">
           <section>
-            <h4 className={cn(dataListTermStyles, 'mb-1.5')}>Canjes</h4>
-            <StatusText>No tiene canjes.</StatusText>
+            <h4 className={cn(dataListTermStyles, 'mb-1.5')}>Canjes para usar ahora</h4>
+            <RedemptionsToUse
+              customerId={customer.id}
+              onUse={setUsing}
+              onReject={setRejecting}
+            />
           </section>
 
           <section>
             <h4 className={cn(dataListTermStyles, 'mb-1.5')}>
               Recompensas a las que puede acceder
             </h4>
-            <StatusText>
-              No tiene puntos suficientes para ninguna recompensa disponible.
-            </StatusText>
+            <AvailableRewards balance={balance} onRedeem={setRedeeming} />
           </section>
 
           <section aria-live="polite">
@@ -113,6 +140,36 @@ export function CustomerActivityPanel({ customerId, role }: CustomerActivityPane
             )}
           </section>
         </div>
+      )}
+
+      {redeeming && (
+        <CounterRedeemFlow
+          customer={customer}
+          balance={balance}
+          reward={redeeming}
+          onClose={() => setRedeeming(null)}
+          // "Sí, aplicar" sigue con la ventana "Registrar uso"
+          onApplyNow={setUsing}
+        />
+      )}
+
+      {using && (
+        <RegisterUseModal
+          redemption={using}
+          customer={customer}
+          onClose={() => setUsing(null)}
+          onUsed={onBalanceChanged}
+          // "Rechazar canje" sigue con la ventana de US-43, para el mismo canje
+          onReject={() => setRejecting(using)}
+        />
+      )}
+
+      {rejecting && (
+        <RejectRedemptionModal
+          redemption={rejecting}
+          customer={customer}
+          onClose={() => setRejecting(null)}
+        />
       )}
     </div>
   )

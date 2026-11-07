@@ -14,8 +14,30 @@ const TABS = [
   { label: 'Historial', to: PATHS.customer.history },
 ] as const
 
-// Misiones y Canjes son de los Sprints 4 y 5: se ven, pero "Próximamente"
-const SOON_TABS = ['Misiones', 'Canjes'] as const
+// Canjes (Sprint 4) ya está habilitada, después de las que son "Próximamente"
+const REDEMPTIONS_TAB = { label: 'Canjes', to: PATHS.customer.redemptions } as const
+
+// Misiones es del Sprint 5: se ve, pero "Próximamente"
+const SOON_TABS = ['Misiones'] as const
+
+function TabItem({ tab }: { tab: { label: string; to: string } }) {
+  return (
+    <li>
+      <NavLink
+        to={tab.to}
+        end
+        className={({ isActive }) =>
+          cn(
+            bottomNavStyles.item,
+            isActive ? bottomNavStyles.itemActive : bottomNavStyles.itemIdle,
+          )
+        }
+      >
+        {tab.label}
+      </NavLink>
+    </li>
+  )
+}
 
 /**
  * Vista del Cliente, para celular (contrato §3.10): barra superior "Vitto Club"
@@ -55,20 +77,7 @@ export function CustomerLayout() {
       <nav aria-label="Secciones" className={bottomNavStyles.root}>
         <ul className={bottomNavStyles.list}>
           {TABS.map((tab) => (
-            <li key={tab.to}>
-              <NavLink
-                to={tab.to}
-                end
-                className={({ isActive }) =>
-                  cn(
-                    bottomNavStyles.item,
-                    isActive ? bottomNavStyles.itemActive : bottomNavStyles.itemIdle,
-                  )
-                }
-              >
-                {tab.label}
-              </NavLink>
-            </li>
+            <TabItem key={tab.to} tab={tab} />
           ))}
           {SOON_TABS.map((label) => (
             <li key={label}>
@@ -82,6 +91,7 @@ export function CustomerLayout() {
               </span>
             </li>
           ))}
+          <TabItem tab={REDEMPTIONS_TAB} />
         </ul>
       </nav>
 

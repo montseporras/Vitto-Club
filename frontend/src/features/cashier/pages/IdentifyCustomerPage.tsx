@@ -248,8 +248,14 @@ export function IdentifyCustomerPage({
                 <CustomerActivityPanel
                   // Al cambiar de cliente, el panel vuelve a arrancar cerrado
                   key={customer.id}
-                  customerId={customer.id}
+                  customer={customer}
+                  balance={points.data.balance}
                   role={session.user.role}
+                  // Al usar un canje cambia el saldo: se actualiza sin esconder al cliente
+                  onBalanceChanged={() => {
+                    setQuietRefresh(true)
+                    void points.refetch()
+                  }}
                 />
                 {/* Segundo panel de la búsqueda (contrato §3.1.4): consumos de 24 hs y anulación */}
                 <Last24hConsumptions
