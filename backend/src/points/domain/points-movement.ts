@@ -31,6 +31,8 @@ export type PointsMovementRecord = {
   consumptionId: number | null;
   reason: string | null;
   lot: { id: number; accreditedAt: Date; expiresAt: Date; status: PointsLotStatus } | null;
+  // Solo REDEMPTION: snapshot del nombre de la recompensa guardado en el canje
+  redemption: { rewardName: string } | null;
   // null = Sistema (procesos automáticos)
   performedByAccountId: number | null;
   performedByName: string;
@@ -68,8 +70,10 @@ function toArgentinaDisplayDate(date: Date): string {
   return `${day}/${month}/${year}`;
 }
 
-// Lo único que necesita describeMovement: así también lo usa la respuesta del ajuste (US-24)
-type DescribableMovement = Pick<PointsMovementRecord, 'id' | 'type' | 'consumptionId' | 'reason' | 'lot'>;
+// Lo único que necesita describeMovement: así también lo usa la respuesta del ajuste (US-24).
+// `redemption` es opcional porque solo lo necesita REDEMPTION.
+type DescribableMovement = Pick<PointsMovementRecord, 'id' | 'type' | 'consumptionId' | 'reason' | 'lot'> &
+  Partial<Pick<PointsMovementRecord, 'redemption'>>;
 
 function requireConsumptionId(record: DescribableMovement): number {
   if (record.consumptionId === null) {
@@ -94,8 +98,12 @@ export function describeMovement(record: DescribableMovement): string {
       }
       return `Vencimiento de lote del ${toArgentinaDisplayDate(record.lot.accreditedAt)}`;
     case 'REDEMPTION':
-      // "Canje: {recompensa}" necesita las recompensas del Sprint 4: hoy no puede existir
-      throw new Error(`Points movement ${record.id}: REDEMPTION is not available until Sprint 4`);
+      // BASE-4 (CA-B4.6): el nombre es el snapshot guardado en el canje; se lee con un join, no se
+      // guarda en el movimiento
+      if (!record.redemption) {
+        throw new Error(`Points movement ${record.id} of type REDEMPTION has no redemption`);
+      }
+      return `Canje: ${record.redemption.rewardName}`;
   }
 }
 
