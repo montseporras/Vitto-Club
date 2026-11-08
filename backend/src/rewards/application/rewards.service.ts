@@ -28,4 +28,17 @@ export class RewardsService {
   isAvailable(reward: Reward, now: Date = new Date()): boolean {
     return estaDisponible(reward, toArgentinaDateString(now));
   }
+
+  // US-42 (§3.9.1, orden de bloqueos: recompensa → canje → customer_points). null si no existe.
+  async lockById(id: number): Promise<Reward | null> {
+    return await this.rewardRepository.lockById(id);
+  }
+
+  // US-42 (§3.9.1 paso 8): registra el uso (stock, usedCount) y persiste. Devuelve si quedó
+  // deshabilitada, para que quien orquesta decida si audita REWARD_DISABLED.
+  async registerUse(reward: Reward): Promise<{ disabled: boolean }> {
+    const result = reward.registerUse();
+    await this.rewardRepository.update(reward);
+    return result;
+  }
 }

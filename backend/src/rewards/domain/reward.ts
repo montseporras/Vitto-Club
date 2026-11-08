@@ -34,6 +34,24 @@ export class Reward {
     return new Reward({ ...props });
   }
 
+  // US-42 (CA-42.3, §3.9.1 paso 8): suma 1 a usedCount siempre. Si tiene límite de stock
+  // (stock != null), lo descuenta; si llega a 0, pasa a DISABLED/OUT_OF_STOCK (lo pone el
+  // Sistema). Devuelve si se deshabilitó, para que quien orquesta decida si audita
+  // REWARD_DISABLED.
+  registerUse(): { disabled: boolean } {
+    this.props.usedCount += 1;
+    if (this.props.stock === null) {
+      return { disabled: false };
+    }
+    this.props.stock -= 1;
+    if (this.props.stock <= 0) {
+      this.props.status = 'DISABLED';
+      this.props.disabledReason = 'OUT_OF_STOCK';
+      return { disabled: true };
+    }
+    return { disabled: false };
+  }
+
   getId(): number {
     return this.props.id;
   }

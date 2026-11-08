@@ -6,6 +6,7 @@ import { RedemptionsService } from './application/redemptions.service.js';
 import { RedemptionRepository } from './domain/port/redemption.repository.js';
 import { TransactionRunner } from './domain/port/transaction-runner.js';
 import { CustomerRedemptionsController } from './http/customer-redemptions.controller.js';
+import { RedemptionsController } from './http/redemptions.controller.js';
 import { RedemptionsPrismaRepository } from './infrastructure/redemptions.repository.js';
 import { PointsModule } from '../points/points.module.js';
 import { RewardsModule } from '../rewards/rewards.module.js';
@@ -19,7 +20,7 @@ import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js'
 // sentido (mismo patrón que consumptions).
 @Module({
   imports: [AuditModule, CustomersModule, EmployeesModule, RewardsModule, PointsModule],
-  controllers: [CustomerRedemptionsController],
+  controllers: [CustomerRedemptionsController, RedemptionsController],
   providers: [
     RedemptionsService,
     {

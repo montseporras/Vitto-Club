@@ -65,4 +65,30 @@ export class RedemptionsPrismaRepository implements RedemptionRepository {
     const record = await this.prisma.redemption.findUnique({ where: { code } });
     return record ? toDomain(record) : null;
   }
+
+  // US-42 (§3.9.1, orden de bloqueos: recompensa → canje → customer_points)
+  async lockByCode(code: string): Promise<Redemption | null> {
+    const locked = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM redemptions WHERE code = ${code} FOR UPDATE
+    `;
+    if (locked.length === 0) return null;
+
+    const record = await this.prisma.redemption.findUnique({ where: { code } });
+    return record ? toDomain(record) : null;
+  }
+
+  async update(redemption: Redemption): Promise<void> {
+    await this.prisma.redemption.update({
+      where: { id: redemption.getId() },
+      data: {
+        status: redemption.getStatus(),
+        resolvedAt: redemption.getResolvedAt(),
+        resolvedByAccountId: redemption.getResolvedByAccountId(),
+        resolvedByName: redemption.getResolvedByName(),
+        rejectionReason: redemption.getRejectionReason(),
+        balanceBefore: redemption.getBalanceBefore(),
+        balanceAfter: redemption.getBalanceAfter(),
+      },
+    });
+  }
 }

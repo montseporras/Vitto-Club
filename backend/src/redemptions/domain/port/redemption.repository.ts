@@ -12,4 +12,11 @@ export abstract class RedemptionRepository {
 
   // El código ya normalizado (normalizarCodigo). null si no existe
   abstract findByCode(code: string): Promise<Redemption | null>;
+
+  // US-42 (§3.9.1, orden de bloqueos: recompensa → canje → customer_points). SELECT FOR UPDATE.
+  // null si no existe.
+  abstract lockByCode(code: string): Promise<Redemption | null>;
+
+  // US-42: persiste los cambios de use() (status, resolvedAt/By, balanceBefore/After).
+  abstract update(redemption: Redemption): Promise<void>;
 }

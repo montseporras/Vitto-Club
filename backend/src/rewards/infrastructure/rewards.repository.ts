@@ -49,4 +49,27 @@ export class RewardsPrismaRepository implements RewardRepository {
     });
     return records.map(toDomain);
   }
+
+  // US-42 (§3.9.1, orden de bloqueos: recompensa → canje → customer_points)
+  async lockById(id: number): Promise<Reward | null> {
+    const locked = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM rewards WHERE id = ${id} FOR UPDATE
+    `;
+    if (locked.length === 0) return null;
+
+    const record = await this.prisma.reward.findUnique({ where: { id } });
+    return record ? toDomain(record) : null;
+  }
+
+  async update(reward: Reward): Promise<void> {
+    await this.prisma.reward.update({
+      where: { id: reward.getId() },
+      data: {
+        stock: reward.getStock(),
+        usedCount: reward.getUsedCount(),
+        status: reward.getStatus(),
+        disabledReason: reward.getDisabledReason(),
+      },
+    });
+  }
 }

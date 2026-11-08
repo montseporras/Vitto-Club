@@ -1,5 +1,5 @@
 import type { DocumentType } from '../../customers/domain/customer.js';
-import type { AuditActor, AuditDetail, AuditEntryInput } from './audit-entry.js';
+import { SYSTEM_ACTOR, type AuditActor, type AuditDetail, type AuditEntryInput } from './audit-entry.js';
 
 // Arma las entradas de auditoría de las acciones que ya existían (contrato §3.9.3). Son
 // funciones puras sobre datos primitivos: el texto de `description` y las filas de `details`
@@ -440,6 +440,54 @@ export function redemptionConfirmedEntry(
       { label: 'Código del canje', value: redemption.code },
       { label: 'Recompensa', value: redemption.rewardName },
       { label: 'Puntos', value: `${formatNumber(redemption.points)} pts` },
+    ],
+  };
+}
+
+export type RedemptionUseSnapshot = {
+  code: string;
+  rewardName: string;
+  // Puntos descontados (positivo): se muestran con signo menos
+  points: number;
+  balanceAfter: number;
+};
+
+// REDEMPTION_USED (US-42, S4 §3.14.2). El actor siempre es un empleado (Cajero o Administrador).
+export function redemptionUsedEntry(
+  actor: AuditActor,
+  customer: AffectedCustomerSnapshot,
+  redemption: RedemptionUseSnapshot,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'REDEMPTIONS',
+    action: 'REDEMPTION_USED',
+    description: `Registró el uso del canje de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    operationCode: redemption.code,
+    details: [
+      { label: 'Código del canje', value: redemption.code },
+      { label: 'Recompensa', value: redemption.rewardName },
+      { label: 'Puntos descontados', value: formatSignedPoints(-redemption.points) },
+      { label: 'Saldo resultante', value: `${formatNumber(redemption.balanceAfter)} pts` },
+    ],
+  };
+}
+
+const REWARD_DISABLED_REASON_LABELS: Record<string, string> = {
+  OUT_OF_STOCK: 'Sin stock',
+  EXPIRED: 'Vencida',
+};
+
+// REWARD_DISABLED (US-37/US-42, S4 §3.14.2). Lo pone el Sistema, nunca un empleado.
+export function rewardDisabledEntry(rewardName: string, reason: string): AuditEntryInput {
+  return {
+    actor: SYSTEM_ACTOR,
+    module: 'REWARDS',
+    action: 'REWARD_DISABLED',
+    description: `Deshabilitó la recompensa "${rewardName}"`,
+    details: [
+      { label: 'Motivo', value: REWARD_DISABLED_REASON_LABELS[reason] ?? reason },
     ],
   };
 }
