@@ -9,6 +9,7 @@ import {
   employeeUpdatedEntry,
   pointsAdjustedEntry,
   pointsExpiredEntry,
+  redemptionExpiredEntry,
   type CustomerSnapshot,
   type EmployeeSnapshot,
   type LoyaltyConfigSnapshot,
@@ -360,6 +361,26 @@ describe('consumptionVoidedEntry() (US-22)', () => {
         { label: 'Puntos revertidos', value: '−500 pts' },
         { label: 'Saldo resultante', value: '-350 pts' },
         { label: 'Motivo', value: 'Consumo registrado al cliente equivocado.' },
+      ],
+    });
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+});
+
+describe('redemptionExpiredEntry() (US-44)', () => {
+  it('actor Sistema, description del contrato, código en operationCode y como primera fila', () => {
+    const entry = redemptionExpiredEntry(customer, { code: 'K7MP2X', rewardName: 'Café + medialuna' });
+
+    expect(entry).toEqual({
+      actor: { type: 'SYSTEM' },
+      module: 'REDEMPTIONS',
+      action: 'REDEMPTION_EXPIRED',
+      description: 'Venció el canje de Sofía Ríos',
+      affectedCustomer: { customerId: 102, name: 'Sofía Ríos', documentType: 'DNI', documentNumber: '30111222' },
+      operationCode: 'K7MP2X',
+      details: [
+        { label: 'Código del canje', value: 'K7MP2X' },
+        { label: 'Recompensa', value: 'Café + medialuna' },
       ],
     });
     expect(() => assertValidAuditEntry(entry)).not.toThrow();
