@@ -2,7 +2,9 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch
 import { AuditService } from '../../audit/application/audit.service.js';
 import { actorOf, type AuditEntryInput } from '../../audit/domain/audit-entry.js';
 import {
+  rewardActivatedEntry,
   rewardCreatedEntry,
+  rewardDeactivatedEntry,
   rewardDisabledEntry,
   rewardEnabledEntry,
   rewardUpdatedEntry,
@@ -131,6 +133,40 @@ export class RewardsController {
     return {
       reward: RewardResponseDto.fromDomain(result.reward, result.confirmedCount, toArgentinaDateString(now)),
       availabilityChange: result.availabilityChange,
+    };
+  }
+
+  // PATCH /api/recompensas/:id/activar -> CA-36.4 a CA-36.6. Sin body. El cambio y REWARD_ACTIVATED
+  // van en la misma transacción.
+  @Patch(':id/activar')
+  async activate(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserData) {
+    const now = new Date();
+    const result = await this.auditService.capture(
+      () => this.rewardsService.activate(id, now),
+      (activated) => rewardActivatedEntry(actorOf(user), activated.reward.getName(), activated.reward.getStatus()),
+    );
+    return { reward: RewardResponseDto.fromDomain(result.reward, result.confirmedCount, toArgentinaDateString(now)) };
+  }
+
+  // PATCH /api/recompensas/:id/desactivar -> CA-36.1 a CA-36.3 y CA-36.6. Sin body. En una sola
+  // transacción: el cambio, el rechazo de los canjes confirmados con sus REDEMPTION_REJECTED (Sistema,
+  // los escribe redemptions al escuchar reward.deactivated) y, al final, REWARD_DEACTIVATED.
+  @Patch(':id/desactivar')
+  async deactivate(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserData) {
+    const now = new Date();
+    const result = await this.auditService.capture(
+      () => this.rewardsService.deactivate(id, now),
+      (deactivated) =>
+        rewardDeactivatedEntry(
+          actorOf(user),
+          deactivated.reward.getName(),
+          deactivated.previousStatus,
+          deactivated.rejectedRedemptions,
+        ),
+    );
+    return {
+      reward: RewardResponseDto.fromDomain(result.reward, result.confirmedCount, toArgentinaDateString(now)),
+      rejectedRedemptions: result.rejectedRedemptions,
     };
   }
 }

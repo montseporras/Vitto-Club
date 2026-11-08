@@ -453,6 +453,53 @@ export function rewardUpdatedEntry(
   };
 }
 
+// UI de RewardStatus (§2.1)
+const REWARD_STATUS_LABELS = {
+  ACTIVE: 'Activa',
+  DISABLED: 'Deshabilitada',
+  INACTIVE: 'Inactiva',
+  DELETED: 'Dada de baja',
+} as const;
+export type RewardStatusCode = keyof typeof REWARD_STATUS_LABELS;
+
+const statusChange = (before: RewardStatusCode, after: RewardStatusCode): AuditDetail => ({
+  label: 'Estado',
+  value: change(REWARD_STATUS_LABELS[before], REWARD_STATUS_LABELS[after]),
+});
+
+// REWARD_ACTIVATED (§3.2.5 y §3.14.2, US-36): "Estado: Inactiva → Activa" o "Inactiva →
+// Deshabilitada" si no está disponible. No se audita además un REWARD_DISABLED (decisión de Jazmín:
+// sería el mismo hecho dos veces).
+export function rewardActivatedEntry(actor: AuditActor, rewardName: string, after: RewardStatusCode): AuditEntryInput {
+  return {
+    actor,
+    module: 'REWARDS',
+    action: 'REWARD_ACTIVATED',
+    description: `Activó la recompensa "${rewardName}"`,
+    details: [statusChange('INACTIVE', after)],
+  };
+}
+
+// REWARD_DEACTIVATED (§3.2.6 y §3.14.2, US-36): "Estado: {antes} → Inactiva" y, solo si hubo,
+// "Canjes rechazados: {n}"
+export function rewardDeactivatedEntry(
+  actor: AuditActor,
+  rewardName: string,
+  before: RewardStatusCode,
+  rejectedRedemptions: number,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'REWARDS',
+    action: 'REWARD_DEACTIVATED',
+    description: `Desactivó la recompensa "${rewardName}"`,
+    details: [
+      statusChange(before, 'INACTIVE'),
+      ...(rejectedRedemptions > 0 ? [{ label: 'Canjes rechazados', value: formatNumber(rejectedRedemptions) }] : []),
+    ],
+  };
+}
+
 // §3.4: motivo según por qué estaba (o queda) deshabilitada
 const ENABLED_REASONS = { OUT_OF_STOCK: 'Stock repuesto', EXPIRED: 'Fecha de vencimiento actualizada' } as const;
 const DISABLED_REASONS = { OUT_OF_STOCK: 'Sin stock', EXPIRED: 'Vencida' } as const;

@@ -5,6 +5,7 @@ import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.
 import { Reward } from '../domain/reward.js';
 import type { NewReward } from '../domain/new-reward.js';
 import type { RewardEditableState } from '../domain/reward-edit.js';
+import type { RewardStatusState } from '../domain/reward-status-change.js';
 import {
   RewardListFilters,
   RewardListResult,
@@ -121,6 +122,14 @@ export class RewardsPrismaRepository implements RewardRepository {
         stock: reward.stock,
         expiresAt: fromDateOnly(reward.expiresAt),
       },
+    });
+    return toDomain(record);
+  }
+
+  async updateStatus(id: number, state: RewardStatusState): Promise<Reward> {
+    const record = await this.prisma.reward.update({
+      where: { id },
+      data: { status: state.status, disabledReason: state.disabledReason },
     });
     return toDomain(record);
   }

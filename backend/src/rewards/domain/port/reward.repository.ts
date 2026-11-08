@@ -1,6 +1,7 @@
 import { Reward } from '../reward.js';
 import type { NewReward } from '../new-reward.js';
 import type { RewardEditableState } from '../reward-edit.js';
+import type { RewardStatusState } from '../reward-status-change.js';
 
 // US-34 (§3.2.1): el filtro "Estado" del listado. DELETED no se puede pedir.
 export const LISTABLE_REWARD_STATUSES = ['ACTIVE', 'DISABLED', 'INACTIVE'] as const;
@@ -42,6 +43,9 @@ export abstract class RewardRepository {
 
   // US-35: guarda los datos editados y el estado que resultó; actualiza updatedAt
   abstract update(id: number, state: RewardEditableState): Promise<Reward>;
+
+  // US-36: cambia solo el estado y el motivo; actualiza updatedAt
+  abstract updateStatus(id: number, state: RewardStatusState): Promise<Reward>;
 
   // US-34: la guarda en ACTIVE
   abstract create(reward: NewReward): Promise<Reward>;

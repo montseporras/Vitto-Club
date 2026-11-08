@@ -1,6 +1,13 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  REWARD_DEACTIVATED,
+  type RedemptionsRejectedResult,
+  type RewardDeactivatedEvent,
+} from '../../shared/events/domain-events.js';
 import { toArgentinaDateString } from '../../shared/time/argentina-date.js';
-import { Reward, type RewardDisabledReason } from '../domain/reward.js';
+import { Reward, type RewardDisabledReason, type RewardStatus } from '../domain/reward.js';
+import { activationResult, canActivate, canDeactivate, DEACTIVATED } from '../domain/reward-status-change.js';
 import { buildNewReward, NewRewardInput } from '../domain/new-reward.js';
 import { AvailabilityChange, planRewardEdit, RewardEditInput, RewardFieldChange } from '../domain/reward-edit.js';
 import {
@@ -20,7 +27,27 @@ export const REWARD_NOT_FOUND_MESSAGE = 'No existe la recompensa.';
 export const EMPTY_EDIT_MESSAGE = 'Indicá al menos un campo para modificar.';
 export const STOCK_BELOW_CONFIRMED_CODE = 'STOCK_BELOW_CONFIRMED';
 
+export const INVALID_REWARD_STATUS_CODE = 'INVALID_REWARD_STATUS';
+const NOT_INACTIVE_MESSAGE = 'La recompensa no está inactiva.';
+const ALREADY_INACTIVE_MESSAGE = 'La recompensa ya está inactiva.';
+
 export type RewardWithConfirmed = { reward: Reward; confirmedCount: number };
+
+// US-36: para responder y auditar el cambio de estado ("Estado: {antes} → {después}")
+export type RewardStatusChangeResult = RewardWithConfirmed & { previousStatus: RewardStatus };
+export type RewardDeactivationResult = RewardStatusChangeResult & { rejectedRedemptions: number };
+
+// US-43: emitAsync devuelve un resultado por listener. El de redemptions trae { rejectedRedemptions }.
+// Copia de customers.service.ts (la nota de US-43 lo indica así: shared/events es solo de datos).
+function rejectedRedemptionsFrom(listenerResults: unknown[]): number {
+  return listenerResults.reduce<number>((total, result) => {
+    const value =
+      typeof result === 'object' && result !== null
+        ? (result as Partial<RedemptionsRejectedResult>).rejectedRedemptions
+        : undefined;
+    return typeof value === 'number' ? total + value : total;
+  }, 0);
+}
 
 // Lo que quien llama necesita para responder (§3.2.4) y auditar (REWARD_UPDATED y, si cambió la
 // disponibilidad, REWARD_ENABLED o REWARD_DISABLED)
@@ -38,7 +65,10 @@ export type RewardEditResult = RewardWithConfirmed & {
 // verificar disponibilidad, descontar stock).
 @Injectable()
 export class RewardsService {
-  constructor(private readonly rewardRepository: RewardRepository) {}
+  constructor(
+    private readonly rewardRepository: RewardRepository,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   // null si no existe
   async findById(id: number): Promise<Reward | null> {
@@ -116,6 +146,50 @@ export class RewardsService {
       changes: plan.changes,
       availabilityChange: plan.availabilityChange,
       enabledFrom: plan.enabledFrom,
+    };
+  }
+
+  // US-36 (§3.2.5): solo desde INACTIVE. Si no está disponible queda DISABLED con su motivo, y no
+  // es un error (S4-9). Corre dentro de la transacción de quien llama (AuditService.capture).
+  async activate(id: number, now: Date = new Date()): Promise<RewardStatusChangeResult> {
+    const current = await this.rewardRepository.lockNotDeletedForUpdate(id);
+    if (!current) throw new NotFoundException(REWARD_NOT_FOUND_MESSAGE);
+    if (!canActivate(current.getStatus())) {
+      throw new ConflictException({ message: NOT_INACTIVE_MESSAGE, code: INVALID_REWARD_STATUS_CODE });
+    }
+
+    const next = activationResult(
+      { stock: current.getStock(), expiresAt: current.getExpiresAt() },
+      toArgentinaDateString(now),
+    );
+    const reward = await this.rewardRepository.updateStatus(id, next);
+    return {
+      reward,
+      previousStatus: current.getStatus(),
+      confirmedCount: await this.rewardRepository.countConfirmed(id, now),
+    };
+  }
+
+  // US-36 (§3.2.6): desde ACTIVE o DISABLED. En la transacción que abre quien llama: guarda INACTIVE
+  // y publica reward.deactivated, que redemptions escucha (US-43) para rechazar los canjes CONFIRMED
+  // vigentes como Sistema y auditarlos. rewards no importa redemptions (CA-B4.8). La recompensa
+  // queda bloqueada antes que los canjes: el mismo orden que al usar (§3.9.1).
+  async deactivate(id: number, now: Date = new Date()): Promise<RewardDeactivationResult> {
+    const current = await this.rewardRepository.lockNotDeletedForUpdate(id);
+    if (!current) throw new NotFoundException(REWARD_NOT_FOUND_MESSAGE);
+    if (!canDeactivate(current.getStatus())) {
+      throw new ConflictException({ message: ALREADY_INACTIVE_MESSAGE, code: INVALID_REWARD_STATUS_CODE });
+    }
+
+    const reward = await this.rewardRepository.updateStatus(id, DEACTIVATED);
+    const listenerResults: unknown[] = await this.eventEmitter.emitAsync(REWARD_DEACTIVATED, {
+      rewardId: id,
+    } satisfies RewardDeactivatedEvent);
+    return {
+      reward,
+      previousStatus: current.getStatus(),
+      rejectedRedemptions: rejectedRedemptionsFrom(listenerResults),
+      confirmedCount: await this.rewardRepository.countConfirmed(id, now),
     };
   }
 

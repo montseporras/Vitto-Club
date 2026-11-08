@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RewardsService } from './rewards.service.js';
 import { Reward } from '../domain/reward.js';
 import { DomainError } from '../domain/errors/domain.error.js';
@@ -29,11 +30,13 @@ describe('RewardsService', () => {
     lockNotDeletedForUpdate: jest.Mock;
     countConfirmed: jest.Mock;
     update: jest.Mock;
+    updateStatus: jest.Mock;
     existsNotDeletedWithName: jest.Mock;
     create: jest.Mock;
     list: jest.Mock;
   };
   let service: RewardsService;
+  let emitAsync: jest.Mock;
 
   beforeEach(() => {
     repository = {
@@ -42,11 +45,13 @@ describe('RewardsService', () => {
       lockNotDeletedForUpdate: jest.fn().mockResolvedValue(saved),
       countConfirmed: jest.fn().mockResolvedValue(0),
       update: jest.fn().mockImplementation(async () => saved),
+      updateStatus: jest.fn().mockImplementation(async () => saved),
       existsNotDeletedWithName: jest.fn().mockResolvedValue(false),
       create: jest.fn().mockResolvedValue(saved),
       list: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     };
-    service = new RewardsService(repository as unknown as RewardRepository);
+    emitAsync = jest.fn().mockResolvedValue([]);
+    service = new RewardsService(repository as unknown as RewardRepository, { emitAsync } as unknown as EventEmitter2);
   });
 
   describe('create (US-34)', () => {
@@ -175,6 +180,121 @@ describe('RewardsService', () => {
       await service.update(1, { name: 'Café + medialuna', points: 200 }, NOW);
 
       expect(repository.existsNotDeletedWithName).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('activate (US-36)', () => {
+    const inactive = (overrides: Partial<{ stock: number | null; expiresAt: string | null }> = {}) =>
+      Reward.reconstruct({
+        id: 1,
+        name: 'Licuado',
+        description: null,
+        points: 200,
+        stock: 5,
+        expiresAt: '2026-12-08',
+        status: 'INACTIVE',
+        disabledReason: null,
+        usedCount: 0,
+        createdAt: NOW,
+        updatedAt: NOW,
+        deletedAt: null,
+        ...overrides,
+      });
+
+    it('Inactiva disponible → ACTIVE', async () => {
+      repository.lockNotDeletedForUpdate.mockResolvedValue(inactive());
+
+      const result = await service.activate(1, NOW);
+
+      expect(repository.updateStatus).toHaveBeenCalledWith(1, { status: 'ACTIVE', disabledReason: null });
+      expect(result.previousStatus).toBe('INACTIVE');
+    });
+
+    it('Inactiva sin stock → DISABLED / OUT_OF_STOCK, sin error (S4-9)', async () => {
+      repository.lockNotDeletedForUpdate.mockResolvedValue(inactive({ stock: 0 }));
+
+      await service.activate(1, NOW);
+
+      expect(repository.updateStatus).toHaveBeenCalledWith(1, { status: 'DISABLED', disabledReason: 'OUT_OF_STOCK' });
+    });
+
+    it('Inactiva vencida → DISABLED / EXPIRED', async () => {
+      repository.lockNotDeletedForUpdate.mockResolvedValue(inactive({ expiresAt: '2026-11-01' }));
+
+      await service.activate(1, NOW);
+
+      expect(repository.updateStatus).toHaveBeenCalledWith(1, { status: 'DISABLED', disabledReason: 'EXPIRED' });
+    });
+
+    it('no está Inactiva → 409 INVALID_REWARD_STATUS "La recompensa no está inactiva."', async () => {
+      const error = await service.activate(1, NOW).catch((caught: unknown) => caught);
+
+      expect((error as ConflictException).getResponse()).toEqual({
+        message: 'La recompensa no está inactiva.',
+        code: 'INVALID_REWARD_STATUS',
+      });
+      expect(repository.updateStatus).not.toHaveBeenCalled();
+    });
+
+    it('dada de baja o inexistente → 404', async () => {
+      repository.lockNotDeletedForUpdate.mockResolvedValue(null);
+
+      await expect(service.activate(1, NOW)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('deactivate (US-36)', () => {
+    it('guarda INACTIVE, publica reward.deactivated y devuelve los canjes rechazados', async () => {
+      emitAsync.mockResolvedValue([undefined, { rejectedRedemptions: 2 }]);
+
+      const result = await service.deactivate(1, NOW);
+
+      expect(repository.updateStatus).toHaveBeenCalledWith(1, { status: 'INACTIVE', disabledReason: null });
+      expect(emitAsync).toHaveBeenCalledWith('reward.deactivated', { rewardId: 1 });
+      expect(result).toMatchObject({ previousStatus: 'ACTIVE', rejectedRedemptions: 2 });
+    });
+
+    it('el evento se publica después de guardar el estado nuevo', async () => {
+      await service.deactivate(1, NOW);
+
+      expect(repository.updateStatus.mock.invocationCallOrder[0]).toBeLessThan(emitAsync.mock.invocationCallOrder[0]);
+    });
+
+    it('sin listener que rechace → 0 rechazados', async () => {
+      await expect(service.deactivate(1, NOW)).resolves.toMatchObject({ rejectedRedemptions: 0 });
+    });
+
+    it('ya Inactiva → 409 INVALID_REWARD_STATUS "La recompensa ya está inactiva.", sin publicar', async () => {
+      repository.lockNotDeletedForUpdate.mockResolvedValue(
+        Reward.reconstruct({
+          id: 1,
+          name: 'Licuado',
+          description: null,
+          points: 200,
+          stock: 5,
+          expiresAt: null,
+          status: 'INACTIVE',
+          disabledReason: null,
+          usedCount: 0,
+          createdAt: NOW,
+          updatedAt: NOW,
+          deletedAt: null,
+        }),
+      );
+
+      const error = await service.deactivate(1, NOW).catch((caught: unknown) => caught);
+
+      expect((error as ConflictException).getResponse()).toEqual({
+        message: 'La recompensa ya está inactiva.',
+        code: 'INVALID_REWARD_STATUS',
+      });
+      expect(emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('si el rechazo de canjes falla, el error sube (se deshace todo)', async () => {
+      emitAsync.mockRejectedValue(new Error('audit failed'));
+
+      await expect(service.deactivate(1, NOW)).rejects.toThrow('audit failed');
     });
   });
 

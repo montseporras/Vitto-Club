@@ -11,7 +11,9 @@ import {
   pointsExpiredEntry,
   redemptionExpiredEntry,
   redemptionRejectedEntry,
+  rewardActivatedEntry,
   rewardCreatedEntry,
+  rewardDeactivatedEntry,
   rewardDisabledEntry,
   rewardEnabledEntry,
   rewardUpdatedEntry,
@@ -439,6 +441,40 @@ describe('rewardUpdatedEntry() (US-35)', () => {
 
   it('sin cambios → null (no se audita)', () => {
     expect(rewardUpdatedEntry(admin, before, { ...before })).toBeNull();
+  });
+});
+
+describe('rewardActivatedEntry() y rewardDeactivatedEntry() (US-36)', () => {
+  const admin = { type: 'EMPLOYEE' as const, accountId: 1 };
+
+  it.each([
+    ['ACTIVE', 'Inactiva → Activa'],
+    ['DISABLED', 'Inactiva → Deshabilitada'],
+  ] as const)('REWARD_ACTIVATED a %s: "Estado: %s"', (after, value) => {
+    expect(rewardActivatedEntry(admin, 'Licuado', after)).toEqual({
+      actor: admin,
+      module: 'REWARDS',
+      action: 'REWARD_ACTIVATED',
+      description: 'Activó la recompensa "Licuado"',
+      details: [{ label: 'Estado', value }],
+    });
+  });
+
+  it('REWARD_DEACTIVATED sin canjes: solo "Estado: Activa → Inactiva" (CA-36.1)', () => {
+    expect(rewardDeactivatedEntry(admin, 'Licuado', 'ACTIVE', 0)).toEqual({
+      actor: admin,
+      module: 'REWARDS',
+      action: 'REWARD_DEACTIVATED',
+      description: 'Desactivó la recompensa "Licuado"',
+      details: [{ label: 'Estado', value: 'Activa → Inactiva' }],
+    });
+  });
+
+  it('REWARD_DEACTIVATED con 2 canjes y desde Deshabilitada (CA-36.2, CA-36.3)', () => {
+    expect(rewardDeactivatedEntry(admin, 'Licuado', 'DISABLED', 2).details).toEqual([
+      { label: 'Estado', value: 'Deshabilitada → Inactiva' },
+      { label: 'Canjes rechazados', value: '2' },
+    ]);
   });
 });
 
