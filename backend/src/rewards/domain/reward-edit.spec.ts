@@ -30,7 +30,7 @@ describe('planRewardEdit() — US-35', () => {
     it('mismos valores → sin cambios ni cambio de disponibilidad', () => {
       const plan = planRewardEdit(active, { name: ' Café + medialuna ', points: 150, stock: 20, expiresAt: '2026-12-08' }, TODAY);
 
-      expect(plan).toEqual({ changes: [], next: active, availabilityChange: null, enabledFrom: null });
+      expect(plan).toEqual({ changes: [], next: active });
     });
 
     it('descripción: se recorta y vacía = null ("" sobre null no es un cambio)', () => {
@@ -62,70 +62,9 @@ describe('planRewardEdit() — US-35', () => {
     });
   });
 
-  describe('disponibilidad (§3.4)', () => {
-    const outOfStock = { ...active, stock: 0, status: 'DISABLED' as const, disabledReason: 'OUT_OF_STOCK' as const };
-    const expired = { ...active, expiresAt: '2026-11-01', status: 'DISABLED' as const, disabledReason: 'EXPIRED' as const };
+  it('el estado y el motivo no cambian acá: los reevalúa US-37 después de guardar', () => {
+    const plan = planRewardEdit(active, { stock: 0 }, TODAY);
 
-    it('Agotada que repone stock → ACTIVE, ENABLED desde OUT_OF_STOCK (CA-35.5)', () => {
-      const plan = planRewardEdit(outOfStock, { stock: 20 }, TODAY);
-
-      expect(plan.next).toMatchObject({ stock: 20, status: 'ACTIVE', disabledReason: null });
-      expect(plan).toMatchObject({ availabilityChange: 'ENABLED', enabledFrom: 'OUT_OF_STOCK' });
-    });
-
-    it('Agotada que pasa a sin límite → ACTIVE', () => {
-      expect(planRewardEdit(outOfStock, { stock: null }, TODAY).availabilityChange).toBe('ENABLED');
-    });
-
-    it.each([['2026-12-31'], [null]])('Vencida con fecha nueva (%p) → ACTIVE, ENABLED desde EXPIRED (CA-35.5)', (expiresAt) => {
-      const plan = planRewardEdit(expired, { expiresAt }, TODAY);
-
-      expect(plan.next).toMatchObject({ status: 'ACTIVE', disabledReason: null });
-      expect(plan).toMatchObject({ availabilityChange: 'ENABLED', enabledFrom: 'EXPIRED' });
-    });
-
-    it('Activa que queda con stock 0 → DISABLED / OUT_OF_STOCK (CA-35.6)', () => {
-      const plan = planRewardEdit(active, { stock: 0 }, TODAY);
-
-      expect(plan.next).toMatchObject({ stock: 0, status: 'DISABLED', disabledReason: 'OUT_OF_STOCK' });
-      expect(plan).toMatchObject({ availabilityChange: 'DISABLED', enabledFrom: null });
-    });
-
-    it('Activa vencida que todavía no marcó el proceso diario: editar otro campo no la deshabilita', () => {
-      const plan = planRewardEdit({ ...active, expiresAt: '2026-11-01' }, { points: 200 }, TODAY);
-
-      expect(plan.next.status).toBe('ACTIVE');
-      expect(plan.availabilityChange).toBeNull();
-    });
-
-    it('Inactiva no cambia de estado aunque quede sin stock o vuelva a tener (CA-35.7)', () => {
-      const inactive = { ...active, status: 'INACTIVE' as const };
-
-      expect(planRewardEdit(inactive, { stock: 0 }, TODAY).next.status).toBe('INACTIVE');
-      expect(planRewardEdit({ ...inactive, stock: 0 }, { stock: 5 }, TODAY)).toMatchObject({
-        next: { status: 'INACTIVE', disabledReason: null },
-        availabilityChange: null,
-      });
-    });
-
-    it('Agotada que repone stock pero ya venció → sigue DISABLED con motivo EXPIRED, sin cambio que avisar', () => {
-      const plan = planRewardEdit({ ...outOfStock, expiresAt: '2026-11-05' }, { stock: 10 }, TODAY);
-
-      expect(plan.next).toMatchObject({ stock: 10, status: 'DISABLED', disabledReason: 'EXPIRED' });
-      expect(plan.availabilityChange).toBeNull();
-    });
-
-    it('Vencida con fecha nueva pero stock 0 → sigue DISABLED con motivo OUT_OF_STOCK', () => {
-      const plan = planRewardEdit(expired, { expiresAt: '2026-12-31', stock: 0 }, TODAY);
-
-      expect(plan.next).toMatchObject({ status: 'DISABLED', disabledReason: 'OUT_OF_STOCK' });
-      expect(plan.availabilityChange).toBeNull();
-    });
-
-    it('si el motivo de antes sigue valiendo, se conserva', () => {
-      const both = { ...outOfStock, expiresAt: '2026-11-05' };
-
-      expect(planRewardEdit(both, { points: 300 }, TODAY).next.disabledReason).toBe('OUT_OF_STOCK');
-    });
+    expect(plan.next).toMatchObject({ stock: 0, status: 'ACTIVE', disabledReason: null });
   });
 });

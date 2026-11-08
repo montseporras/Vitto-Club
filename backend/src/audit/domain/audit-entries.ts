@@ -333,6 +333,52 @@ export function pointsExpiredEntry(
   };
 }
 
+// --- Recompensas --------------------------------------------------------------------------
+
+// §2.2: motivo de una recompensa deshabilitada, como se lee en auditoría
+export type RewardDisabledReasonSnapshot = 'OUT_OF_STOCK' | 'EXPIRED';
+
+const REWARD_DISABLED_REASON_TEXT: Record<RewardDisabledReasonSnapshot, string> = {
+  OUT_OF_STOCK: 'Sin stock',
+  EXPIRED: 'Vencida',
+};
+
+// §3.14.2 REWARD_ENABLED: por qué volvió a estar disponible, según el motivo que tenía
+const REWARD_ENABLED_REASON_TEXT: Record<RewardDisabledReasonSnapshot, string> = {
+  OUT_OF_STOCK: 'Stock repuesto',
+  EXPIRED: 'Fecha de vencimiento actualizada',
+};
+
+// REWARD_DISABLED (contrato S4 §3.4 y §3.14.2, US-37): lo registra el Sistema, sin cliente ni
+// código de operación. Detalle: Motivo (Sin stock / Vencida).
+export function rewardDisabledEntry(
+  rewardName: string,
+  reason: RewardDisabledReasonSnapshot,
+): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'REWARDS',
+    action: 'REWARD_DISABLED',
+    description: `Deshabilitó la recompensa "${rewardName}"`,
+    details: [{ label: 'Motivo', value: REWARD_DISABLED_REASON_TEXT[reason] }],
+  };
+}
+
+// REWARD_ENABLED (contrato S4 §3.4 y §3.14.2, US-37): lo registra el Sistema. Detalle: Motivo
+// (Stock repuesto / Fecha de vencimiento actualizada), según por qué estaba deshabilitada.
+export function rewardEnabledEntry(
+  rewardName: string,
+  previousReason: RewardDisabledReasonSnapshot,
+): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'REWARDS',
+    action: 'REWARD_ENABLED',
+    description: `Habilitó la recompensa "${rewardName}"`,
+    details: [{ label: 'Motivo', value: REWARD_ENABLED_REASON_TEXT[previousReason] }],
+  };
+}
+
 // --- Canjes ------------------------------------------------------------------------------
 
 export type RedemptionSnapshot = {
@@ -517,34 +563,6 @@ export function rewardDeletedEntry(
       statusChange(before, 'DELETED'),
       ...(rejectedRedemptions > 0 ? [{ label: 'Canjes rechazados', value: formatNumber(rejectedRedemptions) }] : []),
     ],
-  };
-}
-
-// §3.4: motivo según por qué estaba (o queda) deshabilitada
-const ENABLED_REASONS = { OUT_OF_STOCK: 'Stock repuesto', EXPIRED: 'Fecha de vencimiento actualizada' } as const;
-const DISABLED_REASONS = { OUT_OF_STOCK: 'Sin stock', EXPIRED: 'Vencida' } as const;
-export type RewardDisabledReasonCode = keyof typeof DISABLED_REASONS;
-
-// REWARD_ENABLED (§3.4 y §3.14.2): lo registra el Sistema. `from` es el motivo por el que estaba
-// deshabilitada.
-export function rewardEnabledEntry(rewardName: string, from: RewardDisabledReasonCode): AuditEntryInput {
-  return {
-    actor: { type: 'SYSTEM' },
-    module: 'REWARDS',
-    action: 'REWARD_ENABLED',
-    description: `Habilitó la recompensa "${rewardName}"`,
-    details: [{ label: 'Motivo', value: ENABLED_REASONS[from] }],
-  };
-}
-
-// REWARD_DISABLED (§3.4 y §3.14.2): lo registra el Sistema
-export function rewardDisabledEntry(rewardName: string, reason: RewardDisabledReasonCode): AuditEntryInput {
-  return {
-    actor: { type: 'SYSTEM' },
-    module: 'REWARDS',
-    action: 'REWARD_DISABLED',
-    description: `Deshabilitó la recompensa "${rewardName}"`,
-    details: [{ label: 'Motivo', value: DISABLED_REASONS[reason] }],
   };
 }
 

@@ -1,4 +1,5 @@
-import type { RewardDisabledReason, RewardStatus } from './reward.js';
+import type { Reward, RewardDisabledReason, RewardStatus } from './reward.js';
+import { motivoNoDisponible } from './reward-reevaluation.js';
 
 // US-36 (contrato S4 §3.2.5 y §3.2.6): a qué estado pasa una recompensa al activarla o desactivarla.
 // Que esté en el estado de partida correcto lo valida el servicio (409 INVALID_REWARD_STATUS).
@@ -12,15 +13,14 @@ export const canDeactivate = (status: RewardStatus): boolean => status === 'ACTI
 export const canDelete = (status: RewardStatus): boolean => status !== 'DELETED';
 
 // §3.2.5 y S4-9: si está disponible queda ACTIVE; si no, DISABLED con su motivo (no es un error).
-// Sin stock y vencida a la vez: "Agotada", primero el stock (decisión de Jazmín, la misma regla que
-// al editar). `hoyArgentina` y `expiresAt` en YYYY-MM-DD.
+// El motivo es el de US-37 (motivoNoDisponible): si fallan stock y fecha a la vez, gana "Vencida"
+// (decisión de Jazmín y Melisa, una sola regla). `hoyArgentina` en YYYY-MM-DD.
 export function activationResult(
-  reward: { stock: number | null; expiresAt: string | null },
+  reward: Pick<Reward, 'getStock' | 'getExpiresAt'>,
   hoyArgentina: string,
 ): RewardStatusState {
-  if (reward.stock !== null && reward.stock <= 0) return { status: 'DISABLED', disabledReason: 'OUT_OF_STOCK' };
-  if (reward.expiresAt !== null && reward.expiresAt < hoyArgentina) return { status: 'DISABLED', disabledReason: 'EXPIRED' };
-  return { status: 'ACTIVE', disabledReason: null };
+  const reason = motivoNoDisponible(reward, hoyArgentina);
+  return reason ? { status: 'DISABLED', disabledReason: reason } : { status: 'ACTIVE', disabledReason: null };
 }
 
 // §3.2.6: pasa a INACTIVE y pierde el motivo de deshabilitación (CA-36.3)
