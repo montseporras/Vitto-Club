@@ -4,6 +4,7 @@ import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.
 import { Redemption } from '../domain/redemption.js';
 import {
   RedemptionRepository,
+  type AutomaticRejectionFilter,
   type RedemptionCustomer,
   type RedemptionExpirationFilter,
 } from '../domain/port/redemption.repository.js';
@@ -11,6 +12,7 @@ import {
 function expirationFilterWhere(filter: RedemptionExpirationFilter): Prisma.RedemptionWhereInput {
   if ('code' in filter) return { code: filter.code };
   if ('customerId' in filter) return { customerId: filter.customerId };
+  if ('rewardId' in filter) return { rewardId: filter.rewardId };
   return {};
 }
 
@@ -101,6 +103,52 @@ export class RedemptionsPrismaRepository implements RedemptionRepository {
     return await this.prisma.customer.findUniqueOrThrow({
       where: { id: customerId },
       select: { id: true, firstName: true, lastName: true, documentType: true, documentNumber: true },
+    });
+  }
+
+  async lockByCodeForUpdate(code: string): Promise<Redemption | null> {
+    const locked = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM redemptions WHERE code = ${code} FOR UPDATE
+    `;
+    if (locked.length === 0) return null;
+    return await this.findById(locked[0].id);
+  }
+
+  async lockConfirmedForRejection(filter: AutomaticRejectionFilter, now: Date): Promise<Redemption[]> {
+    // Un solo SELECT … FOR UPDATE, en orden de id, para que dos rechazos automáticos a la vez
+    // tomen los bloqueos en el mismo orden
+    const locked =
+      'rewardId' in filter
+        ? await this.prisma.$queryRaw<{ id: number }[]>`
+            SELECT id FROM redemptions
+            WHERE reward_id = ${filter.rewardId} AND status = 'CONFIRMED' AND expires_at > ${now}
+            ORDER BY id
+            FOR UPDATE
+          `
+        : await this.prisma.$queryRaw<{ id: number }[]>`
+            SELECT id FROM redemptions
+            WHERE customer_id = ${filter.customerId} AND status = 'CONFIRMED' AND expires_at > ${now}
+            ORDER BY id
+            FOR UPDATE
+          `;
+    if (locked.length === 0) return [];
+    const records = await this.prisma.redemption.findMany({
+      where: { id: { in: locked.map((row) => row.id) } },
+      orderBy: { id: 'asc' },
+    });
+    return records.map(toDomain);
+  }
+
+  async saveResolution(redemption: Redemption): Promise<void> {
+    await this.prisma.redemption.update({
+      where: { id: redemption.getId() },
+      data: {
+        status: redemption.getStatus(),
+        resolvedAt: redemption.getResolvedAt(),
+        resolvedByAccountId: redemption.getResolvedByAccountId(),
+        resolvedByName: redemption.getResolvedByName(),
+        rejectionReason: redemption.getRejectionReason(),
+      },
     });
   }
 
