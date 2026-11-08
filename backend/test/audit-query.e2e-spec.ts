@@ -65,6 +65,9 @@ describe('Auditoría — consulta (US-58, e2e)', () => {
 
     // Cuentas: un Administrador y un Cajero activos, un Cajero dado de baja y una cuenta de cliente
     await prisma.pointsMovement.deleteMany();
+    // Sprint 4: los canjes apuntan a clientes, cuentas y recompensas (onDelete Restrict)
+    await prisma.redemption.deleteMany();
+    await prisma.reward.deleteMany();
     await prisma.pointsLot.deleteMany();
     await prisma.customerPoints.deleteMany();
     await prisma.consumption.deleteMany();

@@ -23,6 +23,8 @@ const movementInclude = {
     select: { id: true, firstName: true, lastName: true, documentType: true, documentNumber: true },
   },
   lot: { select: { id: true, accreditedAt: true, expiresAt: true, status: true } },
+  // BASE-4: "Canje: {recompensa}" sale del snapshot del nombre guardado en el canje
+  redemption: { select: { rewardName: true } },
 } satisfies Prisma.PointsMovementInclude;
 
 type MovementRow = Prisma.PointsMovementGetPayload<{ include: typeof movementInclude }>;
@@ -38,6 +40,7 @@ function toRecord(row: MovementRow): PointsMovementRecord {
     consumptionId: row.consumptionId,
     reason: row.reason,
     lot: row.lot,
+    redemption: row.redemption,
     performedByAccountId: row.performedByAccountId,
     performedByName: row.performedByName,
   };
