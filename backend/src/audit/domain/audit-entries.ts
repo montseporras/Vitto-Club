@@ -241,22 +241,29 @@ export function customerUpdatedEntry(
   };
 }
 
-// Saldo perdido: el saldo del cliente al darlo de baja (puede ser 0 o negativo)
+// Saldo perdido: el saldo del cliente al darlo de baja (puede ser 0 o negativo).
+// US-43 (contrato S4 §3.13.1): si la baja rechazó canjes Confirmados, suma la fila
+// "Canjes rechazados: {n}", solo si n > 0, después de "Saldo perdido" (decisión de Melisa).
 export function customerDeactivatedEntry(
   actor: AuditActor,
   customer: CustomerSnapshot,
   lostBalance: number,
+  rejectedRedemptions = 0,
 ): AuditEntryInput {
+  const details: AuditDetail[] = [
+    { label: 'Estado', value: change('Activo', 'Inactivo') },
+    { label: 'Saldo perdido', value: `${formatNumber(lostBalance)} pts` },
+  ];
+  if (rejectedRedemptions > 0) {
+    details.push({ label: 'Canjes rechazados', value: formatNumber(rejectedRedemptions) });
+  }
   return {
     actor,
     module: 'CUSTOMERS',
     action: 'CUSTOMER_DEACTIVATED',
     description: `Dio de baja al cliente ${fullName(customer)}`,
     affectedCustomer: affectedCustomerOf(customer),
-    details: [
-      { label: 'Estado', value: change('Activo', 'Inactivo') },
-      { label: 'Saldo perdido', value: `${formatNumber(lostBalance)} pts` },
-    ],
+    details,
   };
 }
 
@@ -326,6 +333,81 @@ export function pointsExpiredEntry(
   };
 }
 
+// --- Recompensas --------------------------------------------------------------------------
+
+// §2.2: motivo de una recompensa deshabilitada, como se lee en auditoría
+export type RewardDisabledReasonSnapshot = 'OUT_OF_STOCK' | 'EXPIRED';
+
+const REWARD_DISABLED_REASON_TEXT: Record<RewardDisabledReasonSnapshot, string> = {
+  OUT_OF_STOCK: 'Sin stock',
+  EXPIRED: 'Vencida',
+};
+
+// §3.14.2 REWARD_ENABLED: por qué volvió a estar disponible, según el motivo que tenía
+const REWARD_ENABLED_REASON_TEXT: Record<RewardDisabledReasonSnapshot, string> = {
+  OUT_OF_STOCK: 'Stock repuesto',
+  EXPIRED: 'Fecha de vencimiento actualizada',
+};
+
+// REWARD_DISABLED (contrato S4 §3.4 y §3.14.2, US-37): lo registra el Sistema, sin cliente ni
+// código de operación. Detalle: Motivo (Sin stock / Vencida).
+export function rewardDisabledEntry(
+  rewardName: string,
+  reason: RewardDisabledReasonSnapshot,
+): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'REWARDS',
+    action: 'REWARD_DISABLED',
+    description: `Deshabilitó la recompensa "${rewardName}"`,
+    details: [{ label: 'Motivo', value: REWARD_DISABLED_REASON_TEXT[reason] }],
+  };
+}
+
+// REWARD_ENABLED (contrato S4 §3.4 y §3.14.2, US-37): lo registra el Sistema. Detalle: Motivo
+// (Stock repuesto / Fecha de vencimiento actualizada), según por qué estaba deshabilitada.
+export function rewardEnabledEntry(
+  rewardName: string,
+  previousReason: RewardDisabledReasonSnapshot,
+): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'REWARDS',
+    action: 'REWARD_ENABLED',
+    description: `Habilitó la recompensa "${rewardName}"`,
+    details: [{ label: 'Motivo', value: REWARD_ENABLED_REASON_TEXT[previousReason] }],
+  };
+}
+
+export type RewardSnapshot = {
+  name: string;
+  points: number;
+  // null = sin límite
+  stock: number | null;
+  // YYYY-MM-DD; null = no vence
+  expiresAt: string | null;
+};
+
+// YYYY-MM-DD → dd/mm/aaaa, sin pasar por Date (es un día, no un instante)
+const formatDateOnly = (value: string): string => value.split('-').reverse().join('/');
+
+// REWARD_CREATED (contrato S4 §3.14.2, US-34). Sin cliente afectado ni código de operación.
+// Formato de los valores (decisión de Jazmín): "150 pts", como REDEMPTION_CONFIRMED; el stock con
+// punto de miles; la fecha en dd/mm/aaaa, como en la pantalla.
+export function rewardCreatedEntry(actor: AuditActor, reward: RewardSnapshot): AuditEntryInput {
+  return {
+    actor,
+    module: 'REWARDS',
+    action: 'REWARD_CREATED',
+    description: `Creó la recompensa "${reward.name}"`,
+    details: [
+      { label: 'Puntos', value: `${formatNumber(reward.points)} pts` },
+      { label: 'Stock', value: reward.stock === null ? 'Sin límite' : formatNumber(reward.stock) },
+      { label: 'Vencimiento', value: reward.expiresAt === null ? 'No vence' : formatDateOnly(reward.expiresAt) },
+    ],
+  };
+}
+
 // --- Canjes ------------------------------------------------------------------------------
 
 export type RedemptionSnapshot = {
@@ -355,33 +437,29 @@ export function redemptionExpiredEntry(
   };
 }
 
-// --- Recompensas -------------------------------------------------------------------------
-
-export type RewardSnapshot = {
-  name: string;
-  points: number;
-  // null = sin límite
-  stock: number | null;
-  // YYYY-MM-DD; null = no vence
-  expiresAt: string | null;
+export type RedemptionRejectionSnapshot = RedemptionSnapshot & {
+  // El motivo guardado: el que escribió el empleado o el fijo del Sistema (§3.10.4)
+  reason: string;
 };
 
-// YYYY-MM-DD → dd/mm/aaaa, sin pasar por Date (es un día, no un instante)
-const formatDateOnly = (value: string): string => value.split('-').reverse().join('/');
-
-// REWARD_CREATED (contrato S4 §3.14.2, US-34). Sin cliente afectado ni código de operación.
-// Formato de los valores (decisión de Jazmín): "150 pts", como REDEMPTION_CONFIRMED; el stock con
-// punto de miles; la fecha en dd/mm/aaaa, como en la pantalla.
-export function rewardCreatedEntry(actor: AuditActor, reward: RewardSnapshot): AuditEntryInput {
+// REDEMPTION_REJECTED (contrato S4 §3.14.2, US-43): a nombre del empleado que lo rechazó, o del
+// Sistema en los rechazos automáticos (§3.10.4). Detalles: Código del canje · Recompensa · Motivo.
+export function redemptionRejectedEntry(
+  actor: AuditActor,
+  customer: AffectedCustomerSnapshot,
+  redemption: RedemptionRejectionSnapshot,
+): AuditEntryInput {
   return {
     actor,
-    module: 'REWARDS',
-    action: 'REWARD_CREATED',
-    description: `Creó la recompensa "${reward.name}"`,
+    module: 'REDEMPTIONS',
+    action: 'REDEMPTION_REJECTED',
+    description: `Rechazó el canje de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    operationCode: redemption.code,
     details: [
-      { label: 'Puntos', value: `${formatNumber(reward.points)} pts` },
-      { label: 'Stock', value: reward.stock === null ? 'Sin límite' : formatNumber(reward.stock) },
-      { label: 'Vencimiento', value: reward.expiresAt === null ? 'No vence' : formatDateOnly(reward.expiresAt) },
+      { label: 'Código del canje', value: redemption.code },
+      { label: 'Recompensa', value: redemption.rewardName },
+      { label: 'Motivo', value: redemption.reason },
     ],
   };
 }

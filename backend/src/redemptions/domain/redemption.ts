@@ -145,4 +145,53 @@ export class Redemption {
     this.props.resolvedByAccountId = null;
     this.props.resolvedByName = SYSTEM_RESOLVER_NAME;
   }
+
+  // US-43 (§3.10.1 y §3.10.4): CONFIRMED → REJECTED, con motivo. Lo resuelve un empleado
+  // (accountId y nombre) o el Sistema (accountId null, "Sistema"). No reintegra nada (S4-1).
+  // El motivo llega ya recortado y validado (5 a 500) por el DTO, o es uno fijo del Sistema.
+  reject(reason: string, resolver: RedemptionResolver, now: Date): void {
+    this.assertResolvable(now);
+    if (reason.trim().length === 0) {
+      throw new DomainError('A rejection needs a reason', 'reason');
+    }
+    this.props.status = 'REJECTED';
+    this.props.resolvedAt = now;
+    this.props.resolvedByAccountId = resolver.accountId;
+    this.props.resolvedByName = resolver.name;
+    this.props.rejectionReason = reason;
+  }
+
+  // US-43 (§3.10.3): CONFIRMED → CANCELLED, por el Cliente. resolvedBy queda null: el cliente
+  // nunca figura como actor. No reintegra nada (S4-1).
+  cancel(now: Date): void {
+    this.assertResolvable(now);
+    this.props.status = 'CANCELLED';
+    this.props.resolvedAt = now;
+    this.props.resolvedByAccountId = null;
+    this.props.resolvedByName = null;
+  }
+
+  // Solo un Confirmado vigente se rechaza o se cancela: uno vencido se vence primero (US-44)
+  private assertResolvable(now: Date): void {
+    if (this.props.status !== 'CONFIRMED') {
+      throw new DomainError('Only a CONFIRMED redemption can be resolved', 'status');
+    }
+    if (this.isExpired(now)) {
+      throw new DomainError('An expired redemption cannot be resolved', 'expiresAt');
+    }
+  }
 }
+
+// Quién resuelve un canje: un empleado o el Sistema (accountId null, nombre "Sistema")
+export type RedemptionResolver = { accountId: number | null; name: string };
+
+export const SYSTEM_RESOLVER: RedemptionResolver = { accountId: null, name: SYSTEM_RESOLVER_NAME };
+
+// §2.3: texto de cada estado en la UI. Lo usa el mensaje 'El canje ya está en estado "{Estado}".'
+export const REDEMPTION_STATUS_LABELS: Record<RedemptionStatus, string> = {
+  CONFIRMED: 'Confirmado',
+  USED: 'Utilizado',
+  REJECTED: 'Rechazado',
+  CANCELLED: 'Cancelado',
+  EXPIRED: 'Vencido',
+};

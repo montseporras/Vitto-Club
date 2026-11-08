@@ -30,6 +30,24 @@ export type AccountDeactivatedEvent = { accountId: number };
 export const CUSTOMER_DEACTIVATED = 'customer.deactivated';
 export type CustomerDeactivatedEvent = { customerId: number };
 
+// --- Recompensas y canjes (Sprint 4, contrato S4 §3.10.4 y §8.4) --------------------------
+// rewards no importa redemptions: publica estos eventos dentro de su transacción y redemptions
+// rechaza los canjes Confirmados de esa recompensa (US-43). Payload definido en US-43, a pedido de
+// Melisa (ver src/redemptions/documentation-updates-us43.md).
+
+// Lo emite rewards al desactivar una recompensa (US-36, PATCH /recompensas/:id/desactivar).
+export const REWARD_DEACTIVATED = 'reward.deactivated';
+export type RewardDeactivatedEvent = { rewardId: number };
+
+// Lo emite rewards al eliminar una recompensa (US-38, PATCH /recompensas/:id/eliminar).
+export const REWARD_DELETED = 'reward.deleted';
+export type RewardDeletedEvent = { rewardId: number };
+
+// Lo que devuelve el listener de redemptions para reward.deactivated, reward.deleted y
+// customer.deactivated: cuántos canjes Confirmados rechazó el Sistema. Quien publica lo lee del
+// resultado de emitAsync (un elemento por listener; los demás listeners devuelven undefined).
+export type RedemptionsRejectedResult = { rejectedRedemptions: number };
+
 // Lo emite customers cuando reactiva un cliente. Lo escucha accounts para reactivar su cuenta.
 // Sin uso desde CLI-ADM: la reactivación de clientes ya no existe (contrato §1, "se eliminan").
 export const CUSTOMER_REACTIVATED = 'customer.reactivated';

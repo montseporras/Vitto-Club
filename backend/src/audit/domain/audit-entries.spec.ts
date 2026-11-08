@@ -10,7 +10,10 @@ import {
   pointsAdjustedEntry,
   pointsExpiredEntry,
   redemptionExpiredEntry,
+  redemptionRejectedEntry,
   rewardCreatedEntry,
+  rewardDisabledEntry,
+  rewardEnabledEntry,
   type CustomerSnapshot,
   type EmployeeSnapshot,
   type LoyaltyConfigSnapshot,
@@ -413,6 +416,97 @@ describe('redemptionExpiredEntry() (US-44)', () => {
         { label: 'Código del canje', value: 'K7MP2X' },
         { label: 'Recompensa', value: 'Café + medialuna' },
       ],
+    });
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+});
+
+describe('redemptionRejectedEntry() (US-43)', () => {
+  it('a nombre del empleado: description, código primero y el motivo al final', () => {
+    const entry = redemptionRejectedEntry(actor, customer, {
+      code: 'K7MP2X',
+      rewardName: 'Café + medialuna',
+      reason: 'Sin insumo',
+    });
+
+    expect(entry).toEqual({
+      actor: { type: 'EMPLOYEE', accountId: 1 },
+      module: 'REDEMPTIONS',
+      action: 'REDEMPTION_REJECTED',
+      description: 'Rechazó el canje de Sofía Ríos',
+      affectedCustomer: { customerId: 102, name: 'Sofía Ríos', documentType: 'DNI', documentNumber: '30111222' },
+      operationCode: 'K7MP2X',
+      details: [
+        { label: 'Código del canje', value: 'K7MP2X' },
+        { label: 'Recompensa', value: 'Café + medialuna' },
+        { label: 'Motivo', value: 'Sin insumo' },
+      ],
+    });
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+
+  it('el rechazo automático va con actor Sistema', () => {
+    const entry = redemptionRejectedEntry({ type: 'SYSTEM' }, customer, {
+      code: 'K7MP2X',
+      rewardName: 'Café + medialuna',
+      reason: 'Recompensa desactivada',
+    });
+
+    expect(entry.actor).toEqual({ type: 'SYSTEM' });
+    expect(entry.details[2]).toEqual({ label: 'Motivo', value: 'Recompensa desactivada' });
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+});
+
+describe('customerDeactivatedEntry(): canjes rechazados (US-43, §3.13.1)', () => {
+  it('sin canjes rechazados no agrega la fila', () => {
+    expect(customerDeactivatedEntry(actor, customer, 120).details).toEqual([
+      { label: 'Estado', value: 'Activo → Inactivo' },
+      { label: 'Saldo perdido', value: '120 pts' },
+    ]);
+    expect(customerDeactivatedEntry(actor, customer, 120, 0).details).toHaveLength(2);
+  });
+
+  it('con canjes rechazados suma "Canjes rechazados" después de "Saldo perdido"', () => {
+    expect(customerDeactivatedEntry(actor, customer, 120, 2).details).toEqual([
+      { label: 'Estado', value: 'Activo → Inactivo' },
+      { label: 'Saldo perdido', value: '120 pts' },
+      { label: 'Canjes rechazados', value: '2' },
+    ]);
+  });
+});
+
+describe('rewardDisabledEntry() y rewardEnabledEntry() (US-37, §3.14.2)', () => {
+  it.each([
+    ['OUT_OF_STOCK', 'Sin stock'],
+    ['EXPIRED', 'Vencida'],
+  ] as const)('REWARD_DISABLED con motivo %s → "%s"', (reason, text) => {
+    const entry = rewardDisabledEntry('Pizza libre viernes', reason);
+
+    expect(entry).toEqual({
+      actor: { type: 'SYSTEM' },
+      module: 'REWARDS',
+      action: 'REWARD_DISABLED',
+      description: 'Deshabilitó la recompensa "Pizza libre viernes"',
+      details: [{ label: 'Motivo', value: text }],
+    });
+    expect(entry.affectedCustomer).toBeUndefined();
+    expect(entry.operationCode).toBeUndefined();
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+
+  it.each([
+    ['OUT_OF_STOCK', 'Stock repuesto'],
+    ['EXPIRED', 'Fecha de vencimiento actualizada'],
+  ] as const)('REWARD_ENABLED que estaba %s → "%s"', (previousReason, text) => {
+    const entry = rewardEnabledEntry('Café + medialuna', previousReason);
+
+    expect(entry).toEqual({
+      actor: { type: 'SYSTEM' },
+      module: 'REWARDS',
+      action: 'REWARD_ENABLED',
+      description: 'Habilitó la recompensa "Café + medialuna"',
+      details: [{ label: 'Motivo', value: text }],
     });
     expect(() => assertValidAuditEntry(entry)).not.toThrow();
   });
