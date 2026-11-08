@@ -379,64 +379,6 @@ export function rewardEnabledEntry(
   };
 }
 
-// --- Canjes ------------------------------------------------------------------------------
-
-export type RedemptionSnapshot = {
-  // Código de 6 caracteres (§3.6.1)
-  code: string;
-  // Snapshot del nombre de la recompensa al confirmar
-  rewardName: string;
-};
-
-// REDEMPTION_EXPIRED (contrato S4 §3.14.2, US-44): lo registra el Sistema. El código va en
-// operationCode y como primera fila de details (§3.14, cambio respecto del Sprint 3).
-export function redemptionExpiredEntry(
-  customer: AffectedCustomerSnapshot,
-  redemption: RedemptionSnapshot,
-): AuditEntryInput {
-  return {
-    actor: { type: 'SYSTEM' },
-    module: 'REDEMPTIONS',
-    action: 'REDEMPTION_EXPIRED',
-    description: `Venció el canje de ${fullName(customer)}`,
-    affectedCustomer: affectedCustomerOf(customer),
-    operationCode: redemption.code,
-    details: [
-      { label: 'Código del canje', value: redemption.code },
-      { label: 'Recompensa', value: redemption.rewardName },
-    ],
-  };
-}
-
-export type RedemptionRejectionSnapshot = RedemptionSnapshot & {
-  // El motivo guardado: el que escribió el empleado o el fijo del Sistema (§3.10.4)
-  reason: string;
-};
-
-// REDEMPTION_REJECTED (contrato S4 §3.14.2, US-43): a nombre del empleado que lo rechazó, o del
-// Sistema en los rechazos automáticos (§3.10.4). Detalles: Código del canje · Recompensa · Motivo.
-export function redemptionRejectedEntry(
-  actor: AuditActor,
-  customer: AffectedCustomerSnapshot,
-  redemption: RedemptionRejectionSnapshot,
-): AuditEntryInput {
-  return {
-    actor,
-    module: 'REDEMPTIONS',
-    action: 'REDEMPTION_REJECTED',
-    description: `Rechazó el canje de ${fullName(customer)}`,
-    affectedCustomer: affectedCustomerOf(customer),
-    operationCode: redemption.code,
-    details: [
-      { label: 'Código del canje', value: redemption.code },
-      { label: 'Recompensa', value: redemption.rewardName },
-      { label: 'Motivo', value: redemption.reason },
-    ],
-  };
-}
-
-// --- Recompensas -------------------------------------------------------------------------
-
 export type RewardSnapshot = {
   name: string;
   points: number;
@@ -562,6 +504,62 @@ export function rewardDeletedEntry(
     details: [
       statusChange(before, 'DELETED'),
       ...(rejectedRedemptions > 0 ? [{ label: 'Canjes rechazados', value: formatNumber(rejectedRedemptions) }] : []),
+    ],
+  };
+}
+
+// --- Canjes ------------------------------------------------------------------------------
+
+export type RedemptionSnapshot = {
+  // Código de 6 caracteres (§3.6.1)
+  code: string;
+  // Snapshot del nombre de la recompensa al confirmar
+  rewardName: string;
+};
+
+// REDEMPTION_EXPIRED (contrato S4 §3.14.2, US-44): lo registra el Sistema. El código va en
+// operationCode y como primera fila de details (§3.14, cambio respecto del Sprint 3).
+export function redemptionExpiredEntry(
+  customer: AffectedCustomerSnapshot,
+  redemption: RedemptionSnapshot,
+): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'REDEMPTIONS',
+    action: 'REDEMPTION_EXPIRED',
+    description: `Venció el canje de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    operationCode: redemption.code,
+    details: [
+      { label: 'Código del canje', value: redemption.code },
+      { label: 'Recompensa', value: redemption.rewardName },
+    ],
+  };
+}
+
+export type RedemptionRejectionSnapshot = RedemptionSnapshot & {
+  // El motivo guardado: el que escribió el empleado o el fijo del Sistema (§3.10.4)
+  reason: string;
+};
+
+// REDEMPTION_REJECTED (contrato S4 §3.14.2, US-43): a nombre del empleado que lo rechazó, o del
+// Sistema en los rechazos automáticos (§3.10.4). Detalles: Código del canje · Recompensa · Motivo.
+export function redemptionRejectedEntry(
+  actor: AuditActor,
+  customer: AffectedCustomerSnapshot,
+  redemption: RedemptionRejectionSnapshot,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'REDEMPTIONS',
+    action: 'REDEMPTION_REJECTED',
+    description: `Rechazó el canje de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    operationCode: redemption.code,
+    details: [
+      { label: 'Código del canje', value: redemption.code },
+      { label: 'Recompensa', value: redemption.rewardName },
+      { label: 'Motivo', value: redemption.reason },
     ],
   };
 }
