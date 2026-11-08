@@ -74,6 +74,9 @@ describe('Ajustar puntos (e2e)', () => {
 
   async function cleanDatabase() {
     await prisma.pointsMovement.deleteMany();
+    // Sprint 4: los canjes apuntan a clientes, cuentas y recompensas (onDelete Restrict)
+    await prisma.redemption.deleteMany();
+    await prisma.reward.deleteMany();
     await prisma.pointsLot.deleteMany();
     await prisma.customerPoints.deleteMany();
     await prisma.consumption.deleteMany();

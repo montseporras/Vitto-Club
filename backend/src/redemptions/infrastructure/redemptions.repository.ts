@@ -5,9 +5,54 @@ import { Redemption } from '../domain/redemption.js';
 import {
   RedemptionRepository,
   type AutomaticRejectionFilter,
+  type CustomerRedemptionsQuery,
   type RedemptionCustomer,
   type RedemptionExpirationFilter,
+  type RedemptionListQuery,
+  type RedemptionPage,
+  type RedemptionPageQuery,
+  type RedemptionWithCustomer,
 } from '../domain/port/redemption.repository.js';
+
+// US-45: rewardName sin tildes con translate(), sin extensiones de Postgres. Mismas letras que
+// points-movements.repository.ts (el plegado del filtro lo hace foldName).
+const ACCENTED = 'áàäâéèëêíìïîóòöôúùüû';
+const PLAIN = 'aaaaeeeeiiiioooouuuu';
+
+// Escapa los comodines de LIKE en lo que escribió el usuario
+function escapeLike(term: string): string {
+  return term.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
+const CUSTOMER_SELECT = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  documentType: true,
+  documentNumber: true,
+} as const;
+
+function createdAtWhere(query: RedemptionPageQuery): Prisma.RedemptionWhereInput {
+  const { createdFrom, createdBefore } = query.range;
+  if (!createdFrom && !createdBefore) return {};
+  return {
+    createdAt: {
+      ...(createdFrom ? { gte: createdFrom } : {}),
+      ...(createdBefore ? { lt: createdBefore } : {}),
+    },
+  };
+}
+
+// Por createdAt y, a igual fecha, por id, para que el paginado sea estable
+const orderByCreatedAt = (query: RedemptionPageQuery): Prisma.RedemptionOrderByWithRelationInput[] => [
+  { createdAt: query.order },
+  { id: query.order },
+];
+
+const pageOf = (query: RedemptionPageQuery) => ({
+  skip: (query.page - 1) * query.limit,
+  take: query.limit,
+});
 
 function expirationFilterWhere(filter: RedemptionExpirationFilter): Prisma.RedemptionWhereInput {
   if ('code' in filter) return { code: filter.code };
@@ -150,6 +195,70 @@ export class RedemptionsPrismaRepository implements RedemptionRepository {
         rejectionReason: redemption.getRejectionReason(),
       },
     });
+  }
+
+  async findPageByCustomer(
+    customerId: number,
+    query: CustomerRedemptionsQuery,
+  ): Promise<RedemptionPage<Redemption>> {
+    const where: Prisma.RedemptionWhereInput = {
+      customerId,
+      ...(query.statuses ? { status: { in: query.statuses } } : {}),
+      ...createdAtWhere(query),
+    };
+    const [records, total] = await Promise.all([
+      this.prisma.redemption.findMany({ where, orderBy: orderByCreatedAt(query), ...pageOf(query) }),
+      this.prisma.redemption.count({ where }),
+    ]);
+    return { items: records.map(toDomain), total };
+  }
+
+  async findUsableByCustomer(customerId: number, now: Date): Promise<Redemption[]> {
+    const records = await this.prisma.redemption.findMany({
+      where: { customerId, status: 'CONFIRMED', expiresAt: { gt: now } },
+      orderBy: [{ expiresAt: 'asc' }, { id: 'asc' }],
+    });
+    return records.map(toDomain);
+  }
+
+  async findPage(query: RedemptionListQuery): Promise<RedemptionPage<RedemptionWithCustomer>> {
+    const where: Prisma.RedemptionWhereInput = {
+      ...(query.status ? { status: query.status } : {}),
+      ...(query.code ? { code: { contains: query.code } } : {}),
+      ...(query.document
+        ? { customer: { documentType: query.document.type, documentNumber: { contains: query.document.number } } }
+        : {}),
+      ...(query.rewardName ? { id: { in: await this.findIdsByRewardName(query.rewardName) } } : {}),
+      ...createdAtWhere(query),
+    };
+    const [records, total] = await Promise.all([
+      this.prisma.redemption.findMany({
+        where,
+        orderBy: orderByCreatedAt(query),
+        ...pageOf(query),
+        include: { customer: { select: CUSTOMER_SELECT } },
+      }),
+      this.prisma.redemption.count({ where }),
+    ]);
+    return {
+      items: records.map(({ customer, ...record }) => ({ redemption: toDomain(record), customer })),
+      total,
+    };
+  }
+
+  async findCustomerStatus(customerId: number): Promise<{ isActive: boolean } | null> {
+    return await this.prisma.customer.findUnique({ where: { id: customerId }, select: { isActive: true } });
+  }
+
+  // Canjes cuyo nombre (snapshot) contiene el texto, sin mayúsculas ni tildes. Usa el snapshot, así
+  // que encuentra también los de recompensas dadas de baja (§3.12.3).
+  private async findIdsByRewardName(folded: string): Promise<number[]> {
+    const pattern = `%${escapeLike(folded)}%`;
+    const rows = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM redemptions
+      WHERE translate(lower(reward_name), ${ACCENTED}, ${PLAIN}) LIKE ${pattern}
+    `;
+    return rows.map((row) => row.id);
   }
 
   private async findById(id: number): Promise<Redemption | null> {

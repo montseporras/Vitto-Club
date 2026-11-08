@@ -15,6 +15,7 @@ const baseRecord = (overrides: Partial<PointsMovementRecord> = {}): PointsMoveme
     expiresAt: new Date('2027-08-16T15:00:00.000Z'),
     status: 'ACTIVE',
   },
+  redemption: null,
   performedByAccountId: 4,
   performedByName: 'Ana Gómez',
   ...overrides,
@@ -60,8 +61,19 @@ describe('describeMovement() — CA-26.2', () => {
     expect(describeMovement(record)).toBe('Vencimiento de lote del 16/08/2026');
   });
 
-  it('REDEMPTION no existe hasta el Sprint 4', () => {
-    expect(() => describeMovement(baseRecord({ type: 'REDEMPTION', consumptionId: null }))).toThrow();
+  it('REDEMPTION → Canje: {recompensa} (BASE-4, snapshot del canje)', () => {
+    const record = baseRecord({
+      type: 'REDEMPTION',
+      points: -150,
+      consumptionId: null,
+      lot: null,
+      redemption: { rewardName: 'Café + medialuna' },
+    });
+    expect(describeMovement(record)).toBe('Canje: Café + medialuna');
+  });
+
+  it('REDEMPTION sin canje es un dato roto → error', () => {
+    expect(() => describeMovement(baseRecord({ type: 'REDEMPTION', consumptionId: null, lot: null }))).toThrow();
   });
 });
 

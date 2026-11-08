@@ -14,9 +14,9 @@ import {
   rewardActivatedEntry,
   rewardCreatedEntry,
   rewardDeactivatedEntry,
+  rewardUpdatedEntry,
   rewardDisabledEntry,
   rewardEnabledEntry,
-  rewardUpdatedEntry,
   type CustomerSnapshot,
   type EmployeeSnapshot,
   type LoyaltyConfigSnapshot,
@@ -478,34 +478,6 @@ describe('rewardActivatedEntry() y rewardDeactivatedEntry() (US-36)', () => {
   });
 });
 
-describe('rewardEnabledEntry() y rewardDisabledEntry() (§3.4)', () => {
-  it.each([
-    ['OUT_OF_STOCK', 'Stock repuesto'],
-    ['EXPIRED', 'Fecha de vencimiento actualizada'],
-  ] as const)('REWARD_ENABLED desde %s: Sistema, "Motivo: %s"', (from, motive) => {
-    expect(rewardEnabledEntry('Café + medialuna', from)).toEqual({
-      actor: { type: 'SYSTEM' },
-      module: 'REWARDS',
-      action: 'REWARD_ENABLED',
-      description: 'Habilitó la recompensa "Café + medialuna"',
-      details: [{ label: 'Motivo', value: motive }],
-    });
-  });
-
-  it.each([
-    ['OUT_OF_STOCK', 'Sin stock'],
-    ['EXPIRED', 'Vencida'],
-  ] as const)('REWARD_DISABLED por %s: Sistema, "Motivo: %s"', (reason, motive) => {
-    expect(rewardDisabledEntry('Pizza libre viernes', reason)).toEqual({
-      actor: { type: 'SYSTEM' },
-      module: 'REWARDS',
-      action: 'REWARD_DISABLED',
-      description: 'Deshabilitó la recompensa "Pizza libre viernes"',
-      details: [{ label: 'Motivo', value: motive }],
-    });
-  });
-});
-
 describe('redemptionExpiredEntry() (US-44)', () => {
   it('actor Sistema, description del contrato, código en operationCode y como primera fila', () => {
     const entry = redemptionExpiredEntry(customer, { code: 'K7MP2X', rewardName: 'Café + medialuna' });
@@ -578,5 +550,41 @@ describe('customerDeactivatedEntry(): canjes rechazados (US-43, §3.13.1)', () =
       { label: 'Saldo perdido', value: '120 pts' },
       { label: 'Canjes rechazados', value: '2' },
     ]);
+  });
+});
+
+describe('rewardDisabledEntry() y rewardEnabledEntry() (US-37, §3.14.2)', () => {
+  it.each([
+    ['OUT_OF_STOCK', 'Sin stock'],
+    ['EXPIRED', 'Vencida'],
+  ] as const)('REWARD_DISABLED con motivo %s → "%s"', (reason, text) => {
+    const entry = rewardDisabledEntry('Pizza libre viernes', reason);
+
+    expect(entry).toEqual({
+      actor: { type: 'SYSTEM' },
+      module: 'REWARDS',
+      action: 'REWARD_DISABLED',
+      description: 'Deshabilitó la recompensa "Pizza libre viernes"',
+      details: [{ label: 'Motivo', value: text }],
+    });
+    expect(entry.affectedCustomer).toBeUndefined();
+    expect(entry.operationCode).toBeUndefined();
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+
+  it.each([
+    ['OUT_OF_STOCK', 'Stock repuesto'],
+    ['EXPIRED', 'Fecha de vencimiento actualizada'],
+  ] as const)('REWARD_ENABLED que estaba %s → "%s"', (previousReason, text) => {
+    const entry = rewardEnabledEntry('Café + medialuna', previousReason);
+
+    expect(entry).toEqual({
+      actor: { type: 'SYSTEM' },
+      module: 'REWARDS',
+      action: 'REWARD_ENABLED',
+      description: 'Habilitó la recompensa "Café + medialuna"',
+      details: [{ label: 'Motivo', value: text }],
+    });
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
   });
 });

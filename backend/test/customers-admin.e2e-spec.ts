@@ -83,6 +83,9 @@ describe('Clientes del Administrador (CLI-ADM, e2e)', () => {
   // En orden de claves foráneas. La auditoría es solo inserción: no se borra, se mira desde lastAuditId.
   const cleanDatabase = async () => {
     await prisma.pointsMovement.deleteMany();
+    // Sprint 4: los canjes apuntan a clientes, cuentas y recompensas (onDelete Restrict)
+    await prisma.redemption.deleteMany();
+    await prisma.reward.deleteMany();
     await prisma.pointsLot.deleteMany();
     await prisma.customerPoints.deleteMany();
     await prisma.consumption.deleteMany();

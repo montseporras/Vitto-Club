@@ -2,6 +2,9 @@ import { activationResult, canActivate, canDeactivate, DEACTIVATED } from './rew
 
 const TODAY = '2026-11-08';
 
+// Lo único que mira activationResult: el stock y la fecha
+const reward = (stock: number | null, expiresAt: string | null) => ({ getStock: () => stock, getExpiresAt: () => expiresAt });
+
 describe('activar y desactivar — US-36', () => {
   it.each([
     ['ACTIVE', false, true],
@@ -15,27 +18,27 @@ describe('activar y desactivar — US-36', () => {
 
   describe('activationResult() — §3.2.5', () => {
     it('con stock y sin vencer → ACTIVE (CA-36.4)', () => {
-      expect(activationResult({ stock: 5, expiresAt: '2026-12-01' }, TODAY)).toEqual({ status: 'ACTIVE', disabledReason: null });
+      expect(activationResult(reward(5, '2026-12-01'), TODAY)).toEqual({ status: 'ACTIVE', disabledReason: null });
     });
 
     it('sin límite y sin vencimiento → ACTIVE', () => {
-      expect(activationResult({ stock: null, expiresAt: null }, TODAY).status).toBe('ACTIVE');
+      expect(activationResult(reward(null, null), TODAY).status).toBe('ACTIVE');
     });
 
     it('vence hoy → ACTIVE', () => {
-      expect(activationResult({ stock: 5, expiresAt: TODAY }, TODAY).status).toBe('ACTIVE');
+      expect(activationResult(reward(5, TODAY), TODAY).status).toBe('ACTIVE');
     });
 
     it('stock 0 → DISABLED / OUT_OF_STOCK (CA-36.5)', () => {
-      expect(activationResult({ stock: 0, expiresAt: null }, TODAY)).toEqual({ status: 'DISABLED', disabledReason: 'OUT_OF_STOCK' });
+      expect(activationResult(reward(0, null), TODAY)).toEqual({ status: 'DISABLED', disabledReason: 'OUT_OF_STOCK' });
     });
 
     it('vencida → DISABLED / EXPIRED (CA-36.5)', () => {
-      expect(activationResult({ stock: 5, expiresAt: '2026-11-07' }, TODAY)).toEqual({ status: 'DISABLED', disabledReason: 'EXPIRED' });
+      expect(activationResult(reward(5, '2026-11-07'), TODAY)).toEqual({ status: 'DISABLED', disabledReason: 'EXPIRED' });
     });
 
-    it('sin stock y vencida a la vez → "Agotada" primero', () => {
-      expect(activationResult({ stock: 0, expiresAt: '2026-11-07' }, TODAY).disabledReason).toBe('OUT_OF_STOCK');
+    it('sin stock y vencida a la vez → "Vencida" (la misma regla que US-37)', () => {
+      expect(activationResult(reward(0, '2026-11-07'), TODAY).disabledReason).toBe('EXPIRED');
     });
   });
 

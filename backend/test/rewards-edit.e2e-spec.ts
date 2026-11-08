@@ -376,7 +376,7 @@ describe('Editar recompensas (e2e)', () => {
       expect((await newAuditRows()).map((row) => row.actionCode)).toEqual(['REWARD_UPDATED']);
     });
 
-    it('Agotada que repone stock pero ya venció → sigue DISABLED, con motivo EXPIRED y sin REWARD_ENABLED', async () => {
+    it('Agotada que repone stock pero ya venció → sigue DISABLED con motivo EXPIRED y audita REWARD_DISABLED "Vencida" (US-37)', async () => {
       const reward = await seedReward({
         stock: 0,
         expiresAt: dateOnly(argentinaDay(-2)),
@@ -390,7 +390,26 @@ describe('Editar recompensas (e2e)', () => {
         reward: { status: 'DISABLED', disabledReason: 'EXPIRED' },
         availabilityChange: null,
       });
-      expect((await newAuditRows()).map((row) => row.actionCode)).toEqual(['REWARD_UPDATED']);
+      const rows = await newAuditRows();
+      expect(rows.map((row) => [row.actionCode, row.actorType])).toEqual([
+        ['REWARD_UPDATED', 'EMPLOYEE'],
+        ['REWARD_DISABLED', 'SYSTEM'],
+      ]);
+      expect(rows[1].details).toEqual([{ label: 'Motivo', value: 'Vencida' }]);
+    });
+
+    it('Activa vencida que el proceso diario no marcó: al editar otro campo queda DISABLED / EXPIRED (US-37)', async () => {
+      const reward = await seedReward({ expiresAt: dateOnly(argentinaDay(-1)) });
+
+      const res = await patch(reward.id, { points: 200 }).expect(200);
+
+      expect(res.body).toMatchObject({
+        reward: { points: 200, status: 'DISABLED', disabledReason: 'EXPIRED' },
+        availabilityChange: 'DISABLED',
+      });
+      const rows = await newAuditRows();
+      expect(rows.map((row) => row.actionCode)).toEqual(['REWARD_UPDATED', 'REWARD_DISABLED']);
+      expect(rows[1].details).toEqual([{ label: 'Motivo', value: 'Vencida' }]);
     });
 
     describe('nombre', () => {
