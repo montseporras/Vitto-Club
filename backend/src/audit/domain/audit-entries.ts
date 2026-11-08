@@ -241,22 +241,29 @@ export function customerUpdatedEntry(
   };
 }
 
-// Saldo perdido: el saldo del cliente al darlo de baja (puede ser 0 o negativo)
+// Saldo perdido: el saldo del cliente al darlo de baja (puede ser 0 o negativo).
+// US-43 (contrato S4 §3.13.1): si la baja rechazó canjes Confirmados, suma la fila
+// "Canjes rechazados: {n}", solo si n > 0, después de "Saldo perdido" (decisión de Melisa).
 export function customerDeactivatedEntry(
   actor: AuditActor,
   customer: CustomerSnapshot,
   lostBalance: number,
+  rejectedRedemptions = 0,
 ): AuditEntryInput {
+  const details: AuditDetail[] = [
+    { label: 'Estado', value: change('Activo', 'Inactivo') },
+    { label: 'Saldo perdido', value: `${formatNumber(lostBalance)} pts` },
+  ];
+  if (rejectedRedemptions > 0) {
+    details.push({ label: 'Canjes rechazados', value: formatNumber(rejectedRedemptions) });
+  }
   return {
     actor,
     module: 'CUSTOMERS',
     action: 'CUSTOMER_DEACTIVATED',
     description: `Dio de baja al cliente ${fullName(customer)}`,
     affectedCustomer: affectedCustomerOf(customer),
-    details: [
-      { label: 'Estado', value: change('Activo', 'Inactivo') },
-      { label: 'Saldo perdido', value: `${formatNumber(lostBalance)} pts` },
-    ],
+    details,
   };
 }
 
@@ -351,6 +358,33 @@ export function redemptionExpiredEntry(
     details: [
       { label: 'Código del canje', value: redemption.code },
       { label: 'Recompensa', value: redemption.rewardName },
+    ],
+  };
+}
+
+export type RedemptionRejectionSnapshot = RedemptionSnapshot & {
+  // El motivo guardado: el que escribió el empleado o el fijo del Sistema (§3.10.4)
+  reason: string;
+};
+
+// REDEMPTION_REJECTED (contrato S4 §3.14.2, US-43): a nombre del empleado que lo rechazó, o del
+// Sistema en los rechazos automáticos (§3.10.4). Detalles: Código del canje · Recompensa · Motivo.
+export function redemptionRejectedEntry(
+  actor: AuditActor,
+  customer: AffectedCustomerSnapshot,
+  redemption: RedemptionRejectionSnapshot,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'REDEMPTIONS',
+    action: 'REDEMPTION_REJECTED',
+    description: `Rechazó el canje de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    operationCode: redemption.code,
+    details: [
+      { label: 'Código del canje', value: redemption.code },
+      { label: 'Recompensa', value: redemption.rewardName },
+      { label: 'Motivo', value: redemption.reason },
     ],
   };
 }

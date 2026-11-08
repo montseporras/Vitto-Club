@@ -212,11 +212,12 @@ export class CustomersController{
         await this.auditService.capture(
             async () => {
                 const customer = await this.customersService.findById(id);
-                const lostBalance = await this.customersService.deactivate(id);
-                return { customer, lostBalance };
+                const { lostBalance, rejectedRedemptions } = await this.customersService.deactivate(id);
+                return { customer, lostBalance, rejectedRedemptions };
             },
-            ({ customer, lostBalance }) =>
-                customerDeactivatedEntry(actorOf(user), toCustomerSnapshot(customer), lostBalance),
+            // US-43 (contrato S4 §3.13.1): "Canjes rechazados: {n}" solo si n > 0
+            ({ customer, lostBalance, rejectedRedemptions }) =>
+                customerDeactivatedEntry(actorOf(user), toCustomerSnapshot(customer), lostBalance, rejectedRedemptions),
         );
         }
 

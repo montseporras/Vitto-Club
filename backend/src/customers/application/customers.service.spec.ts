@@ -229,11 +229,17 @@ describe('CustomersService', () => {
 
     it('devuelve el saldo que el cliente pierde (puede ser negativo)', async () => {
       repo.balances.set(id, 120);
-      await expect(service.deactivate(id)).resolves.toBe(120);
+      await expect(service.deactivate(id)).resolves.toEqual({ lostBalance: 120, rejectedRedemptions: 0 });
     });
 
     it('un cliente sin movimientos pierde 0', async () => {
-      await expect(service.deactivate(id)).resolves.toBe(0);
+      await expect(service.deactivate(id)).resolves.toEqual({ lostBalance: 0, rejectedRedemptions: 0 });
+    });
+
+    it('US-43: suma los canjes que rechazó redemptions; ignora el resultado de accounts', async () => {
+      emitAsync.mockResolvedValueOnce([undefined, { rejectedRedemptions: 2 }]);
+
+      await expect(service.deactivate(id)).resolves.toEqual({ lostBalance: 0, rejectedRedemptions: 2 });
     });
 
     it('si accounts falla, el error se propaga y no se publica nada más', async () => {

@@ -1,10 +1,15 @@
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../audit/audit.module.js';
+import { EmployeesModule } from '../employees/employees.module.js';
+import { RedemptionEventsListener } from './application/redemption-events.listener.js';
+import { RedemptionResolutionService } from './application/redemption-resolution.service.js';
 import { RedemptionsExpirationService } from './application/redemptions-expiration.service.js';
 import { RedemptionRepository } from './domain/port/redemption.repository.js';
 import { TransactionRunner } from './domain/port/transaction-runner.js';
 import { RedemptionsPrismaRepository } from './infrastructure/redemptions.repository.js';
 import { RedemptionsExpirationScheduler } from './infrastructure/redemptions-expiration.scheduler.js';
+import { CustomerRedemptionsController } from './http/customer-redemptions.controller.js';
+import { RedemptionsController } from './http/redemptions.controller.js';
 import { PointsModule } from '../points/points.module.js';
 import { RewardsModule } from '../rewards/rewards.module.js';
 import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
@@ -17,11 +22,17 @@ import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js'
 // US-44: el vencimiento (cron, arranque y comando) audita con AuditModule, que no importa a ningún
 // módulo de negocio, así que no se arma un ciclo. RedemptionsExpirationService se exporta para el
 // "vencer al leer" de US-41, US-42, US-43 y US-45.
+// US-43: rechazar (empleado), cancelar (Cliente) y el rechazo automático por eventos
+// (reward.deactivated, reward.deleted, customer.deactivated). Importa EmployeesModule para el nombre
+// del empleado que rechaza, como consumptions (decisión de Melisa); employees no importa redemptions.
 @Module({
-  imports: [AuditModule, RewardsModule, PointsModule],
+  imports: [AuditModule, EmployeesModule, RewardsModule, PointsModule],
+  controllers: [RedemptionsController, CustomerRedemptionsController],
   providers: [
     RedemptionsExpirationService,
     RedemptionsExpirationScheduler,
+    RedemptionResolutionService,
+    RedemptionEventsListener,
     {
       provide: RedemptionRepository,
       useClass: RedemptionsPrismaRepository,
