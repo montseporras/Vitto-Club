@@ -29,6 +29,54 @@ export type Reward = {
   updatedAt: string
 }
 
+/** Recompensa del listado del Administrador (§3.2.1). */
+export type AdminReward = Omit<Reward, 'status' | 'confirmedCount'> & {
+  status: RewardListStatus
+  confirmedCount: number
+}
+
+export type RewardListStatus = Exclude<RewardStatus, 'DELETED'>
+
+export type RewardListFilters = {
+  q: string
+  status: RewardListStatus | ''
+  page: number
+}
+
+/** Body de alta de una recompensa (§3.2.3). */
+export type CreateRewardBody = {
+  name: string
+  description: string | null
+  points: number
+  stock: number | null
+  expiresAt: string | null
+}
+
+/** Body de edición de una recompensa (§3.2.4). */
+export type UpdateRewardBody = Partial<CreateRewardBody>
+
+/** Respuesta de edición de una recompensa (§3.2.4). */
+export type UpdateRewardResponse = {
+  reward: Reward
+  availabilityChange: 'ENABLED' | 'DISABLED' | null
+}
+
+/** Respuesta de activación de una recompensa (§3.2.5). */
+export type ActivateRewardResponse = {
+  reward: Reward
+}
+
+/** Respuesta de desactivación de una recompensa (§3.2.6). */
+export type DeactivateRewardResponse = {
+  reward: Reward
+  rejectedRedemptions: number
+}
+
+/** Respuesta de baja lógica de una recompensa (§3.2.7). */
+export type DeleteRewardResponse = {
+  rejectedRedemptions: number
+}
+
 /** Botones de filtro del catálogo del Cliente (§2.5). Sin valor = `ALL`. */
 export type CatalogFilter = 'ALL' | 'MOST_REDEEMED' | 'EXPIRING_SOON'
 
