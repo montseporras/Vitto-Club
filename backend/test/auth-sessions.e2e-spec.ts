@@ -61,9 +61,14 @@ describe('Sesiones de auth (e2e)', () => {
   });
 
   beforeEach(async () => {
-    // Sprint 4: los canjes apuntan a clientes, cuentas y recompensas (onDelete Restrict)
+    // Las suites de consumos, puntos y canjes dejan filas que apuntan a cuentas, clientes y a la
+    // configuración (onDelete Restrict): se borran antes, en el orden de las claves foráneas
+    await prisma.pointsMovement.deleteMany();
     await prisma.redemption.deleteMany();
     await prisma.reward.deleteMany();
+    await prisma.pointsLot.deleteMany();
+    await prisma.customerPoints.deleteMany();
+    await prisma.consumption.deleteMany();
     await prisma.session.deleteMany();
     await prisma.account.deleteMany();
     await prisma.employee.deleteMany();
