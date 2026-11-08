@@ -386,6 +386,67 @@ export function rewardCreatedEntry(actor: AuditActor, reward: RewardSnapshot): A
   };
 }
 
+const formatRewardPoints = (points: number): string => `${formatNumber(points)} pts`;
+const formatRewardStock = (stock: number | null): string => (stock === null ? 'Sin límite' : formatNumber(stock));
+const formatRewardExpiration = (expiresAt: string | null): string =>
+  expiresAt === null ? 'No vence' : formatDateOnly(expiresAt);
+
+export type RewardEditSnapshot = RewardSnapshot & { description: string | null };
+
+// REWARD_UPDATED (§3.14.2, US-35): una fila por campo que cambió, "{antes} → {después}". Vacío =
+// "—", sin límite = "Sin límite", sin fecha = "No vence"; los puntos con "pts" (decisión de Jazmín,
+// igual que REWARD_CREATED). La description lleva el nombre nuevo. null si no cambió nada (no se
+// audita).
+export function rewardUpdatedEntry(
+  actor: AuditActor,
+  before: RewardEditSnapshot,
+  after: RewardEditSnapshot,
+): AuditEntryInput | null {
+  const details = changedRows([
+    { label: 'Nombre', before: before.name, after: after.name },
+    { label: 'Descripción', before: orNone(before.description), after: orNone(after.description) },
+    { label: 'Puntos', before: formatRewardPoints(before.points), after: formatRewardPoints(after.points) },
+    { label: 'Stock', before: formatRewardStock(before.stock), after: formatRewardStock(after.stock) },
+    { label: 'Vencimiento', before: formatRewardExpiration(before.expiresAt), after: formatRewardExpiration(after.expiresAt) },
+  ]);
+  if (details.length === 0) return null;
+  return {
+    actor,
+    module: 'REWARDS',
+    action: 'REWARD_UPDATED',
+    description: `Editó la recompensa "${after.name}"`,
+    details,
+  };
+}
+
+// §3.4: motivo según por qué estaba (o queda) deshabilitada
+const ENABLED_REASONS = { OUT_OF_STOCK: 'Stock repuesto', EXPIRED: 'Fecha de vencimiento actualizada' } as const;
+const DISABLED_REASONS = { OUT_OF_STOCK: 'Sin stock', EXPIRED: 'Vencida' } as const;
+export type RewardDisabledReasonCode = keyof typeof DISABLED_REASONS;
+
+// REWARD_ENABLED (§3.4 y §3.14.2): lo registra el Sistema. `from` es el motivo por el que estaba
+// deshabilitada.
+export function rewardEnabledEntry(rewardName: string, from: RewardDisabledReasonCode): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'REWARDS',
+    action: 'REWARD_ENABLED',
+    description: `Habilitó la recompensa "${rewardName}"`,
+    details: [{ label: 'Motivo', value: ENABLED_REASONS[from] }],
+  };
+}
+
+// REWARD_DISABLED (§3.4 y §3.14.2): lo registra el Sistema
+export function rewardDisabledEntry(rewardName: string, reason: RewardDisabledReasonCode): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'REWARDS',
+    action: 'REWARD_DISABLED',
+    description: `Deshabilitó la recompensa "${rewardName}"`,
+    details: [{ label: 'Motivo', value: DISABLED_REASONS[reason] }],
+  };
+}
+
 // --- Consumos ----------------------------------------------------------------------------
 
 // Monto con $ y puntos de miles, como el ejemplo de §3.9.4 ("$50.000"); con centavos, "$12.500,50"

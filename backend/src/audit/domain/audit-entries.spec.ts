@@ -11,6 +11,9 @@ import {
   pointsExpiredEntry,
   redemptionExpiredEntry,
   rewardCreatedEntry,
+  rewardDisabledEntry,
+  rewardEnabledEntry,
+  rewardUpdatedEntry,
   type CustomerSnapshot,
   type EmployeeSnapshot,
   type LoyaltyConfigSnapshot,
@@ -395,6 +398,74 @@ describe('rewardCreatedEntry() (US-34)', () => {
       { label: 'Stock', value: 'Sin límite' },
       { label: 'Vencimiento', value: 'No vence' },
     ]);
+  });
+});
+
+describe('rewardUpdatedEntry() (US-35)', () => {
+  const admin = { type: 'EMPLOYEE' as const, accountId: 1 };
+  const before = { name: 'Café + medialuna', description: null, points: 150, stock: 0, expiresAt: '2026-12-08' };
+
+  it('CA-35.1: una fila por campo que cambió, "Stock: 0 → 20"', () => {
+    const entry = rewardUpdatedEntry(admin, before, { ...before, stock: 20 });
+
+    expect(entry).toEqual({
+      actor: admin,
+      module: 'REWARDS',
+      action: 'REWARD_UPDATED',
+      description: 'Editó la recompensa "Café + medialuna"',
+      details: [{ label: 'Stock', value: '0 → 20' }],
+    });
+  });
+
+  it('todos los campos, con "—", "Sin límite", "No vence" y pts; la description con el nombre nuevo', () => {
+    const entry = rewardUpdatedEntry(admin, before, {
+      name: 'Café doble',
+      description: 'Con manteca',
+      points: 1200,
+      stock: null,
+      expiresAt: null,
+    });
+
+    expect(entry?.description).toBe('Editó la recompensa "Café doble"');
+    expect(entry?.details).toEqual([
+      { label: 'Nombre', value: 'Café + medialuna → Café doble' },
+      { label: 'Descripción', value: '— → Con manteca' },
+      { label: 'Puntos', value: '150 pts → 1.200 pts' },
+      { label: 'Stock', value: '0 → Sin límite' },
+      { label: 'Vencimiento', value: '08/12/2026 → No vence' },
+    ]);
+  });
+
+  it('sin cambios → null (no se audita)', () => {
+    expect(rewardUpdatedEntry(admin, before, { ...before })).toBeNull();
+  });
+});
+
+describe('rewardEnabledEntry() y rewardDisabledEntry() (§3.4)', () => {
+  it.each([
+    ['OUT_OF_STOCK', 'Stock repuesto'],
+    ['EXPIRED', 'Fecha de vencimiento actualizada'],
+  ] as const)('REWARD_ENABLED desde %s: Sistema, "Motivo: %s"', (from, motive) => {
+    expect(rewardEnabledEntry('Café + medialuna', from)).toEqual({
+      actor: { type: 'SYSTEM' },
+      module: 'REWARDS',
+      action: 'REWARD_ENABLED',
+      description: 'Habilitó la recompensa "Café + medialuna"',
+      details: [{ label: 'Motivo', value: motive }],
+    });
+  });
+
+  it.each([
+    ['OUT_OF_STOCK', 'Sin stock'],
+    ['EXPIRED', 'Vencida'],
+  ] as const)('REWARD_DISABLED por %s: Sistema, "Motivo: %s"', (reason, motive) => {
+    expect(rewardDisabledEntry('Pizza libre viernes', reason)).toEqual({
+      actor: { type: 'SYSTEM' },
+      module: 'REWARDS',
+      action: 'REWARD_DISABLED',
+      description: 'Deshabilitó la recompensa "Pizza libre viernes"',
+      details: [{ label: 'Motivo', value: motive }],
+    });
   });
 });
 

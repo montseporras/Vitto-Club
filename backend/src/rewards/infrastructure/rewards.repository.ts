@@ -4,6 +4,7 @@ import type { Reward as PrismaRewardRecord } from '@prisma/client';
 import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import { Reward } from '../domain/reward.js';
 import type { NewReward } from '../domain/new-reward.js';
+import type { RewardEditableState } from '../domain/reward-edit.js';
 import {
   RewardListFilters,
   RewardListResult,
@@ -68,13 +69,47 @@ export class RewardsPrismaRepository implements RewardRepository {
     return record ? toDomain(record) : null;
   }
 
-  async existsNotDeletedWithName(name: string): Promise<boolean> {
+  async findNotDeletedById(id: number): Promise<Reward | null> {
+    const record = await this.prisma.reward.findFirst({ where: { id, status: { not: 'DELETED' } } });
+    return record ? toDomain(record) : null;
+  }
+
+  async lockNotDeletedForUpdate(id: number): Promise<Reward | null> {
+    const locked = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM rewards WHERE id = ${id} AND status <> 'DELETED' FOR UPDATE
+    `;
+    if (locked.length === 0) return null;
+    return await this.findNotDeletedById(id);
+  }
+
+  async existsNotDeletedWithName(name: string, exceptId?: number): Promise<boolean> {
     const rows = await this.prisma.$queryRaw<{ id: number }[]>`
       SELECT id FROM rewards
       WHERE lower(trim(name)) = lower(trim(${name})) AND status <> 'DELETED'
+        AND id <> ${exceptId ?? 0}
       LIMIT 1
     `;
     return rows.length > 0;
+  }
+
+  async countConfirmed(rewardId: number, now: Date): Promise<number> {
+    return (await this.countConfirmedByReward([rewardId], now)).get(rewardId) ?? 0;
+  }
+
+  async update(id: number, state: RewardEditableState): Promise<Reward> {
+    const record = await this.prisma.reward.update({
+      where: { id },
+      data: {
+        name: state.name,
+        description: state.description,
+        points: state.points,
+        stock: state.stock,
+        expiresAt: fromDateOnly(state.expiresAt),
+        status: state.status,
+        disabledReason: state.disabledReason,
+      },
+    });
+    return toDomain(record);
   }
 
   async create(reward: NewReward): Promise<Reward> {
@@ -113,7 +148,7 @@ export class RewardsPrismaRepository implements RewardRepository {
       this.prisma.reward.count({ where }),
     ]);
 
-    const confirmed = await this.countConfirmed(
+    const confirmed = await this.countConfirmedByReward(
       records.map((record) => record.id),
       now,
     );
@@ -127,7 +162,7 @@ export class RewardsPrismaRepository implements RewardRepository {
   // de redemptions, para no armar un ciclo entre módulos). Se lee la tabla redemptions sin importar
   // ese módulo, como points lee customers. Cuenta los CONFIRMED que todavía no vencieron: el barrido
   // de US-44 corre cada 5 minutos y puede quedar alguno CONFIRMED con expires_at pasado.
-  private async countConfirmed(rewardIds: number[], now: Date): Promise<Map<number, number>> {
+  private async countConfirmedByReward(rewardIds: number[], now: Date): Promise<Map<number, number>> {
     if (rewardIds.length === 0) return new Map();
     const groups = await this.prisma.redemption.groupBy({
       by: ['rewardId'],
