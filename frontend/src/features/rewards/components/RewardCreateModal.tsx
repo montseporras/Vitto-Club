@@ -21,6 +21,7 @@ import {
   useActivateReward,
   useAdminReward,
   useCreateReward,
+  useDeleteReward,
   useDeactivateReward,
   useUpdateReward,
 } from '../api/rewards.queries'
@@ -101,6 +102,7 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
   const [serverError, setServerError] = useState<{ messages: string[] } | null>(null)
   const [actionError, setActionError] = useState<ApiError | null>(null)
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const today = todayIsoInTimeZone('America/Argentina/Buenos_Aires')
   const isEditing = rewardId !== undefined
   const rewardQuery = useAdminReward(rewardId)
@@ -117,6 +119,7 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
   const updateMutation = useUpdateReward()
   const activateMutation = useActivateReward()
   const deactivateMutation = useDeactivateReward()
+  const deleteMutation = useDeleteReward()
   const showToast = useToast()
   const {
     register,
@@ -155,7 +158,10 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
-      if (deactivateDialogOpen) {
+      if (deleteDialogOpen) {
+        setDeleteDialogOpen(false)
+        setActionError(null)
+      } else if (deactivateDialogOpen) {
         setDeactivateDialogOpen(false)
         setActionError(null)
       } else {
@@ -164,7 +170,7 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [deactivateDialogOpen, onClose])
+  }, [deactivateDialogOpen, deleteDialogOpen, onClose])
 
   const descriptionLength = useWatch({ control, name: 'description' })?.length ?? 0
 
@@ -255,6 +261,18 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
     })
   }
 
+  const confirmDelete = () => {
+    if (rewardId === undefined) return
+    setActionError(null)
+    deleteMutation.mutate(rewardId, {
+      onSuccess: () => {
+        showToast('Recompensa eliminada.')
+        onClose()
+      },
+      onError: setActionError,
+    })
+  }
+
   const fieldProps = (field: RewardFormField) => ({
     id: `reward-${field}`,
     'aria-invalid': errors[field] ? true : undefined,
@@ -268,7 +286,8 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
     createMutation.isPending ||
     updateMutation.isPending ||
     activateMutation.isPending ||
-    deactivateMutation.isPending
+    deactivateMutation.isPending ||
+    deleteMutation.isPending
   const title = isEditing ? 'Editar recompensa' : 'Crear recompensa'
 
   if (isEditing && rewardQuery.isPending) {
@@ -514,7 +533,17 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
               >
                 {reward.status === 'INACTIVE' ? 'Activar' : 'Desactivar'}
               </Button>
-              <Button type="button" variant="ghost" disabled className="text-[#b3261e]">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={isPending}
+                className="text-[#b3261e]"
+                onClick={() => {
+                  setServerError(null)
+                  setActionError(null)
+                  setDeleteDialogOpen(true)
+                }}
+              >
                 Eliminar
               </Button>
             </div>
@@ -586,6 +615,55 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
                 onClick={confirmDeactivate}
               >
                 {deactivateMutation.isPending ? 'Desactivando…' : 'Desactivar'}
+              </Button>
+            </div>
+          </div>
+        </RewardDialog>
+      )}
+      {deleteDialogOpen && reward && (
+        <RewardDialog
+          title="Eliminar recompensa"
+          onClose={() => {
+            setDeleteDialogOpen(false)
+            setActionError(null)
+          }}
+          className="z-[10010]"
+        >
+          <div className="grid gap-4">
+            <p className="text-[15px] text-[#3b2a20]">
+              ¿Eliminar <strong>{reward.name}</strong>? Va a dejar de aparecer en el catálogo y no
+              se puede deshacer.
+            </p>
+            {(reward.confirmedCount ?? 0) > 0 && (
+              <Alert variant="error">
+                Hay {reward.confirmedCount} canjes confirmados de esta recompensa. Se van a
+                rechazar automáticamente.
+              </Alert>
+            )}
+            {actionError && (
+              <Alert variant="error">
+                <AlertMessages messages={actionError.messages} />
+              </Alert>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={deleteMutation.isPending}
+                autoFocus
+                onClick={() => {
+                  setDeleteDialogOpen(false)
+                  setActionError(null)
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                disabled={deleteMutation.isPending}
+                onClick={confirmDelete}
+              >
+                Eliminar
               </Button>
             </div>
           </div>

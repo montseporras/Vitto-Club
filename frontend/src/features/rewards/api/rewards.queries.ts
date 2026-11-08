@@ -13,6 +13,7 @@ import type {
   CatalogFilter,
   CreateRewardBody,
   CustomerCatalog,
+  DeleteRewardResponse,
   DeactivateRewardResponse,
   Reward,
   RewardListFilters,
@@ -22,6 +23,7 @@ import type {
 import {
   activateReward,
   createReward,
+  deleteReward,
   deactivateReward,
   getAdminReward,
   getAvailableRewards,
@@ -99,6 +101,18 @@ export const useDeactivateReward = () => {
     mutationFn: deactivateReward,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: rewardsKeys.all })
+    },
+  })
+}
+
+/** Baja lógica de recompensa; también refresca los canjes rechazados automáticamente. */
+export const useDeleteReward = () => {
+  const queryClient = useQueryClient()
+  return useMutation<DeleteRewardResponse, ApiError, number>({
+    mutationFn: deleteReward,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: rewardsKeys.all })
+      void queryClient.invalidateQueries({ queryKey: ['redemptions'] })
     },
   })
 }

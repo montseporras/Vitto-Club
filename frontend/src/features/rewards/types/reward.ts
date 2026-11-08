@@ -72,6 +72,11 @@ export type DeactivateRewardResponse = {
   rejectedRedemptions: number
 }
 
+/** Respuesta de baja lógica de una recompensa (§3.2.7). */
+export type DeleteRewardResponse = {
+  rejectedRedemptions: number
+}
+
 /** Botones de filtro del catálogo del Cliente (§2.5). Sin valor = `ALL`. */
 export type CatalogFilter = 'ALL' | 'MOST_REDEEMED' | 'EXPIRING_SOON'
 

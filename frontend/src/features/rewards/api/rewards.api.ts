@@ -9,6 +9,7 @@ import type {
   CatalogFilter,
   CreateRewardBody,
   CustomerCatalog,
+  DeleteRewardResponse,
   DeactivateRewardResponse,
   Reward,
   RewardListFilters,
@@ -86,6 +87,16 @@ export async function activateReward(id: number): Promise<ActivateRewardResponse
 export async function deactivateReward(id: number): Promise<DeactivateRewardResponse> {
   try {
     const { data } = await http.patch<DeactivateRewardResponse>(`/recompensas/${id}/desactivar`)
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+/** Baja lógica de una recompensa (§3.2.7). */
+export async function deleteReward(id: number): Promise<DeleteRewardResponse> {
+  try {
+    const { data } = await http.patch<DeleteRewardResponse>(`/recompensas/${id}/eliminar`)
     return data
   } catch (error) {
     throw toApiError(error)
