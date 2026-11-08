@@ -48,7 +48,8 @@ const reward = (
 })
 
 // Para probar: la de 100 pts vence hoy; la de 250 está agotada (Deshabilitada); la de 120 está
-// Inactiva y la de 500 dada de baja (no salen); la de 900 sirve para ver "no alcanza el saldo".
+// Inactiva y sin stock; la de 80 está Inactiva y vencida; la de 500 dada de baja (no salen); la de
+// 900 sirve para ver "no alcanza el saldo".
 // Para el catálogo (US-39): la de 180 venció ayer y el proceso diario todavía no la marcó (sigue
 // ACTIVE: tiene que llegar como Vencida), y la de 350 vence en 8 días (no está en "Próx. a vencer").
 export const rewardSeeds: Reward[] = [
@@ -84,7 +85,7 @@ export const rewardSeeds: Reward[] = [
     confirmedCount: 1,
     usedCount: 3,
   }),
-  reward(7, 'Té chai', 120, { status: 'INACTIVE' }),
+  reward(7, 'Té chai', 120, { status: 'INACTIVE', stock: 0 }),
   reward(8, 'Combo Navidad', 500, { status: 'DELETED' }),
   reward(9, 'Cena para dos', 900, { stock: 2 }),
   reward(10, 'Licuado de estación', 180, {
@@ -98,6 +99,12 @@ export const rewardSeeds: Reward[] = [
     expiresAt: addDays(today, 8),
     daysToExpire: 8,
     usedCount: 15,
+  }),
+  reward(12, 'Tisana de estación', 80, {
+    status: 'INACTIVE',
+    stock: 0,
+    expiresAt: addDays(today, -1),
+    daysToExpire: -1,
   }),
 ]
 
@@ -476,6 +483,83 @@ export const rewardsHandlers = [
     return HttpResponse.json({
       reward: { ...item, confirmedCount: item.confirmedCount ?? 0 },
       availabilityChange,
+    })
+  }),
+
+  // US-36: activar una recompensa, incluso si queda Deshabilitada por falta de disponibilidad.
+  http.patch(`${API_URL}/recompensas/:id/activar`, async ({ request, params }) => {
+    await delay(250)
+    const path = new URL(request.url).pathname
+    const account = accountFromRequest(request)
+    if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+    if (account.role !== 'ADMIN') {
+      return errorResponse(403, 'No tenés permiso para realizar esta acción.', path, 'FORBIDDEN')
+    }
+
+    const id = Number(params.id)
+    const item = rewardSeeds.find((candidate) => candidate.id === id)
+    if (!item || item.status === 'DELETED') {
+      return errorResponse(404, 'No existe la recompensa.', path)
+    }
+    if (item.status !== 'INACTIVE') {
+      return errorResponse(
+        409,
+        'La recompensa no está inactiva.',
+        path,
+        'INVALID_REWARD_STATUS',
+      )
+    }
+
+    const noStock = item.stock === 0
+    const expired = item.expiresAt !== null && item.expiresAt < argentinaToday()
+    item.status = noStock || expired ? 'DISABLED' : 'ACTIVE'
+    if (expired) {
+      item.disabledReason = 'EXPIRED'
+    } else if (noStock) {
+      item.disabledReason = 'OUT_OF_STOCK'
+    } else {
+      item.disabledReason = null
+    }
+    item.updatedAt = new Date().toISOString()
+
+    return HttpResponse.json({
+      reward: { ...item, confirmedCount: item.confirmedCount ?? 0 },
+    })
+  }),
+
+  // US-36: desactivar y rechazar los canjes confirmados vigentes.
+  http.patch(`${API_URL}/recompensas/:id/desactivar`, async ({ request, params }) => {
+    await delay(250)
+    const path = new URL(request.url).pathname
+    const account = accountFromRequest(request)
+    if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+    if (account.role !== 'ADMIN') {
+      return errorResponse(403, 'No tenés permiso para realizar esta acción.', path, 'FORBIDDEN')
+    }
+
+    const id = Number(params.id)
+    const item = rewardSeeds.find((candidate) => candidate.id === id)
+    if (!item || item.status === 'DELETED') {
+      return errorResponse(404, 'No existe la recompensa.', path)
+    }
+    if (item.status !== 'ACTIVE' && item.status !== 'DISABLED') {
+      return errorResponse(
+        409,
+        'La recompensa ya está inactiva.',
+        path,
+        'INVALID_REWARD_STATUS',
+      )
+    }
+
+    const rejectedRedemptions = item.confirmedCount ?? 0
+    item.status = 'INACTIVE'
+    item.disabledReason = null
+    item.confirmedCount = 0
+    item.updatedAt = new Date().toISOString()
+
+    return HttpResponse.json({
+      reward: { ...item, confirmedCount: 0 },
+      rejectedRedemptions,
     })
   }),
 

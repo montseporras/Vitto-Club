@@ -4,10 +4,12 @@ import { toApiError } from '@/shared/api/ApiError'
 import { http } from '@/shared/api/http'
 import type { Paginated } from '@/shared/types/pagination'
 import type {
+  ActivateRewardResponse,
   AdminReward,
   CatalogFilter,
   CreateRewardBody,
   CustomerCatalog,
+  DeactivateRewardResponse,
   Reward,
   RewardListFilters,
   UpdateRewardBody,
@@ -64,6 +66,26 @@ export async function updateReward(
 ): Promise<UpdateRewardResponse> {
   try {
     const { data } = await http.patch<UpdateRewardResponse>(`/recompensas/${id}`, body)
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+/** Activación de una recompensa (§3.2.5). */
+export async function activateReward(id: number): Promise<ActivateRewardResponse> {
+  try {
+    const { data } = await http.patch<ActivateRewardResponse>(`/recompensas/${id}/activar`)
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+/** Desactivación de una recompensa (§3.2.6). */
+export async function deactivateReward(id: number): Promise<DeactivateRewardResponse> {
+  try {
+    const { data } = await http.patch<DeactivateRewardResponse>(`/recompensas/${id}/desactivar`)
     return data
   } catch (error) {
     throw toApiError(error)

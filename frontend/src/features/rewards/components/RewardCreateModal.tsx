@@ -17,7 +17,13 @@ import { todayIsoInTimeZone } from '@/shared/lib/dates'
 import { cn } from '@/shared/lib/utils'
 import { modalStyles } from '@/styles/ui'
 import type { ApiError } from '@/shared/api/ApiError'
-import { useAdminReward, useCreateReward, useUpdateReward } from '../api/rewards.queries'
+import {
+  useActivateReward,
+  useAdminReward,
+  useCreateReward,
+  useDeactivateReward,
+  useUpdateReward,
+} from '../api/rewards.queries'
 import {
   createRewardSchema,
   type CreateRewardFormInput,
@@ -40,15 +46,17 @@ type RewardCreateModalProps = {
 function RewardDialog({
   title,
   onClose,
+  className,
   children,
 }: {
   title: string
   onClose: () => void
+  className?: string
   children: ReactNode
 }) {
   return createPortal(
     <div
-      className={cn(modalStyles.overlay, 'z-[10000] bg-[#2d180e]/50')}
+      className={cn(modalStyles.overlay, 'z-[10000] bg-[#2d180e]/50', className)}
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -91,6 +99,8 @@ function rewardStatusVariant(reward: Reward) {
 
 export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps) {
   const [serverError, setServerError] = useState<{ messages: string[] } | null>(null)
+  const [actionError, setActionError] = useState<ApiError | null>(null)
+  const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false)
   const today = todayIsoInTimeZone('America/Argentina/Buenos_Aires')
   const isEditing = rewardId !== undefined
   const rewardQuery = useAdminReward(rewardId)
@@ -105,6 +115,8 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
   )
   const createMutation = useCreateReward()
   const updateMutation = useUpdateReward()
+  const activateMutation = useActivateReward()
+  const deactivateMutation = useDeactivateReward()
   const showToast = useToast()
   const {
     register,
@@ -142,11 +154,17 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key !== 'Escape') return
+      if (deactivateDialogOpen) {
+        setDeactivateDialogOpen(false)
+        setActionError(null)
+      } else {
+        onClose()
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [deactivateDialogOpen, onClose])
 
   const descriptionLength = useWatch({ control, name: 'description' })?.length ?? 0
 
@@ -205,6 +223,38 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
     })
   }
 
+  const activate = () => {
+    if (rewardId === undefined) return
+    setServerError(null)
+    activateMutation.mutate(rewardId, {
+      onSuccess: ({ reward: activatedReward }) => {
+        showToast(
+          activatedReward.status === 'DISABLED'
+            ? 'Se activó, pero quedó deshabilitada porque no tiene stock o está vencida. Reponé el stock o extendé la fecha.'
+            : 'Recompensa activada.',
+        )
+        onClose()
+      },
+      onError: setServerError,
+    })
+  }
+
+  const confirmDeactivate = () => {
+    if (rewardId === undefined) return
+    setActionError(null)
+    deactivateMutation.mutate(rewardId, {
+      onSuccess: ({ rejectedRedemptions }) => {
+        const rejectedMessage =
+          rejectedRedemptions > 0
+            ? ` Se rechazaron ${rejectedRedemptions} canjes confirmados.`
+            : ''
+        showToast(`Recompensa desactivada.${rejectedMessage}`)
+        onClose()
+      },
+      onError: setActionError,
+    })
+  }
+
   const fieldProps = (field: RewardFormField) => ({
     id: `reward-${field}`,
     'aria-invalid': errors[field] ? true : undefined,
@@ -214,7 +264,11 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
   const formErrorMessages = serverError?.messages ?? []
   const unlimitedStock = useWatch({ control, name: 'unlimitedStock' })
   const noExpiry = useWatch({ control, name: 'noExpiry' })
-  const isPending = createMutation.isPending || updateMutation.isPending
+  const isPending =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    activateMutation.isPending ||
+    deactivateMutation.isPending
   const title = isEditing ? 'Editar recompensa' : 'Crear recompensa'
 
   if (isEditing && rewardQuery.isPending) {
@@ -444,7 +498,20 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
         <div className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-[#fbe6d4] pt-3">
           {isEditing && reward ? (
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" disabled>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={isPending}
+                onClick={() => {
+                  if (reward.status === 'INACTIVE') {
+                    activate()
+                  } else {
+                    setServerError(null)
+                    setActionError(null)
+                    setDeactivateDialogOpen(true)
+                  }
+                }}
+              >
                 {reward.status === 'INACTIVE' ? 'Activar' : 'Desactivar'}
               </Button>
               <Button type="button" variant="ghost" disabled className="text-[#b3261e]">
@@ -475,6 +542,55 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
         </div>
       </form>
       </div>
+      {deactivateDialogOpen && reward && (
+        <RewardDialog
+          title="Desactivar recompensa"
+          onClose={() => {
+            setDeactivateDialogOpen(false)
+            setActionError(null)
+          }}
+          className="z-[10010]"
+        >
+          <div className="grid gap-4">
+            <p className="text-[15px] text-[#3b2a20]">
+              ¿Desactivar <strong>{reward.name}</strong>? Los clientes no la van a ver en el
+              catálogo.
+            </p>
+            {(reward.confirmedCount ?? 0) > 0 && (
+              <Alert variant="error">
+                Hay {reward.confirmedCount} canjes confirmados de esta recompensa. Se van a
+                rechazar automáticamente.
+              </Alert>
+            )}
+            {actionError && (
+              <Alert variant="error">
+                <AlertMessages messages={actionError.messages} />
+              </Alert>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={deactivateMutation.isPending}
+                autoFocus
+                onClick={() => {
+                  setDeactivateDialogOpen(false)
+                  setActionError(null)
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                disabled={deactivateMutation.isPending}
+                onClick={confirmDeactivate}
+              >
+                {deactivateMutation.isPending ? 'Desactivando…' : 'Desactivar'}
+              </Button>
+            </div>
+          </div>
+        </RewardDialog>
+      )}
     </div>,
     document.body,
   )

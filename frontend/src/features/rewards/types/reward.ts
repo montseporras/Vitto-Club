@@ -61,6 +61,17 @@ export type UpdateRewardResponse = {
   availabilityChange: 'ENABLED' | 'DISABLED' | null
 }
 
+/** Respuesta de activación de una recompensa (§3.2.5). */
+export type ActivateRewardResponse = {
+  reward: Reward
+}
+
+/** Respuesta de desactivación de una recompensa (§3.2.6). */
+export type DeactivateRewardResponse = {
+  reward: Reward
+  rejectedRedemptions: number
+}
+
 /** Botones de filtro del catálogo del Cliente (§2.5). Sin valor = `ALL`. */
 export type CatalogFilter = 'ALL' | 'MOST_REDEEMED' | 'EXPIRING_SOON'
 

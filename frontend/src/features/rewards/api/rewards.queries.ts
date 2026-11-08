@@ -8,17 +8,21 @@ import {
 import type { ApiError } from '@/shared/api/ApiError'
 import type { Paginated } from '@/shared/types/pagination'
 import type {
+  ActivateRewardResponse,
   AdminReward,
   CatalogFilter,
   CreateRewardBody,
   CustomerCatalog,
+  DeactivateRewardResponse,
   Reward,
   RewardListFilters,
   UpdateRewardBody,
   UpdateRewardResponse,
 } from '../types/reward'
 import {
+  activateReward,
   createReward,
+  deactivateReward,
   getAdminReward,
   getAvailableRewards,
   getMyCatalog,
@@ -71,6 +75,28 @@ export const useUpdateReward = () => {
     { id: number; body: UpdateRewardBody }
   >({
     mutationFn: ({ id, body }) => updateReward(id, body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: rewardsKeys.all })
+    },
+  })
+}
+
+/** Activación de recompensa; actualiza listados, catálogo y mostrador. */
+export const useActivateReward = () => {
+  const queryClient = useQueryClient()
+  return useMutation<ActivateRewardResponse, ApiError, number>({
+    mutationFn: activateReward,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: rewardsKeys.all })
+    },
+  })
+}
+
+/** Desactivación de recompensa; actualiza listados, catálogo y mostrador. */
+export const useDeactivateReward = () => {
+  const queryClient = useQueryClient()
+  return useMutation<DeactivateRewardResponse, ApiError, number>({
+    mutationFn: deactivateReward,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: rewardsKeys.all })
     },
