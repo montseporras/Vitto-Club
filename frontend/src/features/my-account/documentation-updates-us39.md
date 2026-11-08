@@ -36,7 +36,7 @@ Lo tiene que decidir el equipo y llevarlo al contrato.
 | §3.5.1, "Te faltan" | No dice si "Te faltan {n} pts" va también en las Deshabilitadas o con saldo negativo | Solo se muestra si la recompensa se podría canjear y lo que falta es saldo. Con saldo negativo, el aviso de arriba y el tooltip ya explican por qué |
 | §3.5.1, aviso de saldo negativo | Dice "arriba del catálogo". En el prototipo está arriba de las dos vistas (Catálogo y Mis canjes) | Se puso solo en el Catálogo: el saldo llega con el catálogo y Mis canjes no depende de él |
 | §3.5.1, tooltip | El `title` va en el botón deshabilitado | Va en un `span` alrededor del botón, como el prototipo: varios navegadores no muestran el `title` de un botón deshabilitado |
-| §3.5.1, Inicio | "Tenés un canje para usar" pide `GET /customers/me/canjes?status=CONFIRMED`. No dice el orden | Se pide con `order=asc`: el primero es el que vence antes. Si la consulta falla o carga, la tarjeta no aparece y el resto del Inicio sigue igual |
+| §3.5.1, Inicio | "Tenés un canje para usar" pide `GET /customers/me/canjes?status=CONFIRMED`. No dice el orden | Por aclaración de Tomas, se pide con `order=desc` para mostrar primero el más reciente. Si la consulta falla o carga, la tarjeta no aparece y el resto del Inicio sigue igual |
 | §3.5.1, filtros | Los botones no tienen estilo definido | Como el prototipo: el elegido en naranja oscuro (y con `aria-pressed`) |
 | §3.5.1, Catálogo / Mis canjes | El contrato no nombra el control. El prototipo tiene "Catálogo · Mis canjes" arriba de la pestaña | Se siguió el prototipo y la vista queda en la URL (`?vista=mis`) para que "Ver código" del Inicio abra Mis canjes |
 
@@ -47,6 +47,8 @@ Deni pidió resolver sin preguntar. Estas son las decisiones:
 - La pestaña Canjes abre en Catálogo, y `?vista=mis` abre Mis canjes.
 - "Te faltan {n} pts" solo cuando lo único que falta es saldo (ver §2).
 - El aviso de saldo negativo va solo en la vista Catálogo (ver §2).
+- Por aclaración de Tomas, la tarjeta de Inicio muestra primero el canje Confirmado más reciente (`order=desc`).
+- Por aclaración de Tomas, `CatalogReward` omite `updatedAt`, como en el ejemplo de §3.5.1.
 - Se borró `RewardsComingSoonCard` (US-19): CA-39.6 la reemplaza por la tarjeta "Recompensas".
 - `CustomerHomePage` ahora recibe `redemptionsPath` del router (igual que `MyProfilePage` con `homePath`).
 

@@ -1,8 +1,13 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { toArgentinaDateString } from '../../shared/time/argentina-date.js';
-import { Reward, type RewardDisabledReason } from '../domain/reward.js';
+import { Reward } from '../domain/reward.js';
 import { buildNewReward, NewRewardInput } from '../domain/new-reward.js';
-import { AvailabilityChange, planRewardEdit, RewardEditInput, RewardFieldChange } from '../domain/reward-edit.js';
+import { planRewardEdit, RewardEditInput, RewardFieldChange } from '../domain/reward-edit.js';
+import { AuditService } from '../../audit/application/audit.service.js';
+import type { AuditActor } from '../../audit/domain/audit-entry.js';
+import { rewardUpdatedEntry, type RewardEditSnapshot } from '../../audit/domain/audit-entries.js';
+import { RewardsAvailabilityService, type AvailabilityChange } from './rewards-availability.service.js';
+import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import {
   RewardListFilters,
   RewardListResult,
@@ -25,20 +30,31 @@ export type RewardWithConfirmed = { reward: Reward; confirmedCount: number };
 // Lo que quien llama necesita para responder (§3.2.4) y auditar (REWARD_UPDATED y, si cambió la
 // disponibilidad, REWARD_ENABLED o REWARD_DISABLED)
 export type RewardEditResult = RewardWithConfirmed & {
-  // Como estaba antes de editar (para las filas "antes → después" de la auditoría)
-  previous: Reward;
   // Vacío = no cambió nada: no se guardó ni se audita
   changes: RewardFieldChange[];
+  // Lo que devolvió reevaluarDisponibilidad (US-37): "ENABLED", "DISABLED" o null
   availabilityChange: AvailabilityChange;
-  enabledFrom: RewardDisabledReason | null;
 };
+
+const editSnapshot = (reward: Reward): RewardEditSnapshot => ({
+  name: reward.getName(),
+  description: reward.getDescription(),
+  points: reward.getPoints(),
+  stock: reward.getStock(),
+  expiresAt: reward.getExpiresAt(),
+});
 
 // BASE-4: punto de entrada de rewards para los demás módulos (redemptions lo usa, §8.4). Cada
 // historia agrega sus casos de uso (US-34 a US-38) y lo que redemptions necesita (bloquear,
 // verificar disponibilidad, descontar stock).
 @Injectable()
 export class RewardsService {
-  constructor(private readonly rewardRepository: RewardRepository) {}
+  constructor(
+    private readonly rewardRepository: RewardRepository,
+    private readonly availability: RewardsAvailabilityService,
+    private readonly auditService: AuditService,
+    private readonly transactionRunner: TransactionRunner,
+  ) {}
 
   // null si no existe
   async findById(id: number): Promise<Reward | null> {
@@ -64,59 +80,61 @@ export class RewardsService {
     return { reward, confirmedCount: await this.rewardRepository.countConfirmed(id, now) };
   }
 
-  // US-35 (§3.2.4). Corre dentro de la transacción de quien llama (el controller la abre con
-  // AuditService.capture). Bloquea la recompensa antes de contar los confirmados: así ningún canje
-  // se confirma entre el conteo y el guardado (US-40 tiene que bloquearla igual al confirmar). Sin cambios,
-  // no escribe nada, ni siquiera updatedAt (decisión de Jazmín: no sube en el listado).
-  async update(id: number, input: RewardEditInput, now: Date = new Date()): Promise<RewardEditResult> {
+  // US-35 (§3.2.4). En una transacción: bloquea la recompensa antes de contar los confirmados (así
+  // ningún canje se confirma entre el conteo y el guardado; US-40 tiene que bloquearla igual al
+  // confirmar), guarda, audita REWARD_UPDATED a nombre del Administrador y, después, reevalúa la
+  // disponibilidad con la función de US-37, que guarda y audita REWARD_ENABLED o REWARD_DISABLED
+  // (Sistema). Sin cambios, no escribe nada, ni siquiera updatedAt (decisión de Jazmín: no sube en el
+  // listado).
+  async update(id: number, input: RewardEditInput, actor: AuditActor, now: Date = new Date()): Promise<RewardEditResult> {
     if (Object.values(input).every((value) => value === undefined)) {
       throw new BadRequestException(EMPTY_EDIT_MESSAGE);
     }
 
-    const current = await this.rewardRepository.lockNotDeletedForUpdate(id);
-    if (!current) throw new NotFoundException(REWARD_NOT_FOUND_MESSAGE);
+    return await this.transactionRunner.run(async () => {
+      const current = await this.rewardRepository.lockNotDeletedForUpdate(id);
+      if (!current) throw new NotFoundException(REWARD_NOT_FOUND_MESSAGE);
 
-    const plan = planRewardEdit(
-      {
-        name: current.getName(),
-        description: current.getDescription(),
-        points: current.getPoints(),
-        stock: current.getStock(),
-        expiresAt: current.getExpiresAt(),
-        status: current.getStatus(),
-        disabledReason: current.getDisabledReason(),
-      },
-      input,
-      toArgentinaDateString(now),
-    );
+      const hoyArgentina = toArgentinaDateString(now);
+      const plan = planRewardEdit(
+        {
+          name: current.getName(),
+          description: current.getDescription(),
+          points: current.getPoints(),
+          stock: current.getStock(),
+          expiresAt: current.getExpiresAt(),
+          status: current.getStatus(),
+          disabledReason: current.getDisabledReason(),
+        },
+        input,
+        hoyArgentina,
+      );
 
-    const confirmedCount = await this.rewardRepository.countConfirmed(id, now);
-    // S4-14: el stock no puede quedar por debajo de los canjes confirmados vigentes
-    if (input.stock !== undefined && plan.next.stock !== null && plan.next.stock < confirmedCount) {
-      throw new ConflictException({
-        message: `El stock no puede ser menor a los ${confirmedCount} canjes confirmados.`,
-        code: STOCK_BELOW_CONFIRMED_CODE,
-      });
-    }
+      const confirmedCount = await this.rewardRepository.countConfirmed(id, now);
+      // S4-14: el stock no puede quedar por debajo de los canjes confirmados vigentes
+      if (input.stock !== undefined && plan.next.stock !== null && plan.next.stock < confirmedCount) {
+        throw new ConflictException({
+          message: `El stock no puede ser menor a los ${confirmedCount} canjes confirmados.`,
+          code: STOCK_BELOW_CONFIRMED_CODE,
+        });
+      }
 
-    const renamed = plan.changes.some((change) => change.field === 'name');
-    if (renamed && (await this.rewardRepository.existsNotDeletedWithName(plan.next.name, id))) {
-      throw new ConflictException(REWARD_NAME_IN_USE);
-    }
+      const renamed = plan.changes.some((change) => change.field === 'name');
+      if (renamed && (await this.rewardRepository.existsNotDeletedWithName(plan.next.name, id))) {
+        throw new ConflictException(REWARD_NAME_IN_USE);
+      }
 
-    if (plan.changes.length === 0) {
-      return { reward: current, previous: current, confirmedCount, changes: [], availabilityChange: null, enabledFrom: null };
-    }
+      if (plan.changes.length === 0) {
+        return { reward: current, confirmedCount, changes: [], availabilityChange: null };
+      }
 
-    const reward = await this.rewardRepository.update(id, plan.next);
-    return {
-      reward,
-      previous: current,
-      confirmedCount,
-      changes: plan.changes,
-      availabilityChange: plan.availabilityChange,
-      enabledFrom: plan.enabledFrom,
-    };
+      const reward = await this.rewardRepository.update(id, plan.next);
+      const entry = rewardUpdatedEntry(actor, editSnapshot(current), editSnapshot(reward));
+      if (entry) await this.auditService.record(entry);
+      // Cambia el estado de `reward` si corresponde (la deja como quedó en la base)
+      const availabilityChange = await this.availability.reevaluarDisponibilidad(reward, hoyArgentina);
+      return { reward, confirmedCount, changes: plan.changes, availabilityChange };
+    });
   }
 
   // US-34 (§3.2.1): listado del Administrador. Solo lectura: no abre transacción ni audita.

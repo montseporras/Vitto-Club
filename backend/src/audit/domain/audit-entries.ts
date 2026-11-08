@@ -241,22 +241,29 @@ export function customerUpdatedEntry(
   };
 }
 
-// Saldo perdido: el saldo del cliente al darlo de baja (puede ser 0 o negativo)
+// Saldo perdido: el saldo del cliente al darlo de baja (puede ser 0 o negativo).
+// US-43 (contrato S4 §3.13.1): si la baja rechazó canjes Confirmados, suma la fila
+// "Canjes rechazados: {n}", solo si n > 0, después de "Saldo perdido" (decisión de Melisa).
 export function customerDeactivatedEntry(
   actor: AuditActor,
   customer: CustomerSnapshot,
   lostBalance: number,
+  rejectedRedemptions = 0,
 ): AuditEntryInput {
+  const details: AuditDetail[] = [
+    { label: 'Estado', value: change('Activo', 'Inactivo') },
+    { label: 'Saldo perdido', value: `${formatNumber(lostBalance)} pts` },
+  ];
+  if (rejectedRedemptions > 0) {
+    details.push({ label: 'Canjes rechazados', value: formatNumber(rejectedRedemptions) });
+  }
   return {
     actor,
     module: 'CUSTOMERS',
     action: 'CUSTOMER_DEACTIVATED',
     description: `Dio de baja al cliente ${fullName(customer)}`,
     affectedCustomer: affectedCustomerOf(customer),
-    details: [
-      { label: 'Estado', value: change('Activo', 'Inactivo') },
-      { label: 'Saldo perdido', value: `${formatNumber(lostBalance)} pts` },
-    ],
+    details,
   };
 }
 
@@ -326,36 +333,51 @@ export function pointsExpiredEntry(
   };
 }
 
-// --- Canjes ------------------------------------------------------------------------------
+// --- Recompensas --------------------------------------------------------------------------
 
-export type RedemptionSnapshot = {
-  // Código de 6 caracteres (§3.6.1)
-  code: string;
-  // Snapshot del nombre de la recompensa al confirmar
-  rewardName: string;
+// §2.2: motivo de una recompensa deshabilitada, como se lee en auditoría
+export type RewardDisabledReasonSnapshot = 'OUT_OF_STOCK' | 'EXPIRED';
+
+const REWARD_DISABLED_REASON_TEXT: Record<RewardDisabledReasonSnapshot, string> = {
+  OUT_OF_STOCK: 'Sin stock',
+  EXPIRED: 'Vencida',
 };
 
-// REDEMPTION_EXPIRED (contrato S4 §3.14.2, US-44): lo registra el Sistema. El código va en
-// operationCode y como primera fila de details (§3.14, cambio respecto del Sprint 3).
-export function redemptionExpiredEntry(
-  customer: AffectedCustomerSnapshot,
-  redemption: RedemptionSnapshot,
+// §3.14.2 REWARD_ENABLED: por qué volvió a estar disponible, según el motivo que tenía
+const REWARD_ENABLED_REASON_TEXT: Record<RewardDisabledReasonSnapshot, string> = {
+  OUT_OF_STOCK: 'Stock repuesto',
+  EXPIRED: 'Fecha de vencimiento actualizada',
+};
+
+// REWARD_DISABLED (contrato S4 §3.4 y §3.14.2, US-37): lo registra el Sistema, sin cliente ni
+// código de operación. Detalle: Motivo (Sin stock / Vencida).
+export function rewardDisabledEntry(
+  rewardName: string,
+  reason: RewardDisabledReasonSnapshot,
 ): AuditEntryInput {
   return {
     actor: { type: 'SYSTEM' },
-    module: 'REDEMPTIONS',
-    action: 'REDEMPTION_EXPIRED',
-    description: `Venció el canje de ${fullName(customer)}`,
-    affectedCustomer: affectedCustomerOf(customer),
-    operationCode: redemption.code,
-    details: [
-      { label: 'Código del canje', value: redemption.code },
-      { label: 'Recompensa', value: redemption.rewardName },
-    ],
+    module: 'REWARDS',
+    action: 'REWARD_DISABLED',
+    description: `Deshabilitó la recompensa "${rewardName}"`,
+    details: [{ label: 'Motivo', value: REWARD_DISABLED_REASON_TEXT[reason] }],
   };
 }
 
-// --- Recompensas -------------------------------------------------------------------------
+// REWARD_ENABLED (contrato S4 §3.4 y §3.14.2, US-37): lo registra el Sistema. Detalle: Motivo
+// (Stock repuesto / Fecha de vencimiento actualizada), según por qué estaba deshabilitada.
+export function rewardEnabledEntry(
+  rewardName: string,
+  previousReason: RewardDisabledReasonSnapshot,
+): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'REWARDS',
+    action: 'REWARD_ENABLED',
+    description: `Habilitó la recompensa "${rewardName}"`,
+    details: [{ label: 'Motivo', value: REWARD_ENABLED_REASON_TEXT[previousReason] }],
+  };
+}
 
 export type RewardSnapshot = {
   name: string;
@@ -419,31 +441,59 @@ export function rewardUpdatedEntry(
   };
 }
 
-// §3.4: motivo según por qué estaba (o queda) deshabilitada
-const ENABLED_REASONS = { OUT_OF_STOCK: 'Stock repuesto', EXPIRED: 'Fecha de vencimiento actualizada' } as const;
-const DISABLED_REASONS = { OUT_OF_STOCK: 'Sin stock', EXPIRED: 'Vencida' } as const;
-export type RewardDisabledReasonCode = keyof typeof DISABLED_REASONS;
+// --- Canjes ------------------------------------------------------------------------------
 
-// REWARD_ENABLED (§3.4 y §3.14.2): lo registra el Sistema. `from` es el motivo por el que estaba
-// deshabilitada.
-export function rewardEnabledEntry(rewardName: string, from: RewardDisabledReasonCode): AuditEntryInput {
+export type RedemptionSnapshot = {
+  // Código de 6 caracteres (§3.6.1)
+  code: string;
+  // Snapshot del nombre de la recompensa al confirmar
+  rewardName: string;
+};
+
+// REDEMPTION_EXPIRED (contrato S4 §3.14.2, US-44): lo registra el Sistema. El código va en
+// operationCode y como primera fila de details (§3.14, cambio respecto del Sprint 3).
+export function redemptionExpiredEntry(
+  customer: AffectedCustomerSnapshot,
+  redemption: RedemptionSnapshot,
+): AuditEntryInput {
   return {
     actor: { type: 'SYSTEM' },
-    module: 'REWARDS',
-    action: 'REWARD_ENABLED',
-    description: `Habilitó la recompensa "${rewardName}"`,
-    details: [{ label: 'Motivo', value: ENABLED_REASONS[from] }],
+    module: 'REDEMPTIONS',
+    action: 'REDEMPTION_EXPIRED',
+    description: `Venció el canje de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    operationCode: redemption.code,
+    details: [
+      { label: 'Código del canje', value: redemption.code },
+      { label: 'Recompensa', value: redemption.rewardName },
+    ],
   };
 }
 
-// REWARD_DISABLED (§3.4 y §3.14.2): lo registra el Sistema
-export function rewardDisabledEntry(rewardName: string, reason: RewardDisabledReasonCode): AuditEntryInput {
+export type RedemptionRejectionSnapshot = RedemptionSnapshot & {
+  // El motivo guardado: el que escribió el empleado o el fijo del Sistema (§3.10.4)
+  reason: string;
+};
+
+// REDEMPTION_REJECTED (contrato S4 §3.14.2, US-43): a nombre del empleado que lo rechazó, o del
+// Sistema en los rechazos automáticos (§3.10.4). Detalles: Código del canje · Recompensa · Motivo.
+export function redemptionRejectedEntry(
+  actor: AuditActor,
+  customer: AffectedCustomerSnapshot,
+  redemption: RedemptionRejectionSnapshot,
+): AuditEntryInput {
   return {
-    actor: { type: 'SYSTEM' },
-    module: 'REWARDS',
-    action: 'REWARD_DISABLED',
-    description: `Deshabilitó la recompensa "${rewardName}"`,
-    details: [{ label: 'Motivo', value: DISABLED_REASONS[reason] }],
+    actor,
+    module: 'REDEMPTIONS',
+    action: 'REDEMPTION_REJECTED',
+    description: `Rechazó el canje de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    operationCode: redemption.code,
+    details: [
+      { label: 'Código del canje', value: redemption.code },
+      { label: 'Recompensa', value: redemption.rewardName },
+      { label: 'Motivo', value: redemption.reason },
+    ],
   };
 }
 

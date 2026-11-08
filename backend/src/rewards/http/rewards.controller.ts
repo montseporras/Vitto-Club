@@ -1,32 +1,19 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Query, UseFilters } from '@nestjs/common';
 import { AuditService } from '../../audit/application/audit.service.js';
-import { actorOf, type AuditEntryInput } from '../../audit/domain/audit-entry.js';
+import { actorOf } from '../../audit/domain/audit-entry.js';
 import {
   rewardCreatedEntry,
-  rewardDisabledEntry,
-  rewardEnabledEntry,
-  rewardUpdatedEntry,
-  type RewardEditSnapshot,
 } from '../../audit/domain/audit-entries.js';
 import { CurrentUser } from '../../shared/security/current-user.decorator.js';
 import type { CurrentUserData } from '../../shared/security/current-user-data.js';
 import { Roles } from '../../shared/security/roles.decorator.js';
 import { toArgentinaDateString } from '../../shared/time/argentina-date.js';
 import { RewardsService } from '../application/rewards.service.js';
-import type { Reward } from '../domain/reward.js';
 import { CreateRewardDto } from './dto/create-reward.dto.js';
 import { ListRewardsQueryDto } from './dto/list-rewards-query.dto.js';
 import { UpdateRewardDto } from './dto/update-reward.dto.js';
 import { RewardResponseDto } from './dto/reward-response.dto.js';
 import { RewardsExceptionFilter } from './filters/rewards-exception.filter.js';
-
-const editSnapshot = (reward: Reward): RewardEditSnapshot => ({
-  name: reward.getName(),
-  description: reward.getDescription(),
-  points: reward.getPoints(),
-  stock: reward.getStock(),
-  expiresAt: reward.getExpiresAt(),
-});
 
 // §3.2 y matriz de §4: /recompensas es solo del Administrador; el Cajero y el Cliente reciben 403
 // (CA-34.8). Cuando entre US-40, GET /recompensas/disponibles (A, C) va antes que /:id.
@@ -96,41 +83,29 @@ export class RewardsController {
     return RewardResponseDto.fromDomain(reward, confirmedCount, toArgentinaDateString(now));
   }
 
-  // PATCH /api/recompensas/:id -> CA-35.1 a CA-35.8 y CA-35.10. La edición, REWARD_UPDATED y, si
-  // cambió la disponibilidad, REWARD_ENABLED o REWARD_DISABLED (Sistema) van en la misma
-  // transacción. Sin cambios, no se audita nada.
+  // PATCH /api/recompensas/:id -> CA-35.1 a CA-35.8 y CA-35.10. La transacción y la auditoría las
+  // maneja el servicio: REWARD_UPDATED tiene que quedar antes de que US-37 audite REWARD_ENABLED o
+  // REWARD_DISABLED.
   @Patch(':id')
   async update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateRewardDto, @CurrentUser() user: CurrentUserData) {
     const now = new Date();
-    const result = await this.auditService.capture(
-      () =>
-        this.rewardsService.update(
-          id,
-          {
-            name: dto.name,
-            description: dto.description,
-            points: dto.points,
-            stock: dto.stock,
-            expiresAt: dto.expiresAt,
-          },
-          now,
-        ),
-      (edited) => {
-        const entries: AuditEntryInput[] = [];
-        const updated = rewardUpdatedEntry(actorOf(user), editSnapshot(edited.previous), editSnapshot(edited.reward));
-        if (updated) entries.push(updated);
-        if (edited.availabilityChange === 'ENABLED' && edited.enabledFrom) {
-          entries.push(rewardEnabledEntry(edited.reward.getName(), edited.enabledFrom));
-        }
-        if (edited.availabilityChange === 'DISABLED') {
-          entries.push(rewardDisabledEntry(edited.reward.getName(), 'OUT_OF_STOCK'));
-        }
-        return entries;
+    const result = await this.rewardsService.update(
+      id,
+      {
+        name: dto.name,
+        description: dto.description,
+        points: dto.points,
+        stock: dto.stock,
+        expiresAt: dto.expiresAt,
       },
+      actorOf(user),
+      now,
     );
     return {
       reward: RewardResponseDto.fromDomain(result.reward, result.confirmedCount, toArgentinaDateString(now)),
       availabilityChange: result.availabilityChange,
     };
   }
+
+
 }

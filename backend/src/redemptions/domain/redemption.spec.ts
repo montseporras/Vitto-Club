@@ -2,6 +2,8 @@ import { DomainError } from './errors/domain.error.js';
 import {
   Redemption,
   REDEMPTION_DURATION_MS,
+  REDEMPTION_STATUS_LABELS,
+  SYSTEM_RESOLVER,
   SYSTEM_RESOLVER_NAME,
   type RedemptionProps,
   type RedemptionStatus,
@@ -102,5 +104,90 @@ describe('Redemption: vencimiento (US-44)', () => {
         expect(r.getStatus()).toBe(status);
       },
     );
+  });
+});
+
+describe('Redemption: rechazar y cancelar (US-43)', () => {
+  const before = new Date(expiresAt.getTime() - seconds(60));
+  const cashier = { accountId: 12, name: 'Bruno Pérez' };
+  const finals: RedemptionStatus[] = ['USED', 'REJECTED', 'CANCELLED', 'EXPIRED'];
+
+  describe('reject', () => {
+    it('un empleado: REJECTED con motivo, resolvedAt = ahora y el empleado como resolvedBy', () => {
+      const r = redemption();
+
+      r.reject('Sin insumo', cashier, before);
+
+      expect(r.getStatus()).toBe('REJECTED');
+      expect(r.getRejectionReason()).toBe('Sin insumo');
+      expect(r.getResolvedAt()).toEqual(before);
+      expect(r.getResolvedByAccountId()).toBe(12);
+      expect(r.getResolvedByName()).toBe('Bruno Pérez');
+    });
+
+    it('el Sistema: accountId null y nombre "Sistema" (§3.10.4)', () => {
+      const r = redemption();
+
+      r.reject('Recompensa desactivada', SYSTEM_RESOLVER, before);
+
+      expect(r.getResolvedByAccountId()).toBeNull();
+      expect(r.getResolvedByName()).toBe('Sistema');
+    });
+
+    it('no toca puntos ni saldos (sin reintegro)', () => {
+      const r = redemption();
+      r.reject('Sin insumo', cashier, before);
+      expect(r.getPoints()).toBe(150);
+      expect(r.getBalanceBefore()).toBeNull();
+      expect(r.getBalanceAfter()).toBeNull();
+    });
+
+    it('sin motivo no se rechaza', () => {
+      expect(() => redemption().reject('  ', cashier, before)).toThrow(DomainError);
+    });
+
+    it('uno vencido no se rechaza (se vence primero)', () => {
+      const r = redemption();
+      expect(() => r.reject('Sin insumo', cashier, expiresAt)).toThrow(DomainError);
+      expect(r.getStatus()).toBe('CONFIRMED');
+    });
+
+    it.each(finals)('uno %s no se rechaza', (status) => {
+      const r = redemption({ status, resolvedAt: before });
+      expect(() => r.reject('Sin insumo', cashier, before)).toThrow(DomainError);
+      expect(r.getStatus()).toBe(status);
+    });
+  });
+
+  describe('cancel', () => {
+    it('CANCELLED, resolvedAt = ahora y resolvedBy null (el cliente nunca es actor)', () => {
+      const r = redemption();
+
+      r.cancel(before);
+
+      expect(r.getStatus()).toBe('CANCELLED');
+      expect(r.getResolvedAt()).toEqual(before);
+      expect(r.getResolvedByAccountId()).toBeNull();
+      expect(r.getResolvedByName()).toBeNull();
+      expect(r.getRejectionReason()).toBeNull();
+    });
+
+    it('uno vencido no se cancela', () => {
+      expect(() => redemption().cancel(expiresAt)).toThrow(DomainError);
+    });
+
+    it.each(finals)('uno %s no se cancela', (status) => {
+      expect(() => redemption({ status, resolvedAt: before }).cancel(before)).toThrow(DomainError);
+    });
+  });
+
+  it('textos de los estados (§2.3)', () => {
+    expect(REDEMPTION_STATUS_LABELS).toEqual({
+      CONFIRMED: 'Confirmado',
+      USED: 'Utilizado',
+      REJECTED: 'Rechazado',
+      CANCELLED: 'Cancelado',
+      EXPIRED: 'Vencido',
+    });
   });
 });

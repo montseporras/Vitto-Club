@@ -14,6 +14,7 @@ const record: PointsMovementRecord = {
   consumptionId: 131,
   reason: null,
   lot: null,
+  redemption: null,
   performedByAccountId: 4,
   performedByName: 'Ana Gómez',
 };

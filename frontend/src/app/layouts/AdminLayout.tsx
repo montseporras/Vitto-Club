@@ -26,7 +26,7 @@ import { appHeaderStyles } from '@/styles/ui';
 // de las opciones que todavía no están construidas abre una pantalla "Próximamente".
 const SOON = 'Próx.';
 const NAV: SideNavItem[] = [
-  { id: 'rewards', disabled: true, tag: SOON, label: 'Catálogo de recompensas', icon: ICONS.gift },
+  { id: 'rewards', to: PATHS.admin.rewards, label: 'Catálogo de recompensas', icon: ICONS.gift },
   { id: 'redemptions', to: PATHS.admin.redemptions, label: 'Canjes', icon: ICONS.ticket },
   { id: 'missions', disabled: true, tag: SOON, label: 'Misiones', icon: ICONS.target },
   { id: 'customers', to: PATHS.admin.customers, label: 'Clientes', icon: ICONS.users },

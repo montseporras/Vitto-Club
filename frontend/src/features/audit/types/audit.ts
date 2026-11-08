@@ -157,7 +157,7 @@ export const AUDIT_ACTIONS_BY_MODULE: Record<
     { value: 'REWARD_UPDATED', label: 'Editó recompensa' },
     { value: 'REWARD_ACTIVATED', label: 'Activó recompensa' },
     { value: 'REWARD_DEACTIVATED', label: 'Desactivó recompensa' },
-    { value: 'REWARD_DELETED', label: 'Dio de baja recompensa' },
+    { value: 'REWARD_DELETED', label: 'Eliminó recompensa' },
     { value: 'REWARD_DISABLED', label: 'Deshabilitó recompensa' },
     { value: 'REWARD_ENABLED', label: 'Habilitó recompensa' },
   ],
