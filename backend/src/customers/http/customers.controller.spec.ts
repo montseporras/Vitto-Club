@@ -255,14 +255,14 @@ describe('CustomersController', () => {
 
   describe('baja', () => {
     it('deactivate() delega la baja en el servicio con el id recibido', async () => {
-      service.deactivate.mockResolvedValue(0);
+      service.deactivate.mockResolvedValue({ lostBalance: 0, rejectedRedemptions: 0 });
 
       await expect(controller.deactivate(7, cashier)).resolves.toBeUndefined();
       expect(service.deactivate).toHaveBeenCalledWith(7);
     });
 
     it('deactivate() audita CUSTOMER_DEACTIVATED con el cliente afectado y el saldo perdido', async () => {
-      service.deactivate.mockResolvedValue(150);
+      service.deactivate.mockResolvedValue({ lostBalance: 150, rejectedRedemptions: 0 });
 
       await controller.deactivate(7, cashier);
 
@@ -283,6 +283,18 @@ describe('CustomersController', () => {
             { label: 'Saldo perdido', value: '150 pts' },
           ],
         },
+      ]);
+    });
+
+    it('US-43: con canjes rechazados suma "Canjes rechazados" después de "Saldo perdido"', async () => {
+      service.deactivate.mockResolvedValue({ lostBalance: 150, rejectedRedemptions: 2 });
+
+      await controller.deactivate(7, cashier);
+
+      expect(audit[0].details).toEqual([
+        { label: 'Estado', value: 'Activo → Inactivo' },
+        { label: 'Saldo perdido', value: '150 pts' },
+        { label: 'Canjes rechazados', value: '2' },
       ]);
     });
 
