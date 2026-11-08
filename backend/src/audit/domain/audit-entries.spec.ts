@@ -9,6 +9,7 @@ import {
   employeeUpdatedEntry,
   pointsAdjustedEntry,
   pointsExpiredEntry,
+  redemptionConfirmedEntry,
   type CustomerSnapshot,
   type EmployeeSnapshot,
   type LoyaltyConfigSnapshot,
@@ -360,6 +361,31 @@ describe('consumptionVoidedEntry() (US-22)', () => {
         { label: 'Puntos revertidos', value: '−500 pts' },
         { label: 'Saldo resultante', value: '-350 pts' },
         { label: 'Motivo', value: 'Consumo registrado al cliente equivocado.' },
+      ],
+    });
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+});
+
+describe('redemptionConfirmedEntry() (US-40)', () => {
+  it('tiene la forma de §3.14.2: código, recompensa y puntos', () => {
+    const entry = redemptionConfirmedEntry(actor, customer, {
+      code: 'K7MP2X',
+      rewardName: 'Desayuno completo',
+      points: 400,
+    });
+
+    expect(entry).toEqual({
+      actor,
+      module: 'REDEMPTIONS',
+      action: 'REDEMPTION_CONFIRMED',
+      description: 'Confirmó el canje de Sofía Ríos',
+      affectedCustomer: { customerId: 102, name: 'Sofía Ríos', documentType: 'DNI', documentNumber: '30111222' },
+      operationCode: 'K7MP2X',
+      details: [
+        { label: 'Código del canje', value: 'K7MP2X' },
+        { label: 'Recompensa', value: 'Desayuno completo' },
+        { label: 'Puntos', value: '400 pts' },
       ],
     });
     expect(() => assertValidAuditEntry(entry)).not.toThrow();

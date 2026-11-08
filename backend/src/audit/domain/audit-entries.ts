@@ -413,6 +413,37 @@ export function consumptionVoidedEntry(
   };
 }
 
+// --- Canjes ------------------------------------------------------------------------------
+
+export type RedemptionConfirmationSnapshot = {
+  code: string;
+  rewardName: string;
+  // Puntos de la recompensa al confirmar (snapshot), en positivo
+  points: number;
+};
+
+// REDEMPTION_CONFIRMED (US-40, S4 §3.14.2). Solo se audita al confirmar desde la caja (decisión
+// S4-6): el actor es el empleado. "Código del canje" va primero, igual que el operationCode.
+export function redemptionConfirmedEntry(
+  actor: AuditActor,
+  customer: AffectedCustomerSnapshot,
+  redemption: RedemptionConfirmationSnapshot,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'REDEMPTIONS',
+    action: 'REDEMPTION_CONFIRMED',
+    description: `Confirmó el canje de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    operationCode: redemption.code,
+    details: [
+      { label: 'Código del canje', value: redemption.code },
+      { label: 'Recompensa', value: redemption.rewardName },
+      { label: 'Puntos', value: `${formatNumber(redemption.points)} pts` },
+    ],
+  };
+}
+
 // --- Configuración del programa de puntos -----------------------------------------------
 
 export type LoyaltyConfigSnapshot = {

@@ -5,4 +5,8 @@ import { Reward } from '../reward.js';
 export abstract class RewardRepository {
   // null si no existe
   abstract findById(id: number): Promise<Reward | null>;
+
+  // US-40 (GET /recompensas/disponibles): las ACTIVE por puntos ascendentes (desempate por id).
+  // Si además están disponibles por stock y fecha lo decide estaDisponible, no la base.
+  abstract findActive(): Promise<Reward[]>;
 }

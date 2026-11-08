@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Redemption as PrismaRedemptionRecord } from '@prisma/client';
 import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
+import type { NewRedemption } from '../domain/new-redemption.js';
 import { Redemption } from '../domain/redemption.js';
 import { RedemptionRepository } from '../domain/port/redemption.repository.js';
 
@@ -35,6 +36,24 @@ export class RedemptionsPrismaRepository implements RedemptionRepository {
 
   private get prisma() {
     return this.transactionRunner.client;
+  }
+
+  async create(data: NewRedemption): Promise<Redemption> {
+    const record = await this.prisma.redemption.create({
+      data: {
+        code: data.code,
+        customerId: data.customerId,
+        rewardId: data.rewardId,
+        rewardName: data.rewardName,
+        points: data.points,
+        origin: data.origin,
+        confirmedByAccountId: data.confirmedByAccountId,
+        confirmedByName: data.confirmedByName,
+        createdAt: data.createdAt,
+        expiresAt: data.expiresAt,
+      },
+    });
+    return toDomain(record);
   }
 
   async existsByCode(code: string): Promise<boolean> {

@@ -41,4 +41,12 @@ export class RewardsPrismaRepository implements RewardRepository {
     const record = await this.prisma.reward.findUnique({ where: { id } });
     return record ? toDomain(record) : null;
   }
+
+  async findActive(): Promise<Reward[]> {
+    const records = await this.prisma.reward.findMany({
+      where: { status: 'ACTIVE' },
+      orderBy: [{ points: 'asc' }, { id: 'asc' }],
+    });
+    return records.map(toDomain);
+  }
 }

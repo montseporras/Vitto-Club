@@ -1,8 +1,12 @@
+import type { NewRedemption } from '../new-redemption.js';
 import { Redemption } from '../redemption.js';
 
 // BASE-4: puerto del repositorio de canjes. Cada historia agrega lo que necesita (crear,
 // bloquear con FOR UPDATE, listados, vencer...).
 export abstract class RedemptionRepository {
+  // US-40: guarda el canje recién confirmado (estado CONFIRMED por defecto de la base)
+  abstract create(data: NewRedemption): Promise<Redemption>;
+
   // Para generarCodigoUnico (CA-B4.5): true si algún canje, en cualquier estado, ya lo usa
   abstract existsByCode(code: string): Promise<boolean>;
 
