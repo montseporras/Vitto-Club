@@ -2,12 +2,14 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   REWARD_DEACTIVATED,
+  REWARD_DELETED,
   type RedemptionsRejectedResult,
   type RewardDeactivatedEvent,
+  type RewardDeletedEvent,
 } from '../../shared/events/domain-events.js';
 import { toArgentinaDateString } from '../../shared/time/argentina-date.js';
 import { Reward, type RewardDisabledReason, type RewardStatus } from '../domain/reward.js';
-import { activationResult, canActivate, canDeactivate, DEACTIVATED } from '../domain/reward-status-change.js';
+import { activationResult, canActivate, canDeactivate, canDelete, DEACTIVATED } from '../domain/reward-status-change.js';
 import { buildNewReward, NewRewardInput } from '../domain/new-reward.js';
 import { AvailabilityChange, planRewardEdit, RewardEditInput, RewardFieldChange } from '../domain/reward-edit.js';
 import {
@@ -36,6 +38,9 @@ export type RewardWithConfirmed = { reward: Reward; confirmedCount: number };
 // US-36: para responder y auditar el cambio de estado ("Estado: {antes} → {después}")
 export type RewardStatusChangeResult = RewardWithConfirmed & { previousStatus: RewardStatus };
 export type RewardDeactivationResult = RewardStatusChangeResult & { rejectedRedemptions: number };
+
+// US-38: la respuesta es solo { rejectedRedemptions }; la recompensa va para la auditoría
+export type RewardDeletionResult = { reward: Reward; previousStatus: RewardStatus; rejectedRedemptions: number };
 
 // US-43: emitAsync devuelve un resultado por listener. El de redemptions trae { rejectedRedemptions }.
 // Copia de customers.service.ts (la nota de US-43 lo indica así: shared/events es solo de datos).
@@ -191,6 +196,20 @@ export class RewardsService {
       rejectedRedemptions: rejectedRedemptionsFrom(listenerResults),
       confirmedCount: await this.rewardRepository.countConfirmed(id, now),
     };
+  }
+
+  // US-38 (§3.2.7): igual que desactivar, pero pasa a DELETED (final) y redemptions rechaza los
+  // canjes con "Recompensa eliminada" al escuchar reward.deleted (US-43). Una dada de baja o que no
+  // existe da 404, también si se elimina dos veces (CA-38.7).
+  async delete(id: number, now: Date = new Date()): Promise<RewardDeletionResult> {
+    const current = await this.rewardRepository.lockNotDeletedForUpdate(id);
+    if (!current || !canDelete(current.getStatus())) throw new NotFoundException(REWARD_NOT_FOUND_MESSAGE);
+
+    const reward = await this.rewardRepository.markDeleted(id, now);
+    const listenerResults: unknown[] = await this.eventEmitter.emitAsync(REWARD_DELETED, {
+      rewardId: id,
+    } satisfies RewardDeletedEvent);
+    return { reward, previousStatus: current.getStatus(), rejectedRedemptions: rejectedRedemptionsFrom(listenerResults) };
   }
 
   // US-34 (§3.2.1): listado del Administrador. Solo lectura: no abre transacción ni audita.

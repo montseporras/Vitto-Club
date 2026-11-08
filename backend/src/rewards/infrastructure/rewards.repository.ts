@@ -134,6 +134,14 @@ export class RewardsPrismaRepository implements RewardRepository {
     return toDomain(record);
   }
 
+  async markDeleted(id: number, deletedAt: Date): Promise<Reward> {
+    const record = await this.prisma.reward.update({
+      where: { id },
+      data: { status: 'DELETED', disabledReason: null, deletedAt },
+    });
+    return toDomain(record);
+  }
+
   async list(filters: RewardListFilters, now: Date): Promise<RewardListResult> {
     const matchingIds = filters.q !== undefined ? await this.findIdsByName(filters.q) : undefined;
     if (matchingIds && matchingIds.length === 0) {

@@ -5,6 +5,7 @@ import {
   rewardActivatedEntry,
   rewardCreatedEntry,
   rewardDeactivatedEntry,
+  rewardDeletedEntry,
   rewardDisabledEntry,
   rewardEnabledEntry,
   rewardUpdatedEntry,
@@ -168,5 +169,19 @@ export class RewardsController {
       reward: RewardResponseDto.fromDomain(result.reward, result.confirmedCount, toArgentinaDateString(now)),
       rejectedRedemptions: result.rejectedRedemptions,
     };
+  }
+
+  // PATCH /api/recompensas/:id/eliminar -> CA-38.1 a CA-38.3 y CA-38.7. Sin body. Igual que
+  // desactivar: en una sola transacción, la baja, el rechazo de los canjes confirmados con sus
+  // REDEMPTION_REJECTED (Sistema, los escribe redemptions al escuchar reward.deleted) y, al final,
+  // REWARD_DELETED. La respuesta es solo { rejectedRedemptions } (§3.2.7).
+  @Patch(':id/eliminar')
+  async delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserData) {
+    const result = await this.auditService.capture(
+      () => this.rewardsService.delete(id),
+      (deleted) =>
+        rewardDeletedEntry(actorOf(user), deleted.reward.getName(), deleted.previousStatus, deleted.rejectedRedemptions),
+    );
+    return { rejectedRedemptions: result.rejectedRedemptions };
   }
 }

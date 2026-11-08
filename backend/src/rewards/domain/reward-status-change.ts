@@ -8,6 +8,8 @@ export type RewardStatusState = { status: RewardStatus; disabledReason: RewardDi
 // Activar solo desde INACTIVE; desactivar desde ACTIVE o DISABLED
 export const canActivate = (status: RewardStatus): boolean => status === 'INACTIVE';
 export const canDeactivate = (status: RewardStatus): boolean => status === 'ACTIVE' || status === 'DISABLED';
+// US-38 (§3.2.7): desde cualquier estado menos DELETED, que es final (S4-13)
+export const canDelete = (status: RewardStatus): boolean => status !== 'DELETED';
 
 // §3.2.5 y S4-9: si está disponible queda ACTIVE; si no, DISABLED con su motivo (no es un error).
 // Sin stock y vencida a la vez: "Agotada", primero el stock (decisión de Jazmín, la misma regla que

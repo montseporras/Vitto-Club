@@ -47,6 +47,9 @@ export abstract class RewardRepository {
   // US-36: cambia solo el estado y el motivo; actualiza updatedAt
   abstract updateStatus(id: number, state: RewardStatusState): Promise<Reward>;
 
+  // US-38: la da de baja (DELETED, sin motivo, con deletedAt). Libera el nombre (índice parcial)
+  abstract markDeleted(id: number, deletedAt: Date): Promise<Reward>;
+
   // US-34: la guarda en ACTIVE
   abstract create(reward: NewReward): Promise<Reward>;
 

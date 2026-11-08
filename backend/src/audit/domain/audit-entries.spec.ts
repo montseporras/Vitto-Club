@@ -14,6 +14,7 @@ import {
   rewardActivatedEntry,
   rewardCreatedEntry,
   rewardDeactivatedEntry,
+  rewardDeletedEntry,
   rewardDisabledEntry,
   rewardEnabledEntry,
   rewardUpdatedEntry,
@@ -473,6 +474,30 @@ describe('rewardActivatedEntry() y rewardDeactivatedEntry() (US-36)', () => {
   it('REWARD_DEACTIVATED con 2 canjes y desde Deshabilitada (CA-36.2, CA-36.3)', () => {
     expect(rewardDeactivatedEntry(admin, 'Licuado', 'DISABLED', 2).details).toEqual([
       { label: 'Estado', value: 'Deshabilitada → Inactiva' },
+      { label: 'Canjes rechazados', value: '2' },
+    ]);
+  });
+});
+
+describe('rewardDeletedEntry() (US-38)', () => {
+  const admin = { type: 'EMPLOYEE' as const, accountId: 1 };
+
+  it('sin canjes: "Estado: Activa → Dada de baja" (CA-38.1)', () => {
+    expect(rewardDeletedEntry(admin, 'Brunch para dos', 'ACTIVE', 0)).toEqual({
+      actor: admin,
+      module: 'REWARDS',
+      action: 'REWARD_DELETED',
+      description: 'Eliminó la recompensa "Brunch para dos"',
+      details: [{ label: 'Estado', value: 'Activa → Dada de baja' }],
+    });
+  });
+
+  it.each([
+    ['DISABLED', 'Deshabilitada → Dada de baja'],
+    ['INACTIVE', 'Inactiva → Dada de baja'],
+  ] as const)('desde %s, con 2 canjes (CA-38.2)', (before, value) => {
+    expect(rewardDeletedEntry(admin, 'Brunch para dos', before, 2).details).toEqual([
+      { label: 'Estado', value },
       { label: 'Canjes rechazados', value: '2' },
     ]);
   });

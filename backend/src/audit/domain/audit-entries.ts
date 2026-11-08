@@ -500,6 +500,26 @@ export function rewardDeactivatedEntry(
   };
 }
 
+// REWARD_DELETED (§3.2.7 y §3.14.2, US-38): "Estado: {antes} → Dada de baja" y, solo si hubo,
+// "Canjes rechazados: {n}". La UI del filtro es "Eliminó recompensa" (§2.7).
+export function rewardDeletedEntry(
+  actor: AuditActor,
+  rewardName: string,
+  before: RewardStatusCode,
+  rejectedRedemptions: number,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'REWARDS',
+    action: 'REWARD_DELETED',
+    description: `Eliminó la recompensa "${rewardName}"`,
+    details: [
+      statusChange(before, 'DELETED'),
+      ...(rejectedRedemptions > 0 ? [{ label: 'Canjes rechazados', value: formatNumber(rejectedRedemptions) }] : []),
+    ],
+  };
+}
+
 // §3.4: motivo según por qué estaba (o queda) deshabilitada
 const ENABLED_REASONS = { OUT_OF_STOCK: 'Stock repuesto', EXPIRED: 'Fecha de vencimiento actualizada' } as const;
 const DISABLED_REASONS = { OUT_OF_STOCK: 'Sin stock', EXPIRED: 'Vencida' } as const;

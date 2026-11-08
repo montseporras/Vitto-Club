@@ -31,6 +31,7 @@ describe('RewardsService', () => {
     countConfirmed: jest.Mock;
     update: jest.Mock;
     updateStatus: jest.Mock;
+    markDeleted: jest.Mock;
     existsNotDeletedWithName: jest.Mock;
     create: jest.Mock;
     list: jest.Mock;
@@ -46,6 +47,7 @@ describe('RewardsService', () => {
       countConfirmed: jest.fn().mockResolvedValue(0),
       update: jest.fn().mockImplementation(async () => saved),
       updateStatus: jest.fn().mockImplementation(async () => saved),
+      markDeleted: jest.fn().mockImplementation(async () => saved),
       existsNotDeletedWithName: jest.fn().mockResolvedValue(false),
       create: jest.fn().mockResolvedValue(saved),
       list: jest.fn().mockResolvedValue({ items: [], total: 0 }),
@@ -295,6 +297,32 @@ describe('RewardsService', () => {
       emitAsync.mockRejectedValue(new Error('audit failed'));
 
       await expect(service.deactivate(1, NOW)).rejects.toThrow('audit failed');
+    });
+  });
+
+  describe('delete (US-38)', () => {
+    it('la da de baja con la hora, publica reward.deleted y devuelve los canjes rechazados', async () => {
+      emitAsync.mockResolvedValue([{ rejectedRedemptions: 2 }]);
+
+      const result = await service.delete(1, NOW);
+
+      expect(repository.markDeleted).toHaveBeenCalledWith(1, NOW);
+      expect(emitAsync).toHaveBeenCalledWith('reward.deleted', { rewardId: 1 });
+      expect(repository.markDeleted.mock.invocationCallOrder[0]).toBeLessThan(emitAsync.mock.invocationCallOrder[0]);
+      expect(result).toMatchObject({ previousStatus: 'ACTIVE', rejectedRedemptions: 2 });
+    });
+
+    it('dada de baja o inexistente → 404 "No existe la recompensa.", sin publicar', async () => {
+      repository.lockNotDeletedForUpdate.mockResolvedValue(null);
+
+      await expect(service.delete(1, NOW)).rejects.toThrow(new NotFoundException('No existe la recompensa.'));
+      expect(emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('si el rechazo de canjes falla, el error sube (se deshace todo)', async () => {
+      emitAsync.mockRejectedValue(new Error('audit failed'));
+
+      await expect(service.delete(1, NOW)).rejects.toThrow('audit failed');
     });
   });
 

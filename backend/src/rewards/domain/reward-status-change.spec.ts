@@ -1,4 +1,4 @@
-import { activationResult, canActivate, canDeactivate, DEACTIVATED } from './reward-status-change.js';
+import { activationResult, canActivate, canDeactivate, canDelete, DEACTIVATED } from './reward-status-change.js';
 
 const TODAY = '2026-11-08';
 
@@ -37,6 +37,15 @@ describe('activar y desactivar — US-36', () => {
     it('sin stock y vencida a la vez → "Agotada" primero', () => {
       expect(activationResult({ stock: 0, expiresAt: '2026-11-07' }, TODAY).disabledReason).toBe('OUT_OF_STOCK');
     });
+  });
+
+  it.each([
+    ['ACTIVE', true],
+    ['DISABLED', true],
+    ['INACTIVE', true],
+    ['DELETED', false],
+  ] as const)('eliminar desde %s: %s (US-38, §3.2.7)', (status, allowed) => {
+    expect(canDelete(status)).toBe(allowed);
   });
 
   it('desactivar → INACTIVE sin motivo (CA-36.3)', () => {
