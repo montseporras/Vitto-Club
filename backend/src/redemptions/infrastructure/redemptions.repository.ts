@@ -1,8 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import type { Redemption as PrismaRedemptionRecord } from '@prisma/client';
+import type { Prisma, Redemption as PrismaRedemptionRecord } from '@prisma/client';
 import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import { Redemption } from '../domain/redemption.js';
-import { RedemptionRepository } from '../domain/port/redemption.repository.js';
+import {
+  RedemptionRepository,
+  type RedemptionCustomer,
+  type RedemptionExpirationFilter,
+} from '../domain/port/redemption.repository.js';
+
+function expirationFilterWhere(filter: RedemptionExpirationFilter): Prisma.RedemptionWhereInput {
+  if ('code' in filter) return { code: filter.code };
+  if ('customerId' in filter) return { customerId: filter.customerId };
+  return {};
+}
 
 export function toDomain(record: PrismaRedemptionRecord): Redemption {
   return Redemption.reconstruct({
@@ -44,6 +54,58 @@ export class RedemptionsPrismaRepository implements RedemptionRepository {
 
   async findByCode(code: string): Promise<Redemption | null> {
     const record = await this.prisma.redemption.findUnique({ where: { code } });
+    return record ? toDomain(record) : null;
+  }
+
+  async findExpiredCandidateIds(filter: RedemptionExpirationFilter, now: Date): Promise<number[]> {
+    const records = await this.prisma.redemption.findMany({
+      where: { ...expirationFilterWhere(filter), status: 'CONFIRMED', expiresAt: { lte: now } },
+      // Usa el índice (status, expires_at)
+      orderBy: [{ expiresAt: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+    });
+    return records.map((record) => record.id);
+  }
+
+  async lockForExpirationSkipLocked(id: number): Promise<Redemption | null> {
+    // SKIP LOCKED: si otra instancia o un "vencer al leer" ya tiene el canje, se saltea
+    const locked = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM redemptions WHERE id = ${id} FOR UPDATE SKIP LOCKED
+    `;
+    if (locked.length === 0) return null;
+    return await this.findById(id);
+  }
+
+  async lockForUpdate(id: number): Promise<Redemption | null> {
+    // Espera al que lo tenga tomado; al seguir lee el estado ya confirmado por el otro
+    const locked = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM redemptions WHERE id = ${id} FOR UPDATE
+    `;
+    if (locked.length === 0) return null;
+    return await this.findById(id);
+  }
+
+  async saveExpiration(redemption: Redemption): Promise<void> {
+    await this.prisma.redemption.update({
+      where: { id: redemption.getId() },
+      data: {
+        status: redemption.getStatus(),
+        resolvedAt: redemption.getResolvedAt(),
+        resolvedByAccountId: redemption.getResolvedByAccountId(),
+        resolvedByName: redemption.getResolvedByName(),
+      },
+    });
+  }
+
+  async findCustomer(customerId: number): Promise<RedemptionCustomer> {
+    return await this.prisma.customer.findUniqueOrThrow({
+      where: { id: customerId },
+      select: { id: true, firstName: true, lastName: true, documentType: true, documentNumber: true },
+    });
+  }
+
+  private async findById(id: number): Promise<Redemption | null> {
+    const record = await this.prisma.redemption.findUnique({ where: { id } });
     return record ? toDomain(record) : null;
   }
 }

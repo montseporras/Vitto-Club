@@ -326,6 +326,35 @@ export function pointsExpiredEntry(
   };
 }
 
+// --- Canjes ------------------------------------------------------------------------------
+
+export type RedemptionSnapshot = {
+  // Código de 6 caracteres (§3.6.1)
+  code: string;
+  // Snapshot del nombre de la recompensa al confirmar
+  rewardName: string;
+};
+
+// REDEMPTION_EXPIRED (contrato S4 §3.14.2, US-44): lo registra el Sistema. El código va en
+// operationCode y como primera fila de details (§3.14, cambio respecto del Sprint 3).
+export function redemptionExpiredEntry(
+  customer: AffectedCustomerSnapshot,
+  redemption: RedemptionSnapshot,
+): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'REDEMPTIONS',
+    action: 'REDEMPTION_EXPIRED',
+    description: `Venció el canje de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    operationCode: redemption.code,
+    details: [
+      { label: 'Código del canje', value: redemption.code },
+      { label: 'Recompensa', value: redemption.rewardName },
+    ],
+  };
+}
+
 // --- Consumos ----------------------------------------------------------------------------
 
 // Monto con $ y puntos de miles, como el ejemplo de §3.9.4 ("$50.000"); con centavos, "$12.500,50"
