@@ -142,6 +142,11 @@ export class RewardsPrismaRepository implements RewardRepository {
     return toDomain(record);
   }
 
+  async findForCatalog(): Promise<Reward[]> {
+    const records = await this.prisma.reward.findMany({ where: { status: { in: ['ACTIVE', 'DISABLED'] } } });
+    return records.map(toDomain);
+  }
+
   async list(filters: RewardListFilters, now: Date): Promise<RewardListResult> {
     const matchingIds = filters.q !== undefined ? await this.findIdsByName(filters.q) : undefined;
     if (matchingIds && matchingIds.length === 0) {

@@ -50,6 +50,9 @@ export abstract class RewardRepository {
   // US-38: la da de baja (DELETED, sin motivo, con deletedAt). Libera el nombre (índice parcial)
   abstract markDeleted(id: number, deletedAt: Date): Promise<Reward>;
 
+  // US-39: las que puede ver el Cliente (ACTIVE y DISABLED), sin orden: lo decide el dominio
+  abstract findForCatalog(): Promise<Reward[]>;
+
   // US-34: la guarda en ACTIVE
   abstract create(reward: NewReward): Promise<Reward>;
 

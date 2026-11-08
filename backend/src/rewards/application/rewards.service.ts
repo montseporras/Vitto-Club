@@ -9,6 +9,8 @@ import {
 } from '../../shared/events/domain-events.js';
 import { toArgentinaDateString } from '../../shared/time/argentina-date.js';
 import { Reward, type RewardStatus } from '../domain/reward.js';
+import { buildCatalog, type CatalogFilter } from '../domain/catalog.js';
+import { toCatalogReward, type CatalogReward } from './catalog-reward.js';
 import { activationResult, canActivate, canDeactivate, canDelete, DEACTIVATED } from '../domain/reward-status-change.js';
 import { buildNewReward, NewRewardInput } from '../domain/new-reward.js';
 import { planRewardEdit, RewardEditInput, RewardFieldChange } from '../domain/reward-edit.js';
@@ -223,6 +225,13 @@ export class RewardsService {
       rewardId: id,
     } satisfies RewardDeletedEvent);
     return { reward, previousStatus: current.getStatus(), rejectedRedemptions: rejectedRedemptionsFrom(listenerResults) };
+  }
+
+  // US-39 (§3.5.1): el catálogo del Cliente, ya filtrado y ordenado, con la fecha de hoy en
+  // Argentina. Solo lectura: no abre transacción ni audita. El saldo lo agrega quien llama.
+  async catalog(filter: CatalogFilter, now: Date = new Date()): Promise<CatalogReward[]> {
+    const rewards = await this.rewardRepository.findForCatalog();
+    return buildCatalog(rewards, filter, toArgentinaDateString(now)).map(toCatalogReward);
   }
 
   // US-34 (§3.2.1): listado del Administrador. Solo lectura: no abre transacción ni audita.
