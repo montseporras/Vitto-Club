@@ -55,6 +55,9 @@ describe('Alta de cliente con cuenta y contraseña inicial (e2e)', () => {
 
   // En orden de claves foráneas
   const cleanDatabase = async () => {
+    // Sprint 4: los canjes apuntan a clientes, cuentas y recompensas (onDelete Restrict)
+    await prisma.redemption.deleteMany();
+    await prisma.reward.deleteMany();
     await prisma.session.deleteMany();
     await prisma.account.deleteMany();
     await prisma.customerStatusChange.deleteMany();

@@ -97,6 +97,9 @@ describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () 
   // hayan quedado de otro test. Corre contra la base de tests (DATABASE_URL_TEST, ver
   // test/e2e-database.ts / test/setup-e2e-env.ts) — nunca contra la de desarrollo.
   beforeEach(async () => {
+    // Sprint 4: los canjes apuntan a clientes, cuentas y recompensas (onDelete Restrict)
+    await prisma.redemption.deleteMany();
+    await prisma.reward.deleteMany();
     await prisma.session.deleteMany();
     await prisma.account.deleteMany();
     await prisma.employee.deleteMany();

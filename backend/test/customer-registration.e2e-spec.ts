@@ -55,6 +55,9 @@ describe('Autorregistro de clientes (e2e)', () => {
   // En orden de claves foráneas. Se usa también al terminar: otras suites limpian solo sus
   // tablas, y el historial de estados que dejan las bajas de acá les impediría borrar clientes.
   const cleanDatabase = async () => {
+    // Sprint 4: los canjes apuntan a clientes, cuentas y recompensas (onDelete Restrict)
+    await prisma.redemption.deleteMany();
+    await prisma.reward.deleteMany();
     await prisma.session.deleteMany();
     await prisma.account.deleteMany();
     await prisma.customerStatusChange.deleteMany();

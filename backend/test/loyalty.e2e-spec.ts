@@ -53,6 +53,9 @@ describe('Loyalty configuration (e2e)', () => {
 
   beforeEach(async () => {
     // Actor de las operaciones auditadas (US-57): un empleado real con su cuenta
+    // Sprint 4: los canjes apuntan a clientes, cuentas y recompensas (onDelete Restrict)
+    await prisma.redemption.deleteMany();
+    await prisma.reward.deleteMany();
     await prisma.session.deleteMany();
     await prisma.account.deleteMany();
     await prisma.employee.deleteMany();

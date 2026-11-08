@@ -4,6 +4,7 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { PointsService } from '../src/points/application/points.service.js';
+import { PointsMovementsService } from '../src/points/application/points-movements.service.js';
 import { InsufficientBalanceError } from '../src/points/domain/errors/insufficient-balance.error.js';
 
 // BASE-4 (CA-B4.6): PointsService.canjear contra Postgres real. Todavía no tiene endpoint (lo
@@ -12,6 +13,7 @@ describe('PointsService.canjear (e2e, BASE-4)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   let points: PointsService;
+  let movements: PointsMovementsService;
   let customerId: number;
   let accountId: number;
   let redemptionId: number;
@@ -26,6 +28,7 @@ describe('PointsService.canjear (e2e, BASE-4)', () => {
     await app.init();
     prisma = app.get(PrismaService);
     points = app.get(PointsService);
+    movements = app.get(PointsMovementsService);
   });
 
   afterAll(async () => {
@@ -131,6 +134,27 @@ describe('PointsService.canjear (e2e, BASE-4)', () => {
     // Invariante del Sprint 3: balance = Σ remaining de los lotes ACTIVE − debt (debt = 0)
     const remaining = (await lots()).filter((l) => l.status === 'ACTIVE').reduce((s, l) => s + l.remainingPoints, 0);
     expect(remaining).toBe(150);
+  });
+
+  // Fix de BASE-4: antes, describeMovement tiraba error con REDEMPTION y las tres consultas de
+  // movimientos respondían 500 en cuanto el cliente usaba un canje
+  it('las consultas de movimientos muestran el canje como "Canje: {recompensa}"', async () => {
+    await points.canjear({ customerId, points: 150, redemptionId, performedBy: performedBy() });
+
+    const mine = await movements.listMine({ customerId, page: 1, limit: 10 });
+    const all = await movements.listAll({ page: 1, limit: 10 });
+
+    for (const page of [mine, all]) {
+      expect(page.items[0]).toMatchObject({
+        type: 'REDEMPTION',
+        points: -150,
+        description: 'Canje: Café + medialuna',
+        consumptionCode: null,
+        reason: null,
+        lot: null,
+        performedBy: { actorType: 'EMPLOYEE', accountId, name: 'Bruno Pérez' },
+      });
+    }
   });
 
   it('saldo insuficiente: INSUFFICIENT_BALANCE y no queda nada escrito', async () => {
