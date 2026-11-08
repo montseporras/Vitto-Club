@@ -29,6 +29,7 @@ import {
   type CustomerDocumentChangedEvent,
   type CustomerEmailChangedEvent,
   type CustomerEmailChangeRequestedEvent,
+  type RedemptionsRejectedResult,
 } from '../../shared/events/domain-events.js';
 
 // Dirección única de la unicidad global de email: Customers -> Employees. Employees ya NO
@@ -38,6 +39,21 @@ import {
 // Riesgo aceptado: si se crea un Employee con el email de un Customer ya existente,
 // EmployeesService.create() no lo detecta (esa dirección se eliminó). El conflicto recién
 // aparece al intentar crear la Account de ese Employee, por Account.email @unique.
+
+export type CustomerDeactivationResult = { lostBalance: number; rejectedRedemptions: number };
+
+// US-43: emitAsync devuelve un resultado por listener. El de redemptions trae
+// { rejectedRedemptions }; el de accounts no devuelve nada.
+function rejectedRedemptionsFrom(listenerResults: unknown[]): number {
+  return listenerResults.reduce<number>((total, result) => {
+    const value =
+      typeof result === 'object' && result !== null
+        ? (result as Partial<RedemptionsRejectedResult>).rejectedRedemptions
+        : undefined;
+    return typeof value === 'number' ? total + value : total;
+  }, 0);
+}
+
 @Injectable()
 export class CustomersService {
   constructor(
@@ -307,10 +323,12 @@ export class CustomersService {
   }
 
   // --- DESACTIVAR (BAJA LÓGICA) ---
-  // Devuelve el saldo que el cliente pierde con la baja (para la auditoría, "Saldo perdido").
+  // Devuelve el saldo que el cliente pierde con la baja (para la auditoría, "Saldo perdido") y
+  // cuántos canjes Confirmados se rechazaron (para "Canjes rechazados", US-43, contrato S4 §3.13.1).
   // Publica customer.deactivated en la misma transacción: accounts deja inactiva la cuenta y se
-  // cierran sus sesiones; si eso falla, el cliente sigue activo (contrato §3.8.3).
-  async deactivate(id: number): Promise<number> {
+  // cierran sus sesiones, y redemptions rechaza los canjes Confirmados del cliente (actor Sistema);
+  // si algo de eso falla, el cliente sigue activo (contrato §3.8.3).
+  async deactivate(id: number): Promise<CustomerDeactivationResult> {
     return await this.transactionRunner.run(async () => {
       const customer = await this.findById(id);
       if (!customer.isActive()) {
@@ -319,10 +337,10 @@ export class CustomersService {
       const lostBalance = await this.customersRepository.findBalance(id);
       customer.deactivate();
       await this.customersRepository.updateStatus(customer, 'DEACTIVATED');
-      await this.eventEmitter.emitAsync(CUSTOMER_DEACTIVATED, {
+      const listenerResults: unknown[] = await this.eventEmitter.emitAsync(CUSTOMER_DEACTIVATED, {
         customerId: id,
       } satisfies CustomerDeactivatedEvent);
-      return lostBalance;
+      return { lostBalance, rejectedRedemptions: rejectedRedemptionsFrom(listenerResults) };
     });
   }
 
