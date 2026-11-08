@@ -6,8 +6,8 @@ import { expiresInText, useExpiryRefetch, useMyRedemptions } from '@/features/re
 import { buttonVariants } from '@/styles/ui'
 import { cn } from '@/shared/lib/utils'
 
-// Solo los Confirmados; el que vence primero es el más viejo
-const CONFIRMED_FILTERS = { status: 'CONFIRMED', order: 'asc' } as const
+// Inicio destaca primero el canje Confirmado más reciente (§3.12.1)
+const CONFIRMED_FILTERS = { status: 'CONFIRMED', order: 'desc' } as const
 
 type RedemptionToUseCardProps = {
   /** "Ver código": abre Mis canjes */
