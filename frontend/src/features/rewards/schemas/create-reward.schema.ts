@@ -13,7 +13,10 @@ export const REWARD_MESSAGES = {
   expirationInPast: 'La fecha no puede ser anterior a hoy.',
 } as const
 
-export function createRewardSchema(today: string) {
+export function createRewardSchema(
+  today: string,
+  options: { allowZeroStock?: boolean; confirmedCount?: number } = {},
+) {
   return z
     .object({
       name: z.string().trim(),
@@ -80,11 +83,22 @@ export function createRewardSchema(today: string) {
             path: ['stock'],
             message: REWARD_MESSAGES.integerStock,
           })
-        } else if (Number(values.stock) < 1) {
+        } else if (Number(values.stock) < (options.allowZeroStock ? 0 : 1)) {
           context.addIssue({
             code: 'custom',
             path: ['stock'],
-            message: REWARD_MESSAGES.invalidStock,
+            message: options.allowZeroStock
+              ? `El stock no puede ser menor a los ${options.confirmedCount ?? 0} canjes confirmados.`
+              : REWARD_MESSAGES.invalidStock,
+          })
+        } else if (
+          options.allowZeroStock &&
+          Number(values.stock) < (options.confirmedCount ?? 0)
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['stock'],
+            message: `El stock no puede ser menor a los ${options.confirmedCount} canjes confirmados.`,
           })
         } else if (Number(values.stock) > 100_000) {
           context.addIssue({

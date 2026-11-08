@@ -1,4 +1,4 @@
-// Hooks de TanStack Query para recompensas: mostrador (US-40) y catálogo del Cliente (US-39).
+// Hooks de TanStack Query para Administración, mostrador y catálogo del Cliente.
 import {
   keepPreviousData,
   useMutation,
@@ -14,8 +14,17 @@ import type {
   CustomerCatalog,
   Reward,
   RewardListFilters,
+  UpdateRewardBody,
+  UpdateRewardResponse,
 } from '../types/reward'
-import { createReward, getAvailableRewards, getMyCatalog, listAdminRewards } from './rewards.api'
+import {
+  createReward,
+  getAdminReward,
+  getAvailableRewards,
+  getMyCatalog,
+  listAdminRewards,
+  updateReward,
+} from './rewards.api'
 import { rewardsKeys } from './rewards.keys'
 
 /** Listado de recompensas del Administrador. */
@@ -27,6 +36,21 @@ export const useAdminRewards = (filters: RewardListFilters) =>
     retry: retryNetworkOnce,
   })
 
+/** Detalle de una recompensa del Administrador. */
+export const useAdminReward = (id: number | undefined) =>
+  useQuery<Reward, ApiError>({
+    queryKey:
+      id === undefined
+        ? [...rewardsKeys.adminLists, 'detail', 'none']
+        : rewardsKeys.adminDetail(id),
+    queryFn: () => {
+      if (id === undefined) throw new Error('El identificador de recompensa es obligatorio.')
+      return getAdminReward(id)
+    },
+    enabled: id !== undefined,
+    retry: retryNetworkOnce,
+  })
+
 /** Alta de recompensa; al guardar se refrescan las variantes del listado del Administrador. */
 export const useCreateReward = () => {
   const queryClient = useQueryClient()
@@ -34,6 +58,21 @@ export const useCreateReward = () => {
     mutationFn: createReward,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: rewardsKeys.adminLists })
+    },
+  })
+}
+
+/** Edición de recompensa; refresca todas las vistas que muestran su disponibilidad o datos. */
+export const useUpdateReward = () => {
+  const queryClient = useQueryClient()
+  return useMutation<
+    UpdateRewardResponse,
+    ApiError,
+    { id: number; body: UpdateRewardBody }
+  >({
+    mutationFn: ({ id, body }) => updateReward(id, body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: rewardsKeys.all })
     },
   })
 }

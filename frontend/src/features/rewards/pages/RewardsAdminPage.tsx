@@ -50,6 +50,7 @@ export function RewardsAdminPage() {
   const [status, setStatus] = useState<RewardListStatus | ''>('')
   const [page, setPage] = useState(1)
   const [creating, setCreating] = useState(false)
+  const [editingRewardId, setEditingRewardId] = useState<number | null>(null)
   const query = useDebounce(search.trim(), 300)
   const rewards = useAdminRewards({ q: query, status, page })
   const data = rewards.data
@@ -169,7 +170,19 @@ export function RewardsAdminPage() {
                 </TableHead>
                 <tbody>
                   {data.items.map((reward) => (
-                    <TableRow key={reward.id} highlight>
+                    <TableRow
+                      key={reward.id}
+                      interactive
+                      tabIndex={0}
+                      aria-label={`Editar recompensa ${reward.name}`}
+                      onClick={() => setEditingRewardId(reward.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          setEditingRewardId(reward.id)
+                        }
+                      }}
+                    >
                       <TableCell className="border-b border-[#f5e6d8] px-3 py-2.5 text-sm text-[#3b2a20]">
                         <div
                           aria-hidden="true"
@@ -255,6 +268,12 @@ export function RewardsAdminPage() {
       </div>
 
       {creating && <RewardCreateModal onClose={() => setCreating(false)} />}
+      {editingRewardId !== null && (
+        <RewardCreateModal
+          rewardId={editingRewardId}
+          onClose={() => setEditingRewardId(null)}
+        />
+      )}
     </Page>
   )
 }

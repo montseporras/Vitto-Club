@@ -1,8 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { FormField } from '@/shared/components/forms/FormField'
+import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Button } from '@/shared/components/ui/Button'
@@ -14,12 +16,14 @@ import { useToast } from '@/shared/components/feedback/useToast'
 import { todayIsoInTimeZone } from '@/shared/lib/dates'
 import { cn } from '@/shared/lib/utils'
 import { modalStyles } from '@/styles/ui'
-import { useCreateReward } from '../api/rewards.queries'
+import type { ApiError } from '@/shared/api/ApiError'
+import { useAdminReward, useCreateReward, useUpdateReward } from '../api/rewards.queries'
 import {
   createRewardSchema,
   type CreateRewardFormInput,
   type CreateRewardFormOutput,
 } from '../schemas/create-reward.schema'
+import type { Reward } from '../types/reward'
 
 const REWARD_FORM_FIELDS = ['name', 'description', 'points', 'stock', 'expiresAt'] as const
 type RewardFormField = (typeof REWARD_FORM_FIELDS)[number]
@@ -30,18 +34,83 @@ function isRewardFormField(field: string): field is RewardFormField {
 
 type RewardCreateModalProps = {
   onClose: () => void
+  rewardId?: number
 }
 
-export function RewardCreateModal({ onClose }: RewardCreateModalProps) {
+function RewardDialog({
+  title,
+  onClose,
+  children,
+}: {
+  title: string
+  onClose: () => void
+  children: ReactNode
+}) {
+  return createPortal(
+    <div
+      className={cn(modalStyles.overlay, 'z-[10000] bg-[#2d180e]/50')}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+    >
+      <div
+        className={cn(
+          modalStyles.panel,
+          'relative max-w-[600px] overflow-y-auto rounded-[22px] border-0 bg-white p-4 shadow-[0_30px_60px_-20px_rgba(45,24,14,0.55)]',
+        )}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          title="Cerrar"
+          className={modalStyles.closeIcon}
+        >
+          <Icon d={ICONS.close} className="size-5" />
+        </button>
+        <h3 className="pr-10 font-heading text-lg font-bold text-[#5a2a14]">{title}</h3>
+        <div className="mt-4">{children}</div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
+function rewardStatusLabel(reward: Reward) {
+  if (reward.status === 'DISABLED') {
+    return `Deshabilitada · ${reward.disabledReason === 'OUT_OF_STOCK' ? 'Agotada' : 'Vencida'}`
+  }
+  return reward.status === 'ACTIVE' ? 'Activa' : 'Inactiva'
+}
+
+function rewardStatusVariant(reward: Reward) {
+  if (reward.status === 'ACTIVE') return 'success'
+  if (reward.status === 'INACTIVE') return 'danger'
+  return 'neutral'
+}
+
+export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps) {
   const [serverError, setServerError] = useState<{ messages: string[] } | null>(null)
   const today = todayIsoInTimeZone('America/Argentina/Buenos_Aires')
-  const schema = useMemo(() => createRewardSchema(today), [today])
+  const isEditing = rewardId !== undefined
+  const rewardQuery = useAdminReward(rewardId)
+  const reward = rewardQuery.data
+  const schema = useMemo(
+    () =>
+      createRewardSchema(today, {
+        allowZeroStock: isEditing,
+        confirmedCount: reward?.confirmedCount ?? 0,
+      }),
+    [today, isEditing, reward?.confirmedCount],
+  )
   const createMutation = useCreateReward()
+  const updateMutation = useUpdateReward()
   const showToast = useToast()
   const {
     register,
     handleSubmit,
     setError,
+    reset,
     control,
     formState: { errors },
   } = useForm<CreateRewardFormInput, unknown, CreateRewardFormOutput>({
@@ -59,6 +128,19 @@ export function RewardCreateModal({ onClose }: RewardCreateModalProps) {
   })
 
   useEffect(() => {
+    if (!reward) return
+    reset({
+      name: reward.name,
+      description: reward.description ?? '',
+      points: String(reward.points),
+      stock: reward.stock === null ? '' : String(reward.stock),
+      unlimitedStock: reward.stock === null,
+      expiresAt: reward.expiresAt ?? '',
+      noExpiry: reward.expiresAt === null,
+    })
+  }, [reward, reset])
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }
@@ -70,30 +152,56 @@ export function RewardCreateModal({ onClose }: RewardCreateModalProps) {
 
   const onSubmit = (data: CreateRewardFormOutput) => {
     setServerError(null)
+    const handleError = (error: ApiError) => {
+      if (error.code === 'REWARD_NAME_IN_USE') {
+        setError(
+          'name',
+          { message: 'Ya existe una recompensa con ese nombre.' },
+          { shouldFocus: true },
+        )
+        return
+      }
+      if (error.code === 'STOCK_BELOW_CONFIRMED') {
+        setError('stock', { message: error.messages[0] }, { shouldFocus: true })
+        return
+      }
+
+      let mappedFieldError = false
+      for (const detail of error.details) {
+        if (isRewardFormField(detail.field)) {
+          setError(detail.field, { message: detail.message })
+          mappedFieldError = true
+        }
+      }
+      if (!mappedFieldError) setServerError(error)
+    }
+
+    if (isEditing && rewardId !== undefined) {
+      updateMutation.mutate(
+        { id: rewardId, body: data },
+        {
+          onSuccess: ({ availabilityChange }) => {
+            const availabilityMessage =
+              availabilityChange === 'ENABLED'
+                ? ' La recompensa volvió a estar disponible.'
+                : availabilityChange === 'DISABLED'
+                  ? ' La recompensa quedó deshabilitada porque no tiene stock o está vencida.'
+                  : ''
+            showToast(`Recompensa guardada.${availabilityMessage}`)
+            onClose()
+          },
+          onError: handleError,
+        },
+      )
+      return
+    }
+
     createMutation.mutate(data, {
       onSuccess: () => {
         showToast('Recompensa guardada.')
         onClose()
       },
-      onError: (error) => {
-        if (error.code === 'REWARD_NAME_IN_USE') {
-          setError(
-            'name',
-            { message: 'Ya existe una recompensa con ese nombre.' },
-            { shouldFocus: true },
-          )
-          return
-        }
-
-        let mappedFieldError = false
-        for (const detail of error.details) {
-          if (isRewardFormField(detail.field)) {
-            setError(detail.field, { message: detail.message })
-            mappedFieldError = true
-          }
-        }
-        if (!mappedFieldError) setServerError(error)
-      },
+      onError: handleError,
     })
   }
 
@@ -106,13 +214,41 @@ export function RewardCreateModal({ onClose }: RewardCreateModalProps) {
   const formErrorMessages = serverError?.messages ?? []
   const unlimitedStock = useWatch({ control, name: 'unlimitedStock' })
   const noExpiry = useWatch({ control, name: 'noExpiry' })
+  const isPending = createMutation.isPending || updateMutation.isPending
+  const title = isEditing ? 'Editar recompensa' : 'Crear recompensa'
+
+  if (isEditing && rewardQuery.isPending) {
+    return (
+      <RewardDialog title={title} onClose={onClose}>
+        <StatusText>Cargando recompensa…</StatusText>
+      </RewardDialog>
+    )
+  }
+
+  if (isEditing && rewardQuery.isError) {
+    return (
+      <RewardDialog title={title} onClose={onClose}>
+        <Alert variant="error">
+          <AlertMessages messages={rewardQuery.error.messages} />
+        </Alert>
+      </RewardDialog>
+    )
+  }
+
+  if (isEditing && !reward) {
+    return (
+      <RewardDialog title={title} onClose={onClose}>
+        <StatusText>No existe la recompensa.</StatusText>
+      </RewardDialog>
+    )
+  }
 
   return createPortal(
     <div
       className={cn(modalStyles.overlay, 'z-[10000] bg-[#2d180e]/50')}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="create-reward-title"
+      aria-labelledby="reward-modal-title"
     >
       <div
         className={cn(
@@ -129,12 +265,21 @@ export function RewardCreateModal({ onClose }: RewardCreateModalProps) {
         >
           <Icon d={ICONS.close} className="size-5" />
         </button>
-        <h3
-          id="create-reward-title"
-          className="pr-10 font-heading text-lg font-bold text-[#5a2a14]"
-        >
-          Crear recompensa
+        <h3 id="reward-modal-title" className="pr-10 font-heading text-lg font-bold text-[#5a2a14]">
+          {title}
         </h3>
+
+        {isEditing && reward && (
+          <div className="mt-1 mb-3 flex flex-wrap items-center gap-2 text-[13px] text-[#5c5249]">
+            <span>Estado:</span>
+            <Badge variant={rewardStatusVariant(reward)} className="normal-case tracking-normal">
+              {rewardStatusLabel(reward)}
+            </Badge>
+            <span>
+              · Canjes confirmados: <strong>{reward.confirmedCount ?? 0}</strong>
+            </span>
+          </div>
+        )}
 
       <form noValidate onSubmit={handleSubmit(onSubmit)} className="mt-3 grid gap-3">
         {serverError && (
@@ -226,6 +371,11 @@ export function RewardCreateModal({ onClose }: RewardCreateModalProps) {
               placeholder="150"
               className="max-w-60"
             />
+            {isEditing && (
+              <p className="text-xs text-neutral-600">
+                Los canjes ya confirmados mantienen los puntos con los que se pidieron.
+              </p>
+            )}
           </FormField>
         </fieldset>
 
@@ -248,6 +398,12 @@ export function RewardCreateModal({ onClose }: RewardCreateModalProps) {
                 placeholder="20"
                 disabled={unlimitedStock}
               />
+              {isEditing && reward && (reward.confirmedCount ?? 0) > 0 && (
+                <p className="text-xs text-neutral-600">
+                  Hay {reward.confirmedCount} canjes confirmados. El stock no puede ser menor a{' '}
+                  {reward.confirmedCount}.
+                </p>
+              )}
               <label
                 htmlFor="reward-unlimited-stock"
                 className="mt-1 flex cursor-pointer items-center gap-2 text-[13px] font-medium"
@@ -285,19 +441,37 @@ export function RewardCreateModal({ onClose }: RewardCreateModalProps) {
           </div>
         </fieldset>
 
-        <div className="mt-1 flex flex-wrap justify-end gap-2 border-t border-[#fbe6d4] pt-3">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onClose}
-            disabled={createMutation.isPending}
-            className="h-10"
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={createMutation.isPending} className="h-10">
-            {createMutation.isPending ? 'Guardando…' : 'Guardar'}
-          </Button>
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-[#fbe6d4] pt-3">
+          {isEditing && reward ? (
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="secondary" disabled>
+                {reward.status === 'INACTIVE' ? 'Activar' : 'Desactivar'}
+              </Button>
+              <Button type="button" variant="ghost" disabled className="text-[#b3261e]">
+                Eliminar
+              </Button>
+            </div>
+          ) : (
+            <span />
+          )}
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              disabled={isPending}
+              className="h-10"
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isPending} className="h-10">
+              {isPending
+                ? 'Guardando…'
+                : isEditing
+                  ? 'Confirmar cambios'
+                  : 'Guardar'}
+            </Button>
+          </div>
         </div>
       </form>
       </div>

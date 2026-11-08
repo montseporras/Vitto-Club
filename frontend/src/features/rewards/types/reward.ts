@@ -52,6 +52,15 @@ export type CreateRewardBody = {
   expiresAt: string | null
 }
 
+/** Body de edición de una recompensa (§3.2.4). */
+export type UpdateRewardBody = Partial<CreateRewardBody>
+
+/** Respuesta de edición de una recompensa (§3.2.4). */
+export type UpdateRewardResponse = {
+  reward: Reward
+  availabilityChange: 'ENABLED' | 'DISABLED' | null
+}
+
 /** Botones de filtro del catálogo del Cliente (§2.5). Sin valor = `ALL`. */
 export type CatalogFilter = 'ALL' | 'MOST_REDEEMED' | 'EXPIRING_SOON'
 

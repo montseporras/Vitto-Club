@@ -7,6 +7,7 @@ export const rewardsKeys = {
   all: ['rewards'] as const,
   adminLists: ['rewards', 'admin-list'] as const,
   adminList: (filters: RewardListFilters) => [...rewardsKeys.adminLists, filters] as const,
+  adminDetail: (id: number) => [...rewardsKeys.adminLists, 'detail', id] as const,
   available: () => [...rewardsKeys.all, 'available'] as const,
   catalog: (filter: CatalogFilter) => [...rewardsKeys.all, 'catalog', filter] as const,
 }

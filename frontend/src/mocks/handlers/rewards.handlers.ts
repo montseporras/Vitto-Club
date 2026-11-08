@@ -54,6 +54,7 @@ const reward = (
 export const rewardSeeds: Reward[] = [
   reward(1, 'Café con medialuna', 150, {
     description: 'Café a elección con una medialuna de manteca.',
+    confirmedCount: 2,
     usedCount: 31,
   }),
   reward(2, 'Porción de torta', 300, {
@@ -61,10 +62,15 @@ export const rewardSeeds: Reward[] = [
     stock: 10,
     expiresAt: addDays(today, 3),
     daysToExpire: 3,
+    confirmedCount: 2,
     usedCount: 12,
   }),
   reward(3, 'Desayuno completo', 400, { stock: 5, usedCount: 8 }),
-  reward(4, 'Sandwich de miga', 200, { description: 'Seis triples de jamón y queso.', usedCount: 20 }),
+  reward(4, 'Sandwich de miga', 200, {
+    description: 'Seis triples de jamón y queso.',
+    confirmedCount: 1,
+    usedCount: 20,
+  }),
   reward(5, 'Medialunas x3', 100, {
     description: 'Tres medialunas de manteca para llevar.',
     expiresAt: today,
@@ -75,6 +81,7 @@ export const rewardSeeds: Reward[] = [
     status: 'DISABLED',
     disabledReason: 'OUT_OF_STOCK',
     stock: 0,
+    confirmedCount: 1,
     usedCount: 3,
   }),
   reward(7, 'Té chai', 120, { status: 'INACTIVE' }),
@@ -309,6 +316,167 @@ export const rewardsHandlers = [
     return HttpResponse.json(
       rewardSeeds.filter(isAvailable).sort((a, b) => a.points - b.points || a.name.localeCompare(b.name)),
     )
+  }),
+
+  // US-35: detalle de una recompensa del Administrador (§3.2.2).
+  http.get(`${API_URL}/recompensas/:id`, async ({ request, params }) => {
+    await delay(200)
+    const path = new URL(request.url).pathname
+    const account = accountFromRequest(request)
+    if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+    if (account.role !== 'ADMIN') {
+      return errorResponse(403, 'No tenés permiso para realizar esta acción.', path, 'FORBIDDEN')
+    }
+
+    const id = Number(params.id)
+    const item = rewardSeeds.find((candidate) => candidate.id === id)
+    if (!item || item.status === 'DELETED') {
+      return errorResponse(404, 'No existe la recompensa.', path)
+    }
+    return HttpResponse.json({ ...item, confirmedCount: item.confirmedCount ?? 0 })
+  }),
+
+  // US-35: edición de recompensa, con las reglas de §3.2.4.
+  http.patch(`${API_URL}/recompensas/:id`, async ({ request, params }) => {
+    await delay(250)
+    const path = new URL(request.url).pathname
+    const account = accountFromRequest(request)
+    if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+    if (account.role !== 'ADMIN') {
+      return errorResponse(403, 'No tenés permiso para realizar esta acción.', path, 'FORBIDDEN')
+    }
+
+    const id = Number(params.id)
+    const item = rewardSeeds.find((candidate) => candidate.id === id)
+    if (!item || item.status === 'DELETED') {
+      return errorResponse(404, 'No existe la recompensa.', path)
+    }
+
+    const bodyValue: unknown = await request.json()
+    if (!isRecord(bodyValue)) {
+      return errorResponse(400, 'El cuerpo de la solicitud no es válido.', path)
+    }
+    const allowedFields = ['name', 'description', 'points', 'stock', 'expiresAt']
+    const extraField = Object.keys(bodyValue).find((field) => !allowedFields.includes(field))
+    if (extraField) {
+      return errorResponse(400, `property ${extraField} should not exist`, path)
+    }
+    if (Object.keys(bodyValue).length === 0) {
+      return errorResponse(400, 'Indicá al menos un campo para modificar.', path)
+    }
+
+    let name = item.name
+    if (Object.hasOwn(bodyValue, 'name')) {
+      if (typeof bodyValue.name !== 'string') {
+        return errorResponse(400, 'Completá este campo.', path)
+      }
+      name = bodyValue.name.trim()
+      if (!name) return errorResponse(400, 'Completá este campo.', path)
+      if (name.length > 80) return errorResponse(400, 'Máximo 80 caracteres.', path)
+      const normalizedName = name.toLocaleLowerCase('es-AR')
+      const duplicate = rewardSeeds.some(
+        (candidate) =>
+          candidate.id !== id &&
+          candidate.status !== 'DELETED' &&
+          candidate.name.trim().toLocaleLowerCase('es-AR') === normalizedName,
+      )
+      if (duplicate) {
+        return errorResponse(
+          409,
+          'Ya existe una recompensa con ese nombre.',
+          path,
+          'REWARD_NAME_IN_USE',
+        )
+      }
+    }
+
+    let description = item.description
+    if (Object.hasOwn(bodyValue, 'description')) {
+      if (bodyValue.description !== null && typeof bodyValue.description !== 'string') {
+        return errorResponse(400, 'description must be a string', path)
+      }
+      description =
+        typeof bodyValue.description === 'string' ? bodyValue.description.trim() || null : null
+      if (description && description.length > 255) {
+        return errorResponse(400, 'Máximo 255 caracteres.', path)
+      }
+    }
+
+    let points = item.points
+    if (Object.hasOwn(bodyValue, 'points')) {
+      if (typeof bodyValue.points !== 'number' || !Number.isInteger(bodyValue.points)) {
+        return errorResponse(400, 'Ingresá un número entero mayor a 0.', path)
+      }
+      if (bodyValue.points < 1) {
+        return errorResponse(400, 'Ingresá un número entero mayor a 0.', path)
+      }
+      if (bodyValue.points > 1_000_000) {
+        return errorResponse(400, 'El máximo es 1.000.000 puntos.', path)
+      }
+      points = bodyValue.points
+    }
+
+    let stock = item.stock
+    if (Object.hasOwn(bodyValue, 'stock')) {
+      if (bodyValue.stock === null) {
+        stock = null
+      } else if (typeof bodyValue.stock !== 'number' || !Number.isInteger(bodyValue.stock)) {
+        return errorResponse(400, 'Ingresá un número entero, sin decimales.', path)
+      } else if (bodyValue.stock > 100_000) {
+        return errorResponse(400, 'El máximo es 100.000.', path)
+      } else {
+        stock = bodyValue.stock
+      }
+      if (stock !== null && stock < (item.confirmedCount ?? 0)) {
+        const confirmedCount = item.confirmedCount ?? 0
+        return errorResponse(
+          409,
+          `El stock no puede ser menor a los ${confirmedCount} canjes confirmados.`,
+          path,
+          'STOCK_BELOW_CONFIRMED',
+        )
+      }
+    }
+
+    let expiresAt = item.expiresAt
+    if (Object.hasOwn(bodyValue, 'expiresAt')) {
+      if (bodyValue.expiresAt === null) {
+        expiresAt = null
+      } else if (typeof bodyValue.expiresAt !== 'string') {
+        return errorResponse(400, 'Elegí una fecha o marcá «No vence».', path)
+      } else if (bodyValue.expiresAt < argentinaToday()) {
+        return errorResponse(400, 'La fecha no puede ser anterior a hoy.', path)
+      } else {
+        expiresAt = bodyValue.expiresAt
+      }
+    }
+
+    item.name = name
+    item.description = description
+    item.points = points
+    item.stock = stock
+    item.expiresAt = expiresAt
+    item.daysToExpire = daysToExpire(expiresAt)
+    item.updatedAt = new Date().toISOString()
+
+    let availabilityChange: 'ENABLED' | 'DISABLED' | null = null
+    const nowAvailable =
+      (item.stock === null || item.stock > 0) &&
+      (item.expiresAt === null || item.expiresAt >= argentinaToday())
+    if (item.status === 'DISABLED' && nowAvailable) {
+      item.status = 'ACTIVE'
+      item.disabledReason = null
+      availabilityChange = 'ENABLED'
+    } else if (item.status === 'ACTIVE' && item.stock === 0) {
+      item.status = 'DISABLED'
+      item.disabledReason = 'OUT_OF_STOCK'
+      availabilityChange = 'DISABLED'
+    }
+
+    return HttpResponse.json({
+      reward: { ...item, confirmedCount: item.confirmedCount ?? 0 },
+      availabilityChange,
+    })
   }),
 
   // US-39 (CA-39.1, CA-39.2 y CA-39.7): catálogo del Cliente. Solo el Cliente; Administrador y Cajero

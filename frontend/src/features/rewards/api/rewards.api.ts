@@ -1,10 +1,18 @@
-// Llamadas al backend de recompensas: las del mostrador (US-40) y el catálogo del Cliente (US-39).
+// Llamadas al backend de recompensas: Administración, mostrador y catálogo del Cliente.
 // Las usan los hooks de rewards.queries.ts.
 import { toApiError } from '@/shared/api/ApiError'
 import { http } from '@/shared/api/http'
 import type { Paginated } from '@/shared/types/pagination'
-import type { CatalogFilter, CustomerCatalog, Reward } from '../types/reward'
-import type { AdminReward, CreateRewardBody, RewardListFilters } from '../types/reward'
+import type {
+  AdminReward,
+  CatalogFilter,
+  CreateRewardBody,
+  CustomerCatalog,
+  Reward,
+  RewardListFilters,
+  UpdateRewardBody,
+  UpdateRewardResponse,
+} from '../types/reward'
 
 export const REWARDS_PAGE_SIZE = 10
 
@@ -29,10 +37,33 @@ export async function listAdminRewards({
   }
 }
 
+/** Detalle de una recompensa para el Administrador (§3.2.2). */
+export async function getAdminReward(id: number): Promise<Reward> {
+  try {
+    const { data } = await http.get<Reward>(`/recompensas/${id}`)
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
 /** Alta de una recompensa (§3.2.3). */
 export async function createReward(body: CreateRewardBody): Promise<Reward> {
   try {
     const { data } = await http.post<Reward>('/recompensas', body)
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+/** Edición de una recompensa (§3.2.4). */
+export async function updateReward(
+  id: number,
+  body: UpdateRewardBody,
+): Promise<UpdateRewardResponse> {
+  try {
+    const { data } = await http.patch<UpdateRewardResponse>(`/recompensas/${id}`, body)
     return data
   } catch (error) {
     throw toApiError(error)

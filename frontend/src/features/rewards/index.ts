@@ -2,10 +2,12 @@
 export { RewardExpiryTag } from './components/RewardExpiryTag'
 export { RewardsAdminPage } from './pages/RewardsAdminPage'
 export {
+  useAdminReward,
   useAdminRewards,
   useAvailableRewards,
   useCreateReward,
   useMyCatalog,
+  useUpdateReward,
 } from './api/rewards.queries'
 export { rewardsKeys } from './api/rewards.keys'
 export { rewardExpiryLabel } from './lib/expiry-label'
@@ -20,4 +22,6 @@ export type {
   RewardListFilters,
   RewardListStatus,
   RewardStatus,
+  UpdateRewardBody,
+  UpdateRewardResponse,
 } from './types/reward'
