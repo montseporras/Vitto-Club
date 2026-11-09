@@ -88,7 +88,7 @@ Todo empleado nuevo queda **activo** (`isActive: true`).
 | Código | Cuándo |
 |---|---|
 | `400` | Falta un campo obligatorio, formato inválido (email, rol, teléfono), texto demasiado largo o campo no permitido |
-| `409` | Ya existe un empleado con ese email (sin distinguir mayúsculas), **incluso si está dado de baja** |
+| `409` | Ya existe un empleado **activo** con ese email (sin distinguir mayúsculas). Desde el Sprint 3, un empleado dado de baja libera su email |
 | `500` | Error inesperado (por ejemplo, base de datos caída). No expone detalles internos |
 
 Formato del error:
@@ -252,8 +252,9 @@ El empleado dado de baja:
 
 - Sigue apareciendo en `GET /api/empleados` (y en `?active=false`) y en `GET /api/empleados/:id`.
 - No se puede editar: `PATCH` responde `409`.
-- Su email no se puede usar para registrar otro empleado: `POST` responde `409`.
-- Todavía no existe la reactivación.
+- Su email **sí** se puede usar para registrar otro empleado (único entre activos, desde el Sprint 3).
+- No hay reactivación de empleados (decisión #8 del contrato S3). Sí se puede reactivar la **cuenta**
+  (usuario) de un empleado activo: `PATCH /api/usuarios/:id/reactivate`.
 
 ---
 

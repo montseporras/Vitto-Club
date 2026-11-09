@@ -1,5 +1,7 @@
 # Qué hay que actualizar en la documentación por BASE-4
 
+> **Aplicado el 09/11/2026** en la rama `docs/actualizacion-docu-pasada`, junto con lo atrasado del Sprint 3. Se deja como registro.
+
 > **Para qué es este archivo.** BASE-4 (modelo de recompensas y canjes, módulos `rewards` y `redemptions` y
 > `PointsService.canjear`) se mergeó en `develop` el 07/11/2026 (commit `ee708e0`, Deni), con el arreglo de
 > la rama `fix/BASE-4-descripcion-canje-back`. Ningún documento de `docs/` lo menciona todavía. Esta es la

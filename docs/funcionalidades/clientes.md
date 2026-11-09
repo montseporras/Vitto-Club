@@ -4,8 +4,23 @@ Documento para quien integra el frontend con el backend de La Vitto. Describe c�
 endpoints existen, qué se puede enviar, qué devuelve la API y qué reglas hay que respetar en las pantallas.
 
 > **Estado:** implementado y verificado contra PostgreSQL (alta, búsqueda por documento y por nombre,
-> modificación, baja, reactivación e historial). Cubre las historias de **Modificar cliente** y
+> modificación, baja e historial). Cubre las historias de **Modificar cliente** y
 > **Dar de baja cliente (RF-018)**.
+>
+> **Este documento es del Sprint 1 y 2.** Se actualizó el 09/11/2026 con lo que cambió después, pero el
+> detalle de cada cambio está en los contratos:
+>
+> | Cambio | Dónde está definido |
+> |---|---|
+> | Ya **no existe** `PATCH /customers/:id/activate` (no hay reactivación de clientes) | Contrato S3 §1 y §7 #5 |
+> | `GET /customers`: `q`, `level`, `sort` y los campos `balance`, `lifetimePoints` y `level` en cada ítem | Contrato S3 §3.8.1 |
+> | `PATCH /customers/:id`: `reason` obligatorio para el Administrador; `409 CUSTOMER_INACTIVE`; `403 FORBIDDEN_FIELD` para el documento | Contrato S3 §3.8.2; decisión D-03 (25/10): nadie edita el documento. El backend lo cumple desde el 09/11: `UpdateCustomerDto` ya no acepta el documento |
+> | `POST /customers` crea también la cuenta del cliente (contraseña inicial = documento) | Contrato S3 §3.11.3 |
+> | La baja devuelve el saldo perdido a la auditoría y **rechaza los canjes Confirmados** del cliente | Contrato S3 §3.8.3 y S4 §3.13.1 |
+> | `PATCH /customers/:id` y `…/deactivate`: **solo el Administrador** (D-02, 25/10) | Contrato S4 §4. Cumplido en el backend desde el 09/11 |
+> | `GET /customers`: filtro por `documentType` y `documentNumber` (CLI-DOC) | Contrato S4 §3.13.4. Cumplido en el backend desde el 09/11 (`q` junto con `documentNumber` → `400`) |
+> | `GET`/`PATCH /customers/me` y `GET /customers/me/puntos` (vista del Cliente) | Contrato S3 §3.10 |
+> | Puntos, consumos, movimientos y canjes de un cliente (`/customers/:id/...`) | Contratos S3 §3.2 a §3.6 y S4 §3.7 y §3.12 |
 
 ---
 
@@ -20,21 +35,8 @@ endpoints existen, qué se puede enviar, qué devuelve la API y qué reglas hay 
 
 **Todas las rutas de este documento cuelgan de `/api`.** Ejemplo: `GET http://localhost:3000/api/customers`.
 
-El frontend todavía no tiene proxy de Vite ni cliente HTTP. Hay que elegir una de estas dos opciones:
-
-**Opción A — proxy de Vite (recomendada, evita CORS).** En `frontend/vite.config.ts`:
-
-```ts
-export default defineConfig({
-  plugins: [react()],
-  server: { proxy: { '/api': 'http://localhost:3000' } },
-})
-```
-
-El frontend llama a rutas relativas: `fetch('/api/customers')`.
-
-**Opción B — variable de entorno.** `VITE_API_URL=http://localhost:3000/api` y
-`fetch(`${import.meta.env.VITE_API_URL}/customers`)`. Funciona porque el origen `5173` está permitido.
+El frontend usa una sola instancia de Axios (`frontend/src/shared/api/http.ts`) y el proxy de Vite. Ver
+[SETUP](../SETUP.md) §3.
 
 > El backend rechaza con **400** cualquier campo del body o parámetro de la URL que no esté documentado
 > (`property foo should not exist`). No enviar parámetros extra (por ejemplo, para evitar caché).
@@ -110,11 +112,12 @@ Ejemplo de cliente devuelto por la API:
 | `GET /customers` | Listar y buscar (paginado) | 200 `CustomerList` | 400 |
 | `GET /customers/by-document` | **Identificar al cliente en la caja** por su documento | 200 `Customer` | 400, 404 |
 | `GET /customers/:id` | Traer un cliente por id | 200 `Customer` | 400, 404 |
-| `GET /customers/:id/status-history` | Historial de bajas y reactivaciones | 200 `CustomerStatusChange[]` | 400, 404 |
-| `POST /customers` | Dar de alta | 201 `Customer` | 400, 409 |
-| `PATCH /customers/:id` | Modificar datos | 200 `Customer` | 400, 404, 409 |
+| `GET /customers/:id/status-history` | Historial de bajas (no tiene pantalla, D-18) | 200 `CustomerStatusChange[]` | 400, 404 |
+| `POST /customers` | Dar de alta (con su cuenta) | 201 `Customer` | 400, 409 |
+| `PATCH /customers/:id` | Modificar datos | 200 `Customer` | 400, 403, 404, 409 |
 | `PATCH /customers/:id/deactivate` | Dar de baja (lógica) | **204 sin body** | 400, 404, 409 |
-| `PATCH /customers/:id/activate` | Reactivar | **204 sin body** | 400, 404, 409 |
+
+`PATCH /customers/:id/activate` **se eliminó** en el Sprint 3: no hay reactivación de clientes.
 
 No existe un endpoint para borrar clientes: la baja es siempre lógica y el registro se conserva.
 
@@ -128,6 +131,7 @@ Parámetros de la URL (todos opcionales):
 | `limit` | entero de 1 a 100 | `20` |
 | `active` | `true` o `false`. Si se omite, devuelve activos **e inactivos** | (todos) |
 | `name` | texto de hasta 80 caracteres. Busca en nombre y apellido, sin distinguir mayúsculas. Cada palabra debe aparecer en el nombre o en el apellido: `?name=juan perez` encuentra a Juan Pérez | (sin filtro) |
+| `q`, `level`, `sort` | Sprint 3: apellido, nombre o documento; nivel; orden por apellido. `q` junto con `name` → `400` (S3-13). Ver contrato S3 §3.8.1 | — |
 
 Ejemplos:
 
@@ -200,17 +204,23 @@ Se envía **solo lo que cambia** (cualquier subconjunto de los campos del alta):
 - Para **borrar** un dato opcional se envía `null`: `{ "phone": null }` o `{ "dateOfBirth": null }`.
 - `null` en un campo obligatorio (`firstName`, `lastName`, `documentType`, `documentNumber`, `email`) devuelve 400.
 - Responde **200** con el cliente ya actualizado.
-- Si el cliente está **inactivo** devuelve **409**: primero hay que reactivarlo.
+- Si el cliente está **inactivo** devuelve **409 `CUSTOMER_INACTIVE`** ("El cliente está dado de baja."). No
+  hay reactivación.
 - Si el nuevo documento o el nuevo email ya los tiene otro cliente **activo**, devuelve **409**.
 - Si el cliente tiene cuenta, cambiar su email cambia también **su email de acceso** (inicia sesión con
   el nuevo). Si ese email ya lo usa otra cuenta (de un empleado o de otro cliente), devuelve **409** y
   no se modifica nada.
   Reenviar el propio email, aunque cambien mayúsculas o espacios, no es un cambio.
 
-### 3.6 `PATCH /customers/:id/deactivate` y `/activate`
+### 3.6 `PATCH /customers/:id/deactivate`
 
-Sin body. Responden **204 sin contenido**, así que el frontend debe actualizar su estado local o volver
-a pedir el cliente. Dar de baja a un cliente ya inactivo (o reactivar a uno ya activo) devuelve **409**.
+Sin body. Responde **204 sin contenido**, así que el frontend debe actualizar su estado local o volver
+a pedir el cliente. Dar de baja a un cliente ya inactivo devuelve **409**.
+
+En la misma transacción: deja inactiva la cuenta del cliente y cierra sus sesiones (`accounts`), y
+rechaza sus canjes Confirmados vigentes como Sistema, con el motivo "Cliente dado de baja"
+(`redemptions`). La auditoría `CUSTOMER_DEACTIVATED` guarda el "Saldo perdido" y, si hubo, "Canjes
+rechazados: {n}".
 
 ---
 
@@ -249,7 +259,8 @@ La pantalla debe mostrar **el valor que devuelve la API**, no el que escribió e
 - **Los clientes inactivos no cuentan para la unicidad.** Un cliente dado de baja perdió sus puntos y
   su cuenta anterior, así que su documento y su email quedan libres: si vuelve a inscribirse, se crea un
   **cliente nuevo**. Por eso puede haber varios clientes con el mismo documento, pero como mucho uno activo.
-- **Un cliente inactivo no se puede modificar.** Hay que reactivarlo primero (409 si se intenta).
+- **Un cliente inactivo no se puede modificar** (409 `CUSTOMER_INACTIVE`). No hay reactivación: si vuelve,
+  se inscribe como cliente nuevo.
 - **Listado.** Por defecto incluye activos e inactivos. Para el listado "del programa activo" el frontend debe pedir `?active=true`.
 
 ---
@@ -316,10 +327,16 @@ export function fieldErrors(e: ApiError): Record<string, string> {
 
 ## 7. Sugerencias para las pantallas
 
-- **Caja / identificación:** un campo de DNI que llame a `GET /customers/by-document`. Si responde 404, ofrecer el alta. Si responde 200 con `active: false`, avisar que el cliente está dado de baja y ofrecer reactivarlo.
-- **Listado:** pedir `?active=true` por defecto y un filtro para ver los inactivos. Buscador de texto con `name` (conviene esperar unos ms antes de pedir mientras se escribe).
-- **Formulario de edición:** enviar solo los campos modificados. Deshabilitar la edición si `active` es `false` y mostrar el botón "Reactivar".
-- **Baja y reactivación:** confirmar la acción, llamar al endpoint y, como responde 204, actualizar el cliente en pantalla (o volver a pedirlo).
+> Las pantallas reales siguen el prototipo v2 y los contratos del Sprint 3 (§3.1.1, §3.8) y del Sprint 4
+> (§3.13). Estas sugerencias son las originales del Sprint 1, corregidas.
+
+- **Caja / identificación:** un campo de documento que llame a `GET /customers/by-document`. Si responde
+  404, o el cliente está dado de baja, se trata como no encontrado y se ofrece "Registrar cliente"
+  (contrato S3 §3.1.1).
+- **Listado (Administrador):** buscador con debounce de 300 ms y paginador "Página X de Y" (S3-20).
+- **Formulario de edición:** enviar solo los campos modificados. El documento se muestra bloqueado.
+- **Baja:** confirmar la acción, llamar al endpoint y, como responde 204, actualizar el cliente en
+  pantalla (o volver a pedirlo).
 - **Detalle del cliente:** mostrar `createdAt`, `deactivatedAt` y, opcionalmente, el historial de `status-history`.
 - **Formularios:** validar en el cliente los largos y el formato del teléfono para dar feedback inmediato, pero mostrar siempre los errores que devuelve la API, que son la fuente de verdad.
 
@@ -328,9 +345,10 @@ export function fieldErrors(e: ApiError): Record<string, string> {
 ## 8. Preguntas para cerrar entre backend, frontend y negocio
 
 1. **Listado por defecto:** hoy, sin parámetros, devuelve activos e inactivos. ¿El frontend pide siempre `?active=true` o el backend debería filtrar por defecto?
-2. **Cajero o cliente:** la historia de modificar dice "cajero o cliente". ¿El cliente edita sus propios datos? Si es así, hace falta autenticación y limitarlo a su propio registro.
+2. ~~**Cajero o cliente**~~ — decidido: el Cliente edita su teléfono, correo y fecha de nacimiento desde
+   Mi perfil (`PATCH /customers/me`, contrato S3 §3.10.4). No edita nombre, apellido ni documento.
 3. ~~**Documento de un cliente inactivo**~~ — decidido por el PO (2026-10-08): un cliente dado de baja no ocupa su documento ni su email; si vuelve, se inscribe como un cliente nuevo.
-4. **Modificar un inactivo:** hoy se bloquea (409). ¿Es el comportamiento esperado?
+4. ~~**Modificar un inactivo**~~ — decidido: `409 CUSTOMER_INACTIVE` (S3-12).
 5. **Formato de teléfono:** se implementó 8 a 15 dígitos (con `+`, espacios, guiones y paréntesis). ¿Coincide con lo que usa el negocio?
 6. **Búsqueda por nombre:** hoy no ignora tildes. ¿Hace falta que `lucia` encuentre a `Lucía`?
 
@@ -338,8 +356,8 @@ export function fieldErrors(e: ApiError): Record<string, string> {
 
 ## 9. Limitaciones actuales
 
-- **Todavía no se registra quién hizo cada operación** (eso es la auditoría, otro bloque). El usuario autenticado
-  está disponible en el controller con `@CurrentUser()`.
+- El alta, la edición y la baja se auditan (`CUSTOMER_CREATED`, `CUSTOMER_UPDATED`,
+  `CUSTOMER_DEACTIVATED`; contrato S3 §3.9.3).
 - **Sin borrado físico:** solo baja lógica.
 - **CORS** solo permite `http://localhost:5173`. Para otro origen (por ejemplo, un deploy) hay que cambiarlo en el backend.
 - **Sin documentación interactiva** (Swagger): este documento es la referencia.

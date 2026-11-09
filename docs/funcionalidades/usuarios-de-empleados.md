@@ -37,10 +37,11 @@ baja y US-08 Consultar.
 - Decidir los mensajes por `code`, no por el texto. Para `LAST_ADMIN` el pedido original propone:
   *"No se puede dar de baja: es el único administrador que puede ingresar al sistema."*
 
-## Pendiente de verificar
+## Verificado (09/11/2026)
 
-- Que `GET /usuarios` y `code: LAST_ADMIN` estén en el backend integrado. La ruta `GET /usuarios` sí
-  existe en el controller; el `code` no se verificó.
-- Contrato completo de `POST` y `PATCH` (campos, errores).
+- `GET /usuarios` existe y `code: LAST_ADMIN` está en los dos `ConflictException` de `AccountsService`.
+- `PATCH /usuarios/:id` responde `200` con la cuenta y `PATCH /usuarios/:id/reactivate`, `204` (S3-36).
+- La pantalla no exige más que el backend: entre 8 y 64 caracteres y distinta del mail (EMP-PASS, CA-EMP.4).
+  El generador hace contraseñas de **8** caracteres (decisión de Montse, D-05 del 25/10; el contrato ya dice 8).
 
 Origen del pedido: [baja de usuario SCRUM-27](../seguimiento/pedidos/baja-usuario-SCRUM-27.md).

@@ -11,32 +11,24 @@ recurso agregado para consultar y versionar la configuración completa.
 
 ## Estado de disponibilidad
 
-El módulo REST, la persistencia y la autorización por rol están implementados.
-El backend todavía no cuenta con la historia de autenticación que establece el
-usuario autenticado en `request.user`. Por diseño seguro, estos endpoints
-responden `401 Unauthorized` a todas las solicitudes hasta que el módulo de
-autenticación se integre y establezca ese principal confiable.
+El módulo REST, la persistencia y la autorización por rol están implementados e
+integrados con la autenticación: todos los endpoints tienen `@Roles('ADMIN')` y
+pasan por los guards globales de `auth`. Sin token responden `401
+UNAUTHENTICATED`; con el token de otro rol, `403 FORBIDDEN`.
 
-La historia de autenticación deberá garantizar lo siguiente:
+La configuración no guarda `updatedBy` en sus tablas: quién hizo cada cambio
+queda en la **auditoría** (módulo Configuración: `POINTS_EQUIVALENCE_UPDATED`,
+`POINTS_VALIDITY_UPDATED`, `FIRST_CONSUMPTION_BONUS_UPDATED` y
+`LEVELS_UPDATED`; contrato S3 §3.9.3).
 
-1. Identificar al usuario a partir de credenciales o sesión verificadas por el
-   backend (no a partir de un rol enviado por el cliente).
-2. Establecer `request.user` en la solicitud, con un campo `role`.
-3. Usar el valor exacto `ADMIN` para el rol Administrador. La comparación es
-   literal y sensible a mayúsculas/minúsculas.
-4. Dejar el principal sin definir cuando la solicitud no esté autenticada.
+**Cambios posteriores (actualizado el 09/11/2026):**
 
-El guard de este módulo no autentica credenciales ni valida tokens por sí
-mismo: comprueba el principal que debe proporcionar el middleware/guard global
-de autenticación. Sin una capa que establezca esa identidad, ningún cliente
-puede invocar los endpoints, incluso si envía un header o un campo `role`.
-Para una solicitud autenticada como otro rol, la respuesta será `403
-Forbidden`.
-
-La configuración no guarda `updatedBy`: el principal actual del guard solo
-define `role` y no existe todavía un identificador de usuario autenticado
-confiable disponible para esta feature. La auditoría de actor queda pendiente
-de la integración de autenticación.
+| Cambio | Dónde está definido |
+|---|---|
+| Límites: `baseAmount` hasta 1.000.000, `pointsAwarded` hasta 10.000, vigencia hasta 120 meses | `VERIFICACION_SPRINTS_1_2.md` §11 |
+| Ruta `first-purchase-bonus` → `/loyalty/configuration/first-consumption-bonus` y campo `firstConsumptionBonus` (20/10) | `docs/seguimiento/avisos-cambios-2026-10-20.md` §3 |
+| Niveles: `GET`/`PUT /loyalty/configuration/levels`; el snapshot suma `silverMinPoints` y `goldMinPoints` | Contrato S3 §3.7 |
+| Los consumos ya toman el snapshot de la versión vigente | Contrato S3 §3.1.3 |
 
 ## Alcance de las cuatro historias
 
@@ -70,15 +62,15 @@ camelCase.
 
 | Campo           | Tipo JSON                | Obligatorio | Regla                                                              | Persistencia    |
 | --------------- | ------------------------ | ----------: | ------------------------------------------------------------------ | --------------- |
-| `baseAmount`    | número                   |          Sí | Mayor que cero; como máximo 2 decimales; máximo `9.999.999.999,99` | `DECIMAL(12,2)` |
-| `pointsAwarded` | entero                   |          Sí | Entero mayor que cero; máximo `2.147.483.647`                      | `INTEGER`       |
+| `baseAmount`    | número                   |          Sí | Mayor que cero; como máximo 2 decimales; máximo `1.000.000` (DTO; el dominio admite hasta `9.999.999.999,99`) | `DECIMAL(12,2)` |
+| `pointsAwarded` | entero                   |          Sí | Entero mayor que cero; máximo `10.000`                    | `INTEGER`       |
 | `updatedAt`     | cadena ISO 8601 (salida) |           — | Fecha de creación de la versión que contiene esta equivalencia.     | `TIMESTAMP(3)`  |
 
 Para el endpoint de vigencia, el contrato usa:
 
 | Campo                    | Tipo JSON                         | Obligatorio | Regla                                                                                                 | Persistencia   |
 | ------------------------ | --------------------------------- | ----------: | ----------------------------------------------------------------------------------------------------- | -------------- |
-| `pointsExpirationMonths` | entero                            |         No* | Entero entre `1` y `2.147.483.647`; omitido, `null` o vacío se normaliza explícitamente a `12` meses. | `INTEGER`      |
+| `pointsExpirationMonths` | entero                            |         No* | Entero entre `1` y `120`; omitido, `null` o vacío se normaliza explícitamente a `12` meses. | `INTEGER`      |
 | `updatedAt`              | cadena ISO 8601 (salida)          |           — | Fecha de creación de la versión que contiene la vigencia activa.                                       | `TIMESTAMP(3)` |
 
 `*` El request `PUT` puede omitirlo para activar el default de RF-010; se envía
@@ -186,10 +178,8 @@ curl --request GET \
   --url http://localhost:3000/api/loyalty/configuration/points-equivalence
 ```
 
-Hasta que la autenticación esté integrada, ambos ejemplos responden `401`
-porque no hay ningún componente que establezca `request.user`. Cuando se
-complete esa historia, estos ejemplos requerirán además el mecanismo de sesión
-o credencial que ella defina.
+Los dos ejemplos necesitan el header `Authorization: Bearer <accessToken>` de un
+Administrador. Sin token responden `401`; con otro rol, `403`.
 
 ## Consultar la vigencia de puntos
 
@@ -238,8 +228,7 @@ Payload personalizado:
 }
 ```
 
-`pointsExpirationMonths` debe ser un entero positivo entre `1` y
-`2.147.483.647` (rango de PostgreSQL `INTEGER`). La respuesta es `200 OK` y
+`pointsExpirationMonths` debe ser un entero entre `1` y `120`. La respuesta es `200 OK` y
 devuelve el valor persistido junto con su `updatedAt`:
 
 ```json
@@ -415,7 +404,7 @@ validación de dominio puede incluir `details`:
 | --------------------------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |                    `200 OK` | Equivalencia consultada o creada/actualizada correctamente.                                                                                                                                                                                                                                              |
 |           `400 Bad Request` | JSON inválido, campo requerido ausente (equivalencia/bonificación), campo extra, tipo incorrecto o valor fuera de rango. En vigencia se acepta omitir/null/vacío como 12; se rechazan fracciones y valores no positivos. En bonificación se validan el enum y los rangos/tipos específicos de cada tipo. |
-|          `401 Unauthorized` | No existe `request.user`; actualmente es la respuesta esperada hasta integrar autenticación.                                                                                                                                                                                                             |
+|          `401 Unauthorized` | Sin token o con el token vencido (`UNAUTHENTICATED`).                                                                                                                                                                                                             |
 |             `403 Forbidden` | Existe un principal autenticado, pero su `role` no es exactamente `ADMIN`.                                                                                                                                                                                                                               |
 |             `404 Not Found` | Equivalencia o bonificación de primer consumo aún no configurada. La consulta de vigencia devuelve el default de 12 meses.                                                                                                                                                                               |
 | `500 Internal Server Error` | Error no previsto, por ejemplo una falla de persistencia; se registra en el log del backend sin exponer detalles internos al cliente.                                                                                                                                                                    |
@@ -546,7 +535,7 @@ patch sobre el snapshot actual. Así se evita que una actualización de un campo
 restablezca o descarte accidentalmente los otros.
 
 Los endpoints de lectura y escritura están protegidos por `AdminRoleGuard`.
-Sin principal `request.user` responden `401`; con un rol distinto de `ADMIN`,
+Sin token responden `401`; con un rol distinto de `ADMIN`,
 responden `403`. La integración de autenticación que establece ese principal
 sigue siendo requisito operativo para consumo por clientes reales.
 
@@ -744,31 +733,20 @@ consultar primero el snapshot vigente.
 
 ### Autenticación y configuración de ambiente
 
-El guard exige que el backend de autenticación establezca `request.user.role`
-igual exactamente a `ADMIN`. Actualmente la integración de autenticación aún
-no está disponible: en ejecución normal, las solicitudes responden `401`
-hasta que esa historia provea el principal. Coordinar con el equipo de backend
-el mecanismo real (cookie/sesión o `Authorization: Bearer ...`) y el origen
-base por ambiente antes de habilitar el consumo desde el navegador. El header
-`x-test-auth-role` solo existe en pruebas e2e y no es una credencial válida
-para frontend.
-
-El frontend debe centralizar el prefijo `/api` y el mecanismo de credenciales
-en su cliente HTTP, evitar duplicar `/api` en cada servicio y configurar
-correctamente el manejo de cookies/token cuando autenticación quede definida.
-No asumir que el endpoint está públicamente disponible solo porque está
-documentado.
+Los endpoints usan la autenticación de toda la app: `Authorization: Bearer
+<accessToken>` de una cuenta `ADMIN`, con el cliente HTTP único del frontend
+(`frontend/src/shared/api/http.ts`), que ya pone el prefijo `/api` y renueva
+la sesión ante un `401`. Ver [autenticación](./autenticacion.md).
 
 ## Fuera del alcance de esta historia
 
-- Autenticación, creación/validación de sesiones o tokens y middleware que
-  popula `request.user`; depende de la historia de autenticación.
-- Auditoría de qué usuario hizo el cambio o fechas futuras de activación.
-- Interpretación de consumos, acumulación, redondeo o acreditación de puntos
-  (RF-020), incluida la aplicación del porcentaje o suma de puntos fijos a una
-  consumo concreta.
-- Cálculo del vencimiento por lote de puntos, proceso periódico que los expire
-  o notificaciones previas al vencimiento. Esta API almacena los meses de
-  vigencia; RF-010 no implementa el proceso de expiración.
+Lo que esta historia del Sprint 2 dejaba afuera ya lo hicieron otras:
+
+- Autenticación y guards: Sprint 2 (`auth`).
+- Quién hizo cada cambio: la auditoría del Sprint 3 (US-56).
+- Cálculo y acreditación de puntos por consumo (RF-020): US-21, Sprint 3.
+- Vencimiento por lote y proceso diario: US-25, Sprint 3. Las notificaciones
+  previas al vencimiento (US-47) son del Sprint 5.
+- Fechas futuras de activación de una configuración: no se pidieron.
 - Código frontend y traducción a una moneda distinta de la unidad `$` del
   negocio.

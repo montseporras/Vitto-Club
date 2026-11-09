@@ -22,29 +22,46 @@ Reglas de negocio, sin HTTP. Para el contrato REST ver [clientes](../funcionalid
 
 ## Estado
 
-- Baja y reactivación son **lógicas** y quedan en el historial (`customer_status_changes`).
-- Dar de baja a un inactivo, o reactivar a un activo, responde 409.
-- **Un cliente inactivo no se puede modificar**: hay que reactivarlo primero (409). Al momento de
-  escribir esto, la propia documentación dejaba abierto si ese es el comportamiento esperado.
+- La baja es **lógica** y queda en el historial (`customer_status_changes`). **No hay reactivación de
+  clientes** (decisión de Deni, contrato S3 §1): si vuelve, se inscribe como cliente nuevo y empieza de cero.
+- Dar de baja a un inactivo responde 409.
+- **Un cliente inactivo no se puede modificar** (`409 CUSTOMER_INACTIVE`, S3-12), ni registrarle consumos,
+  ajustes ni canjes.
+- Al darlo de baja: su saldo se pierde (queda en la auditoría como "Saldo perdido"), su cuenta queda
+  inactiva con las sesiones cerradas y sus canjes Confirmados se rechazan (Sprint 4).
 - La búsqueda por documento también devuelve inactivos (hay que revisar `active`). Si hay varios con
-  el mismo documento, devuelve el activo; si ninguno está activo, el inactivo más reciente.
+  el mismo documento, devuelve el activo; si ninguno está activo, el inactivo más reciente. En Caja, un
+  cliente dado de baja se trata como no encontrado.
+- **Nadie edita el documento** (decisión D-03 del 25/10): ni el Cajero ni el Administrador.
 
 ## Cuenta del cliente
 
-- Se crea en el registro, junto con el cliente, en una sola transacción
-  ([ADR 005](../decisions/005-registro-de-clientes-orquestado-por-accounts.md)).
+- **Autorregistro:** se crea junto con el cliente, en una sola transacción
+  ([ADR 005](../decisions/005-registro-de-clientes-orquestado-por-accounts.md)). No se audita.
+- **Alta en caja o por el Administrador (US-17-AJ):** `customers` publica `customer.created` y `accounts`
+  crea la cuenta con **contraseña inicial = número de documento** y `mustChangePassword = true`. Al
+  ingresar aparece la ventana "Cambiá tu contraseña", con "Ahora no" (S3-34).
 - El cliente inicia sesión con **email + contraseña**; el documento solo sirve para buscarlo en caja.
-- Cambiar el email del cliente debe reflejarse en la cuenta (evento `customer.email-changed`).
-  **No determinado** en esta revisión si `customers` ya lo publica.
+- Cambiar el email del cliente se refleja en la cuenta (`customer.email-changed`). Desde Mi perfil, el
+  cambio de email pide la contraseña actual (`customer.email-change-requested`, decisión #10).
+- **Contraseña del cliente:** entre 8 y 64 caracteres, como máximo 72 bytes, distinta del email, distinta
+  de la actual y distinta de su documento.
+
+## Lo que el Cliente hace sobre sí mismo
+
+- Ve y edita su teléfono, correo y fecha de nacimiento (`/customers/me`). No edita nombre, apellido ni
+  documento.
+- Cambia su contraseña (`/mi-cuenta/password`) y cierra sesión.
+- Nada de eso se audita.
 
 ## Permisos
 
-Administrador y Cajero operan el módulo; el Cliente recibe 403. Ver
-[roles y permisos](../conceptos-transversales/roles-y-permisos.md).
+Administrador y Cajero buscan, dan de alta y consultan clientes. Editar y dar de baja es **solo del
+Administrador** desde el 25/10 (D-02; el backend lo cumple desde el 09/11). El Cliente solo opera
+`/customers/me…`. Ver [roles y permisos](../conceptos-transversales/roles-y-permisos.md).
 
-## Preguntas abiertas que figuran en los docs
+## Preguntas abiertas
 
 - ¿El listado por defecto debe filtrar activos en el backend o lo pide siempre el frontend con
-  `?active=true`?
-- ¿Es correcto bloquear la modificación de un cliente inactivo?
-- La pantalla del cliente que muestre su nombre necesitaría `GET /customers/me` (no existe).
+  `?active=true`? (sin decidir desde el Sprint 1).
+- `GET /customers/:id/status-history` no tiene pantalla (D-18): ¿se mantiene o se quita?

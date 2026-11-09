@@ -1,5 +1,7 @@
 # Pendientes de frontend — módulo Clientes (Caja)
 
+> **Movido a `historico/` el 09/11/2026.** Describe el Sprint 1: la reactivación de clientes ya no existe (contrato S3 §1) y la pantalla de Clientes del Administrador ya está hecha (CLI-ADM).
+
 > Contexto: el backend de `customers` está completo (alta, búsqueda por documento,
 > edición, baja/alta lógica, `dateOfBirth`, historial de estados). Lo que sigue
 > son 3 puntos detectados al comparar `frontend/src/features/cashier` contra la API

@@ -10,9 +10,9 @@ mantener la sesión, cerrarla y cómo reaccionar a cada error.
 > - **Los clientes también**: se registran con `POST /api/auth/register` (ver `docs/funcionalidades/registro-de-clientes.md`) y después
 >   inician sesión acá, con su email y su contraseña.
 > - **Todos los endpoints exigen token**, salvo `/api/auth/*` y `/api/health`. Un pedido sin token responde
->   401 `UNAUTHENTICATED`, y uno con un rol sin permiso responde 403 `FORBIDDEN`. Esto rige desde que
->   esta rama llega a `develop`: **el frontend tiene que mandar el `Authorization` antes de actualizar**,
->   o las pantallas de clientes y empleados van a recibir 401.
+>   401 `UNAUTHENTICATED`, y uno con un rol sin permiso responde 403 `FORBIDDEN`.
+> - El login y la renovación devuelven también `user.mustChangePassword` (contrato S3 §3.11.3): si es
+>   `true`, la pantalla abre "Cambiá tu contraseña", con "Ahora no".
 
 ---
 
@@ -93,8 +93,8 @@ export interface ApiError {
 Además deja la cookie `refresh_token` (el frontend no la ve ni la maneja).
 
 **Nombre y apellido** (`firstName`, `lastName`): sirven para mostrar "Nombre Apellido · Rol" en el encabezado.
-Vienen **para Administrador y Cajero**. Para el **Cliente no vienen** (los campos no existen en la respuesta):
-tipar como opcionales y no asumir que están. Se leen del empleado en cada login y en cada renovación, así que
+Vienen para todos los roles: del empleado para Administrador y Cajero, y del cliente para el Cliente. En el
+tipo siguen siendo opcionales. Se leen en cada login y en cada renovación, así que
 un cambio de nombre se ve en la renovación siguiente (hasta 15 minutos). No están dentro del access token.
 
 ### Errores
@@ -188,17 +188,22 @@ Decidir siempre por el campo **`code`**, nunca por el texto del `message`.
 |---|---|---|---|
 | `/api/auth/*` | público | público | público |
 | `/api/health` | público | público | público |
-| `/api/customers/*` (todo, incluida baja, reactivación e historial) | Sí | Sí | No |
 | `/api/empleados/*` | Sí | No | No |
 | `/api/usuarios/*` (cuentas de empleados) | Sí | No | No |
+| `/api/mi-cuenta/password` | Sí | Sí | Sí |
+
+La matriz completa, con clientes, consumos, puntos, auditoría, recompensas y canjes, está en
+[roles y permisos](../conceptos-transversales/roles-y-permisos.md#matriz-de-permisos).
 
 ---
 
-## 10. Todavía no existe
+## 10. Lo que se agregó después
 
-- **Nombre y apellido del Cliente.** Hoy solo vienen para empleados. Si la pantalla del cliente los necesita se
-  agrega `GET /api/customers/me`. Avisar cuando se defina esa pantalla.
-- **Cambio de contraseña por el propio usuario.**
+- **Nombre y apellido del Cliente:** ya vienen en el login. El perfil completo está en
+  `GET /api/customers/me` (contrato S3 §3.10.3).
+- **Cambio de contraseña por el propio usuario:** `PATCH /api/mi-cuenta/password` (contrato S3 §3.11.1).
+  Pide la contraseña actual (`400 CURRENT_PASSWORD_INCORRECT`), tiene límite de intentos
+  (`429 TOO_MANY_ATTEMPTS`) y cierra las otras sesiones.
 
 ### Reglas de la contraseña (para los formularios de alta y de cambio)
 
@@ -216,9 +221,9 @@ todas las sesiones de esa cuenta: quien estaba conectado tiene que volver a ingr
 
 ---
 
-## 11. Acordado con el frontend, pendiente de implementar
+## 11. Acordado con el frontend (ya implementado)
 
-Estos cambios están decididos pero **todavía no existen**. Los implementa el módulo de cuentas (`/api/usuarios`).
+Estos cambios se acordaron en octubre y **ya están en el backend** (`/api/usuarios`).
 
 - **`GET /api/usuarios`**: listado `[{ id, employeeId, active }]`. Sirve para saber qué empleados tienen usuario,
   cuáles están dados de baja, y el `id` que piden `PATCH /api/usuarios/:id`, `/deactivate` y `/reactivate`.

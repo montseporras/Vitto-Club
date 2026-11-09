@@ -10,27 +10,19 @@ que se despliegan por separado:
 
 ## Estado del proyecto
 
-- **Infraestructura base** (NestJS + Prisma + PostgreSQL vía Docker): validada
-  de punta a punta el 2026-09-08.
-- **Sprint 1, ABMC de empleados** (`/api/empleados`): alta, edición, búsqueda
-  por nombre y baja lógica, en el backend y en el frontend (Configuración →
-  *Empleados*).
-- **Sprint 1, ABMC de clientes** (`/api/customers`): alta, búsqueda por
-  documento, edición, baja y reactivación, historial de estados y validación
-  del formato del documento según el tipo (DNI / pasaporte). En el frontend
-  está en la pantalla de caja (`features/cashier`). El listado paginado y el
-  historial de estados todavía no tienen pantalla (ver
-  [`docs/seguimiento/pendientes-frontend.md`](docs/seguimiento/pendientes-frontend.md)).
-- **Configuración de puntos** (`/api/loyalty/configuration/*`): equivalencia de
-  monto/puntos, vigencia en meses (default RF-010: 12) y bonificación de
-  primer consumo (porcentaje o puntos fijos), con endpoints GET/PUT y
-  configuración completa versionada para cumplir RF-014 sin sobrescribir
-  reglas anteriores. Las rutas seccionales también crean versiones, y la
-  configuración vigente se consulta en `/api/loyalty/configuration/current`.
-  Solo el rol `ADMIN` puede usarla (guards globales del módulo `auth`). Ver
-  [`docs/funcionalidades/configuracion-de-puntos.md`](docs/funcionalidades/configuracion-de-puntos.md).
-- El resto de los módulos del frontend (`auth`, `recompensas`, `misiones`,
-  etc.) existen solo como carpetas vacías.
+Al 09/11/2026 (`develop`, fin del Sprint 4). El detalle, con lo que falta, está en
+[`docs/seguimiento/estado-actual.md`](docs/seguimiento/estado-actual.md).
+
+| Sprint | Qué se construyó (backend y frontend) | Referencia |
+|---|---|---|
+| 1 | ABMC de empleados y de clientes | [`docs/funcionalidades/`](docs/funcionalidades/) |
+| 2 | Login, sesiones y guards; cuentas y usuarios de empleados; registro de clientes; configuración versionada de puntos | [`docs/funcionalidades/`](docs/funcionalidades/) |
+| 3 | Consumos (registrar, anular, consultar), puntos (saldo, nivel, ajustes, movimientos, vencimiento diario), niveles, auditoría, Clientes del Administrador, vista del Cliente (inicio, historial, perfil) y cambios de contraseña | [`docs/sprint-3/API_CONTRACT_SPRINT_3.md`](docs/sprint-3/API_CONTRACT_SPRINT_3.md) |
+| 4 | Recompensas (crear, editar, activar/desactivar, eliminar, disponibilidad automática, catálogo) y canjes (confirmar, usar, rechazar, cancelar, vencer, consultar) | [`docs/sprint-4/API_CONTRACT_SPRINT_4.md`](docs/sprint-4/API_CONTRACT_SPRINT_4.md) |
+| 5 | Último sprint: misiones, fotos, notificaciones, estadísticas y lo que quede | (en preparación) |
+
+Verificación del 09/11/2026: `backend/ npm test` → 111 suites, 1543 tests, pasan todos. Los e2e no se
+corrieron en esta revisión.
 
 ## Documentación
 
@@ -45,8 +37,12 @@ que se despliegan por separado:
 | [`docs/funcionalidades/clientes.md`](docs/funcionalidades/clientes.md) | Contrato de la API de clientes |
 | [`docs/funcionalidades/empleados.md`](docs/funcionalidades/empleados.md) | Contrato de la API de empleados |
 | [`docs/funcionalidades/configuracion-de-puntos.md`](docs/funcionalidades/configuracion-de-puntos.md) | Contrato de la API de configuración de puntos |
-| [`docs/seguimiento/pendientes-frontend.md`](docs/seguimiento/pendientes-frontend.md) | Pendientes de frontend del módulo de clientes |
+| [`docs/sprint-3/`](docs/sprint-3/), [`docs/sprint-4/`](docs/sprint-4/) | Contratos de API, historias y cierres de cada sprint (fuentes de verdad) |
+| [`docs/database/modelo-de-datos.md`](docs/database/modelo-de-datos.md) | Tablas, enums, relaciones y restricciones |
+| [`docs/conceptos-transversales/roles-y-permisos.md`](docs/conceptos-transversales/roles-y-permisos.md) | Qué puede hacer cada rol, endpoint por endpoint |
+| [`docs/seguimiento/decisiones-de-implementacion.md`](docs/seguimiento/decisiones-de-implementacion.md) | Decisiones que se tomaron al programar cada historia |
 | [`docs/database/prisma.md`](docs/database/prisma.md) | Cómo quedó configurado Prisma y comandos de uso diario |
+| [`CLAUDE.md`](CLAUDE.md) y [`como-usar-claude.md`](como-usar-claude.md) | Cómo se trabaja con Claude: reglas y cómo pedirle una historia |
 
 ## Estructura del repositorio
 
@@ -57,25 +53,28 @@ Vitto-Club/
 ├─ docs/                # Documentación del proyecto (ver tabla de arriba)
 ├─ backend/             # API NestJS
 │  ├─ src/
-│  │  ├─ app.module.ts       # Módulo raíz: Config, Prisma, Health, Customers, Employees, Loyalty
+│  │  ├─ app.module.ts       # Módulo raíz: Config, Schedule, Prisma, Health y los módulos de negocio
 │  │  ├─ main.ts             # Bootstrap: prefijo /api, ValidationPipe, CORS
-│  │  ├─ customers/          # Módulo de clientes (domain / application / infrastructure / http)
-│  │  ├─ employees/          # Módulo de empleados (misma estructura)
-│  │  ├─ loyalty/            # Equivalencia vigente monto de consumo / puntos
-│  │  ├─ prisma/             # PrismaService + PrismaModule (@Global)
+│  │  ├─ employees/, customers/, accounts/, auth/, loyalty/   # Sprints 1 y 2
+│  │  ├─ consumptions/, points/, audit/                       # Sprint 3
+│  │  ├─ rewards/, redemptions/                               # Sprint 4
+│  │  ├─ expire-points.ts, expire-rewards.ts, expire-redemptions.ts  # procesos a demanda
+│  │  ├─ architecture.spec.ts # reglas de dependencias entre módulos (Sprint 4)
+│  │  ├─ shared/             # contratos transversales: eventos, seguridad, hora de Argentina
+│  │  ├─ prisma/             # PrismaService + PrismaTransactionRunner (transacción ambiente)
 │  │  └─ health/             # GET /api/health -> hace SELECT 1 contra la DB
 │  ├─ prisma/
-│  │  ├─ schema.prisma        # Modelos de negocio y configuración de puntos
+│  │  ├─ schema.prisma        # Modelo de datos (ver docs/database/modelo-de-datos.md)
 │  │  ├─ migrations/          # Migraciones SQL versionadas
-│  │  └─ seed.ts              # Datos de prueba (3 employees, 2 customers)
+│  │  └─ seed.ts              # Administrador inicial y, con SEED_DEMO_DATA, empleados y clientes de prueba
 │  ├─ test/                  # Tests e2e
 │  ├─ prisma.config.ts       # URL de conexión para migrate/seed/studio (Prisma 7)
 │  ├─ .env.example           # Plantilla de variables de entorno
-│  └─ PRISMA.md              # Historial detallado de cómo quedó configurado Prisma
+│  └─ CLAUDE.md              # Reglas del backend para Claude
 └─ frontend/            # SPA React + Vite
    ├─ src/
    │  ├─ app/                # Arranque, router, layouts por rol
-   │  ├─ features/           # Un módulo por Epic (caja, empleados, ...)
+   │  ├─ features/           # Un módulo por Epic (caja, clientes, consumos, recompensas, canjes, ...)
    │  ├─ shared/             # Cliente HTTP, componentes de UI, utilidades
    │  ├─ domain/             # Vocabulario de negocio compartido
    │  ├─ mocks/              # Handlers de MSW (mismas rutas que el backend)

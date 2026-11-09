@@ -19,8 +19,57 @@ así que agregarle las mismas capas sería sobre-ingeniería.
 ## Backend: monolito modular hexagonal
 
 Es **un solo proceso Nest** (un solo deploy), dividido en **módulos por
-contexto de negocio** (`customers`, `employees`, `loyalty`, …). Cada módulo es
-independiente y, puertas adentro, sigue puertos y adaptadores.
+contexto de negocio**. Cada módulo es independiente y, puertas adentro, sigue
+puertos y adaptadores.
+
+| Módulo | Sprint | Qué tiene |
+|---|---|---|
+| `employees` | 1 | ABMC de empleados (`/empleados`) |
+| `customers` | 1 | Clientes (`/customers`), perfil del Cliente (`/customers/me`), ajuste de puntos (`/customers/:id/ajustes-de-puntos`) |
+| `loyalty` | 2 | Configuración versionada del programa: equivalencia, vigencia, bonificación y niveles (`/loyalty/configuration/*`) |
+| `accounts` | 2 | Cuentas y contraseñas (`/usuarios`, `/auth/register`, `/mi-cuenta/password`) |
+| `auth` | 2 | Login, renovación y cierre de sesión; guards globales |
+| `consumptions` | 3 | Consumos: vista previa, registro, anulación y consultas (`/consumos`, `/customers/:id/consumos`, `/customers/me/consumos`) |
+| `points` | 3 | Lotes, movimientos, saldo, nivel, ajustes, vencimiento diario y `canjear` (`/customers/:id/movimientos`, `/customers/me/movimientos`, `/movimientos-de-puntos`) |
+| `audit` | 3 | Registro y consulta de la auditoría (`/auditoria`) |
+| `rewards` | 4 | Catálogo de recompensas, estados, disponibilidad y proceso diario de vencidas (`/recompensas`) |
+| `redemptions` | 4 | Canjes: confirmar, usar, rechazar, cancelar, vencer y consultar (`/canjes`, `/customers/:id/canjes`, `/customers/me/canjes`), y el catálogo del Cliente (`/customers/me/recompensas`) |
+| `prisma`, `health`, `shared` | — | Transversales, sin dominio (regla 4) |
+
+### Dependencias entre módulos
+
+Los imports entre módulos van **en un solo sentido**. Sale de los `imports` de cada `*.module.ts`
+(09/11/2026):
+
+```text
+accounts     ──> employees, customers, audit
+auth         ──> accounts
+customers    ──> employees, points, audit
+consumptions ──> customers, employees, loyalty, points, audit
+points       ──> audit
+rewards      ──> audit
+redemptions  ──> rewards, points, employees, audit
+loyalty      ──> audit
+employees    ──> audit
+audit        ──> (ninguno)
+```
+
+- `audit` no importa ningún módulo de negocio: por eso cualquiera lo puede importar sin armar un ciclo.
+- `points` no importa `consumptions`, `customers`, `rewards` ni `redemptions`. Cuando necesita el nombre o
+  el documento de un cliente (para la auditoría del vencimiento), los lee de la tabla `customers` en su
+  repositorio, por Prisma, sin importar el módulo.
+- `rewards` no importa `redemptions`. Para rechazar los canjes al desactivar o eliminar una recompensa,
+  publica `reward.deactivated` / `reward.deleted` y `redemptions` escucha. Cuando necesita
+  `confirmedCount`, lo lee de la tabla `redemptions` en su repositorio (US-34).
+- `customers` usa `PointsService` para el saldo y el nivel del listado (decisión S3-18; cierra la D-14).
+- `customers` no importa `accounts`: el alta, la baja, el cambio de email y el de documento llegan a
+  `accounts` por eventos ([ADR 005](../decisions/005-registro-de-clientes-orquestado-por-accounts.md)).
+- `consumptions` y `redemptions` importan `employees` solo para el nombre del empleado del token.
+- `backend/src/architecture.spec.ts` verifica las reglas del Sprint 4 (CA-B4.7 y CA-B4.8): `points` no
+  importa `rewards` ni `redemptions`, `rewards` no importa `redemptions`, y no existe ningún método de
+  reintegro.
+
+Si una historia necesita romper esa dirección, se frena y se pregunta.
 
 ### Estructura de un módulo
 
@@ -67,9 +116,8 @@ mantienen como patches compatibles y también crean versiones. Una migración
 importa los valores singleton existentes en la versión inicial; un índice
 único parcial garantiza como máximo una versión activa. El contrato REST y las
 limitaciones respecto al snapshot futuro de movimientos están en
-[`loyalty-api.md`](../funcionalidades/configuracion-de-puntos.md). Su guard de rol requiere que la futura
-integración de autenticación establezca `request.user.role`; no reemplaza la
-autenticación.
+[`configuracion-de-puntos.md`](../funcionalidades/configuracion-de-puntos.md). Los
+endpoints están cerrados con `@Roles('ADMIN')` y los guards globales de `auth`.
 
 ### Reglas para módulos nuevos
 
@@ -77,12 +125,13 @@ autenticación.
    `infrastructure`, `http`) + su `<modulo>.module.ts`. No saltear capas
    "porque es chico": la estructura es la que mantiene el dominio aislado de
    Prisma y de HTTP.
-2. **Ningún módulo importa el `domain` de otro módulo.** `customers` y
-   `employees` no se conocen entre sí. Si en el futuro un módulo necesita
-   datos de otro, se expone a través del `<modulo>.service.ts` exportado por
-   su `*.module.ts` (nunca su repositorio ni sus entidades internas), o se
-   modela como un evento de dominio. Nunca un `import` directo entre
-   `domain/` de dos módulos.
+2. **Ningún módulo importa el `domain` de otro módulo.** Si un módulo necesita
+   datos de otro, se expone a través del service exportado por su
+   `*.module.ts` (nunca su repositorio ni sus entidades internas), se modela
+   como un evento de dominio o, si solo hay que leer, se lee la tabla desde el
+   propio repositorio (como `points` con `customers`). Nunca un `import`
+   directo entre `domain/` de dos módulos. Las dependencias permitidas son las
+   de la tabla de arriba.
 3. Es una decisión consciente que cada módulo tenga su propia copia de
    utilidades de dominio pequeñas (por ejemplo, `domain/mail.ts` y
    `domain/errors/domain.error.ts` existen duplicados en `customers` y en
@@ -131,18 +180,31 @@ desde `PATCH /empleados/:id` falla entero, porque `accounts` escucha
 `employee.role-changed`, detecta que no quedaría ningún administrador
 disponible y tira.
 
+Un listener también puede **devolver un valor** a quien publica: `emitAsync`
+devuelve un arreglo con lo que devolvió cada listener. Lo usan la baja de un
+cliente y la desactivación o eliminación de una recompensa para saber cuántos
+canjes rechazó `redemptions` (`{ rejectedRedemptions }`). El detalle está en
+[transacciones y eventos](../conceptos-transversales/transacciones-y-eventos.md#73-el-contrato-domain-eventsts).
+
+**Procesos automáticos.** Tres crons con `@nestjs/schedule` (`ScheduleModule`
+en `AppModule`): vencimiento de puntos (`points`, 00:05), recompensas vencidas
+(`rewards`, 00:05 y al iniciar) y canjes vencidos (`redemptions`, cada 5
+minutos y al iniciar). Cada uno se apaga con su variable de entorno y se corre
+a demanda con un script de `backend/src/expire-*.ts`. Ver [SETUP](../SETUP.md).
+
 ### Lo único que los módulos comparten: `src/shared/`
 
 La regla 2 dice que un módulo usa de otro solo el service que ese otro
-exporta. Hay **dos excepciones**, y las dos viven en `backend/src/shared/`
+exporta. Hay **tres excepciones**, y las tres viven en `backend/src/shared/`
 para que no sean el `domain/` de nadie:
 
 | Carpeta | Qué contiene | Quién lo usa |
 |---|---|---|
 | `shared/events/` | Los nombres y los datos de los eventos de dominio | El módulo que publica y el que escucha |
-| `shared/security/` | Los decoradores `@Roles()`, `@Public()` y `@CurrentUser()`, y el tipo del usuario autenticado | Los controllers de cualquier módulo |
+| `shared/security/` | Los decoradores `@Roles()`, `@Public()` y `@CurrentUser()`, el tipo del usuario autenticado y las opciones de la cookie `refresh_token` | Los controllers de cualquier módulo |
+| `shared/time/` | `toArgentinaDateString`: la función única de "hoy en Argentina" (UTC−03:00). BASE-4 la movió desde `points/domain` | `points`, `rewards`, `redemptions` |
 
-Las dos cumplen lo mismo que pide la regla 4: son transversales y no tienen
+Las tres cumplen lo mismo que pide la regla 4: son transversales y no tienen
 lógica de negocio. Son **contratos**: declaran nombres, datos y marcas, no
 deciden nada.
 
@@ -169,7 +231,15 @@ frontend/src/features/<feature>/
   pages/       # pantallas
   schemas/     # validación de formularios (zod)
   types/       # tipos calcados del contrato de la API
+  lib/         # utilidades propias de la feature (opcional)
+  index.ts     # lo único que otra feature puede importar
 ```
+
+Además de `features/`, `frontend/src/domain/` tiene los valores y etiquetas
+compartidos del contrato (`roles.ts`, `documents.ts`, `levels.ts`,
+`statuses.ts`, `redemption-statuses.ts`, `expiration.ts`). No es una capa de
+dominio: son tipos y textos, sin reglas de negocio. El detalle de carpetas y
+componentes está en [estructura del frontend](./estructura-frontend.md).
 
 Los componentes consumen la API directamente a través de los hooks de
 `api/` (ver `frontend/src/features/cashier/`). No hay una capa de dominio propia
@@ -191,8 +261,8 @@ en el backend, y el frontend solo la duplica de forma liviana en los
 
 ## Por qué documentarlo
 
-Esta arquitectura ya existe en el código de `customers` y `employees`, pero
-no se podía derivar mirando un solo módulo: hace falta ver los dos para
+Esta arquitectura ya existe en el código de todos los módulos, pero
+no se puede derivar mirando uno solo: hace falta verlos juntos para
 confirmar que el aislamiento (regla 2) es intencional y no casualidad. Este
 documento es la referencia para no romperla sin querer al revisar código o al
 sumar gente nueva al equipo.

@@ -1,75 +1,31 @@
-# React + TypeScript + Vite
+# Frontend de Vitto Club
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SPA en React + Vite + TypeScript, con Tailwind CSS y shadcn/ui, React Router, TanStack Query, React Hook
+Form con Zod, Axios y MSW para los mocks.
 
-Currently, two official plugins are available:
+## Levantar
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Desde `frontend/`:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev       # con mocks (VITE_API_MOCKS distinto de 'false')
+npm run lint      # ESLint (incluye boundaries)
+npm run build     # tsc -b + vite build
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+Para usar el backend real, crear `frontend/.env.local` con `VITE_API_MOCKS=false` y reiniciar. El paso a
+paso, el proxy de Vite y los problemas frecuentes están en [`docs/SETUP.md`](../docs/SETUP.md) §3.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+No hay framework de tests instalado: la verificación es lint, build y un recorrido manual con mocks
+([`docs/testing/estrategia.md`](../docs/testing/estrategia.md#frontend)).
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Documentación
 
-```
+| Documento | Para qué |
+|---|---|
+| [`CLAUDE.md`](./CLAUDE.md) | Reglas del frontend (y el de la raíz) |
+| [`docs/architecture/estructura-frontend.md`](../docs/architecture/estructura-frontend.md) | Carpetas, rutas, pantallas, componentes compartidos y estilos |
+| [`docs/prototipo/v2/`](../docs/prototipo/v2/LEEME.md) | Prototipo: cómo se ve cada pantalla |
+| `docs/sprint-3/API_CONTRACT_SPRINT_3.md`, `docs/sprint-4/API_CONTRACT_SPRINT_4.md` | Qué endpoint llamar, qué campos llegan y qué `code` puede volver |
+| [`docs/seguimiento/decisiones-de-implementacion.md`](../docs/seguimiento/decisiones-de-implementacion.md) | Decisiones que se tomaron en cada pantalla |

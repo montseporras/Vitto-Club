@@ -113,8 +113,8 @@ como error general. También se puede usar `details[0].field`.
 
 ## 6. Pendiente
 
-- **Volver a registrarse después de una baja con el mismo email.** En `customers` ya funciona, pero la
-  cuenta vieja todavía ocupa el email en la tabla de cuentas (`accounts.email` es único entre todas las
-  cuentas). Hasta que llegue ese cambio (lo está haciendo el bloque de autenticación), ese caso responde
-  **409**. El test e2e de este caso ya está escrito y saltado (`customer-registration.e2e-spec.ts`).
+- **Volver a registrarse después de una baja con el mismo email.** El cambio que faltaba ya está: desde
+  el Sprint 3 el email de las cuentas es único **entre activas** (`accounts_active_email_key`) y la baja del
+  cliente deja inactiva su cuenta. Pero el test e2e de este caso **sigue saltado** (`it.skip` en
+  `backend/test/customer-registration.e2e-spec.ts`): falta habilitarlo y confirmar que pasa.
 - **Validar el email** (por ejemplo, con un correo de confirmación): fuera de este sprint.

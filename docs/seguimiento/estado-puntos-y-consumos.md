@@ -1,5 +1,7 @@
 # Estado de puntos y consumos (Sprint 3)
 
+> **Superado.** Foto del 18/10/2026. Lo que dice que falta (US-24, US-25, US-26, US-27, auditoría, P7) ya está hecho. El estado vigente está en [estado actual](./estado-actual.md).
+
 > **Escrito el 18/10/2026**, por Montse, al cerrar BASE + US-21 (Registrar consumo) + US-22
 > (Anular consumo) backend. Es una foto de ese momento — si algo de esto cambió después,
 > confirmar contra el código y contra `HISTORIAS_SPRINT_3.md`.

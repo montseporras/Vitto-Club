@@ -49,8 +49,9 @@
   matriz de permisos el cliente no puede consultar sus propios datos
   (`GET /customers/:id` está cerrado para él). Si la pantalla del cliente lo
   necesita, hace falta `GET /customers/me`, resuelto con `@CurrentUser()`
-  (que trae `customerId`). No crea ciclos ni copias de datos. Pendiente: la
-  pantalla del cliente todavía no está definida.
+  (que trae `customerId`). No crea ciclos ni copias de datos. **Resuelto en el
+  Sprint 3:** existe `GET /customers/me` (PERFIL) y el login ya trae el nombre
+  del cliente.
 - **Ciclo `accounts` ↔ `customers`: decidido cómo evitarlo.** `AccountsService`
   ya depende de `CustomersService` (para chequear que el email de un empleado
   no esté registrado como cliente). Si el registro de clientes llamara a

@@ -269,9 +269,14 @@ La tabla de endpoints que recorre:
 
 | Grupo | Endpoints | Pueden usarlos |
 |---|---|---|
-| `customers` (8) | listar, buscar por documento, ver uno, historial, crear, editar, dar de baja, reactivar | Administrador y Cajero |
+| `customers` | listar, buscar por documento, ver uno, historial, crear, editar, dar de baja (la reactivación se eliminó en el Sprint 3) | Administrador y Cajero |
 | `empleados` (5) | listar, ver uno, crear, editar, dar de baja | Administrador |
 | `usuarios` (5) | consultar por empleado, registrar, editar, dar de baja, reactivar | Administrador |
+
+> **Al 09/11/2026 esta suite cubre solo los módulos de los Sprints 1 y 2.** Los permisos de consumos,
+> puntos, auditoría, recompensas y canjes (Sprints 3 y 4) se prueban en el e2e de cada historia (por
+> ejemplo, el Cajero en `GET /consumos`, `GET /canjes` o `/recompensas` → `403`). La matriz completa está en
+> [roles y permisos](../conceptos-transversales/roles-y-permisos.md).
 
 Los ids de los pedidos no existen a propósito: si el guard deja pasar, el
 endpoint responde 400 o 404, y eso alcanza para saber que el pedido llegó al
@@ -330,11 +335,11 @@ seed (hashes de `bcryptjs` con costo 10):
 |---|---|
 | `GET /api/health` | 200 |
 | `GET /api/empleados` sin token | **401** `UNAUTHENTICATED` (antes de la integración respondía 200) |
-| Login de la administradora del seed | 200, con la cookie `HttpOnly`, `Path=/api/auth` y una duración de 12 horas |
+| Login de la administradora del seed | 200, con la cookie `HttpOnly`, `Path=/api/auth` (desde el 20/10 es `Path=/api`) y una duración de 12 horas |
 | Con su token: empleados, usuarios, clientes | 200, 200, 200 |
 | Login del cajero de prueba | 200 |
 | Con su token: empleados, usuarios, clientes | **403**, **403**, 200 |
-| Login de la clienta de prueba | 401 (la cuenta de cliente todavía no se resuelve en `accounts`) |
+| Login de la clienta de prueba | 401 en esa prueba de octubre (la cuenta de cliente todavía no se resolvía en `accounts`). Hoy los clientes inician sesión |
 | Login con contraseña incorrecta | 401 |
 
 ---

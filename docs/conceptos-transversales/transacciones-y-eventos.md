@@ -3,9 +3,9 @@
 Guía para entender qué se construyó, por qué, en qué archivos está y cómo se
 usa. No hace falta saber nada de transacciones para leerla.
 
-- **Estado:** el mecanismo está construido y probado. Todavía ningún
-  repositorio de `customers`, `employees` ni `accounts` lo usa (ver la sección
-  "Qué falta").
+- **Estado (09/11/2026):** el mecanismo está construido, probado y lo usan
+  todos los módulos que escriben: `employees`, `accounts`, `customers`,
+  `consumptions`, `points`, `audit`, `rewards` y `redemptions`.
 - **Documentos relacionados:** `docs/architecture/arquitectura.md` (las reglas, en corto) y
   `docs/seguimiento/historico/spike-transacciones.md` (la prueba que se hizo antes de adoptar la
   librería).
@@ -320,6 +320,18 @@ Es la lista de avisos que existen y qué datos lleva cada uno.
 | `customer.document-changed` | `customers` | `accounts` | Si el cliente no cambió la contraseña inicial, que pase a ser el documento nuevo (CLI-ADM) |
 | `customer.email-change-requested` | `customers` | `accounts` | El cliente cambia su correo desde Mi perfil: verificar su contraseña actual (con el límite de intentos) y que ninguna otra cuenta activa use el correo, **antes** de escribir nada. Si falla, tira el error y se deshace todo (PERFIL) |
 | `account.password-changed` | `accounts` | `auth` | Cerrar las sesiones de la cuenta. Si el evento trae `currentRefreshToken` (el usuario cambia su propia contraseña, PERFIL), deja abierta la de la cookie del pedido. Si no lo trae (el Administrador cambia la contraseña de un empleado con `PATCH /usuarios/:id`, EMP-PASS), cierra todas |
+| `customer.deactivated` (segundo listener) | `customers` | `redemptions` | Rechazar los canjes Confirmados vigentes del cliente, como Sistema, con el motivo "Cliente dado de baja" (US-43, S4 §3.13.1). Devuelve `{ rejectedRedemptions }` |
+| `reward.deactivated` | `rewards` (US-36) | `redemptions` | Rechazar los Confirmados vigentes de la recompensa: "Recompensa desactivada". Devuelve `{ rejectedRedemptions }` |
+| `reward.deleted` | `rewards` (US-38) | `redemptions` | Ídem, con "Recompensa eliminada" |
+
+**Listeners que devuelven un valor (Sprint 4).** `emitAsync` devuelve un arreglo
+con lo que devolvió cada listener. Los tres listeners de `redemptions` devuelven
+`RedemptionsRejectedResult` (`{ rejectedRedemptions: n }`, definido en
+`domain-events.ts`). Quien publica lo lee del arreglo (hay una función
+`rejectedRedemptionsFrom` en `customers/application/customers.service.ts`) y lo
+usa en la respuesta (`rejectedRedemptions`) y en la fila "Canjes rechazados:
+{n}" de la auditoría, solo si n > 0. `customer.deactivated` tiene dos listeners
+(`accounts` y `redemptions`): los dos corren en la misma transacción.
 
 **Por qué está en una carpeta compartida (`shared/events/`) y no dentro de un
 módulo:** si `accounts` importara el evento desde `employees/domain`, se
@@ -404,6 +416,36 @@ avisó, y alguien dijo que no.
 
 ---
 
+## 8. Bloqueos y procesos automáticos (Sprints 3 y 4)
+
+### Orden de los bloqueos
+
+Para no generar *deadlocks*, todas las operaciones toman los bloqueos en el mismo orden, con
+`SELECT … FOR UPDATE` dentro de la transacción ambiente:
+
+| Operación | Orden |
+|---|---|
+| Cualquier operación que mueve puntos (consumo, anulación, ajuste, vencimiento, canje) | La fila de `customer_points` del cliente, primero (contrato S3 §3.12) |
+| Registrar el uso de un canje (US-42, contrato S4 §3.9.1) | Recompensa → canje → `customer_points`. `RedemptionUseService` bloquea la recompensa y el canje; `PointsService.canjear` toma el de `customer_points` al final |
+| Editar, activar, desactivar o eliminar una recompensa | La recompensa (`RewardRepository.lockNotDeletedForUpdate`) |
+| Confirmar un canje (US-40) | **Hoy no bloquea nada**: lee la recompensa con `RewardsService.findById`. US-35 dejó anotado que tiene que bloquearla, para que no se cuele un canje mientras el Administrador baja el stock (ítem 7 de [verificaciones pendientes de recompensas](../seguimiento/verificaciones-pendientes-recompensas.md)) |
+
+### "Vencer al leer" va antes de la transacción
+
+`RedemptionsExpirationService.vencerVencidos(filtro)` (US-44) vence los canjes Confirmados con
+`expiresAt` pasado. Los endpoints de canjes lo llaman **antes** de abrir la transacción del caso de uso,
+nunca adentro. Como la transacción ambiente se anida, si se llamara adentro y el caso de uso terminara en
+`409 REDEMPTION_EXPIRED`, el rollback se llevaría también el pase a `EXPIRED` y su auditoría (CA-44.2).
+
+### Procesos automáticos: una transacción por fila
+
+Los tres crons (vencimiento de puntos, recompensas vencidas y canjes vencidos) procesan **cada fila en su
+propia transacción**, con `FOR UPDATE SKIP LOCKED`: si otra operación o otra instancia la tiene tomada, la
+saltean y la toma la corrida siguiente. Si una fila falla, se deshace solo esa, queda en el log y el
+proceso sigue. Son idempotentes: correrlos dos veces no cambia nada.
+
+---
+
 ## 9. Cómo usarlo: lista de control
 
 Al escribir una operación que toca más de un módulo:
@@ -436,12 +478,8 @@ Al escribir una operación que toca más de un módulo:
 
 ## 10. Qué falta
 
-- **`employees` y `accounts` ya usan `client`** (`EmployeePrismaRepository`,
-  `AccountPrismaRepository`). **`customers.repository.ts` sigue con
-  `PrismaService` directo** — todavía no participa de ninguna transacción
-  ambiente, y sigue usando `prisma.$transaction([...])` (la forma de lista;
-  el cliente de una transacción ambiente no tiene `$transaction`, así que esa
-  línea hay que reescribirla el día que ese repositorio participe).
+- **Todos los repositorios usan `client`**, incluido `customers.repository.ts`
+  (ya no usa `PrismaService` ni `prisma.$transaction([...])`).
 - **`employee.deactivated` y `employee.role-changed` ya se publican y se
   escuchan**, con rollback probado (`accounts` escucha ambos desde
   `EmployeeEventsListener`, protección del último ADMIN incluida). Es el
@@ -460,8 +498,8 @@ Al escribir una operación que toca más de un módulo:
   desde `PATCH /api/empleados/:id` tiene que responder 409 y no cambiar nada):
   sigue sin existir — lo que hay es el equivalente a nivel de servicio (con
   `EventEmitter2` real y rollback simulado), no un test e2e contra el endpoint
-  HTTP real. Pendiente porque `AccountsModule` todavía no se registra en
-  `AppModule` (sin guards, esas rutas quedarían sin proteger).
+  HTTP real. `AccountsModule` y `AuthModule` ya están en `AppModule`, así que
+  el test se puede escribir.
 - **No se probó contra Neon**, solo contra el Postgres local.
 
 ---
@@ -497,3 +535,4 @@ Al escribir una operación que toca más de un módulo:
 | 2026-10-20 | CLI-ADM: `customer.deactivated` ya se publica (baja de la cuenta y cierre de sesiones) y se suma `customer.document-changed`. `customer.reactivated` queda sin uso |
 | 2026-10-20 | PERFIL: se suman `customer.email-change-requested` (el cliente cambia su correo; `accounts` verifica la contraseña antes de que `customers` escriba) y `account.password-changed` (`auth` cierra las otras sesiones) |
 | 2026-10-20 | EMP-PASS: `AccountsService.resetPassword` (`PATCH /usuarios/:id`) corre en la transacción ambiente y publica `account.password-changed` sin `currentRefreshToken`, así que `auth` cierra todas las sesiones de la cuenta |
+| 2026-11-09 | Sprints 3 y 4: todos los repositorios usan `client`; eventos `reward.deactivated` y `reward.deleted`; segundo listener de `customer.deactivated`; listeners que devuelven un valor; sección 8 (orden de los bloqueos, "vencer al leer" y procesos automáticos) |

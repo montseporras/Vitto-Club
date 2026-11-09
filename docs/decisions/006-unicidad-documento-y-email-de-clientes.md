@@ -29,8 +29,10 @@ El documento [accounts-vs-rama-scrum-160](../seguimiento/historico/accounts-vs-r
 SCRUM-160 de su sección 6 parte de ella. **Esa regla ya no rige.** La fuente de verdad es el `schema.prisma` y la
 migración `20261008120000_customers_unique_among_active_final`.
 
-## Consecuencia pendiente
+## Consecuencia (resuelta en el Sprint 3)
 
-Con esta regla, un cliente inactivo y uno activo pueden compartir email. La unicidad de `Account.email`
-(un email, una cuenta) se mantiene global. Cómo se resuelve un cliente que se reinscribe con el email de
-su cuenta anterior **no está documentado** en lo que leí; verificar contra el código.
+Con esta regla, un cliente inactivo y uno activo pueden compartir email. Desde la migración
+`20261017200928_sprint3_schema`, `Account.email` también es único **solo entre cuentas activas**
+(`accounts_active_email_key`), igual que `employees`, y la baja del cliente deja inactiva su cuenta
+(`customer.deactivated`). Así, un cliente que se reinscribe con el email de su cuenta anterior obtiene una
+cuenta nueva. El e2e de ese caso sigue saltado en `backend/test/customer-registration.e2e-spec.ts`.

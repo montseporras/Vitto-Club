@@ -77,7 +77,7 @@ datos que el contrato no tenga.
 | Contrato vs. prototipo, en **datos, reglas, permisos o mensajes de error** | **El contrato.** Las secciones 8.1 (diferencias del prototipo que el contrato corrige) y 8.3 (decisiones S4-1 a S4-20; en el contrato del Sprint 3, las del 17/10/2026) existen para eso |
 | Contrato vs. prototipo, en un **texto de pantalla** | Si el contrato cita ese texto, **el contrato**: ya está corregido. Si no lo cita, **el prototipo** |
 | Contrato vs. prototipo, en **disposición, estilo o componentes** | **El prototipo.** El contrato no define cómo se ve |
-| Criterio de `HISTORIAS_SPRINT_3.md` vs. contrato | **El contrato.** Avisá del choque en el resumen final |
+| Criterio de `HISTORIAS_SPRINT_4.md` vs. contrato | **El contrato.** Avisá del choque en el resumen final |
 | Código que ya existe vs. contrato | Hacé lo que pide tu historia según el contrato. Si para eso hay que cambiar código de otra historia o de otro sprint, **frená y preguntá**. No lo "arregles de paso" |
 | Algo que no está en ninguna fuente | **Preguntá** (sección 0) |
 
@@ -126,7 +126,7 @@ Si no encontrás el contrato, el archivo de historias o la carpeta del prototipo
    - **Frontend:** simulalo con MSW, tal como lo define el contrato, y seguí.
    - **Backend:** frená y preguntá. No construyas la parte de otra historia.
 5. **Piezas compartidas.** El modelo de datos nuevo, el módulo de puntos y los enums de auditoría los
-   construye **una sola historia**: la que figura como dueña en la sección 1 de `HISTORIAS_SPRINT_3.md`.
+   construye **una sola historia**: la que figura como dueña en la sección 1 de `HISTORIAS_SPRINT_4.md`.
    Si te hace falta una de esas piezas y no existe, preguntá. No la crees por tu cuenta.
 
 ---

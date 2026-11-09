@@ -24,8 +24,9 @@ La prueba e2e requiere Docker/PostgreSQL local, `DATABASE_URL_TEST` apuntando a
 una base local cuyo nombre contenga `test` y que dicha base exista. El setup
 global aplica allí las migraciones antes de correr; se niega a usar un host
 remoto o una base que no incluya `test`. En las pruebas e2e, un middleware
-**definido únicamente por el test** simula el principal que la futura historia
-de autenticación deberá proveer. No es una ruta de autenticación ni está
-registrado en la aplicación de producción. La base de tests es separada de la
+**definido únicamente por el test** simula el usuario autenticado (header
+`x-test-auth-role`). Se escribió antes de que existiera la autenticación real;
+no está registrado en la aplicación de producción. `loyalty-levels.e2e-spec.ts`
+(US-27) prueba los niveles. La base de tests es separada de la
 base de desarrollo y no debe apuntar a datos reales.
 

@@ -98,7 +98,7 @@ literal. Por ejemplo: `grep -n "Ver movimientos de las últimas 24 hs" docs/prot
 - **Su código:** no es React. Se reproduce con los componentes de `src/shared/components/`.
 
 > **El prototipo puede cambiar.** Si el archivo de la carpeta no coincide con lo que dice
-> `HISTORIAS_SPRINT_3.md` (por ejemplo, porque falta una pantalla o un texto), frená y preguntá si hay
+> `HISTORIAS_SPRINT_4.md` (por ejemplo, porque falta una pantalla o un texto), frená y preguntá si hay
 > un export más nuevo.
 
 ---
@@ -229,9 +229,8 @@ Features que ya existen:
 - `consumptions`
 - `points-movements` (sin pantalla desde el Sprint 4: salió del menú)
 - `rewards`
-- `missions`
-- `notifications`
-- `statistics`
+- `redemptions` (Sprint 4)
+- `missions`, `notifications`, `statistics` y `levels` (vacías)
 
 ---
 

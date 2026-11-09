@@ -80,8 +80,20 @@ Las migraciones se aplican solas a la base de tests antes de cada corrida
 base no contiene `test` (`test/e2e-database.ts`).
 
 Corren en serie (`--runInBand`) porque comparten la base. Cada spec limpia en
-un `beforeEach` las tablas que usa, en orden de claves foráneas (`sessions`,
-`accounts`, y después `employees` y `customers`).
+un `beforeEach` las tablas que usa, en orden de claves foráneas. Desde el
+Sprint 4 el orden es: movimientos, lotes, saldos, canjes, recompensas,
+consumos, sesiones, cuentas, empleados y clientes (detalle en
+[`docs/testing/estrategia.md`](../docs/testing/estrategia.md)).
+
+## Procesos automáticos
+
+Tres crons con `@nestjs/schedule`: vencimiento de puntos, recompensas vencidas y
+canjes vencidos. Cómo apagarlos y correrlos a demanda:
+[`docs/SETUP.md`](../docs/SETUP.md) §2.5.
+
+## Reglas para Claude
+
+Ver [`CLAUDE.md`](./CLAUDE.md) (y el de la raíz).
 
 ## Resources
 

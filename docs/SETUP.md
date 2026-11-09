@@ -91,6 +91,11 @@ npx prisma db seed
 | Cajero de prueba | `bruno.perez@vitto.club` | `SEED_DEMO_PASSWORD` | Con `SEED_DEMO_DATA=true` |
 | Cliente de prueba | `lucia@example.com` | `SEED_DEMO_PASSWORD` | Con `SEED_DEMO_DATA=true` |
 
+El seed crea **solo empleados, clientes y cuentas**. No carga la configuración de puntos, consumos,
+recompensas ni canjes. Hasta que el Administrador configure la equivalencia (Configuración → Puntos),
+registrar un consumo responde `409 POINTS_EQUIVALENCE_NOT_CONFIGURED`. Las recompensas se crean desde
+"Recompensas".
+
 Para ver qué cuentas hay en tu base:
 
 ```powershell
@@ -105,6 +110,28 @@ npm run start:dev
 
 Esperá a ver `Nest application successfully started` **sin** un error `EADDRINUSE` después.
 Para comprobarlo: http://localhost:3000/api/health debe responder OK.
+
+### 2.5 Procesos automáticos
+
+El backend corre tres procesos solo, con `@nestjs/schedule` (sale con `npm install` desde US-25), mientras
+está levantado. No tienen endpoint. Cada uno se puede apagar con su variable y correr a demanda desde
+`backend/`:
+
+| Proceso | Cuándo corre | Variable (opcional) | A demanda |
+|---|---|---|---|
+| Vencimiento de puntos (US-25) | Todos los días a las 00:05, hora de Argentina | `POINTS_EXPIRATION_CRON_ENABLED` | `npm run points:expire` |
+| Recompensas vencidas (US-37) | Todos los días a las 00:05, hora de Argentina, y una vez al iniciar | `REWARDS_EXPIRATION_CRON_ENABLED` | `npx nest build && node dist/expire-rewards` |
+| Canjes vencidos (US-44) | Cada 5 minutos y una vez al iniciar | `REDEMPTIONS_EXPIRATION_CRON_ENABLED` | `npx nest build && node dist/expire-redemptions` |
+
+- **Sin la variable, el proceso queda prendido.** Con `false` se apaga. En los e2e van en `false`.
+- `backend/.env.example` hoy trae solo `POINTS_EXPIRATION_CRON_ENABLED=true`. Las otras dos variables
+  funcionan igual aunque no estén ahí.
+- Los scripts `rewards:expire` y `redemptions:expire` todavía no están en `backend/package.json`: por eso
+  se corren con el comando largo. Los dos comandos también corren el proceso de inicio, así que corren dos
+  veces, sin efecto (son idempotentes).
+- **Ojo en local:** si dejás el backend levantado a las 00:05, el proceso vence de verdad los lotes y las
+  recompensas vencidas de tu base de desarrollo, con su movimiento y su auditoría. Si no querés eso, poné
+  las variables en `false` en tu `backend/.env`.
 
 ---
 
@@ -230,6 +257,10 @@ llevar `test`: si no, los e2e se niegan a correr (para no borrar datos de desarr
 | Login con datos "de mocks" aunque levantaste el backend | `VITE_API_MOCKS` no es `false` | `frontend/.env.local` con `VITE_API_MOCKS=false`, reiniciar y Ctrl+Shift+R |
 | Cambiaste un `.env` y no pasa nada | Las variables se leen al arrancar | Reiniciá el backend (o el front, si fue `.env.local`) |
 | `Contraseña incorrecta` con la cuenta de demo | La base no tiene datos de demo | `SEED_DEMO_DATA=true`, `SEED_DEMO_PASSWORD=...` en `backend/.env` y `npx prisma db seed` |
+| Backend no compila: no encuentra `@nestjs/schedule` | Trajiste cambios con una dependencia nueva | `npm install` en `backend` |
+| Errores de tipos de Prisma (`Property 'auditLog' does not exist`) | El cliente de Prisma quedó generado con un schema viejo | `npx prisma generate` en `backend` (no toca la base) |
+| `migrate deploy` corta con "points_movements tiene filas REDEMPTION sin canje" | Movimientos `REDEMPTION` de seeds viejos (migración de BASE-4) | Borrarlos en la base de desarrollo y volver a migrar, o empezar la base de cero |
+| `npm run test:e2e` falla con "Missing environment variable DATABASE_URL_TEST" | Falta la variable en `backend/.env` | Copiarla de `.env.example` |
 
 ### Empezar la base de cero
 
@@ -247,8 +278,9 @@ npx prisma db seed
 
 ## 7. Más información
 
-- Contrato HTTP del login: [`auth-api.md`](funcionalidades/autenticacion.md)
-- Cómo funciona la autenticación: [`autenticacion.md`](conceptos-transversales/autenticacion-y-sesiones.md)
-- Estructura del frontend: [`FRONTEND-STRUCTURE.md`](architecture/estructura-frontend.md)
+- Contrato HTTP del login: [`autenticacion.md`](funcionalidades/autenticacion.md)
+- Cómo funciona la autenticación: [`autenticacion-y-sesiones.md`](conceptos-transversales/autenticacion-y-sesiones.md)
+- Estructura del frontend: [`estructura-frontend.md`](architecture/estructura-frontend.md)
 - Forma de trabajo (ramas, commits, PRs): [`CONTRIBUTING.MD`](./CONTRIBUTING.MD)
-- Prisma: [`../backend/PRISMA.md`](database/prisma.md)
+- Prisma: [`prisma.md`](database/prisma.md)
+- Tests: [`estrategia.md`](testing/estrategia.md)

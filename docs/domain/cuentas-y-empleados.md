@@ -50,8 +50,11 @@ PO del 2026-10-06.
 Se chequea en **un solo sentido**: `customers` consulta a `employees`. `employees` no consulta a
 `customers`, para no crear una dependencia circular.
 
+Desde el Sprint 3 el email es único **entre registros activos** en las tres tablas (`employees`,
+`customers` y `accounts`): un registro dado de baja lo libera.
+
 **Riesgo aceptado:** si se crea un empleado con el email de un cliente que ya existe, el conflicto aparece
-recién al crearle la cuenta (por `Account.email` único). Como el email del empleado no se edita, hay que
+recién al crearle la cuenta (por el email único entre cuentas activas). Como el email del empleado no se edita, hay que
 darlo de baja y cargarlo de nuevo.
 
 ## Eventos
@@ -62,10 +65,15 @@ darlo de baja y cargarlo de nuevo.
 | `employee.role-changed` | `employees` | `accounts` | Sincroniza `Account.role`; protección del último admin si degrada |
 | `account.deactivated` | `accounts` | `auth` | Revoca las sesiones de esa cuenta |
 | `account.password-changed` | `accounts` | `auth` | Revoca las sesiones de esa cuenta (todas, o todas menos la actual si el evento trae el refresh token) |
-| `customer.deactivated`, `customer.reactivated`, `customer.email-changed` | `customers` | `accounts` | Están en el contrato (`shared/events/domain-events.ts`). **No determinado** si `customers` ya los publica |
+| `customer.created` | `customers` | `accounts` | Crea la cuenta del cliente dado de alta en caja o por el Administrador (contraseña inicial = documento, `mustChangePassword = true`) |
+| `customer.deactivated` | `customers` | `accounts` y `redemptions` | Deja inactiva la cuenta del cliente y cierra sus sesiones; `redemptions` rechaza sus canjes Confirmados |
+| `customer.email-changed`, `customer.email-change-requested` | `customers` | `accounts` | Sincroniza el email de acceso; desde Mi perfil, primero verifica la contraseña actual |
+| `customer.document-changed` | `customers` | `accounts` | Si no cambió la contraseña inicial, pasa a ser el documento nuevo. Con la decisión D-03 (nadie edita el documento) queda sin uso desde la pantalla |
+| `customer.reactivated` | — | — | Declarado, sin uso: no hay reactivación de clientes (D-12) |
 
 Detalle del mecanismo: [transacciones y eventos](../conceptos-transversales/transacciones-y-eventos.md).
 
 ## Dependencias entre módulos (sin `forwardRef`)
 
-`auth → accounts → employees`, `accounts → customers`, `customers → employees`.
+`auth → accounts → employees`, `accounts → customers`, `customers → employees`. `employees` solo
+importa `audit`. El mapa completo está en [arquitectura](../architecture/arquitectura.md#dependencias-entre-módulos).

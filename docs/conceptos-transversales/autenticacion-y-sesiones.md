@@ -9,15 +9,18 @@ medida que el módulo avanza.
   cuentas reales. Se probó con la aplicación levantada y el seed de desarrollo:
   el login del Administrador funciona con el hash que generó el seed.
   - **Los empleados (Administrador y Cajero) ya pueden iniciar sesión.**
-  - **Los clientes todavía no**: `accounts` hoy solo resuelve cuentas de
-    empleado. Depende del bloque de registro de clientes (ver 11).
+  - **Los clientes también** (desde el registro de clientes, SCRUM-160, y el
+    alta con cuenta, US-17-AJ). El login y la renovación devuelven
+    `user.mustChangePassword` (contrato S3 §3.11.3).
   - **Los guards ya protegen toda la aplicación** (ver 8.6): un pedido sin token
     recibe 401, y cada endpoint exige el rol que declara.
 
-  Ver "Qué falta" al final.
+  Lo que queda pendiente de seguridad (límite de intentos de login, limpieza de
+  sesiones vencidas, verificación de email) está en
+  [deuda técnica](../seguimiento/deuda-tecnica.md#seguridad).
 - **Importante:** desde que el módulo está registrado, **la aplicación no
   arranca sin `JWT_SECRET`** en el `.env` (ver 6.1).
-- **Rama:** `feature/auth-login`.
+- **Rama original:** `feature/auth-login` (ya está en `develop`).
 - **Documentos relacionados:** `docs/architecture/arquitectura.md` (reglas de la
   arquitectura) y `docs/conceptos-transversales/transacciones-y-eventos.md` (transacciones y eventos).
 
@@ -735,9 +738,9 @@ mostrarle. Los dos casos de uso arman la respuesta con la misma función
   el encabezado ("Nombre Apellido · Rol"). `accounts` los entrega junto con el
   resto, tomándolos del empleado que ya carga para leer el rol, así que no
   cuesta una consulta más. Igual que el email, van en la respuesta y **no
-  dentro del access token**: pueden cambiar. Son **opcionales** en el tipo:
-  para clientes `accounts` todavía no los conoce y la respuesta no los trae
-  (ver la limitación de abajo).
+  dentro del access token**: pueden cambiar. Son **opcionales** en el tipo.
+  Hoy `accounts` los entrega para empleados y para clientes
+  (`AccountsService`, toma el nombre del cliente dueño de la cuenta).
 
   ```ts
   user: {
@@ -752,11 +755,10 @@ mostrarle. Los dos casos de uso arman la respuesta con la misma función
   cliente recibiría `firstName: undefined`, y la respuesta tendría una clave
   que no debería estar.
 
-  **Por qué para clientes no vienen:** el nombre del cliente vive en
-  `customers`. Si `accounts` lo leyera, dependería de `customers`, y
-  `customers` va a necesitar a `accounts` para crear la cuenta en el registro:
-  un ciclo. Se resuelve con `GET /api/customers/me` cuando la pantalla del
-  cliente lo requiera (ver deuda técnica).
+  **Para clientes también vienen** (antes no): `accounts` importa
+  `customers` en un solo sentido, y `customers` nunca importa `accounts` (se
+  comunican por eventos, ADR 005), así que no hay ciclo. El perfil completo del
+  cliente está en `GET /api/customers/me`.
 
 ### 7.2 Iniciar sesión
 
@@ -1131,10 +1133,13 @@ Cada endpoint declara qué necesita con los decoradores de `src/shared/security/
 | Controller | Marca |
 |---|---|
 | `health` | `@Public()` |
-| `auth` | `@Public()` (los tres endpoints) |
-| `customers` | `@Roles('ADMIN', 'CASHIER')` |
+| `auth` | `@Public()` (los tres endpoints, más `POST /auth/register`) |
+| `customers` | `@Roles('ADMIN', 'CASHIER')`; `me*` con `@Roles('CUSTOMER')`; ajustes con `@Roles('ADMIN')` |
 | `employees` | `@Roles('ADMIN')` |
 | `usuarios` (cuentas) | `@Roles('ADMIN')` |
+
+La matriz completa de todos los módulos (consumos, puntos, auditoría,
+recompensas y canjes) está en [roles y permisos](./roles-y-permisos.md#matriz-de-permisos).
 
 **Consecuencia para quien agregue un endpoint:** si no lo marca con `@Public()`
 ni con `@Roles()`, responde 403 incluso con sesión. Es la regla "falla cerrado":
@@ -1148,9 +1153,9 @@ Da a los errores de `auth` el mismo formato que usan los demás módulos
 
 Como los guards son globales, un 401 o un 403 puede aparecer en endpoints de
 cualquier módulo, y cada módulo tiene su propio filtro de errores. Los de
-`customers`, `employees` y `accounts` conocen el 403 y **dejan pasar el campo
-`code`**; si no, el 403 saldría como `"error": "Error"` y sin código. El e2e de
-permisos comprueba que eso se cumple en los tres.
+todos los módulos conocen el 403 y **dejan pasar el campo `code`**; si no, el
+403 saldría como `"error": "Error"` y sin código. El e2e de permisos lo
+comprueba.
 
 ---
 
@@ -1168,3 +1173,4 @@ permisos comprueba que eso se cumple en los tres.
 | 2026-10-06 | Nombre y apellido en la respuesta del login y la renovación (opcionales; hoy solo empleados), sin ir dentro del token. Decisiones del PO: el rol solo se cambia desde empleados; la lista de usuarios va en `GET /api/usuarios`. Se documenta el posible ciclo `accounts` ↔ `customers` y se actualiza `docs/funcionalidades/autenticacion.md` (nombre, y sección 11 con lo acordado y pendiente). 68 tests de `auth`, 55 e2e |
 | 2026-10-06 | **Integración con `accounts` (paso E).** Hasher de bcryptjs en `accounts`, adaptador `AccountsCredentialsVerifier` en `auth` (reemplaza al provisorio), `AccountsModule` en `AppModule`, guards globales con `APP_GUARD`, `@Roles('ADMIN')` en `usuarios`, filtro de `accounts` con 403 y `code`. Límite de 72 bytes en la contraseña (bcrypt descarta el resto en silencio). Los empleados ya pueden iniciar sesión; probado con la aplicación levantada y el seed. Se decide la opción X para el registro de clientes. 457 tests unitarios y 73 e2e |
 | 2026-10-20 | PERFIL (cambio de contraseña): la cookie del refresh token pasa a `Path=/api` (y se borra la de `/api/auth`) y `readCookie` se mueve a `src/shared/security/refresh-cookie.ts`. Nuevo `SessionRepository.revokeAllForAccountExcept`, `AuthService.revokeOtherSessionsOfAccount` y `AccountPasswordChangedListener` (evento `account.password-changed`): al cambiar la contraseña se cierran las otras sesiones y la actual sigue abierta. Detalle en `docs/sprint-3/CAMBIOS_PROPUESTOS_AL_CONTRATO_PERFIL.md` |
+| 2026-11-09 | Puesta al día con `develop` (Sprints 3 y 4): los clientes inician sesión y reciben `mustChangePassword`, nombre y apellido; la matriz de permisos completa está en `roles-y-permisos.md` |

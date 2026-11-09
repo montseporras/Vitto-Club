@@ -1,6 +1,8 @@
 # Estructura del frontend
 
-> Grupo 11 · Seminario Integrador · Vitto Club · Septiembre 2026
+> Grupo 11 · Seminario Integrador · Vitto Club · Septiembre 2026. Actualizado el 09/11/2026 con el código
+> de `develop` (Sprints 3 y 4). Las pantallas, textos y disposición salen del prototipo v2
+> (`docs/prototipo/v2/`); los datos, de los contratos.
 
 Este documento describe cómo se organiza el código de la aplicación web de Vitto Club: roles y acceso, estructura de carpetas, capa de datos, mapa de pantallas y convenciones de estilo.
 
@@ -76,7 +78,7 @@ frontend/src/
 ├── app/                        # arranque de la app, no lógica de negocio
 │   ├── main.tsx
 │   ├── App.tsx
-│   ├── providers/              # QueryClient, Auth, Toast
+│   ├── providers/              # AppProviders.tsx: QueryClient, Auth, Toast
 │   ├── router/
 │   │   ├── index.tsx           # todas las rutas, con lazy()
 │   │   ├── ProtectedRoute.tsx  # ¿hay sesión?
@@ -89,17 +91,21 @@ frontend/src/
 │       └── AuthLayout.tsx      # /login y /registro
 │
 ├── features/                   # un módulo por Epic del backlog
-│   ├── auth/                   # EP01 — login unificado + registro de Cliente
-│   ├── employees/              # EP01 — alta de Cajeros y Administradores
-│   ├── customers/              # EP03 — directorio del Administrador
-│   ├── cashier/                # EP03/EP04/EP06/EP07 — pantallas del Cajero
-│   ├── rewards/                # EP06 — catálogo (ABM del Administrador)
-│   ├── missions/               # EP05 — misiones mensuales (ABM)
-│   ├── levels/                 # EP05 — Bronce / Plata / Oro (ABM)
-│   ├── notifications/          # EP08 — mensajes automáticos (config)
-│   ├── statistics/             # EP09 — dashboards + exportar PDF
-│   ├── audit/                  # EP09 — historial de operaciones
-│   └── my-account/             # EP03/EP04/EP05/EP06 — vista del Cliente
+│   ├── auth/                   # EP01 — login unificado + registro de Cliente + "Cambiá tu contraseña"
+│   ├── employees/              # EP01 — empleados y usuarios (Configuración → Empleados)
+│   ├── customers/              # EP03 — Clientes del Administrador y su ficha (CLI-ADM, US-19)
+│   ├── cashier/                # EP03/EP04/EP06 — Buscar cliente, Nuevo cliente, Canjes por código; modal Ajustar puntos (US-24)
+│   ├── consumptions/           # EP04 — Consumos del Administrador e historial del Cliente (US-23)
+│   ├── points/                 # Configuración → Puntos (equivalencia, vigencia, bonificación, niveles)
+│   ├── points-movements/       # Movimientos de puntos del Administrador (sin menú desde el 25/10)
+│   ├── rewards/                # EP06 — Recompensas del Administrador; tipo Reward y etiqueta de vencimiento
+│   ├── redemptions/            # EP06 — Canjes del Administrador y ventanas compartidas (Canjear, Registrar uso, Rechazar)
+│   ├── audit/                  # EP09 — Auditoría (US-57)
+│   ├── my-account/             # EP03/EP04/EP06 — vista del Cliente: Inicio, Mi perfil, Canjes (Catálogo y Mis canjes)
+│   ├── missions/               # EP05 — vacía (Sprint 5)
+│   ├── levels/                 # vacía: los niveles se configuran en points/
+│   ├── notifications/          # EP08 — vacía (Sprint 5)
+│   └── statistics/             # EP09 — vacía (Sprint 5)
 │
 ├── shared/                     # infraestructura técnica
 │   ├── api/
@@ -108,26 +114,28 @@ frontend/src/
 │   │   ├── ApiError.ts
 │   │   └── download.ts         # blobs (PDF de reportes)
 │   ├── components/
-│   │   ├── ui/                 # Button, Input, Select, Card, Page, Modal, Table, Badge, Alert...
+│   │   ├── ui/                 # Button, Input, Select, Textarea, Card, Page, Modal, Table, Pagination, Badge, Alert,
+│   │   │                       # DataList, DateInput, DateRangePicker, PasswordInput, AuthShell, Icon...
 │   │   ├── forms/              # FormField, FormSection, FormActions, SegmentedRadio
 │   │   ├── navigation/         # AppHeader, SideNav
-│   │   └── feedback/           # StatusText, ComingSoon
+│   │   └── feedback/           # StatusText, ComingSoon, Toast
 │   ├── hooks/                  # useDebounce, useMediaQuery
-│   ├── lib/                    # utilidades (cn, fechas, formateadores es-AR)
-│   └── types/                  # Paginado<T>, ApiResponse<T>
+│   ├── lib/                    # utils.ts (cn), dates.ts, numbers.ts, password.ts, env.ts
+│   └── types/                  # pagination.ts: Paginated<T>
 │
 ├── domain/                     # vocabulario del negocio compartido
-│   ├── roles.ts                # Cliente, Cajero, Administrador
+│   ├── roles.ts                # Role y ROLES: Cliente, Cajero, Administrador
+│   ├── documents.ts            # DNI / Pasaporte
 │   ├── redemption-statuses.ts  # Confirmado, Utilizado, Rechazado, Cancelado, Vencido
-│   ├── statuses.ts             # estados de consumo, misión y recompensa
-│   ├── levels.ts               # Bronce (0) / Plata (300) / Oro (800)
-│   └── expiration.ts           # reglas de vencimiento (puntos, canjes, recompensas)
+│   ├── statuses.ts             # estados del consumo y tipos de movimiento de puntos
+│   ├── levels.ts               # Bronce / Plata / Oro (los umbrales vienen del backend)
+│   └── expiration.ts           # textos de vencimiento (puntos, canjes, recompensas)
 │
 ├── mocks/                      # MSW — handlers que simulan la API de NestJS
 │   ├── handlers/               # uno por feature, mismas rutas que el backend real
 │   └── browser.ts
 │
-├── api-contract/               # tipos generados del Swagger de NestJS (no editar)
+├── api-contract/               # reservada: vacía (no hay Swagger; los tipos se escriben en cada feature)
 └── styles/                     # sistema de diseño (ver sección 10)
     ├── theme.css               # tokens de marca
     ├── globals.css             # estilos base
@@ -158,9 +166,9 @@ La ruta raíz `/` no tiene pantalla propia: evalúa el rol de la sesión activa 
 
 | Layout | Rol | Ruta raíz | Forma |
 |---|---|---|---|
-| `CustomerLayout` | Cliente | `/mi-cuenta` | Mobile-first, tabs fijas abajo (RNF-3) |
-| `CashierLayout` | Cajero | `/caja` | Pantalla completa, botones grandes, sin sidebar (RNF-1, RNF-2, RNF-5) |
-| `AdminLayout` | Administrador | `/admin` | Sidebar + topbar, escritorio |
+| `CustomerLayout` | Cliente | `/mi-cuenta` | Mobile-first, tabs fijas abajo (RNF-3): Inicio, Historial, Misiones ("Próx."), Canjes; "Mi perfil" desde el ícono superior |
+| `CashierLayout` | Cajero | `/caja` | Menú lateral "Menú de mostrador" (desde SCRUM-57): Buscar cliente, Nuevo cliente, Canjes por código; botones grandes (RNF-1, RNF-2, RNF-5) |
+| `AdminLayout` | Administrador | `/admin` | Menú lateral de 7 opciones + topbar con el engranaje de Configuración, escritorio |
 | `AuthLayout` | todos | `/login`, `/registro` | Centrado, una tarjeta |
 
 ---
@@ -202,6 +210,9 @@ Existe vocabulario de negocio que no pertenece a un único feature. El estado de
 - `features/my-account/` — el Cliente consulta el estado de sus canjes.
 - `features/statistics/` — reporte de canjes por estado.
 
+(Este ejemplo es del diseño original; hoy los canjes viven en `features/redemptions/` y
+`features/my-account/`, y estadísticas es del Sprint 5. La idea es la misma.)
+
 Si esa definición viviera dentro de `features/cashier/`, los otros dos módulos tendrían que importar desde allí y se rompería la regla de capas de la sección 02. Por eso se centraliza en `domain/`, junto con las transiciones válidas entre estados; las acciones disponibles en pantalla («Aplicar», «Rechazar») se derivan de esas transiciones en lugar de repetir la misma condición en cada pantalla.
 
 | | `shared/` | `domain/` | `features/` |
@@ -241,42 +252,50 @@ Las pantallas y sus nombres corresponden a las validadas en el prototipo interac
 | `/login` | Ingresar — usuario/correo y contraseña, un solo formulario para los tres roles |
 | `/registro` | Registrarme — solo crea cuentas con rol Cliente |
 
+Las rutas salen de `src/app/router/paths.ts` (09/11/2026). "Página" es el componente de `features/`.
+
 ### Cliente — `CustomerLayout`, tabs fijas abajo
 
-| Ruta | Pantalla |
-|---|---|
-| `/mi-cuenta` | Inicio — puntos, nivel, catálogo de recompensas con filtros, canjear |
-| `/mi-cuenta/historial` | Historial de consumos e historial de movimientos de puntos |
-| `/mi-cuenta/misiones` | Misiones del mes, progreso, reclamar recompensa |
-| `/mi-cuenta/canjes` | Mis canjes — código y estado |
-| `/mi-cuenta/perfil` | Mi perfil — editar teléfono, correo, fecha de nacimiento |
+| Ruta | Pantalla | Página |
+|---|---|---|
+| `/mi-cuenta` | Inicio — saldo, nivel, próximos vencimientos, "Tenés un canje para usar" y tarjeta "Recompensas" | `my-account/CustomerHomePage` |
+| `/mi-cuenta/historial` | Historial de consumos y de movimientos de puntos | `consumptions/CustomerHistoryPage` |
+| `/mi-cuenta/canjes` | Canjes: "Catálogo" y "Mis canjes" (`?vista=mis`) | `my-account/MyRedemptionsPage` |
+| `/mi-cuenta/perfil` | Mi perfil — teléfono, correo (pide la contraseña actual), fecha de nacimiento, contraseña, cerrar sesión | `my-account/MyProfilePage` |
+| — | Misiones: tab deshabilitada con "Próx." (Sprint 5). No tiene ruta | — |
 
 ### Cajero — `CashierLayout`
 
-| Ruta | Pantalla |
-|---|---|
-| `/caja` | Identificar cliente por documento → resumen (puntos, nivel), registrar consumo, ver canjes y recompensas alcanzables |
-| `/caja/canje` | Gestionar canje por código — cuando el cliente solo tiene el código |
-| `/caja/alta-cliente` | Alta manual de cliente — cuando no se encuentra por documento |
+| Ruta | Pantalla | Página |
+|---|---|---|
+| `/caja` | Redirige a `/caja/cliente` | — |
+| `/caja/cliente` | Buscar cliente por documento → tarjeta (saldo, nivel), registrar consumo, paneles de 24 h, "Canjes para usar ahora" y "Recompensas a las que puede acceder" | `cashier/IdentifyCustomerPage` |
+| `/caja/canje` | Canjes por código (US-41): buscar por código, ver el canje y aplicarlo o rechazarlo | `cashier/ManageRedemptionPage` |
+| `/caja/alta-cliente` | Nuevo cliente (con cuenta y contraseña inicial) | `cashier/ManualCustomerRegistrationPage` |
 
 ### Administrador — `AdminLayout`
 
-| Ruta | Pantalla |
-|---|---|
-| `/admin/recompensas` | Catálogo de recompensas — crear, editar, activar/desactivar |
-| `/admin/misiones` | Misiones mensuales — crear, editar/baja |
-| `/admin/clientes` | Clientes — buscar, filtrar por nivel, ver más / editar (con motivo) |
-| `/admin/estadisticas` | Estadísticas y reportes — clientes activos, consumos, puntos, canjes; exportar PDF |
-| `/admin/auditoria` | Auditoría — filtro por usuario, cliente y fecha (exacta o rango) |
+| Ruta | Pantalla | Página |
+|---|---|---|
+| `/admin` | Redirige a `/admin/clientes` | — |
+| `/admin/recompensas` | Recompensas — crear, editar (clic en la fila), activar/desactivar, eliminar | `rewards/RewardsAdminPage` |
+| `/admin/canjes` | Canjes — filtros, modal "Canje {código}" con Rechazar y Aplicar | `redemptions/RedemptionsAdminPage` |
+| `/admin/misiones` | "Próximamente" (Sprint 5) | — |
+| `/admin/clientes` | Clientes — buscar, filtrar por nivel, "Ver más" (editar con motivo, eliminar), "+ Registrar cliente" | `customers/CustomersPage` |
+| `/admin/clientes/:id` | Ficha del cliente — saldo, nivel, consumos, movimientos, Ajustar puntos, Registrar consumo | `customers/CustomerDetailPage` |
+| `/admin/estadisticas` | "Próximamente" (Sprint 5) | — |
+| `/admin/auditoria` | Auditoría — filtros por módulo, acción, "Realizado por", documento y fechas | `audit/AuditPage` |
+| `/admin/consumos` | Consumos — listado con filtros y totales | `consumptions/ConsumptionsPage` |
+| `/admin/consumos/:code` | Detalle del consumo, con Anular | `consumptions/ConsumptionDetailPage` |
+| `/admin/buscar-cliente`, `/admin/movimientos` | Salieron del menú el 25/10 (S4 §3.13.3): **solo redirigen** | — |
 
 ### Configuración — modal accesible desde el ícono de engranaje
 
-| Sección | Contenido |
-|---|---|
-| Empleados | ABM de Cajeros y Administradores (nombre, usuario, contraseña, rol) |
-| Puntos | Puntos por cada $1000, vigencia en meses, bonificación 1.er consumo |
-| Niveles de fidelización | Bronce / Plata / Oro — puntaje mínimo y beneficio |
-| Notificaciones | 4 tipos (vencimiento, cumpleaños, promociones, misiones) — activar/desactivar y editar mensaje |
+| Sección | Contenido | Página |
+|---|---|---|
+| Empleados | Empleados y sus usuarios: alta (con usuario en el mismo paso), edición, baja, cambiar contraseña, desactivar y reactivar la cuenta | `employees/EmployeesPage` |
+| Puntos | Equivalencia, vigencia en meses, bonificación por primer consumo y niveles (Plata y Oro) | `points/PointsSettingsPage` |
+| Notificaciones | Deshabilitada con "Próx." (Sprint 5) | — |
 
 ---
 
@@ -294,9 +313,20 @@ Cada acreditación de puntos tiene su propia fecha de vencimiento. El saldo se c
 
 Si un Cliente solicita un canje desde su celular mientras está en el local, el Cajero lo visualiza al volver a buscar al cliente o al recargar `/caja`. Dado que esa pantalla utiliza TanStack Query, basta con invalidar la consulta al buscar nuevamente; no se requieren WebSockets ni cambios en el backend.
 
+Desde el Sprint 4, el panel de Caja se actualiza al abrirse y después de cada acción, sin polling. Cuando la
+cuenta regresiva de un canje llega a 0, la lista se vuelve a pedir una vez (decisión de US-42).
+
+### b2) Las únicas cuentas que hace la pantalla
+
+El backend calcula puntos, saldo, nivel, `canVoid` y las 24 h. La pantalla solo hace las cuentas que el
+contrato escribe: la vista previa de "Ajustar puntos" (S3 §3.5), el saldo resultante de "Anular consumo"
+(S3 §3.2.2) y, en el Sprint 4 (decisión S4-2), comparar el saldo ya cargado con los puntos de la
+recompensa ("Te faltan {n} pts", Canjear deshabilitado, filtro de Caja `points <= saldo`), la etiqueta de
+vencimiento de la recompensa y la cuenta regresiva del canje con `expiresAt`.
+
 ### c) Datos del cliente según la vista
 
-La pantalla de identificación en caja muestra nombre, documento, puntos y nivel, pero no el correo ni el teléfono, que sí ve el Cliente en su propio perfil. Esta diferencia se modela en TypeScript como una unión discriminada (un tipo por vista) y no como un único DTO con campos opcionales. Así, el compilador impide acceder a datos de contacto desde la vista de caja, en lugar de que el error aparezca recién en producción como un valor `undefined`.
+La pantalla de identificación en caja muestra nombre, documento, puntos y nivel, pero no el correo ni el teléfono, que sí ve el Cliente en su propio perfil. (**Hoy no está implementado así:** `GET /customers/by-document` devuelve el `Customer` completo y la tarjeta de Caja usa `Pick<Customer, …>`; no hay un tipo por vista. Anotado en US-46.) Esta diferencia se modela en TypeScript como una unión discriminada (un tipo por vista) y no como un único DTO con campos opcionales. Así, el compilador impide acceder a datos de contacto desde la vista de caja, en lugar de que el error aparezca recién en producción como un valor `undefined`.
 
 ### d) Operaciones sensibles con motivo y auditoría
 
@@ -314,7 +344,7 @@ El sistema se compone de tres niveles:
 
 | Nivel | Ubicación | Contenido |
 |---|---|---|
-| **Tokens** | `src/styles/theme.css` | Paleta de marca (`accent`, `olive`, `beige`, `sage`, `neutral`), colores de superficie y texto (`bg`, `surface`, `text`, `ink`), tipografías (`font-heading`: Playfair Display; `font-sans`: Lora) y radio de borde. |
+| **Tokens** | `src/styles/theme.css` | Paleta de marca (`accent`, `olive`, `beige`, `sage`, `neutral`) y `--color-negative: #b3261e` (el rojo del prototipo para puntos y saldos negativos; no está en el manual de marca, US-46), colores de superficie y texto (`bg`, `surface`, `text`, `ink`), tipografías (`font-heading`: Playfair Display; `font-sans`: Lora) y radio de borde. |
 | **Recetas de estilo** | `src/styles/ui/` | Clases de Tailwind que definen la apariencia de cada componente (botones, formularios, tarjetas, tablas, alertas, navegación). Las variantes se declaran con `class-variance-authority`. |
 | **Componentes** | `src/shared/components/` | Componentes de React que aplican esas recetas y son los que se usan en las pantallas. |
 
@@ -326,15 +356,21 @@ El sistema se compone de tres niveles:
 
    | Necesidad | Componente |
    |---|---|
-   | Estructura de la pantalla | `Page` (contenedor) y `PageCard` (tarjeta principal con encabezado de marca, `eyebrow` y `title`) |
+   | Estructura de la pantalla | `Page` (contenedor) y `PageCard` (tarjeta principal; `eyebrow` es opcional; variantes `header`, por defecto, y `plain`, sin tira de color) |
+   | Ingreso y registro | `AuthShell` (panel de marca + formulario) |
    | Tarjetas secundarias | `Card`, `CardTitle` |
-   | Formularios | `FormSection` (bloque numerado), `FormField` (etiqueta + control + error/ayuda), `FormActions` (botonera final), `SegmentedRadio` |
-   | Controles | `Input`, `Select`, `DateInput`, `Label` |
+   | Formularios | `FormSection` (título en mayúsculas con línea debajo), `FormField` (etiqueta + control + error/ayuda; marca `*` en los obligatorios), `FormActions` (botonera con fondo), `SegmentedRadio` |
+   | Controles | `Input`, `Textarea` (US-24), `Select`, `DateInput`, `DateRangePicker`, `PasswordInput`, `Label` |
    | Acciones | `Button` — variantes `primary`, `secondary`, `ghost`; tamaño `lg` para la pantalla de caja |
-   | Estados y mensajes | `Alert` (`success` / `error`), `Badge` (`success` / `danger`), `StatusText` |
-   | Datos | `Table` y sus subcomponentes, `DataList` (pares etiqueta/valor) |
-   | Diálogos | `Modal` |
-   | Navegación | `AppHeader`, `SideNav` (se usan desde los layouts) |
+   | Estados y mensajes | `Alert` (`success` / `error`), `Badge` (`success`, `danger`, `alert`, `neutral`, `accent`), `StatusText`, `Toast` (solo de éxito), `ComingSoon` (descripción opcional) |
+   | Datos | `Table` y sus subcomponentes (`TableRow highlight`: se pinta al pasar el mouse sin ser clickeable), `DataList` (pares etiqueta/valor), `Pagination` ("Página X de Y", Anterior / Siguiente) |
+   | Diálogos | `Modal`. **No se cierra con Escape**: cada modal suma su propio listener (en `redemptions`, el hook `useEscapeKey`) |
+   | Navegación | `AppHeader`, `SideNav` (opciones deshabilitadas con etiqueta: `{ disabled: true, tag: 'Próx.' }`) |
+
+   Recetas sin componente propio: `segmentedTabsStyles` (pestañas segmentadas, `styles/ui/form.ts`),
+   `formSectionTitleStyles` y `pointsToneStyles` (verde y rojo de los puntos). Utilidades:
+   `shared/lib/numbers.ts` (enteros con miles y signo "−", `formatMoney`), `shared/lib/dates.ts`
+   (`isoToDisplayDateOnly` y el resto de los formatos en hora de Argentina).
 
 2. **Usar los tokens, nunca valores fijos.** Cuando se necesite una clase de Tailwind adicional, se deben utilizar los tokens del tema (`bg-accent-700`, `text-ink`, `border-accent-200`, `font-heading`, etc.). No se admiten colores en hexadecimal, fuentes ni valores arbitrarios escritos directamente en los componentes.
 
