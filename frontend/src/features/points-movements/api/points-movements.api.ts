@@ -3,24 +3,8 @@ import { http } from '@/shared/api/http'
 import type {
   CustomerPointsMovement,
   PointsMovement,
-  PointsMovementFilters,
   PointsMovementPage,
 } from '../types/points-movement'
-
-export async function getPointsMovements(
-  filters: PointsMovementFilters,
-  page: number,
-) {
-  try {
-    const { data } = await http.get<PointsMovementPage<PointsMovement>>(
-      '/movimientos-de-puntos',
-      { params: { ...filters, page, limit: 10 } },
-    )
-    return data
-  } catch (error) {
-    throw toApiError(error)
-  }
-}
 
 export async function getCustomerPointsMovements(
   customerId: number,

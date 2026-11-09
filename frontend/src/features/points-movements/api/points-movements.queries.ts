@@ -3,24 +3,13 @@ import type { ApiError } from '@/shared/api/ApiError'
 import type {
   CustomerPointsMovement,
   PointsMovement,
-  PointsMovementFilters,
   PointsMovementPage,
 } from '../types/points-movement'
 import {
   getCustomerPointsMovements,
   getMyPointsMovements,
-  getPointsMovements,
 } from './points-movements.api'
 import { pointsMovementsKeys } from './points-movements.keys'
-
-export const usePointsMovements = (
-  filters: PointsMovementFilters,
-  page: number,
-) =>
-  useQuery<PointsMovementPage<PointsMovement>, ApiError>({
-    queryKey: pointsMovementsKeys.admin(filters, page),
-    queryFn: () => getPointsMovements(filters, page),
-  })
 
 export const useCustomerPointsMovements = (
   customerId: number,
