@@ -9,6 +9,7 @@ Documentos que cambian con el tiempo: estado, decisiones, pendientes y pedidos e
 | [deuda-tecnica](./deuda-tecnica.md) | Deuda, limitaciones aceptadas (para la entrega) y riesgos |
 | [verificaciones-pendientes-recompensas](./verificaciones-pendientes-recompensas.md) | Criterios de US-35, US-36 y US-38 que prueba la historia que construye cada endpoint |
 | [actualizacion-docs-base4](./actualizacion-docs-base4.md) | Lista de cambios de documentación por BASE-4. **Aplicada el 09/11/2026** |
+| [actualizacion-docs-base5](./actualizacion-docs-base5.md) | Lista de cambios de documentación por BASE-5. **Aplicarla en la rama de BASE-5** |
 | [estado-puntos-y-consumos](./estado-puntos-y-consumos.md) | Foto del 18/10: BASE, US-21 y US-22 (backend). Superada por `estado-actual` |
 | [avisos-cambios-2026-10-20](./avisos-cambios-2026-10-20.md) | Avisos al equipo del 20/10: "Compra" → "Consumo" en el código y lote `VOIDED` |
 | [diferencias-prototipo-frontend](./diferencias-prototipo-frontend.md) | Diferencias entre el prototipo v2 y el frontend tras la alineación visual del 19/10 |
