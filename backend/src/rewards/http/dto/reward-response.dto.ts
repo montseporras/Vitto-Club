@@ -19,9 +19,17 @@ export type RewardResponse = {
   updatedAt: string;
 };
 
+// GET /recompensas/disponibles (§3.5.2): Reward[] sin confirmedCount, que es solo del Administrador
+// (§3.1) y este endpoint también lo usa el Cajero.
+export type AvailableRewardResponse = Omit<RewardResponse, 'confirmedCount'>;
+
 export class RewardResponseDto {
   // `hoyArgentina` en YYYY-MM-DD, para daysToExpire
   static fromDomain(reward: Reward, confirmedCount: number, hoyArgentina: string): RewardResponse {
+    return { ...RewardResponseDto.availableFromDomain(reward, hoyArgentina), confirmedCount };
+  }
+
+  static availableFromDomain(reward: Reward, hoyArgentina: string): AvailableRewardResponse {
     return {
       id: reward.getId(),
       name: reward.getName(),
@@ -34,7 +42,6 @@ export class RewardResponseDto {
       disabledReason: reward.getDisabledReason(),
       photoUrl: null,
       usedCount: reward.getUsedCount(),
-      confirmedCount,
       updatedAt: reward.getUpdatedAt().toISOString(),
     };
   }
