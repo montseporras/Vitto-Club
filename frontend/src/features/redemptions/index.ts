@@ -12,11 +12,14 @@ export {
   useConfirmMyRedemption,
   useCustomerRedemptions,
   useMyRedemptions,
+  useRedemptionByCode,
 } from './api/redemptions.queries'
 export {
   countdownText,
   expiresInText,
   isExpiringSoon,
+  normalizeRedemptionCode,
+  REDEMPTION_STATUSES,
   splitDateTime,
 } from './lib/format'
 export { useExpiryRefetch } from './lib/use-expiry-refetch'

@@ -4,12 +4,21 @@ import type {
   CreateCustomerBody,
   CustomerPoints,
   PointsMovement,
-  UpdateCustomerBody,
 } from '@/features/cashier'
 import type { Level } from '@/domain/levels'
 import type { Consumption } from '@/features/customers'
 import { API_URL } from '@/shared/api/http'
 import { accountFromRequest } from './auth.handlers'
+
+// Body de PATCH /api/customers/:id (lo edita el Administrador desde Clientes)
+type PatchCustomerBody = {
+  firstName?: string
+  lastName?: string
+  email?: string
+  phone?: string | null
+  dateOfBirth?: string | null
+  reason?: string
+}
 
 // Mismos clientes que backend/prisma/seed.ts, para probar el documento duplicado.
 // Se exporta para que el autorregistro (auth.handlers.ts) vea y sume a la misma lista.
@@ -688,25 +697,29 @@ export const cashierHandlers = [
     return HttpResponse.json(access.customer)
   }),
 
-  // CLI-ADM: PATCH /api/customers/:id (contrato §3.8.2).
-  http.patch<{ id: string }, UpdateCustomerBody & { reason?: string }>(
+  // CLI-ADM: PATCH /api/customers/:id (contrato §3.8.2). Solo el Administrador (S4 §4, D-02).
+  http.patch<{ id: string }, PatchCustomerBody>(
     `${API_URL}/customers/:id`,
     async ({ params, request }) => {
       await delay(400)
       const path = new URL(request.url).pathname
       const account = accountFromRequest(request)
       if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
-      if (account.role === 'CUSTOMER') {
+      // Solo el Administrador edita clientes (contrato S4 §4, D-02)
+      if (account.role !== 'ADMIN') {
         return errorResponse(403, 'No tenés permiso para realizar esta acción.', path, 'FORBIDDEN')
       }
       const { reason, ...body } = await request.json()
 
-      // El Cajero no edita el documento: se valida antes que cualquier otra regla
-      if (
-        account.role === 'CASHIER' &&
-        (body.documentType !== undefined || body.documentNumber !== undefined)
-      ) {
-        return errorResponse(403, 'El documento no se puede modificar.', path, 'FORBIDDEN_FIELD')
+      // Nadie edita el documento (contrato S4 §8.1 #3, D-03): el backend lo rechaza como campo
+      // que no existe (forbidNonWhitelisted)
+      const forbidden = ['documentType', 'documentNumber'].filter((field) => field in body)
+      if (forbidden.length > 0) {
+        return errorResponse(
+          400,
+          forbidden.map((field) => `property ${field} should not exist`),
+          path,
+        )
       }
       // El motivo es obligatorio para el Administrador; los espacios de los extremos no cuentan
       const trimmedReason = reason?.trim() ?? ''
@@ -729,25 +742,7 @@ export const cashierHandlers = [
         return errorResponse(409, 'El cliente está dado de baja.', path, 'CUSTOMER_INACTIVE')
       }
 
-      // Documento o mail en uso: 409 sin code, mensajes en inglés como en el Sprint 2 (§3.8.2)
-      const documentType = body.documentType ?? customer.documentType
-      const documentNumber = body.documentNumber
-        ? normalizeDocument(body.documentNumber)
-        : customer.documentNumber
-      const documentTaken = customers.some(
-        (c) =>
-          c.id !== customer.id &&
-          c.active &&
-          c.documentType === documentType &&
-          c.documentNumber === documentNumber,
-      )
-      if (documentTaken) {
-        return errorResponse(
-          409,
-          `An active customer with ${documentType} "${documentNumber}" already exists`,
-          path,
-        )
-      }
+      // Mail en uso: 409 sin code, mensajes en inglés como en el Sprint 2 (§3.8.2)
       const email = body.email?.trim().toLowerCase()
       if (email && STAFF_EMAILS.includes(email)) {
         return errorResponse(409, `Email "${email}" is already registered as an employee`, path)
@@ -762,8 +757,6 @@ export const cashierHandlers = [
       Object.assign(customer, {
         ...body,
         ...(email ? { email } : {}),
-        documentType,
-        documentNumber,
       })
       return HttpResponse.json(customer)
     },
@@ -775,6 +768,10 @@ export const cashierHandlers = [
     const path = new URL(request.url).pathname
     const access = checkCustomerAccess(request, params.id)
     if (access.error) return access.error
+    // Solo el Administrador da de baja (contrato S4 §4, D-02)
+    if (access.account.role !== 'ADMIN') {
+      return errorResponse(403, 'No tenés permiso para realizar esta acción.', path, 'FORBIDDEN')
+    }
     const { customer } = access
     if (!customer.active) {
       return errorResponse(409, `Customer with ID ${customer.id} is already inactive`, path)

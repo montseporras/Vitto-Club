@@ -207,18 +207,6 @@ const forbidden = (request: Request) =>
     request,
   )
 
-const dateInArgentina = (value: string) => {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date(value))
-  const part = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((entry) => entry.type === type)?.value ?? ''
-  return `${part('year')}-${part('month')}-${part('day')}`
-}
-
 const paginate = <TItem>(
   items: TItem[],
   page: number,
@@ -266,35 +254,6 @@ const toCustomerMovement = ({
 })
 
 export const pointsMovementsHandlers = [
-  http.get(`${API_URL}/movimientos-de-puntos`, async ({ request }) => {
-    await delay(300)
-    const user = getMockCurrentUser()
-    if (!user) return unauthorized(request)
-    if (user.role !== 'ADMIN') return forbidden(request)
-
-    const url = new URL(request.url)
-    const q = url.searchParams.get('q')?.toLocaleLowerCase() ?? ''
-    const fromDate = url.searchParams.get('fromDate')
-    const toDate = url.searchParams.get('toDate')
-    const type = url.searchParams.get('type') as PointsMovementType | null
-    const { page, limit } = pageParams(url, 10)
-
-    const filtered = sorted(movementRows).filter((movement) => {
-      const customerName =
-        `${movement.customer.firstName} ${movement.customer.lastName}`.toLocaleLowerCase()
-      const documentNumber = movement.customer.documentNumber.toLocaleLowerCase()
-      const date = dateInArgentina(movement.createdAt)
-      return (
-        (!q || customerName.includes(q) || documentNumber.includes(q)) &&
-        (!fromDate || date >= fromDate) &&
-        (!toDate || date <= toDate) &&
-        (!type || movement.type === type)
-      )
-    })
-
-    return HttpResponse.json(paginate(filtered, page, limit))
-  }),
-
   http.get(`${API_URL}/customers/me/movimientos`, async ({ request }) => {
     await delay(250)
     const user = getMockCurrentUser()

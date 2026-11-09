@@ -56,7 +56,7 @@ Contrato: §3.2, §3.2.1, §3.2.2.
 
 ## Qué falta — organizado por quién lo tiene que hacer
 
-### Auditoría (US-57) — bloquea a todo lo demás, sin dueño asignado
+### Auditoría (US-56) — bloquea a todo lo demás, sin dueño asignado
 
 El contrato pide que `POST /consumos`, `PATCH /consumos/:code/anular`, y todo lo que
 mueve puntos (ajustes, vencimientos, configuración) quede en un historial de auditoría
@@ -98,4 +98,4 @@ frontend)"* y solo tiene front asignado (Tomás) — no es la auditoría de Spri
 - **P6**: resuelta por nosotros (Opción B).
 - **P7**: comando de vencimiento a demanda — sigue sin decidir.
 - **P10**: ¿está mergeada `feature/SCRUM-161-registrar-auditoria`? Si existe, puede ser
-  la base de US-57 en vez de arrancar de cero.
+  la base de US-56 en vez de arrancar de cero.

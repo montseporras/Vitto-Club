@@ -47,7 +47,9 @@ import { toCustomerSnapshot } from "./customer-audit-snapshot.js";
 
 
 @Controller('customers')
-@Roles('ADMIN', 'CASHIER') // el Cajero gestiona clientes, incluida la baja y el historial (con sus restricciones)
+// Administrador y Cajero buscan, ven y crean clientes. Editar y dar de baja son solo del Administrador
+// (contrato S4 §4 y decisión D-02): PATCH :id y PATCH :id/deactivate pisan este @Roles.
+@Roles('ADMIN', 'CASHIER')
 @UseFilters(CustomerExceptionFilter)
 @UsePipes(
   new ValidationPipe({
@@ -74,6 +76,8 @@ export class CustomersController{
                 limit: query.limit,
                 nameContains: query.name?.trim() || undefined,
                 search: query.q?.trim() || undefined,
+                documentType: query.documentType,
+                documentNumber: query.documentNumber,
                 level: query.level,
                 sort: query.sort,
                 active: query.active === undefined ? undefined : query.active === 'true',
@@ -182,6 +186,7 @@ export class CustomersController{
     }
 
     @Patch(':id')
+    @Roles('ADMIN')
     async update(
         @Param('id', ParseIntPipe) id: number,
         @Body() updateDto: UpdateCustomerDto,
@@ -207,6 +212,7 @@ export class CustomersController{
 
 
     @Patch(':id/deactivate')
+    @Roles('ADMIN')
     @HttpCode(HttpStatus.NO_CONTENT)
     async deactivate(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserData) {
         await this.auditService.capture(

@@ -7,6 +7,7 @@ export const redemptionsKeys = {
   mine: (filters: MyRedemptionFilters) => [...redemptionsKeys.all, 'me', filters] as const,
   ofCustomer: (customerId: number) =>
     [...redemptionsKeys.all, 'customer', customerId] as const,
+  byCode: (code: string) => [...redemptionsKeys.all, 'code', code] as const,
   list: (filters: RedemptionFilters, page: number) =>
     [...redemptionsKeys.all, 'list', filters, page] as const,
 }

@@ -20,6 +20,7 @@ import {
   confirmMyRedemption,
   getCustomerRedemptions,
   getMyRedemptions,
+  getRedemptionByCode,
   listRedemptions,
   registerRedemptionUse,
   rejectRedemption,
@@ -131,3 +132,14 @@ export const useCancelMyRedemption = () => {
     onError: refresh,
   })
 }
+
+// Canjes por código (US-41, §3.8.1). Sin código no pide nada. Siempre vuelve a pedir al buscar
+// (staleTime 0, sin reintentos): el backend vence al leer y el 404 es una respuesta esperada.
+export const useRedemptionByCode = (code: string | null) =>
+  useQuery<Redemption, ApiError>({
+    queryKey: redemptionsKeys.byCode(code ?? ''),
+    queryFn: () => getRedemptionByCode(code as string),
+    enabled: code !== null,
+    staleTime: 0,
+    retry: false,
+  })

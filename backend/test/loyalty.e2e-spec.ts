@@ -52,7 +52,7 @@ describe('Loyalty configuration (e2e)', () => {
   });
 
   beforeEach(async () => {
-    // Actor de las operaciones auditadas (US-57): un empleado real con su cuenta
+    // Actor de las operaciones auditadas (US-56): un empleado real con su cuenta
     // Las suites de consumos, puntos y canjes dejan filas que apuntan a cuentas, clientes y a la
     // configuración (onDelete Restrict): se borran antes, en el orden de las claves foráneas
     await prisma.pointsMovement.deleteMany();

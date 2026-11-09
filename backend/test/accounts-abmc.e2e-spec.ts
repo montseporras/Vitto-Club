@@ -78,7 +78,7 @@ describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () 
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     );
     // Este armado no incluye AuthModule: se simula el usuario autenticado que dejaría el guard.
-    // La auditoría (US-57) exige que el actor sea un empleado real; ver beforeEach.
+    // La auditoría (US-56) exige que el actor sea un empleado real; ver beforeEach.
     app.use((request: { user?: unknown }, _response: unknown, next: () => void) => {
       request.user = { accountId: actorAccountId, role: 'CASHIER', employeeId: actorEmployeeId };
       next();

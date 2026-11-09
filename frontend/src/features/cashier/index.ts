@@ -10,11 +10,7 @@ export {
 } from './api/customer-errors'
 // US-23 lo usa en el detalle del consumo (CA-22.12)
 export { VoidConsumptionModal } from './components/VoidConsumptionModal'
-export type {
-  Customer,
-  CreateCustomerBody,
-  UpdateCustomerBody,
-} from './types/customer'
+export type { Customer, CreateCustomerBody } from './types/customer'
 export type { CustomerPoints, PointsMovement } from './types/points'
 // Clientes del Administrador (features/customers) reutiliza el alta, el saldo y los movimientos.
 export {

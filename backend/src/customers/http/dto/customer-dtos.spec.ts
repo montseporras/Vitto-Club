@@ -15,14 +15,14 @@ describe('UpdateCustomerDto', () => {
     expect(errorsOf(UpdateCustomerDto, { firstName: 'Ana' })).toEqual([]);
   });
 
-  it.each(['firstName', 'lastName', 'email', 'documentNumber', 'documentType'])(
+  it.each(['firstName', 'lastName', 'email'])(
     'rechaza null en el campo obligatorio %s (antes daba "Cannot read properties of null")',
     (field) => {
       expect(errorsOf(UpdateCustomerDto, { [field]: null })).toContain(field);
     },
   );
 
-  it.each(['firstName', 'lastName', 'documentNumber'])('rechaza %s vacío', (field) => {
+  it.each(['firstName', 'lastName'])('rechaza %s vacío', (field) => {
     expect(errorsOf(UpdateCustomerDto, { [field]: '' })).toContain(field);
   });
 
@@ -36,6 +36,11 @@ describe('UpdateCustomerDto', () => {
 
   it('rechaza campos que no existen', () => {
     expect(errorsOf(UpdateCustomerDto, { foo: 1 })).toContain('foo');
+  });
+
+  // Contrato S4 §8.1 #3 (D-03): nadie edita el documento
+  it.each(['documentType', 'documentNumber'])('rechaza %s: el documento no se edita', (field) => {
+    expect(errorsOf(UpdateCustomerDto, { phone: '3510000000', [field]: 'DNI' })).toContain(field);
   });
 
   // CLI-ADM: reason sin espacios en los extremos, de 1 a 500 caracteres

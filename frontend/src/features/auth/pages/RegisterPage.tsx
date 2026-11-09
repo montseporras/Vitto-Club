@@ -1,4 +1,4 @@
-// Pestaña "Registrarme" (US-59 · RF-064): el formulario con el que una persona crea su propia cuenta de Cliente.
+// Pestaña "Registrarme" (US-58 · RF-064): el formulario con el que una persona crea su propia cuenta de Cliente.
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, useWatch } from 'react-hook-form'
 import { Navigate } from 'react-router'

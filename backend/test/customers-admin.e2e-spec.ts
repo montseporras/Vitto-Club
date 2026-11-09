@@ -49,13 +49,14 @@ describe('Clientes del Administrador (CLI-ADM, e2e)', () => {
     documentNumber: string;
     email: string;
     isActive?: boolean;
+    documentType?: 'DNI' | 'PASSPORT';
     points?: { balance: number; lifetimePoints: number };
   }) => {
     const customer = await prisma.customer.create({
       data: {
         firstName: data.firstName,
         lastName: data.lastName,
-        documentType: 'DNI',
+        documentType: data.documentType ?? 'DNI',
         documentNumber: data.documentNumber,
         email: data.email,
         isActive: data.isActive ?? true,
@@ -206,6 +207,92 @@ describe('Clientes del Administrador (CLI-ADM, e2e)', () => {
       expect(res.body.message).toBe('No se puede buscar por q y por name a la vez.');
     });
 
+    // Contrato S4 §3.13.4: filtro por documento
+    describe('documentType y documentNumber (S4 §3.13.4)', () => {
+      const lastNames = (res: { body: { items: { lastName: string }[] } }) =>
+        res.body.items.map((item) => item.lastName);
+
+      it('documentNumber busca por coincidencia parcial: 3011 encuentra 30111222', async () => {
+        await seedCustomer({ firstName: 'Dora', lastName: 'Dávila', documentNumber: '30111999', email: 'dora@test.com' });
+
+        const res = await list('documentNumber=3011').expect(200);
+
+        expect(lastNames(res)).toEqual(['Pérez', 'Dávila']);
+        expect(res.body.total).toBe(2);
+      });
+
+      it('normaliza el número: sin puntos, espacios ni guiones', async () => {
+        const res = await list(`documentNumber=${encodeURIComponent('30.999 8')}`).expect(200);
+
+        expect(lastNames(res)).toEqual(['Gómez']);
+      });
+
+      it('sin documentType se asume DNI; con PASSPORT filtra por ese tipo', async () => {
+        await seedCustomer({
+          firstName: 'Pablo',
+          lastName: 'Pasaporte',
+          documentType: 'PASSPORT',
+          documentNumber: 'AAB123456',
+          email: 'pablo@test.com',
+        });
+        await seedCustomer({
+          firstName: 'Dino',
+          lastName: 'Dni',
+          documentNumber: '12345678',
+          email: 'dino@test.com',
+        });
+
+        expect(lastNames(await list('documentNumber=123').expect(200))).toEqual(['Dni']);
+        expect(lastNames(await list('documentType=DNI&documentNumber=123').expect(200))).toEqual(['Dni']);
+        expect(lastNames(await list('documentType=PASSPORT&documentNumber=aab-123').expect(200))).toEqual([
+          'Pasaporte',
+        ]);
+      });
+
+      it('documentType solo no filtra nada', async () => {
+        const res = await list('active=true&documentType=PASSPORT').expect(200);
+
+        expect(res.body.total).toBe(3);
+      });
+
+      it('un documentType inválido → 400', async () => {
+        await list('documentType=CUIT&documentNumber=123').expect(400);
+      });
+
+      it('documentNumber de más de 20 caracteres → 400', async () => {
+        await list(`documentNumber=${'1'.repeat(21)}`).expect(400);
+      });
+
+      it('q junto con documentNumber → 400 con su mensaje', async () => {
+        const res = await list('q=perez&documentNumber=3011').expect(400);
+
+        expect(res.body.message).toBe('No se puede buscar por q y por documento a la vez.');
+      });
+
+      it('se combina con el filtro de nivel', async () => {
+        await seedCustomer({
+          firstName: 'Gina',
+          lastName: 'Gold',
+          documentNumber: '30111888',
+          email: 'gina@test.com',
+          points: { balance: 10, lifetimePoints: 1000 },
+        });
+
+        const res = await list('documentNumber=3011&level=GOLD&sort=lastName').expect(200);
+
+        expect(lastNames(res)).toEqual(['Gold', 'Pérez']);
+        expect(lastNames(await list('documentNumber=3011&level=BRONZE').expect(200))).toEqual([]);
+      });
+
+      it('el Cajero también puede filtrar', async () => {
+        const cashierToken = await tokenOf(CASHIER);
+
+        const res = await list('documentNumber=3011', cashierToken).expect(200);
+
+        expect(lastNames(res)).toEqual(['Pérez']);
+      });
+    });
+
     it('level filtra por el nivel calculado, y sin fila de puntos es Bronce', async () => {
       const levels = async (level: string) =>
         (await list(`active=true&level=${level}`).then((res) => res.body.items)).map(
@@ -305,29 +392,14 @@ describe('Clientes del Administrador (CLI-ADM, e2e)', () => {
       await patch(await tokenOf(ADMIN), { phone: '3510000009', reason: 'x'.repeat(501) }).expect(400);
     });
 
-    it('el Cajero edita sin motivo; si lo manda, queda en la auditoría', async () => {
+    // Contrato S4 §4 (D-02): editar un cliente es solo del Administrador
+    it('el Cajero recibe 403 al editar y no se guarda ni se audita nada (D-02)', async () => {
       const cashier = await tokenOf(CASHIER);
 
-      await patch(cashier, { phone: '3510000009' }).expect(200);
-      await patch(cashier, { phone: '3510000010', reason: 'Lo pidió en caja' }).expect(200);
+      const res = await patch(cashier, { phone: '3510000009', reason: 'Lo pidió en caja' }).expect(403);
 
-      const rows = await newAuditRows();
-      expect(rows[0].details).toEqual([{ label: 'Teléfono', value: '— → 3510000009' }]);
-      expect(rows[1].details).toEqual([
-        { label: 'Teléfono', value: '3510000009 → 3510000010' },
-        { label: 'Motivo', value: 'Lo pidió en caja' },
-      ]);
-    });
-
-    it('el Cajero con documentNumber o documentType → 403 FORBIDDEN_FIELD y no se guarda nada (CA-CLI.5)', async () => {
-      const cashier = await tokenOf(CASHIER);
-
-      const number = await patch(cashier, { documentNumber: '38456124' }).expect(403);
-      const type = await patch(cashier, { documentType: 'PASSPORT' }).expect(403);
-
-      expect(number.body.code).toBe('FORBIDDEN_FIELD');
-      expect(type.body.code).toBe('FORBIDDEN_FIELD');
-      expect((await prisma.customer.findUniqueOrThrow({ where: { id: customerId } })).documentNumber).toBe('38456123');
+      expect(res.body.code).toBe('FORBIDDEN');
+      expect((await prisma.customer.findUniqueOrThrow({ where: { id: customerId } })).phone).toBeNull();
       expect(await newAuditRows()).toHaveLength(0);
     });
 
@@ -344,34 +416,18 @@ describe('Clientes del Administrador (CLI-ADM, e2e)', () => {
       await patch(await tokenOf(ADMIN), { phone: '3510000009', reason: 'x' }, 999999).expect(404);
     });
 
-    it('documento corregido con la contraseña inicial sin cambiar: la contraseña pasa a ser el documento nuevo (CA-CLI.7)', async () => {
-      const admin = await tokenOf(ADMIN);
+    // Contrato S4 §8.1 #3 (D-03): nadie edita el documento, ni el Administrador
+    it.each([
+      [{ documentNumber: '38456124' }],
+      [{ documentType: 'PASSPORT' }],
+      [{ documentType: 'PASSPORT', documentNumber: 'AAB123456' }],
+    ])('el Administrador que manda el documento (%j) recibe 400 y no se guarda ni se audita nada', async (document) => {
+      const res = await patch(await tokenOf(ADMIN), { phone: '3510000009', reason: 'Error de carga', ...document }).expect(400);
 
-      await patch(admin, { documentNumber: '38.456.124', reason: 'Error de carga' }).expect(200);
-
-      await login(SOFIA.email, '38456123').expect(401);
-      const res = await login(SOFIA.email, '38456124').expect(200);
-      expect(res.body.user.mustChangePassword).toBe(true);
-    });
-
-    it('documento corregido con la contraseña ya cambiada: la contraseña no se toca (CA-CLI.7)', async () => {
-      const admin = await tokenOf(ADMIN);
-      await prisma.account.updateMany({
-        where: { customerId },
-        data: { passwordHash: await bcrypt.hash('mi-clave-nueva', 4), mustChangePassword: false },
-      });
-
-      await patch(admin, { documentNumber: '38456124', reason: 'Error de carga' }).expect(200);
-
-      await login(SOFIA.email, '38456124').expect(401);
-      await login(SOFIA.email, 'mi-clave-nueva').expect(200);
-    });
-
-    it('documento ya usado por otro cliente activo → 409 y la contraseña inicial no cambia', async () => {
-      await seedCustomer({ firstName: 'Otro', lastName: 'Cliente', documentNumber: '38456124', email: 'otro@test.com' });
-
-      await patch(await tokenOf(ADMIN), { documentNumber: '38456124', reason: 'x' }).expect(409);
-
+      expect(JSON.stringify(res.body.message)).toContain('should not exist');
+      const stored = await prisma.customer.findUniqueOrThrow({ where: { id: customerId } });
+      expect(stored).toMatchObject({ documentType: 'DNI', documentNumber: '38456123', phone: null });
+      expect(await newAuditRows()).toHaveLength(0);
       await login(SOFIA.email, '38456123').expect(200);
     });
 
@@ -491,6 +547,20 @@ describe('Clientes del Administrador (CLI-ADM, e2e)', () => {
       await request(app.getHttpServer()).patch(`/api/customers/${customerId}/activate`).set(as(admin)).expect(404);
 
       expect((await prisma.customer.findUniqueOrThrow({ where: { id: customerId } })).isActive).toBe(false);
+    });
+
+    // Contrato S4 §4 (D-02): dar de baja es solo del Administrador
+    it('el Cajero recibe 403 y el cliente sigue activo (D-02)', async () => {
+      const cashier = await tokenOf(CASHIER);
+
+      const res = await request(app.getHttpServer())
+        .patch(`/api/customers/${customerId}/deactivate`)
+        .set(as(cashier))
+        .expect(403);
+
+      expect(res.body.code).toBe('FORBIDDEN');
+      expect((await prisma.customer.findUniqueOrThrow({ where: { id: customerId } })).isActive).toBe(true);
+      expect(await newAuditRows()).toHaveLength(0);
     });
 
     it('sin token → 401', async () => {

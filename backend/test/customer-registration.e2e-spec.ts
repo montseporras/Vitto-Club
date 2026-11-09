@@ -186,14 +186,15 @@ describe('Autorregistro de clientes (e2e)', () => {
   });
 
   describe('después del registro', () => {
-    it('si el cajero le cambia el email, el cliente entra con el nuevo y no con el viejo', async () => {
+    // Solo el Administrador edita clientes (contrato S4 §4, D-02), y con motivo
+    it('si el administrador le cambia el email, el cliente entra con el nuevo y no con el viejo', async () => {
       const { body } = await register(LUCIA).expect(201);
-      const cashier = await tokenOf(CASHIER);
+      const admin = await tokenOf(ADMIN);
 
       await request(app.getHttpServer())
         .patch(`/api/customers/${body.customerId}`)
-        .set(as(cashier))
-        .send({ email: 'lucia.nueva@test.com' })
+        .set(as(admin))
+        .send({ email: 'lucia.nueva@test.com', reason: 'Cambió de mail' })
         .expect(200);
 
       await login('lucia.nueva@test.com', LUCIA.password).expect(200);
@@ -202,12 +203,12 @@ describe('Autorregistro de clientes (e2e)', () => {
 
     it('si el email nuevo ya es de otra cuenta, el cambio se rechaza y no cambia nada', async () => {
       const { body } = await register(LUCIA).expect(201);
-      const cashier = await tokenOf(CASHIER);
+      const admin = await tokenOf(ADMIN);
 
       await request(app.getHttpServer())
         .patch(`/api/customers/${body.customerId}`)
-        .set(as(cashier))
-        .send({ email: ADMIN.email })
+        .set(as(admin))
+        .send({ email: ADMIN.email, reason: 'Cambió de mail' })
         .expect(409);
 
       const customer = await prisma.customer.findUniqueOrThrow({ where: { id: body.customerId } });

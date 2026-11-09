@@ -58,9 +58,3 @@ export type PointsMovementPage<TMovement> = {
   limit: number
 }
 
-export type PointsMovementFilters = {
-  q?: string
-  fromDate?: string
-  toDate?: string
-  type?: PointsMovementType
-}

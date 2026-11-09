@@ -169,4 +169,44 @@ describe('RedemptionsQueryService (US-45)', () => {
       expect(query.document).toBeUndefined();
     });
   });
+
+  describe('getByCode (US-41, §3.8.1)', () => {
+    const stored = { getCustomerId: () => 7 };
+
+    function setupByCode(found: unknown) {
+      const ctx = setup();
+      (ctx.repository as unknown as { findByCode: jest.Mock }).findByCode = jest.fn(async () => {
+        ctx.order.push('read');
+        return found;
+      });
+      return ctx;
+    }
+
+    it('normaliza el código, vence al leer y después lee, con el cliente', async () => {
+      const { service, repository, expiration, order } = setupByCode(stored);
+
+      const result = await service.getByCode(' k7mp-2x ', now);
+
+      expect(expiration.vencerVencidos).toHaveBeenCalledWith({ code: 'K7MP2X' }, now);
+      expect(repository.findByCode).toHaveBeenCalledWith('K7MP2X');
+      expect(repository.findCustomer).toHaveBeenCalledWith(7);
+      expect(order).toEqual(['expire', 'read']);
+      expect(result).toEqual({ redemption: stored, customer });
+    });
+
+    it.each(['K7MP2', 'K0MP2X', '', '  - '])('"%s" no cumple el formato: 404 sin tocar la base', async (typed) => {
+      const { service, repository, expiration } = setupByCode(stored);
+
+      await expect(service.getByCode(typed, now)).rejects.toEqual(new NotFoundException('Código no encontrado.'));
+      expect(expiration.vencerVencidos).not.toHaveBeenCalled();
+      expect(repository.findByCode).not.toHaveBeenCalled();
+    });
+
+    it('un código con formato válido que no existe: 404 "Código no encontrado."', async () => {
+      const { service, repository } = setupByCode(null);
+
+      await expect(service.getByCode('ZZZZZZ', now)).rejects.toEqual(new NotFoundException('Código no encontrado.'));
+      expect(repository.findCustomer).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -10,6 +10,9 @@ export type CustomerListParams = {
   nameContains?: string;
   // q: nombre, apellido o documento normalizado, coincidencia parcial (CLI-ADM)
   search?: string;
+  // Filtro por documento (contrato S4 §3.13.4): el número ya normalizado, coincidencia parcial; el tipo
+  // es exacto
+  document?: { type: DocumentType; number: string };
   level?: Level;
   // 'id' por defecto; 'lastName' ordena por apellido, nombre e id
   sort?: CustomerListSort;

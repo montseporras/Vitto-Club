@@ -38,6 +38,7 @@ Consolidado de `contexto-proximo-chat` (secciones 7 y 10), `autenticacion` (secc
 | Probar transacciones contra Neon | Solo se probó contra Postgres local | Pendiente |
 | CORS fijo en `http://localhost:5173` (`backend/src/main.ts`) | Pasarlo a variable de entorno | Sin verificar |
 | `loyalty` sin `updatedBy` (auditoría del actor) | Quedó pendiente de la autenticación | Sin verificar |
+| Evento `customer.document-changed` y su listener en `accounts` | Quedaron sin emisor tras D-03 (nadie edita el documento). Se dejaron a propósito: `accounts` está fuera del alcance del Sprint 4. Tampoco se usa `forbiddenField` (`customers/domain/errors/forbidden-field.error.ts`) | Pendiente |
 
 ## Infraestructura y proceso
 

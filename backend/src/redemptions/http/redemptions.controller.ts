@@ -59,6 +59,14 @@ export class RedemptionsController {
     };
   }
 
+  // GET /api/canjes/:code (US-41, §3.8.1, CA-41.1 a CA-41.7). Administrador y Cajero (roles de la
+  // clase); el Cliente recibe 403. Va después de GET /canjes: no choca con él ni con los PATCH.
+  @Get(':code')
+  async getByCode(@Param('code') code: string) {
+    const { redemption, customer } = await this.query.getByCode(code);
+    return toEmployeeRedemptionDto(redemption, customer);
+  }
+
   // PATCH /api/canjes/:code/rechazar (§3.10.1, CA-43.1 a CA-43.3)
   @Patch(':code/rechazar')
   @HttpCode(HttpStatus.OK)

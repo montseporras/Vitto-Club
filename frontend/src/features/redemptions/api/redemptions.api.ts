@@ -126,3 +126,14 @@ export async function cancelMyRedemption(code: string): Promise<CancelRedemption
     throw toApiError(error)
   }
 }
+
+// Canjes por código (US-41, §3.8.1): el canje completo en cualquier estado. El backend normaliza el
+// código y vence al leer; un código inexistente o mal escrito responde 404 "Código no encontrado."
+export async function getRedemptionByCode(code: string): Promise<Redemption> {
+  try {
+    const { data } = await http.get<Redemption>(`/canjes/${encodeURIComponent(code)}`)
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
