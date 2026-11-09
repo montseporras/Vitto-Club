@@ -272,11 +272,13 @@ describe('Auditoría — registro (US-57, e2e)', () => {
         .expect(201);
       const customerId = created.body.id as number;
       await request(app.getHttpServer())
+      // Solo el Administrador edita y da de baja (contrato S4 §4, D-02); editar pide motivo
+      await request(app.getHttpServer())
         .patch(`/api/customers/${customerId}`)
-        .set(cashier)
-        .send({ phone: '3510000009' })
+        .set(admin)
+        .send({ phone: '3510000009', reason: 'Pidió actualizar sus datos' })
         .expect(200);
-      await request(app.getHttpServer()).patch(`/api/customers/${customerId}/deactivate`).set(cashier).expect(204);
+      await request(app.getHttpServer()).patch(`/api/customers/${customerId}/deactivate`).set(admin).expect(204);
 
       const rows = await newAuditRows();
       expect(rows.map((row) => row.actionCode)).toEqual([
@@ -284,10 +286,11 @@ describe('Auditoría — registro (US-57, e2e)', () => {
         'CUSTOMER_UPDATED',
         'CUSTOMER_DEACTIVATED',
       ]);
-      for (const row of rows) {
+      // El alta la hizo el Cajero; la edición y la baja, el Administrador
+      for (const [index, row] of rows.entries()) {
         expect(row).toMatchObject({
           actorType: 'EMPLOYEE',
-          performedBy: 'Diego Sosa',
+          performedBy: index === 0 ? 'Diego Sosa' : 'Denise Nagel',
           module: 'CUSTOMERS',
           affectedCustomerId: customerId,
           affectedCustomerName: 'Sofía Ríos',
@@ -302,7 +305,10 @@ describe('Auditoría — registro (US-57, e2e)', () => {
         { label: 'Origen', value: 'Caja' },
         { label: 'Cuenta de acceso', value: 'Creada, contraseña inicial = número de documento' },
       ]);
-      expect(rows[1].details).toEqual([{ label: 'Teléfono', value: '— → 3510000009' }]);
+      expect(rows[1].details).toEqual([
+        { label: 'Teléfono', value: '— → 3510000009' },
+        { label: 'Motivo', value: 'Pidió actualizar sus datos' },
+      ]);
       expect(rows[2].details).toEqual([
         { label: 'Estado', value: 'Activo → Inactivo' },
         { label: 'Saldo perdido', value: '0 pts' },
