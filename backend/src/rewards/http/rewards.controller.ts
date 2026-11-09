@@ -15,7 +15,7 @@ import { RewardsService } from '../application/rewards.service.js';
 import { CreateRewardDto } from './dto/create-reward.dto.js';
 import { ListRewardsQueryDto } from './dto/list-rewards-query.dto.js';
 import { UpdateRewardDto } from './dto/update-reward.dto.js';
-import { RewardResponseDto } from './dto/reward-response.dto.js';
+import { RewardResponseDto, type AvailableRewardResponse } from './dto/reward-response.dto.js';
 import { RewardsExceptionFilter } from './filters/rewards-exception.filter.js';
 
 // §3.2 y matriz de §4: /recompensas es del Administrador (CA-34.8); /disponibles (US-40) es de
@@ -33,11 +33,11 @@ export class RewardsController {
   // bloque "Recompensas a las que puede acceder" del panel del cliente en Caja.
   @Get('disponibles')
   @Roles('ADMIN', 'CASHIER')
-  async findAvailable() {
+  async findAvailable(): Promise<AvailableRewardResponse[]> {
     const now = new Date();
     const today = toArgentinaDateString(now);
     const rewards = await this.rewardsService.findAvailable(now);
-    return rewards.map((reward) => RewardResponseDto.fromDomain(reward, 0, today));
+    return rewards.map((reward) => RewardResponseDto.availableFromDomain(reward, today));
   }
 
   // GET /api/recompensas -> CA-34.1
