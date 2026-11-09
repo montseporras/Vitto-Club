@@ -231,7 +231,28 @@ export const redemptionsHandlers = [
     if (result.error) return result.error
     return HttpResponse.json(paginate(result.seeds.map(toRedemption), params, 20))
   }),
+
+  // US-41 (§3.8.1): canje por código, en cualquier estado. Cajero y Administrador; el Cliente
+  // recibe 403. Normaliza el código (§3.6.1): un código que no cumple el formato es "no encontrado".
+  http.get<{ code: string }>(`${API_URL}/canjes/:code`, async ({ params, request }) => {
+    await delay(300)
+    const path = new URL(request.url).pathname
+    const account = accountFromRequest(request)
+    if (!account) return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+    if (account.role === 'CUSTOMER') return forbidden(path)
+
+    const code = String(params.code).replace(/[\s-]/g, '').toUpperCase()
+    const seed = CODE_PATTERN.test(code) ? seeds.find((item) => item.code === code) : undefined
+    if (!seed) return errorResponse(404, 'Código no encontrado.', path)
+
+    // Vence al leer (§3.11): antes de responder
+    expireOnRead()
+    return HttpResponse.json(toRedemption(seed))
+  }),
 ]
+
+// Mismo formato que el CHECK del backend (§3.6.1): 6 caracteres, sin 0, O, 1 ni I
+const CODE_PATTERN = /^[A-HJ-NP-Z2-9]{6}$/
 
 // --- Confirmar canje (US-40, §3.7.1). Confirmar no descuenta nada: ni saldo ni stock. ---
 

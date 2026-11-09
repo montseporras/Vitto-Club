@@ -15,10 +15,14 @@ import {
   type RedemptionCustomer,
   type RedemptionWithCustomer,
 } from '../domain/port/redemption.repository.js';
+import { normalizarCodigo } from '../domain/redemption-code.js';
 import { RedemptionsExpirationService } from './redemptions-expiration.service.js';
 
 // §3.12.2: el contrato no cita el texto; decisión de Melisa
 export const CUSTOMER_NOT_FOUND_MESSAGE = 'No existe el cliente.';
+
+// §3.8.1 y §5: 404 sin code
+export const CODE_NOT_FOUND_MESSAGE = 'Código no encontrado.';
 
 export type Paginated<T> = { items: T[]; total: number; page: number; limit: number };
 
@@ -53,6 +57,21 @@ export class RedemptionsQueryService {
     private readonly redemptionRepository: RedemptionRepository,
     private readonly expiration: RedemptionsExpirationService,
   ) {}
+
+  // GET /canjes/:code (US-41, §3.8.1). Normaliza el código (§3.6.1): si no cumple el formato, es lo
+  // mismo que no existir. Vence al leer (§3.11) antes de consultar, fuera de cualquier transacción,
+  // y devuelve el canje completo en cualquier estado.
+  async getByCode(rawCode: string, now: Date = new Date()): Promise<RedemptionWithCustomer> {
+    const code = normalizarCodigo(rawCode);
+    if (!code) throw new NotFoundException(CODE_NOT_FOUND_MESSAGE);
+
+    await this.expiration.vencerVencidos({ code }, now);
+
+    const redemption = await this.redemptionRepository.findByCode(code);
+    if (!redemption) throw new NotFoundException(CODE_NOT_FOUND_MESSAGE);
+    const customer = await this.redemptionRepository.findCustomer(redemption.getCustomerId());
+    return { redemption, customer };
+  }
 
   // GET /customers/me/canjes (§3.12.1)
   async listMine(input: ListMyRedemptionsInput, now: Date = new Date()): Promise<Paginated<Redemption>> {

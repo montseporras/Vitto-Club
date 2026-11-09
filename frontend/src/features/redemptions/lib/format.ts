@@ -52,3 +52,6 @@ export function splitDateTime(value: string) {
   const [date, time] = isoToDisplayDateTime(value).split(' ')
   return { date, time }
 }
+
+/** Lo que escribe el empleado, como lo normaliza el backend (§3.6.1): mayúsculas, sin espacios ni guiones. */
+export const normalizeRedemptionCode = (value: string) => value.replace(/[\s-]/g, '').toUpperCase()
