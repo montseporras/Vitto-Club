@@ -1,11 +1,7 @@
 import { toApiError } from '@/shared/api/ApiError'
 import { http } from '@/shared/api/http'
 import type { DocumentType } from '@/domain/documents'
-import type {
-  Customer,
-  CreateCustomerBody,
-  UpdateCustomerBody,
-} from '../types/customer'
+import type { Customer, CreateCustomerBody } from '../types/customer'
 import type { Paginated } from '@/shared/types/pagination'
 import type {
   CustomerPoints,
@@ -42,14 +38,6 @@ export async function findCustomerByDocument(
   }
 }
 
-export async function updateCustomer(id: number, body: UpdateCustomerBody) {
-  try {
-    const res = await http.patch<Customer>(`/customers/${id}`, body)
-    return res.data
-  } catch (error) {
-    throw toApiError(error)
-  }
-}
 
 export async function getCustomerPoints(customerId: number) {
   try {

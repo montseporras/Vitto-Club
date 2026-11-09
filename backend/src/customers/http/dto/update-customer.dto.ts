@@ -2,15 +2,12 @@ import { Transform } from 'class-transformer';
 import {
   IsDateString,
   IsEmail,
-  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
   ValidateIf,
 } from 'class-validator';
-import { DOCUMENT_TYPES } from '../../domain/customer.js';
-import type { DocumentType } from '../../domain/customer.js';
 
 // Solo se validan los campos que vienen en el body. PartialType usaría IsOptional, que también deja
 // pasar `null`; acá `null` en un campo obligatorio se rechaza con 400.
@@ -28,16 +25,6 @@ export class UpdateCustomerDto {
   @IsNotEmpty()
   @MaxLength(80)
   lastName?: string;
-
-  @ValidateIf(isProvided)
-  @IsIn(DOCUMENT_TYPES)
-  documentType?: DocumentType;
-
-  @ValidateIf(isProvided)
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(20)
-  documentNumber?: string;
 
   @ValidateIf(isProvided)
   @IsNotEmpty()

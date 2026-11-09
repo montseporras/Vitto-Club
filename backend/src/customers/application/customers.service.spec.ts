@@ -6,7 +6,6 @@ import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import {
   CUSTOMER_CREATED,
   CUSTOMER_DEACTIVATED,
-  CUSTOMER_DOCUMENT_CHANGED,
   CUSTOMER_EMAIL_CHANGED,
   CUSTOMER_EMAIL_CHANGE_REQUESTED,
 } from '../../shared/events/domain-events.js';
@@ -402,24 +401,10 @@ describe('CustomersService', () => {
       expect(customer.getEmail()).toBe('otro@example.com');
     });
 
-    it('permite usar el documento de un cliente dado de baja', async () => {
-      const other = await otherCustomer();
-      await service.deactivate(other.getId() as number);
-
-      const customer = await service.update(id, { documentNumber: '87654321', reason: 'Error de carga' }, 'ADMIN');
-      expect(customer.getDocumentNumber()).toBe('87654321');
-    });
-
     it('permite reenviar su propio email, aunque cambien mayúsculas o espacios', async () => {
       const customer = await service.update(id, { email: ' JUAN@example.com', firstName: 'Juan Carlos' }, 'CASHIER');
       expect(customer.getFirstName()).toBe('Juan Carlos');
       expect(customer.getEmail()).toBe('juan@example.com');
-    });
-
-    it('lanza 409 si el nuevo documento ya lo usa otro cliente', async () => {
-      await otherCustomer();
-
-      await expect(service.update(id, { documentNumber: '87654321', reason: 'Error de carga' }, 'ADMIN')).rejects.toThrow(ConflictException);
     });
 
     // Nuevo (Customers -> Employees también al editar, no solo al crear): cambiar el
@@ -647,26 +632,47 @@ describe('CustomersService', () => {
       await expect(call).rejects.toThrow('No se puede buscar por q y por name a la vez.');
       expect(repo.list_).not.toHaveBeenCalled();
     });
+
+    // Contrato S4 §3.13.4
+    it('normaliza el número de documento y asume DNI si no viene el tipo', async () => {
+      await service.list({ page: 1, limit: 20, documentNumber: ' 3.522-2ab ' });
+
+      expect(repo.list_).toHaveBeenCalledWith({
+        page: 1,
+        limit: 20,
+        document: { type: 'DNI', number: '35222AB' },
+      });
+    });
+
+    it('pasa el tipo de documento cuando viene con el número', async () => {
+      await service.list({ page: 1, limit: 20, documentType: 'PASSPORT', documentNumber: 'aab 123' });
+
+      expect(repo.list_).toHaveBeenCalledWith({
+        page: 1,
+        limit: 20,
+        document: { type: 'PASSPORT', number: 'AAB123' },
+      });
+    });
+
+    it('el tipo solo no filtra, y un número que queda vacío tampoco', async () => {
+      await service.list({ page: 1, limit: 20, documentType: 'PASSPORT' });
+      await service.list({ page: 1, limit: 20, documentNumber: '..-' });
+
+      expect(repo.list_).toHaveBeenNthCalledWith(1, { page: 1, limit: 20, document: undefined });
+      expect(repo.list_).toHaveBeenNthCalledWith(2, { page: 1, limit: 20, document: undefined });
+    });
+
+    it('q junto con documentNumber es un 400 con su mensaje', async () => {
+      const call = service.list({ page: 1, limit: 20, search: 'perez', documentNumber: '3522' });
+
+      await expect(call).rejects.toThrow(BadRequestException);
+      await expect(call).rejects.toThrow('No se puede buscar por q y por documento a la vez.');
+      expect(repo.list_).not.toHaveBeenCalled();
+    });
   });
 
-  // CA-CLI.4, CA-CLI.5 y CA-CLI.6: reglas por rol de PATCH /customers/:id
+  // CA-CLI.4 y CA-CLI.6: reglas de PATCH /customers/:id. El documento no se edita (D-03).
   describe('update(): reglas por rol (CLI-ADM)', () => {
-    it('el Cajero que manda el número de documento recibe 403 FORBIDDEN_FIELD y no se guarda nada', async () => {
-      const call = service.update(id, { documentNumber: '87654321' }, 'CASHIER');
-
-      await expect(call).rejects.toMatchObject({
-        status: 403,
-        response: { code: 'FORBIDDEN_FIELD', message: 'El documento no se puede modificar.' },
-      });
-      expect(repo.update_).not.toHaveBeenCalled();
-    });
-
-    it('el Cajero que manda el tipo de documento también recibe 403 FORBIDDEN_FIELD', async () => {
-      await expect(service.update(id, { documentType: 'PASSPORT' }, 'CASHIER')).rejects.toMatchObject({
-        response: { code: 'FORBIDDEN_FIELD' },
-      });
-    });
-
     it('el Administrador sin motivo recibe 400 con el mensaje del contrato', async () => {
       const call = service.update(id, { phone: '1144444444' }, 'ADMIN');
 
@@ -679,16 +685,6 @@ describe('CustomersService', () => {
       await expect(service.update(id, { phone: '1144444444', reason: '   ' }, 'ADMIN')).rejects.toThrow(
         'Indicá el motivo del cambio para continuar.',
       );
-    });
-
-    it('el Administrador con motivo puede corregir el documento', async () => {
-      const customer = await service.update(
-        id,
-        { documentNumber: '87654321', reason: 'Error de carga' },
-        'ADMIN',
-      );
-
-      expect(customer.getDocumentNumber()).toBe('87654321');
     });
 
     it('el Cajero puede editar sin motivo', async () => {
@@ -711,40 +707,6 @@ describe('CustomersService', () => {
         response: { code: 'CUSTOMER_INACTIVE', message: 'El cliente está dado de baja.' },
       });
       expect(repo.update_).not.toHaveBeenCalled();
-    });
-  });
-
-  // CA-CLI.7: accounts cambia la contraseña inicial al documento nuevo
-  describe('update(): evento customer.document-changed', () => {
-    it('lo publica con el documento nuevo normalizado, después de guardar', async () => {
-      const order: string[] = [];
-      repo.update_.mockImplementation(() => order.push('update'));
-      emitAsync.mockImplementation(async () => {
-        order.push('emit');
-        return [];
-      });
-
-      await service.update(id, { documentNumber: ' 87.654.321 ', reason: 'Error de carga' }, 'ADMIN');
-
-      expect(emitAsync).toHaveBeenCalledWith(CUSTOMER_DOCUMENT_CHANGED, {
-        customerId: id,
-        documentNumber: '87654321',
-      });
-      expect(order).toEqual(['update', 'emit']);
-    });
-
-    it('no lo publica si el documento queda igual', async () => {
-      await service.update(id, { documentNumber: '12.345.678', phone: '1144444444', reason: 'x' }, 'ADMIN');
-
-      expect(emitAsync).not.toHaveBeenCalledWith(CUSTOMER_DOCUMENT_CHANGED, expect.anything());
-    });
-
-    it('si accounts falla, el error se propaga', async () => {
-      emitAsync.mockRejectedValueOnce(new Error('sin cuenta'));
-
-      await expect(
-        service.update(id, { documentNumber: '87654321', reason: 'x' }, 'ADMIN'),
-      ).rejects.toThrow('sin cuenta');
     });
   });
 

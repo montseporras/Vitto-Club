@@ -187,6 +187,18 @@ describe('CustomerPrismaRepository', () => {
       );
     });
 
+    it('document filtra por tipo exacto y número parcial', async () => {
+      const prisma = listPrisma([], { silverMinPoints: 300, goldMinPoints: 800 });
+
+      await repoWith(prisma).list({ page: 1, limit: 20, document: { type: 'PASSPORT', number: 'AAB1' } });
+
+      expect(prisma.customer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { AND: [{ documentType: 'PASSPORT', documentNumber: { contains: 'AAB1' } }] },
+        }),
+      );
+    });
+
     it.each([
       ['GOLD', { points: { is: { lifetimePoints: { gte: 800 } } } }],
       ['SILVER', { points: { is: { lifetimePoints: { gte: 300, lt: 800 } } } }],

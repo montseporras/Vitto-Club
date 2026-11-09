@@ -7,3 +7,11 @@ export const SEARCH_CONFLICT_MESSAGE = 'No se puede buscar por q y por name a la
 export function searchConflict(): BadRequestException {
   return new BadRequestException(SEARCH_CONFLICT_MESSAGE);
 }
+
+// Texto del contrato S4 §3.13.4
+export const DOCUMENT_SEARCH_CONFLICT_MESSAGE = 'No se puede buscar por q y por documento a la vez.';
+
+// GET /customers con q y documentNumber juntos
+export function documentSearchConflict(): BadRequestException {
+  return new BadRequestException(DOCUMENT_SEARCH_CONFLICT_MESSAGE);
+}

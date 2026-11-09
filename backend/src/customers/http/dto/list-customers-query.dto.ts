@@ -1,6 +1,8 @@
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import type { Level } from '../../../points/domain/level.js';
+import { DOCUMENT_TYPES } from '../../domain/customer.js';
+import type { DocumentType } from '../../domain/customer.js';
 
 export class ListCustomersQueryDto {
   @IsOptional()
@@ -33,6 +35,18 @@ export class ListCustomersQueryDto {
   @IsString()
   @MaxLength(80)
   q?: string;
+
+  // Contrato S4 §3.13.4: DNI por defecto; solo se aplica si viene documentNumber (lo resuelve el servicio)
+  @IsOptional()
+  @IsIn(DOCUMENT_TYPES)
+  documentType?: DocumentType;
+
+  // Contrato S4 §3.13.4: se normaliza (sin puntos, espacios ni guiones, en mayúsculas) y busca por
+  // coincidencia parcial. No se puede mandar junto con q (lo controla el servicio).
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  documentNumber?: string;
 
   // CLI-ADM: nivel calculado
   @IsOptional()

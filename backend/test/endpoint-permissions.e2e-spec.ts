@@ -7,7 +7,8 @@ import { PrismaService } from '../src/prisma/prisma.service.js';
 import { CredentialsVerifier, VerifiedAccount } from '../src/auth/domain/port/credentials-verifier.js';
 
 type Actor = 'admin' | 'cashier' | 'customer';
-type Endpoint = { method: 'get' | 'post' | 'patch' | 'delete'; path: string };
+// allowed pisa al del grupo cuando un endpoint tiene menos roles que el resto (ej. D-02)
+type Endpoint = { method: 'get' | 'post' | 'patch' | 'delete'; path: string; allowed?: Actor[] };
 type Outcome = 'unauthenticated' | 'forbidden' | 'allowed';
 
 const ACTORS: Actor[] = ['admin', 'cashier', 'customer'];
@@ -20,8 +21,9 @@ const CUSTOMER_ENDPOINTS: Endpoint[] = [
   { method: 'get', path: '/api/customers/999999' },
   { method: 'get', path: '/api/customers/999999/status-history' },
   { method: 'post', path: '/api/customers' },
-  { method: 'patch', path: '/api/customers/999999' },
-  { method: 'patch', path: '/api/customers/999999/deactivate' },
+  // Solo el Administrador edita y da de baja (contrato S4 §4, D-02)
+  { method: 'patch', path: '/api/customers/999999', allowed: ['admin'] },
+  { method: 'patch', path: '/api/customers/999999/deactivate', allowed: ['admin'] },
 ];
 
 const EMPLOYEE_ENDPOINTS: Endpoint[] = [
@@ -184,7 +186,7 @@ describe('Permisos por rol de los endpoints (e2e)', () => {
 
           for (const actor of ACTORS) {
             const res = await call(endpoint, tokens[actor]);
-            const expected: Outcome = group.allowed.includes(actor) ? 'allowed' : 'forbidden';
+            const expected: Outcome = (endpoint.allowed ?? group.allowed).includes(actor) ? 'allowed' : 'forbidden';
 
             expect({ actor, outcome: outcomeOf(res.status) }).toEqual({ actor, outcome: expected });
 

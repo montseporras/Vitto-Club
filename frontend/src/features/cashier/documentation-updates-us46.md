@@ -52,4 +52,4 @@ Melisa los aprobó; conviene sumarlos al prototipo o al contrato:
 
 - **P3:** en "Buscar cliente" del Mostrador se sacó "Editar datos" (decisión de Melisa). En Administración no se cambió nada.
 - **P5:** US-47 ("resumen del cliente en 2 segundos") entra como criterio de US-46 (decisión de Melisa).
-- `EditCustomerForm`, `useUpdateCustomer` y el mock `PATCH /customers/:id` quedaron sin uso. Se dejaron por si los reutiliza Clientes del Administrador (CLI-ADM): falta decidir si se borran.
+- `EditCustomerForm`, `CustomerSummary` y `useUpdateCustomer` quedaron sin uso y se borraron (decisión de Deni, cierre del Sprint 4, D-02 y D-03: el Cajero no edita clientes). El mock `PATCH /customers/:id` se mantiene: lo usa `CustomerDetailsModal`, la edición del Administrador.

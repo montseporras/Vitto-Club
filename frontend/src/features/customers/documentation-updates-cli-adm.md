@@ -19,8 +19,8 @@ documento se pueden modificar**, tampoco por el Administrador.
 En la pantalla, el documento se muestra bloqueado, con el texto "El documento no se puede
 modificar." (el que el contrato ya usa para el Cajero), y no viaja en el `PATCH`.
 
-El backend de develop todavía acepta el documento del Administrador. Si se corrige el contrato,
-hay que pedir el cambio al backend.
+El backend ya no acepta el documento (D-03, cierre del Sprint 4): `PATCH /customers/:id` con
+`documentType` o `documentNumber` responde `400`, igual que cualquier campo no declarado.
 
 ## 2. Código de otras historias que se modificó
 

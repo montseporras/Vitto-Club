@@ -14,19 +14,16 @@ import { EmployeesService } from '../../employees/application/employees.service.
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import { emailInUse, profileEmailInUse } from '../domain/errors/email-in-use.error.js';
 import { customerInactive } from '../domain/errors/customer-inactive.error.js';
-import { forbiddenField } from '../domain/errors/forbidden-field.error.js';
 import { reasonRequired } from '../domain/errors/reason-required.error.js';
-import { searchConflict } from '../domain/errors/search-conflict.error.js';
+import { documentSearchConflict, searchConflict } from '../domain/errors/search-conflict.error.js';
 import type { UserRole } from '../../shared/security/current-user-data.js';
 import {
   CUSTOMER_CREATED,
   CUSTOMER_DEACTIVATED,
-  CUSTOMER_DOCUMENT_CHANGED,
   CUSTOMER_EMAIL_CHANGED,
   CUSTOMER_EMAIL_CHANGE_REQUESTED,
   type CustomerCreatedEvent,
   type CustomerDeactivatedEvent,
-  type CustomerDocumentChangedEvent,
   type CustomerEmailChangedEvent,
   type CustomerEmailChangeRequestedEvent,
   type RedemptionsRejectedResult,
@@ -39,6 +36,12 @@ import {
 // Riesgo aceptado: si se crea un Employee con el email de un Customer ya existente,
 // EmployeesService.create() no lo detecta (esa dirección se eliminó). El conflicto recién
 // aparece al intentar crear la Account de ese Employee, por Account.email @unique.
+
+// Lo que recibe el listado: el documento llega crudo y el servicio lo normaliza (contrato S4 §3.13.4)
+export type CustomerListInput = Omit<CustomerListParams, 'document'> & {
+  documentType?: DocumentType;
+  documentNumber?: string;
+};
 
 export type CustomerDeactivationResult = { lostBalance: number; rejectedRedemptions: number };
 
@@ -120,7 +123,8 @@ export class CustomersService {
   }
 
   // --- LISTADO PAGINADO ---
-  async list(params: CustomerListParams): Promise<CustomerListResult> {
+  async list(input: CustomerListInput): Promise<CustomerListResult> {
+    const { documentType, documentNumber, ...params } = input;
     if (params.page < 1 || params.limit < 1) {
       throw new BadRequestException('page and limit must be positive integers');
     }
@@ -128,7 +132,17 @@ export class CustomersService {
     if (params.search && params.nameContains) {
       throw searchConflict();
     }
-    return await this.customersRepository.list(params);
+    // Contrato S4 §3.13.4: q junto con documentNumber también es ambiguo
+    if (params.search && documentNumber?.trim()) {
+      throw documentSearchConflict();
+    }
+    // Sin puntos, espacios ni guiones, en mayúsculas. Si no queda nada, no hay filtro. El tipo
+    // (DNI por defecto) solo se aplica si viene el número.
+    const normalizedNumber = documentNumber?.replace(/[\s.-]/g, '').toUpperCase();
+    return await this.customersRepository.list({
+      ...params,
+      document: normalizedNumber ? { type: documentType ?? 'DNI', number: normalizedNumber } : undefined,
+    });
   }
 
   // --- BUSCAR POR ID ---
@@ -153,17 +167,12 @@ export class CustomersService {
   // --- ACTUALIZAR ---
   // role: quien edita. Las reglas por rol se validan acá y no solo en la pantalla (contrato §3.8.2).
   async update(id: number, dto: UpdateCustomerDto, role: UserRole): Promise<Customer> {
-    // 0a. Solo el Administrador corrige el documento (CA-CLI.5)
-    if (role !== 'ADMIN' && (dto.documentType !== undefined || dto.documentNumber !== undefined)) {
-      throw forbiddenField();
-    }
-
-    // 0b. El motivo es obligatorio para el Administrador y opcional para el Cajero (CA-CLI.4)
+    // 0a. El motivo es obligatorio para el Administrador y opcional para el Cajero (CA-CLI.4)
     if (role === 'ADMIN' && !dto.reason?.trim()) {
       throw reasonRequired();
     }
 
-    // 0c. Tiene que venir al menos un campo para modificar (el motivo no cuenta: no es un dato del cliente)
+    // 0b. Tiene que venir al menos un campo para modificar (el motivo no cuenta: no es un dato del cliente)
     if (!Object.entries(dto).some(([key, value]) => key !== 'reason' && value !== undefined)) {
       throw new BadRequestException('At least one field must be provided');
     }
@@ -174,25 +183,13 @@ export class CustomersService {
       // 1. Buscar si el cliente existe
       const customer = await this.findById(id);
       const previousEmail = customer.getEmail();
-      const previousDocumentNumber = customer.getDocumentNumber();
 
       // Un cliente dado de baja es de solo lectura: no hay reactivación (CA-CLI.6)
       if (!customer.isActive()) {
         throw customerInactive();
       }
 
-      // 2. Si cambia el documento, verificar que no esté en uso (antes de mutar la entidad)
-      if (dto.documentType !== undefined || dto.documentNumber !== undefined) {
-        const documentType = dto.documentType ?? customer.getDocumentType();
-        const documentNumber =
-          dto.documentNumber !== undefined
-            ? normalizeDocumentNumber(dto.documentNumber)
-            : customer.getDocumentNumber();
-
-        await this.assertDocumentAvailable(documentType, documentNumber, customer.getId() ?? undefined);
-      }
-
-      // 2b. Si cambia el email (normalizado igual que al guardar), tampoco puede estar registrado
+      // 2. Si cambia el email (normalizado igual que al guardar), tampoco puede estar registrado
       // por otro cliente. Además debe ser único frente a employees (misma regla que al crear;
       // Customers -> Employees es la única dirección de este chequeo).
       if (dto.email !== undefined) {
@@ -209,8 +206,6 @@ export class CustomersService {
       customer.update({
         firstName: dto.firstName,
         lastName: dto.lastName,
-        documentType: dto.documentType,
-        documentNumber: dto.documentNumber,
         email: dto.email,
         phone: dto.phone,
         dateOfBirth:
@@ -231,15 +226,6 @@ export class CustomersService {
           customerId: id,
           email: customer.getEmail(),
         } satisfies CustomerEmailChangedEvent);
-      }
-
-      // 6. Si el documento cambió, avisar a accounts: si el cliente todavía tiene la contraseña inicial,
-      // pasa a ser el documento nuevo (CA-CLI.7). Misma transacción que el cambio.
-      if (customer.getDocumentNumber() !== previousDocumentNumber) {
-        await this.eventEmitter.emitAsync(CUSTOMER_DOCUMENT_CHANGED, {
-          customerId: id,
-          documentNumber: customer.getDocumentNumber(),
-        } satisfies CustomerDocumentChangedEvent);
       }
 
       return customer;

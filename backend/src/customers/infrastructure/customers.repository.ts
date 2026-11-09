@@ -195,7 +195,7 @@ export class CustomerPrismaRepository implements CustomerRepository {
   }
 
   async list(params: CustomerListParams): Promise<CustomerListResult> {
-    const { page, limit, nameContains, search, level, sort, active } = params;
+    const { page, limit, nameContains, search, document, level, sort, active } = params;
 
     // El nivel no se guarda por cliente: se calcula con lifetimePoints contra los umbrales vigentes
     // (contrato §3.7). Se leen acá, igual que hace points, para poder filtrar por nivel en la consulta.
@@ -230,6 +230,9 @@ export class CustomerPrismaRepository implements CustomerRepository {
         ...(active !== undefined ? [{ isActive: active }] : []),
         ...nameTerms,
         ...searchTerms,
+        ...(document
+          ? [{ documentType: document.type, documentNumber: { contains: document.number } }]
+          : []),
         ...(level ? [levelFilter(level, config)] : []),
       ],
     };
