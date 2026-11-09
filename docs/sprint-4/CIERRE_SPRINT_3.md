@@ -5,7 +5,7 @@
 > quedó `develop`, qué no cumple el contrato del Sprint 3 y qué falta para cerrarlo. El ítem **ARRASTRE-S3**
 > de `HISTORIAS_SPRINT_4.md` se reparte con este archivo.
 >
-> **Ya resuelto el 25/10/2026** (decisiones de la PO): D-01 (US-60 / RF-065), D-02 (el Cajero no
+> **Ya resuelto el 25/10/2026** (decisiones de la PO): D-01 (US-59 / RF-065, según el Seguimiento v1.5), D-02 (el Cajero no
 > edita ni da de baja clientes), D-03 (nadie edita el documento), D-04 (los `403` no se auditan), D-05
 > (generador de 8 caracteres) y D-36 ("Movimiento de puntos"). **D-16** se resuelve con US-40 y US-42 del
 > Sprint 4. **D-06** sigue como propuesta. Al tomar cada fila, anotá la decisión al lado.
@@ -34,8 +34,8 @@
 | Ítem | Backend | Frontend |
 |---|---|---|
 | BASE (modelo y `points`) | ✅ `develop` (Montse, rama `consumo`). **Con faltantes**: ver §2, B2 y B3 | — |
-| US-57 Registrar auditoría | ✅ `develop` (Maga, `backend-maga`). **Faltan** las acciones de consumos (§2, B1) y `POINTS_EXPIRED` (está en la rama de US-25) | — |
-| US-58 Consultar auditoría | ✅ `develop` (Maga) | **No está en `develop`**. Rama `origin/feature/audit-frontend` (Tomás). En `develop`, `/admin/auditoria` muestra "Próximamente" |
+| US-56 Registrar auditoría | ✅ `develop` (Maga, `backend-maga`). **Faltan** las acciones de consumos (§2, B1) y `POINTS_EXPIRED` (está en la rama de US-25) | — |
+| US-57 Consultar auditoría | ✅ `develop` (Maga) | **No está en `develop`**. Rama `origin/feature/audit-frontend` (Tomás). En `develop`, `/admin/auditoria` muestra "Próximamente" |
 | US-46 Identificar cliente | ✅ `develop` (jachu / Jazmín) | ✅ `develop` (Melisa, PR #19) |
 | US-21 Registrar consumo | ✅ `develop` (Montse). Sin auditoría (§2, B1) | **No está en `develop`**. Rama `origin/feature/US-21-registrar-consumo-front` (Denise) |
 | US-22 Anular consumo | ✅ `develop` (Montse). Sin auditoría (§2, B1) | **No está en `develop`**. Rama `origin/feature/SCRUM-74-anular-consumo-front` (Denise) |
@@ -63,14 +63,14 @@
 | `origin/feature/SCRUM-74-anular-consumo-front` (US-22) | 1 (Denise, 22/10) | ✘ Conflictos en `IdentifyCustomerPage.tsx`, `auth.handlers.ts`, `shared/lib/dates.ts` |
 | `origin/feature/SCRUM-63-consultar-cliente-vista-cliente-front` (US-19, Inicio) | 1 (Denise, 21/10) | ✘ Conflictos en `CustomerLayout.tsx`, `router/index.tsx`, `domain/levels.ts` y en 5 archivos de `features/my-account` que PERFIL ya creó (add/add) |
 | `origin/feature/SCRUM-76-consultar-consumos-front` (US-23, historial) | 4 (incluye SCRUM-63) | ✘ Los mismos de SCRUM-63 más `router/paths.ts` |
-| `origin/feature/audit-frontend` (US-58) | 2 (Tomás, 22-23/10) | ✘ Conflictos en `AdminLayout.tsx`, `router/index.tsx`, `router/paths.ts`, `mocks/handlers/index.ts`, `shared/lib/dates.ts`. Además sube `cambios_us57.md` a la raíz (copia en UTF-16 de `CAMBIOS_PROPUESTOS_AL_CONTRATO_US57.md`): no mergearlo |
+| `origin/feature/audit-frontend` (US-57) | 2 (Tomás, 22-23/10) | ✘ Conflictos en `AdminLayout.tsx`, `router/index.tsx`, `router/paths.ts`, `mocks/handlers/index.ts`, `shared/lib/dates.ts`. Además sube `cambios_us57.md` a la raíz (copia en UTF-16 de `CAMBIOS_PROPUESTOS_AL_CONTRATO_US57.md`): no mergearlo |
 | `origin/feature/EMP-PASS-password-reactivacion-front` | 2 (Montse, 21/10) | ✘ Conflictos en `ConfirmAccountStatusChange.tsx` y `employees.handlers.ts` |
 | Local `resolve/perfil-con-us17aj` (Maga) | 1 (23/10) | Resolución de un merge PERFIL + US-17-AJ en mocks. Revisar si sigue haciendo falta o borrarla |
 | `origin/main` | 3 (septiembre) | `main` no recibe `develop` desde el 21/09. Decidir cuándo se pasa `develop` a `main` (§12, D-35) |
 
 **Orden sugerido para mergear** (para pelear menos conflictos): US-25 → EMP-PASS front → US-21 front → US-22 front
 (las dos tocan `IdentifyCustomerPage` y los mocks de consumos: conviene que Denise las junte) → SCRUM-63/76
-(rebasear sobre `develop` y adaptar a lo que ya creó PERFIL en `features/my-account`) → US-58 front.
+(rebasear sobre `develop` y adaptar a lo que ya creó PERFIL en `features/my-account`) → US-57 front.
 
 ---
 
@@ -95,7 +95,7 @@ reglas de puntos, unicidad de email, baja del cliente con su cuenta, etc.).
 
 | # | Qué pide el contrato | Qué hay en `develop` | Dónde |
 |---|---|---|---|
-| F1 ✘ | US-21, US-22, US-58, Inicio del Cliente (US-19), historial de consumos (US-23) | No están (están en ramas, §1.3) | — |
+| F1 ✘ | US-21, US-22, US-57, Inicio del Cliente (US-19), historial de consumos (US-23) | No están (están en ramas, §1.3) | — |
 | F2 ✘ | La pantalla de empleados no exige más que el backend (§3.11, CA-EMP.4) | `accountPasswordSchema` sigue exigiendo mayúscula, número y carácter especial. Lo corrige la rama de EMP-PASS front | `frontend/src/features/employees/schemas/employee.schema.ts:64-79` |
 | F3 ✘ | Pantalla Consumos del Administrador (US-23, §3.3) | No existe en ninguna rama | `/admin/consumos` → "Próximamente" |
 | F4 ✘ | Ficha del cliente para el **Cajero** (US-19, §3.4.1: pestañas de 24 h, sin "Ajustar puntos") | No existe. El Cajero no tiene ruta de ficha | `frontend/src/app/router/paths.ts` |
@@ -118,7 +118,7 @@ reglas de puntos, unicidad de email, baja del cliente con su cuenta, etc.).
 | Ninguna pantalla exige más que el backend | ⚠️ Falta empleados (F2) |
 | Año ≥ 1900 en fecha de nacimiento | ✅ en Mi perfil y en `Customer`. Confirmar en `POST /customers` y `POST /auth/register` |
 | Mensajes de error en español en los módulos viejos | ⛔ Sigue pendiente ("At least one field must be provided", "Customer with ID … is already inactive", etc.) |
-| `LoyaltyPrismaRepository` en la transacción ambiente (US-57 §8) | ✅ Ya usa `PrismaTransactionRunner` |
+| `LoyaltyPrismaRepository` en la transacción ambiente (US-56 §8) | ✅ Ya usa `PrismaTransactionRunner` |
 
 ---
 
@@ -159,7 +159,7 @@ Si el equipo no está de acuerdo con alguna, se marca en la §11 y se pide el ca
 | S3-20 ✅ | Paginador y búsqueda de Clientes | Paginador "Página X de Y" con Anterior/Siguiente (20 por página); el pedido con `q` sale con *debounce* de 300 ms | Melisa, `documentation-updates-cli-adm.md` §3 |
 | S3-21 ✅ | Menú del Administrador | Las 8 opciones del prototipo; Recompensas, Misiones y Estadísticas deshabilitadas con "Próx."; `/admin` → `/admin/clientes` | Melisa, ídem §6 |
 
-### 3.3 Auditoría (US-57 / US-58)
+### 3.3 Auditoría (US-56 / US-57)
 
 | # | Tema | Decisión | Quién / dónde |
 |---|---|---|---|
@@ -189,7 +189,7 @@ Si el equipo no está de acuerdo con alguna, se marca en la §11 y se pide el ca
 
 | # | Tema | Decisión | Quién / dónde |
 |---|---|---|---|
-| S3-38 ✅ | P5: US-47 ("resumen del cliente en 2 segundos") | Entra como criterio de US-46 | Melisa, `documentation-updates-us46.md` §6 |
+| S3-38 ✅ | P5: la vieja US-47 ("resumen del cliente en 2 segundos") | Entra como criterio de US-46 | Melisa, `documentation-updates-us46.md` §6 |
 | S3-39 ✅ | "Editar datos" en "Buscar cliente" del Mostrador | **Se sacó** (parte de P3; ver D-02 para la baja y el resto) | Melisa, ídem |
 | S3-40 ✅ | Textos de carga y error que no tenía el contrato | "Cargando…", "No se pudieron cargar los movimientos.", "No se pudo buscar el cliente.", "No se pudo aplicar el ajuste.", "Aplicando…", "El máximo es 1.000.000 puntos.", y los de CLI-ADM §7 | Melisa |
 | S3-41 ✅ | Componentes compartidos nuevos | `Textarea`, `Pagination`, `TableRow highlight`, `SideNav` con opciones deshabilitadas, token `--color-negative: #b3261e`, `Badge` variante `accent`, `shared/lib/numbers.ts`, `shared/types/pagination.ts` (`Paginated<T>`) | US-24, US-46, CLI-ADM. Pasarlos a `docs/architecture/estructura-frontend.md` |
@@ -207,7 +207,7 @@ Si el equipo no está de acuerdo con alguna, se marca en la §11 y se pide el ca
 | A-02 | Trigger de solo inserción en `points_movements` | §2 B2 | Migración nueva con el mismo trigger que `audit_logs` |
 | A-03 | `CHECK` de §3.12 | §2 B3 | Migración nueva. Antes, verificar que no haya filas que los violen |
 | A-04 | Mergear US-25 | §1.3 | Merge limpio. Avisar a todos: `npm install` (sale `@nestjs/schedule`) |
-| A-05 | Mergear los frontends de US-21, US-22, US-19 (Inicio), US-23 (historial), US-58 y EMP-PASS | §1.3 | Resolver conflictos en el orden sugerido |
+| A-05 | Mergear los frontends de US-21, US-22, US-19 (Inicio), US-23 (historial), US-57 y EMP-PASS | §1.3 | Resolver conflictos en el orden sugerido |
 | A-06 | Pantalla Consumos del Administrador (US-23) | §2 F3 | Sin rama. Asignar |
 | A-07 | Ficha del cliente del Cajero (US-19) | §2 F4 | Sin rama. Asignar |
 | A-08 | Correr `npm run test:e2e` completo | §1.1 | Con la base de tests levantada. Confirmar B6 |
@@ -221,10 +221,10 @@ Si el equipo no está de acuerdo con alguna, se marca en la §11 y se pide el ca
 
 | # | Pendiente | Dónde surgió | Opciones |
 |---|---|---|---|
-| D-01 | **P1:** número de la historia del perfil (US-59 ya es "Autorregistrar cliente") y su RF | HISTORIAS S3 P1 | US-60 / RF-065 (los nombra la tabla de Epics) u otro |
+| D-01 | **P1:** número de la historia del perfil (US-59 ya es "Autorregistrar cliente") y su RF | HISTORIAS S3 P1 | **Resuelto:** US-59 / RF-065 (Seguimiento v1.5). El autorregistro es US-58 |
 | D-02 | **P3:** el Cajero ya no edita ni da de baja clientes en el prototipo ni en la pantalla, pero el **backend todavía se lo permite** (`PATCH /customers/:id` y `/deactivate` con `@Roles('ADMIN','CASHIER')`) | HISTORIAS S3 P3; VERIFICACIÓN §7 P1-P2; US-46 | (a) Cambiar el actor de US-18 y US-20 a Administrador y cerrar el backend; (b) devolverle las acciones al Cajero en la ficha. Después, borrar o reutilizar `EditCustomerForm`/`CustomerSummary` |
 | D-03 | **Documento del cliente:** el contrato (§3.8.2) y el backend dejan que el **Administrador** lo corrija; el frontend de CLI-ADM lo bloquea para todos (decisión de Melisa) | `documentation-updates-cli-adm.md` §1 | (a) Contrato manda: habilitar el campo para el Administrador; (b) nadie lo edita: sacarlo del backend y revisar `customer.document-changed` y CA-CLI.4/CA-CLI.7 |
-| D-04 | **P4:** auditar los intentos sin permiso (`403`) | HISTORIAS S3 P4 | Sacar el escenario de US-57 (hoy no se audita) o agregar una acción |
+| D-04 | **P4:** auditar los intentos sin permiso (`403`) | HISTORIAS S3 P4 | Sacar el escenario de US-56 (hoy no se audita) o agregar una acción |
 | D-05 | Generador de contraseñas: 8 (código) o 12 (contrato) | EMP-PASS front (Montse) | Corregir el contrato a 8 o el código a 12 |
 | D-06 | Anular un consumo cuyo lote **ya venció** (o se gastó y después venció): hoy `revertir` pasa el lote de `EXPIRED` a `VOIDED` y convierte **todo** `totalPoints` en deuda, aunque esos puntos ya se descontaron al vencer. El cliente pierde los puntos dos veces | Hallazgo en `points.service.ts:151-193` y `points-lot.ts:90-93` (aparece cuando entre US-25) | (a) Descontar solo lo que el lote no perdió por vencimiento; (b) no permitir anular un consumo con el lote vencido; (c) dejarlo así y documentarlo. Además: ¿`EXPIRED` puede pasar a `VOIDED`? |
 | D-07 | Consumo que da **0 puntos** (monto menor que la base): el contrato pide `points <> 0` en los movimientos, pero hoy se inserta un `CONSUMPTION_CREDIT` por 0 (y no falla porque no hay `CHECK`) | Hallazgo (A-03 lo haría fallar) | (a) No registrar movimiento si `totalPoints = 0`; (b) rechazar el consumo; (c) permitir el 0 |

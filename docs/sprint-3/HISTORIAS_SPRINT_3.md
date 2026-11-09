@@ -54,8 +54,8 @@
 | Ítem | Título | Backend: responsable | Backend: rama | Frontend: responsable | Frontend: rama | Carpeta del front | Estado |
 |---|---|---|---|---|---|---|---|
 | BASE | Modelo de datos nuevo y módulo `points` | | | — (no tiene pantalla) | — | — | Sin empezar |
-| US-57 | Registrar auditoría (cambios de la auditoría) | | | — (no tiene pantalla) | — | — | Sin empezar |
-| US-58 | Consultar auditoría | | | | | `features/audit` | Sin empezar |
+| US-56 | Registrar auditoría (cambios de la auditoría) | | | — (no tiene pantalla) | — | — | Sin empezar |
+| US-57 | Consultar auditoría | | | | | `features/audit` | Sin empezar |
 | US-46 | Identificar cliente en mostrador | Jazmín | `feature/US-19-consultar-cliente-back` | | | `features/cashier` | En revisión |
 | US-21 | Registrar consumo y cálculo de puntos | | | | | `features/cashier` | Sin empezar |
 | US-22 | Anular consumo | | | | | `features/cashier` | Sin empezar |
@@ -84,7 +84,7 @@ BACKEND
   (modelo y     │                 │
    points)      │                 └──> US-19, US-24, US-26, US-25
                 └──> US-27
-  US-57 ──────────> (todas las que auditan: US-21, 22, 24, 25, 27, US-17-AJ, CLI-ADM, EMP-PASS) ──> US-58
+  US-56 ──────────> (todas las que auditan: US-21, 22, 24, 25, 27, US-17-AJ, CLI-ADM, EMP-PASS) ──> US-57
   US-17-AJ ───────> PERFIL (la ventana "Cambiá tu contraseña" necesita mustChangePassword)
   CORR (unicidad de email entre activos) ──> US-17-AJ, CLI-ADM, EMP-PASS, PERFIL
 
@@ -98,7 +98,7 @@ FRONTEND
 |---|---|---|
 | Tablas `consumptions`, `points_lots`, `points_movements` y `customer_points`; columnas de niveles; `accounts.must_change_password`; enums de puntos y consumos | **BASE** | US-21, 22, 23, 24, 25, 26, 27, US-17-AJ |
 | `PointsService` (`acreditar`, `revertir`, `ajustar`, `vencerLotes`, `resumen`) y el cálculo de nivel | **BASE** | US-19, 21, 22, 24, 25, 26, 46, CLI-ADM |
-| Tabla `audit_logs` nueva, enums `AuditModule`, `AuditAction` y `AuditActorType`, y `AuditService.capture` con la forma nueva | **US-57** | Todas las que auditan |
+| Tabla `audit_logs` nueva, enums `AuditModule`, `AuditAction` y `AuditActorType`, y `AuditService.capture` con la forma nueva | **US-56** | Todas las que auditan |
 | `GET /customers/:id/puntos` | **US-46** | US-19, US-21, US-22 y US-24 (para mostrar el saldo) |
 | `GET /customers/:id/consumos` | **US-22** | US-19 (pestaña de la ficha) |
 | `GET /customers/:id/movimientos` | **US-26** | US-19 (pestaña de la ficha) y US-46 (panel) |
@@ -115,16 +115,16 @@ decida, se completa la columna "Decisión" y se corrige el contrato si hace falt
 
 | # | Pendiente | Afecta | Decisión |
 |---|---|---|---|
-| P1 | **Número de la historia del perfil.** El contrato la llama **US-59**, pero en la Definición del Producto **US-59 ya es "Autorregistrar cliente" (RF-064)**. Además, la tabla de Epics ya nombra **US-60** y **RF-065** en EP01. ¿Qué número lleva el perfil? | PERFIL | |
+| P1 | **Número de la historia del perfil.** El contrato la llama **US-59**, pero en la Definición del Producto **US-59 ya es "Autorregistrar cliente" (RF-064)**. Además, la tabla de Epics ya nombra **US-60** y **RF-065** en EP01. ¿Qué número lleva el perfil? | PERFIL | **Resuelto (Seguimiento v1.5, 25/10):** el perfil es **US-59** (RF-065). El autorregistro pasó a ser US-58 (RF-064) |
 | P2 | **Ventana "Cambiá tu contraseña": ¿se puede postergar ("Ahora no") o es obligatoria?** El contrato la toma como postergable. La variante obligatoria está en la §3.11.3 | PERFIL, US-17-AJ | |
 | P3 | **El Cajero perdió "Editar datos" y la baja de clientes en el prototipo v2.** O se recupera en el prototipo, o se cambia el actor de US-18 y US-20 (`VERIFICACION_SPRINTS_1_2.md`, §7, P1 y P2) | CLI-ADM, CORR | |
-| P4 | **US-57, escenario 4 original:** "registrar en la auditoría los intentos sin permiso". El contrato (§3.9) no lo incluye: no hay acción para eso y el `403` no se audita. ¿Se saca el escenario o se agrega al contrato? | US-57 | |
-| P5 | **US-47** ("resumen del cliente en 2 segundos") figura en el Sprint 3 del backlog, pero no está en el pedido del sprint. ¿Entra? | US-46 | |
+| P4 | **US-56, escenario 4 original:** "registrar en la auditoría los intentos sin permiso". El contrato (§3.9) no lo incluye: no hay acción para eso y el `403` no se audita. ¿Se saca el escenario o se agrega al contrato? | US-56 | |
+| P5 | **US-47** ("resumen del cliente en 2 segundos") figura en el Sprint 3 del backlog, pero no está en el pedido del sprint. ¿Entra? | US-46 | **Resuelto:** entra como criterio de US-46 (S3-38). El Seguimiento v1.5 la eliminó del backlog y corrió la numeración (las viejas US-48 a US-60 son hoy US-47 a US-59) |
 | P6 | **¿Cuándo se crea la fila de `customer_points`?** Con el alta del cliente o en su primer movimiento. El contrato admite las dos | BASE | |
 | P7 | **Vencimiento a demanda.** ¿Con qué comando se corre (nombre del script) y qué valor por defecto tiene `POINTS_EXPIRATION_CRON_ENABLED` en cada entorno? | US-25 | |
 | P8 | **Carpeta del frontend** para las pantallas del Administrador "Consumos" y "Movimientos de puntos". No existe un feature para ellas. Propuestas: `features/consumptions` y `features/points-movements` | US-23, US-26 | |
 | P9 | **Tests del frontend.** La Definición del Producto dice Vitest y React Testing Library, pero no están instalados. ¿Se suman en este sprint? | Todo el frontend | |
-| P10 | **¿Está mergeada en `develop` la rama `feature/SCRUM-161-registrar-auditoria`?** US-57 parte de ese código | US-57 | |
+| P10 | **¿Está mergeada en `develop` la rama `feature/SCRUM-161-registrar-auditoria`?** US-56 parte de ese código | US-56 | |
 
 ---
 
@@ -147,7 +147,7 @@ Formato de cada historia:
 | **Qué es** | No es una historia del backlog. Es la base que necesitan casi todas las historias del sprint. Se hace una sola vez, para que no haya cinco migraciones distintas sobre las mismas tablas |
 | **Contrato** | §3.12 (modelo), §2.2 (enums), §3.4.1 (resumen de puntos), §3.6.3 (lotes y vencimiento), §3.7 (cálculo de nivel), §8.4 (diseño de módulos) |
 | **Depende de** | Nada |
-| **Fuera de alcance** | Endpoints HTTP (cada historia tiene los suyos) y la auditoría (US-57) |
+| **Fuera de alcance** | Endpoints HTTP (cada historia tiene los suyos) y la auditoría (US-56) |
 
 **Criterios de aceptación**
 
@@ -211,14 +211,14 @@ Formato de cada historia:
 
 ---
 
-### US-57 — Registrar auditoría (solo backend)
+### US-56 — Registrar auditoría (solo backend)
 
 | | |
 |---|---|
 | **Historia** | Como Sistema, quiero registrar de forma inalterable las operaciones relevantes indicando usuario, fecha, hora y acción, para garantizar la trazabilidad |
 | **Contrato** | §3.9.1 (reglas), §3.9.2 (enums), §3.9.3 (detalle por acción), §3.9.6 (cambios en la base y migración de lo ya registrado) |
 | **Depende de** | P10: el código de auditoría de la rama `feature/SCRUM-161` |
-| **Fuera de alcance** | La consulta (US-58). La auditoría de las acciones nuevas del sprint la escribe cada historia (US-21, 22, 24, 25, 27…); esta historia deja lista la base y migra lo que ya se auditaba |
+| **Fuera de alcance** | La consulta (US-57). La auditoría de las acciones nuevas del sprint la escribe cada historia (US-21, 22, 24, 25, 27…); esta historia deja lista la base y migra lo que ya se auditaba |
 
 **Criterios de aceptación**
 
@@ -262,7 +262,7 @@ Formato de cada historia:
 
 ---
 
-### US-58 — Consultar auditoría
+### US-57 — Consultar auditoría
 
 | | |
 |---|---|
@@ -270,7 +270,7 @@ Formato de cada historia:
 | **Roles** | Solo el Administrador |
 | **Contrato** | §3.9.2 (enums y filtro dependiente), §3.9.4 (`GET /auditoria`), §3.9.5 (`GET /auditoria/actores`), §8.1 #7 y #12, decisión #5 |
 | **Prototipo** | `Auditoria.dc.html` y, en el archivo principal, `adminScreen === 'auditoria'` |
-| **Depende de** | US-57 (backend) |
+| **Depende de** | US-56 (backend) |
 | **Fuera de alcance** | Exportar. El panel "Tipos de datos" es documentación del prototipo: **no** va en la aplicación |
 
 **Criterios de aceptación**
@@ -399,7 +399,7 @@ Formato de cada historia:
 | **Roles** | Cajero y Administrador |
 | **Contrato** | §3.1.2 (`GET /consumos/preview`), §3.1.3 (`POST /consumos` y pantalla "Consumo registrado"), §3.3.3 (tipo `Consumption`), §2.2, §3.9.3 (`CONSUMPTION_REGISTERED`), decisiones #2, #3 y #6, §8.1 #1, #3 y #9 |
 | **Prototipo** | `RegistrarConsumo.dc.html` (monto, vista previa y "Consumo registrado"). **Ojo:** el prototipo calcula los puntos en la pantalla y no aplica la bonificación. En la aplicación, todo viene de `/consumos/preview` |
-| **Depende de** | BASE, US-46 y, para la auditoría, US-57 |
+| **Depende de** | BASE, US-46 y, para la auditoría, US-56 |
 | **Fuera de alcance** | Anular (US-22). Detalle del consumo (US-23): el botón "Ver detalle" solo navega |
 
 **Criterios de aceptación**
@@ -717,7 +717,7 @@ Formato de cada historia:
 | **Roles** | **Solo el Administrador** |
 | **Contrato** | §3.5 (`POST /customers/:id/ajustes-de-puntos` y modal), §3.9.3 (`POINTS_ADJUSTED`), decisión #1 |
 | **Prototipo** | `FichaCliente.dc.html` (botón y modal "Ajustar puntos") |
-| **Depende de** | BASE, US-19 (ficha) y US-57 (auditoría) |
+| **Depende de** | BASE, US-19 (ficha) y US-56 (auditoría) |
 | **Fuera de alcance** | Editar puntos desde "Ver más" de Clientes: **se sacó** (§8.1 #2) |
 
 **Criterios de aceptación**
@@ -785,8 +785,8 @@ Formato de cada historia:
 |---|---|
 | **Historia** | Como Sistema, quiero descontar automáticamente los puntos vencidos sin afectar movimientos posteriores, para mantener el saldo consistente |
 | **Contrato** | §3.6.3 (proceso), §3.12 (`points_lots`), §3.9.3 (`POINTS_EXPIRED`), §8.4 (dependencia `@nestjs/schedule`, ya autorizada) |
-| **Depende de** | BASE y US-57 |
-| **Fuera de alcance** | Endpoint HTTP: **no existe**. Notificar el vencimiento (US-48, Sprint 5) |
+| **Depende de** | BASE y US-56 |
+| **Fuera de alcance** | Endpoint HTTP: **no existe**. Notificar el vencimiento (US-47, Sprint 5) |
 
 **Criterios de aceptación**
 
@@ -887,7 +887,7 @@ Formato de cada historia:
 | **Roles** | Solo el Administrador |
 | **Contrato** | §3.7 (reglas, `GET` y `PUT /loyalty/configuration/levels`, pantalla y mensajes), §3.9.3 (`LEVELS_UPDATED`) |
 | **Prototipo** | Configuración (engranaje) → **Puntos** → tarjeta **Niveles**, debajo de "Equivalencia de puntos" (`guardarNiveles` en el archivo principal). **Ojo:** el ítem "Niveles de fidelización" del menú de configuración (`configScreen === 'niveles'`, marcado "Próximamente") es el diseño viejo y **no** se usa |
-| **Depende de** | BASE y US-57 |
+| **Depende de** | BASE y US-56 |
 | **Fuera de alcance** | **Beneficios** de cada nivel: están pendientes de definir y no se muestran ni se guardan. Crear o renombrar niveles: son fijos |
 
 **Criterios de aceptación**
@@ -936,7 +936,7 @@ Formato de cada historia:
 | **Qué cambia** | Cuando el Cajero ("Nuevo cliente") o el Administrador ("+ Registrar cliente") dan de alta un cliente, ahora se crea también **su cuenta**, con **contraseña inicial = número de documento** y `mustChangePassword = true` (decisión #7) |
 | **Contrato** | §3.11.3 (completo), §3.8.4, §3.9.3 (`CUSTOMER_CREATED`), §8.1 #8 |
 | **Prototipo** | Caja → "Nuevo cliente" (`empleadoScreen === 'altaCliente'`) y Clientes → "+ Registrar cliente" |
-| **Depende de** | BASE (`must_change_password`), CORR (unicidad de email entre activos) y US-57 |
+| **Depende de** | BASE (`must_change_password`), CORR (unicidad de email entre activos) y US-56 |
 | **Fuera de alcance** | La ventana "Cambiá tu contraseña" y `PATCH /mi-cuenta/password` (PERFIL) |
 
 **Criterios de aceptación**
@@ -989,7 +989,7 @@ Formato de cada historia:
 | **Roles** | Administrador. El Cajero usa los mismos endpoints desde Caja, con sus restricciones |
 | **Contrato** | §3.8 (completo: listado, "Ver más", Editar, Eliminar, "+ Registrar cliente" y "Ver ficha"), §1 ("Existentes que cambian" y "se eliminan"), §3.9.3 (`CUSTOMER_UPDATED` y `CUSTOMER_DEACTIVATED`), decisión #4 |
 | **Prototipo** | `adminScreen === 'clientes'` en el archivo principal (tabla, "Ver más", "Editar", "Eliminar" y "+ Registrar cliente") |
-| **Depende de** | BASE (saldo y nivel), US-57, CORR (baja de la cuenta, unicidad de email) y US-17-AJ (alta con cuenta) |
+| **Depende de** | BASE (saldo y nivel), US-56, CORR (baja de la cuenta, unicidad de email) y US-17-AJ (alta con cuenta) |
 | **Fuera de alcance** | Reactivar clientes: **no existe**. Editar puntos: **se sacó**, se usa el ajuste de US-24. Lo que hace el Cajero en Caja (P3) |
 
 **Criterios de aceptación**
@@ -1059,7 +1059,7 @@ Formato de cada historia:
 
 ---
 
-### PERFIL — Mi perfil, contraseña y cerrar sesión del Cliente (número de US a confirmar, ver P1)
+### PERFIL — Mi perfil, contraseña y cerrar sesión del Cliente (US-59, RF-065)
 
 | | |
 |---|---|
@@ -1167,7 +1167,7 @@ Formato de cada historia:
 | **Roles** | Administrador |
 | **Contrato** | §3.11.2, §3.11.4, §3.11 (política), §3.9.3 (`USER_ACCOUNT_UPDATED` y `USER_ACCOUNT_REACTIVATED`) |
 | **Prototipo** | Configuración → Empleados → empleado → Usuario del sistema → "Cambiar contraseña" y "Reactivar usuario" (`configScreen === 'empleados'`) |
-| **Depende de** | US-57 y CORR (unicidad de email entre activos) |
+| **Depende de** | US-56 y CORR (unicidad de email entre activos) |
 | **Fuera de alcance** | Reactivar **empleados**: no existe |
 
 **Criterios de aceptación**
@@ -1186,7 +1186,7 @@ Formato de cada historia:
   - Después de guardar: "Se cambió la contraseña de **{nombre}**…", con "Copiar" y la nota "Pasásela al
     empleado ahora: después no se vuelve a mostrar.".
 - **CA-EMP.4 [F] La pantalla no exige más que el backend.** Si el Administrador escribe la contraseña a
-  mano, la pantalla solo exige la regla de la §3.11. El generador (12 caracteres) sigue igual.
+  mano, la pantalla solo exige la regla de la §3.11. El generador (8 caracteres, decisión D-05 del 25/10) sigue igual.
 - **CA-EMP.5 [B] Reactivar usuario.** `PATCH /usuarios/:id/reactivate`:
   - cuenta ya activa → `409`;
   - empleado dado de baja → `409`;

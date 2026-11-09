@@ -5,7 +5,7 @@
 > (`schema.prisma`, `docs/`) y de la rama `feature/SCRUM-161-registrar-auditoria`.
 >
 > **Historias:** US-19, US-21, US-22, US-23, US-24, US-25, US-26, US-27, US-46. Además:
-> - **Auditoría** (US-57 / US-58): cambia completa. Va detallada como ítem aparte en la [sección 3.9](#39-auditoría-ítem-aparte).
+> - **Auditoría** (US-56 / US-57): cambia completa. Va detallada como ítem aparte en la [sección 3.9](#39-auditoría-ítem-aparte).
 > - **Pantalla de Clientes del Administrador**: quedó pendiente del Sprint 2.
 > - **Perfil del Cliente** y **cerrar sesión**.
 > - **Todos los cambios de contraseña.**
@@ -71,7 +71,7 @@ Todas las rutas cuelgan de `/api`. **A** = Administrador, **C** = Cajero, **Cl**
 | 10 | `GET` | `/movimientos-de-puntos` | **A** | Movimientos de todos los clientes, con filtros | US-26 |
 | 11 | `GET` | `/loyalty/configuration/levels` | **A** | Umbrales de niveles vigentes | US-27 |
 | 12 | `PUT` | `/loyalty/configuration/levels` | **A** | Modificar umbrales de Plata y Oro | US-27 |
-| 13 | `GET` | `/auditoria/actores` | **A** | Opciones del filtro "Realizado por" | US-58 |
+| 13 | `GET` | `/auditoria/actores` | **A** | Opciones del filtro "Realizado por" | US-57 |
 | 14 | `GET` | `/customers/me` | **Cl** | Mi perfil (datos fijos y de contacto) | US-59* |
 | 15 | `PATCH` | `/customers/me` | **Cl** | Editar teléfono, correo y fecha de nacimiento | US-59* |
 | 16 | `GET` | `/customers/me/puntos` | **Cl** | Inicio: saldo, nivel, acumulados, vencimientos | US-19 |
@@ -1401,7 +1401,7 @@ tenga su documento.
 
 **Ayudas de pantalla:**
 - **Mi perfil** dice "Mínimo 8 caracteres, con letras y números." Hasta que se decida la política, cambiar a **"Entre 8 y 64 caracteres. No puede ser tu mail ni tu número de documento."**
-- **Empleados:** el generador (12 caracteres, con mayúscula, número y especial) cumple la regla, así que sigue igual. Pero la validación de la pantalla **no puede ser más estricta que el backend**: si el Administrador escribe la contraseña a mano, la pantalla solo exige la regla de arriba.
+- **Empleados:** el generador (**8 caracteres**, con al menos una mayúscula, una minúscula, un número y un carácter especial, sin `I`, `l`, `O`, `0` ni `1`) cumple la regla, así que sigue igual (decisión D-05 del 25/10/2026, `frontend/src/shared/lib/password.ts`; antes decía 12). Pero la validación de la pantalla **no puede ser más estricta que el backend**: si el Administrador escribe la contraseña a mano, la pantalla solo exige la regla de arriba.
 
 #### 3.11.1 El usuario cambia su propia contraseña
 
@@ -1903,8 +1903,8 @@ o es obligatoria. El contrato la toma como **postergable**; la variante obligato
 | US-27 | Configurar niveles | RF-028 | `GET`/`PUT /loyalty/configuration/levels` | Configuración → Puntos → Niveles |
 | US-17 | Registrar cliente (ajuste) | RF-015 | `POST /customers` ahora crea la cuenta con contraseña inicial | Caja → Nuevo cliente; Clientes → + Registrar cliente |
 | US-46 | Identificar cliente en mostrador | Deriva de RF-017 (RNF-2) | `GET /customers/by-document`, `GET /customers/:id/puntos` | Buscar cliente |
-| US-57 | Registrar auditoría | RF-062 | Escritura interna en cada operación ([3.9.3](#393-qué-se-guarda-en-el-detalle-de-cada-acción)) | — |
-| US-58 | Consultar auditoría | RF-063 | `GET /auditoria`, `GET /auditoria/actores` | Auditoría |
+| US-56 | Registrar auditoría | RF-062 | Escritura interna en cada operación ([3.9.3](#393-qué-se-guarda-en-el-detalle-de-cada-acción)) | — |
+| US-57 | Consultar auditoría | RF-063 | `GET /auditoria`, `GET /auditoria/actores` | Auditoría |
 | — | Clientes del Administrador (pendiente del Sprint 2; cubre US-19 del lado del Administrador, US-18 y US-20) | RF-016 / RF-017 / RF-018 | `GET /customers`, `PATCH /customers/:id`, `PATCH /customers/:id/deactivate`, `POST /customers` | Clientes → Ver más / Ver ficha / Registrar cliente |
 | **US-59 (nueva)** | Ver y editar mi perfil, cambiar mi contraseña (también la inicial, con la ventana de cambio al ingresar) y cerrar sesión | **RF-065 (nuevo)**\* | `GET`/`PATCH /customers/me`, `PATCH /mi-cuenta/password`, `POST /auth/logout`, campo `mustChangePassword` del login | Mi perfil, ventana "Cambiá tu contraseña" |
 | — | Cambio de contraseña y reactivación de usuario de empleado (ajuste de US-06 y US-07) | RF-06 / RF-07 | `PATCH /usuarios/:id`, `PATCH /usuarios/:id/reactivate` | Configuración → Empleados → Cambiar contraseña / Reactivar usuario |
@@ -1912,3 +1912,7 @@ o es obligatoria. El contrato la toma como **postergable**; la variante obligato
 \* **RF-064 ya está tomado** por el registro de clientes (SCRUM-160). Por eso la historia de perfil usa
 **RF-065**. Hay que agregar US-59 y RF-065 al Product Backlog y a la Definición del Producto, y marcar al
 Cliente como rol de esa historia en la tabla de Roles del Sistema.
+
+> **Actualizado el 09/11/2026:** el Seguimiento v1.5 (25/10) confirmó **US-59 / RF-065** para el perfil y
+> renumeró el resto del backlog: auditoría = US-56 (registrar) y US-57 (consultar); autorregistro = US-58.
+> Este contrato ya usa esa numeración.
