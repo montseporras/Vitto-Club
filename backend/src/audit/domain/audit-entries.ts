@@ -408,6 +408,106 @@ export function rewardCreatedEntry(actor: AuditActor, reward: RewardSnapshot): A
   };
 }
 
+const formatRewardPoints = (points: number): string => `${formatNumber(points)} pts`;
+const formatRewardStock = (stock: number | null): string => (stock === null ? 'Sin límite' : formatNumber(stock));
+const formatRewardExpiration = (expiresAt: string | null): string =>
+  expiresAt === null ? 'No vence' : formatDateOnly(expiresAt);
+
+export type RewardEditSnapshot = RewardSnapshot & { description: string | null };
+
+// REWARD_UPDATED (§3.14.2, US-35): una fila por campo que cambió, "{antes} → {después}". Vacío =
+// "—", sin límite = "Sin límite", sin fecha = "No vence"; los puntos con "pts" (decisión de Jazmín,
+// igual que REWARD_CREATED). La description lleva el nombre nuevo. null si no cambió nada (no se
+// audita).
+export function rewardUpdatedEntry(
+  actor: AuditActor,
+  before: RewardEditSnapshot,
+  after: RewardEditSnapshot,
+): AuditEntryInput | null {
+  const details = changedRows([
+    { label: 'Nombre', before: before.name, after: after.name },
+    { label: 'Descripción', before: orNone(before.description), after: orNone(after.description) },
+    { label: 'Puntos', before: formatRewardPoints(before.points), after: formatRewardPoints(after.points) },
+    { label: 'Stock', before: formatRewardStock(before.stock), after: formatRewardStock(after.stock) },
+    { label: 'Vencimiento', before: formatRewardExpiration(before.expiresAt), after: formatRewardExpiration(after.expiresAt) },
+  ]);
+  if (details.length === 0) return null;
+  return {
+    actor,
+    module: 'REWARDS',
+    action: 'REWARD_UPDATED',
+    description: `Editó la recompensa "${after.name}"`,
+    details,
+  };
+}
+
+// UI de RewardStatus (§2.1)
+const REWARD_STATUS_LABELS = {
+  ACTIVE: 'Activa',
+  DISABLED: 'Deshabilitada',
+  INACTIVE: 'Inactiva',
+  DELETED: 'Dada de baja',
+} as const;
+export type RewardStatusCode = keyof typeof REWARD_STATUS_LABELS;
+
+const statusChange = (before: RewardStatusCode, after: RewardStatusCode): AuditDetail => ({
+  label: 'Estado',
+  value: change(REWARD_STATUS_LABELS[before], REWARD_STATUS_LABELS[after]),
+});
+
+// REWARD_ACTIVATED (§3.2.5 y §3.14.2, US-36): "Estado: Inactiva → Activa" o "Inactiva →
+// Deshabilitada" si no está disponible. No se audita además un REWARD_DISABLED (decisión de Jazmín:
+// sería el mismo hecho dos veces).
+export function rewardActivatedEntry(actor: AuditActor, rewardName: string, after: RewardStatusCode): AuditEntryInput {
+  return {
+    actor,
+    module: 'REWARDS',
+    action: 'REWARD_ACTIVATED',
+    description: `Activó la recompensa "${rewardName}"`,
+    details: [statusChange('INACTIVE', after)],
+  };
+}
+
+// REWARD_DEACTIVATED (§3.2.6 y §3.14.2, US-36): "Estado: {antes} → Inactiva" y, solo si hubo,
+// "Canjes rechazados: {n}"
+export function rewardDeactivatedEntry(
+  actor: AuditActor,
+  rewardName: string,
+  before: RewardStatusCode,
+  rejectedRedemptions: number,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'REWARDS',
+    action: 'REWARD_DEACTIVATED',
+    description: `Desactivó la recompensa "${rewardName}"`,
+    details: [
+      statusChange(before, 'INACTIVE'),
+      ...(rejectedRedemptions > 0 ? [{ label: 'Canjes rechazados', value: formatNumber(rejectedRedemptions) }] : []),
+    ],
+  };
+}
+
+// REWARD_DELETED (§3.2.7 y §3.14.2, US-38): "Estado: {antes} → Dada de baja" y, solo si hubo,
+// "Canjes rechazados: {n}". La UI del filtro es "Eliminó recompensa" (§2.7).
+export function rewardDeletedEntry(
+  actor: AuditActor,
+  rewardName: string,
+  before: RewardStatusCode,
+  rejectedRedemptions: number,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'REWARDS',
+    action: 'REWARD_DELETED',
+    description: `Eliminó la recompensa "${rewardName}"`,
+    details: [
+      statusChange(before, 'DELETED'),
+      ...(rejectedRedemptions > 0 ? [{ label: 'Canjes rechazados', value: formatNumber(rejectedRedemptions) }] : []),
+    ],
+  };
+}
+
 // --- Canjes ------------------------------------------------------------------------------
 
 export type RedemptionSnapshot = {

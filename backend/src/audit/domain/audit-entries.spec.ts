@@ -13,7 +13,11 @@ import {
   redemptionUsedEntry,
   redemptionExpiredEntry,
   redemptionRejectedEntry,
+  rewardActivatedEntry,
   rewardCreatedEntry,
+  rewardDeactivatedEntry,
+  rewardDeletedEntry,
+  rewardUpdatedEntry,
   rewardDisabledEntry,
   rewardEnabledEntry,
   type CustomerSnapshot,
@@ -452,6 +456,104 @@ describe('redemptionUsedEntry() (US-42)', () => {
       ],
     });
     expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+});
+
+describe('rewardUpdatedEntry() (US-35)', () => {
+  const admin = { type: 'EMPLOYEE' as const, accountId: 1 };
+  const before = { name: 'Café + medialuna', description: null, points: 150, stock: 0, expiresAt: '2026-12-08' };
+
+  it('CA-35.1: una fila por campo que cambió, "Stock: 0 → 20"', () => {
+    const entry = rewardUpdatedEntry(admin, before, { ...before, stock: 20 });
+
+    expect(entry).toEqual({
+      actor: admin,
+      module: 'REWARDS',
+      action: 'REWARD_UPDATED',
+      description: 'Editó la recompensa "Café + medialuna"',
+      details: [{ label: 'Stock', value: '0 → 20' }],
+    });
+  });
+
+  it('todos los campos, con "—", "Sin límite", "No vence" y pts; la description con el nombre nuevo', () => {
+    const entry = rewardUpdatedEntry(admin, before, {
+      name: 'Café doble',
+      description: 'Con manteca',
+      points: 1200,
+      stock: null,
+      expiresAt: null,
+    });
+
+    expect(entry?.description).toBe('Editó la recompensa "Café doble"');
+    expect(entry?.details).toEqual([
+      { label: 'Nombre', value: 'Café + medialuna → Café doble' },
+      { label: 'Descripción', value: '— → Con manteca' },
+      { label: 'Puntos', value: '150 pts → 1.200 pts' },
+      { label: 'Stock', value: '0 → Sin límite' },
+      { label: 'Vencimiento', value: '08/12/2026 → No vence' },
+    ]);
+  });
+
+  it('sin cambios → null (no se audita)', () => {
+    expect(rewardUpdatedEntry(admin, before, { ...before })).toBeNull();
+  });
+});
+
+describe('rewardActivatedEntry() y rewardDeactivatedEntry() (US-36)', () => {
+  const admin = { type: 'EMPLOYEE' as const, accountId: 1 };
+
+  it.each([
+    ['ACTIVE', 'Inactiva → Activa'],
+    ['DISABLED', 'Inactiva → Deshabilitada'],
+  ] as const)('REWARD_ACTIVATED a %s: "Estado: %s"', (after, value) => {
+    expect(rewardActivatedEntry(admin, 'Licuado', after)).toEqual({
+      actor: admin,
+      module: 'REWARDS',
+      action: 'REWARD_ACTIVATED',
+      description: 'Activó la recompensa "Licuado"',
+      details: [{ label: 'Estado', value }],
+    });
+  });
+
+  it('REWARD_DEACTIVATED sin canjes: solo "Estado: Activa → Inactiva" (CA-36.1)', () => {
+    expect(rewardDeactivatedEntry(admin, 'Licuado', 'ACTIVE', 0)).toEqual({
+      actor: admin,
+      module: 'REWARDS',
+      action: 'REWARD_DEACTIVATED',
+      description: 'Desactivó la recompensa "Licuado"',
+      details: [{ label: 'Estado', value: 'Activa → Inactiva' }],
+    });
+  });
+
+  it('REWARD_DEACTIVATED con 2 canjes y desde Deshabilitada (CA-36.2, CA-36.3)', () => {
+    expect(rewardDeactivatedEntry(admin, 'Licuado', 'DISABLED', 2).details).toEqual([
+      { label: 'Estado', value: 'Deshabilitada → Inactiva' },
+      { label: 'Canjes rechazados', value: '2' },
+    ]);
+  });
+});
+
+describe('rewardDeletedEntry() (US-38)', () => {
+  const admin = { type: 'EMPLOYEE' as const, accountId: 1 };
+
+  it('sin canjes: "Estado: Activa → Dada de baja" (CA-38.1)', () => {
+    expect(rewardDeletedEntry(admin, 'Brunch para dos', 'ACTIVE', 0)).toEqual({
+      actor: admin,
+      module: 'REWARDS',
+      action: 'REWARD_DELETED',
+      description: 'Eliminó la recompensa "Brunch para dos"',
+      details: [{ label: 'Estado', value: 'Activa → Dada de baja' }],
+    });
+  });
+
+  it.each([
+    ['DISABLED', 'Deshabilitada → Dada de baja'],
+    ['INACTIVE', 'Inactiva → Dada de baja'],
+  ] as const)('desde %s, con 2 canjes (CA-38.2)', (before, value) => {
+    expect(rewardDeletedEntry(admin, 'Brunch para dos', before, 2).details).toEqual([
+      { label: 'Estado', value },
+      { label: 'Canjes rechazados', value: '2' },
+    ]);
   });
 });
 

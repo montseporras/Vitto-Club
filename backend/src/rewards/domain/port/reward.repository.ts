@@ -1,5 +1,7 @@
 import { Reward } from '../reward.js';
 import type { NewReward } from '../new-reward.js';
+import type { RewardEditableState } from '../reward-edit.js';
+import type { RewardStatusState } from '../reward-status-change.js';
 
 // US-34 (§3.2.1): el filtro "Estado" del listado. DELETED no se puede pedir.
 export const LISTABLE_REWARD_STATUSES = ['ACTIVE', 'DISABLED', 'INACTIVE'] as const;
@@ -24,9 +26,32 @@ export abstract class RewardRepository {
   // null si no existe
   abstract findById(id: number): Promise<Reward | null>;
 
+  // US-35: null si no existe o está DELETED (para el Administrador, una dada de baja no existe)
+  abstract findNotDeletedById(id: number): Promise<Reward | null>;
+
+  // US-35: igual que findNotDeletedById, pero bloquea la fila (FOR UPDATE) hasta el final de la
+  // transacción, para que nadie confirme un canje entre el conteo de confirmados y el guardado
+  abstract lockNotDeletedForUpdate(id: number): Promise<Reward | null>;
+
   // US-34: si hay una recompensa que no está DELETED con ese nombre, sin distinguir mayúsculas
-  // ni espacios de los extremos (la misma regla que el índice rewards_active_name_key)
-  abstract existsNotDeletedWithName(name: string): Promise<boolean>;
+  // ni espacios de los extremos (la misma regla que el índice rewards_active_name_key).
+  // US-35: `exceptId` deja afuera a la que se está editando.
+  abstract existsNotDeletedWithName(name: string, exceptId?: number): Promise<boolean>;
+
+  // US-35: canjes CONFIRMED de la recompensa que todavía no vencieron (confirmedCount)
+  abstract countConfirmed(rewardId: number, now: Date): Promise<number>;
+
+  // US-35: guarda los datos editados y el estado que resultó; actualiza updatedAt
+  abstract update(id: number, state: RewardEditableState): Promise<Reward>;
+
+  // US-36: cambia solo el estado y el motivo; actualiza updatedAt
+  abstract updateStatus(id: number, state: RewardStatusState): Promise<Reward>;
+
+  // US-38: la da de baja (DELETED, sin motivo, con deletedAt). Libera el nombre (índice parcial)
+  abstract markDeleted(id: number, deletedAt: Date): Promise<Reward>;
+
+  // US-39: las que puede ver el Cliente (ACTIVE y DISABLED), sin orden: lo decide el dominio
+  abstract findForCatalog(): Promise<Reward[]>;
 
   // US-34: la guarda en ACTIVE
   abstract create(reward: NewReward): Promise<Reward>;
