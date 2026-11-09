@@ -97,6 +97,14 @@ describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () 
   // hayan quedado de otro test. Corre contra la base de tests (DATABASE_URL_TEST, ver
   // test/e2e-database.ts / test/setup-e2e-env.ts) — nunca contra la de desarrollo.
   beforeEach(async () => {
+    // Las suites de consumos, puntos y canjes dejan filas que apuntan a cuentas, clientes y a la
+    // configuración (onDelete Restrict): se borran antes, en el orden de las claves foráneas
+    await prisma.pointsMovement.deleteMany();
+    await prisma.redemption.deleteMany();
+    await prisma.reward.deleteMany();
+    await prisma.pointsLot.deleteMany();
+    await prisma.customerPoints.deleteMany();
+    await prisma.consumption.deleteMany();
     await prisma.session.deleteMany();
     await prisma.account.deleteMany();
     await prisma.employee.deleteMany();
