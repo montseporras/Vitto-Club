@@ -11,6 +11,8 @@ export const REWARD_FIELD_MESSAGES = {
   pointsMax: 'El máximo es 1.000.000 puntos.',
   stockNotInteger: 'Ingresá un número entero, sin decimales.',
   stockMax: 'El máximo es 100.000.',
+  // US-35: al editar se acepta el 0 (decisión de Jazmín: el contrato no cita texto)
+  stockNotNegative: 'Ingresá un número entero mayor o igual a 0.',
   // El contrato no cita texto (decisión de Jazmín: el mismo que los filtros por fecha)
   invalidDate: 'expiresAt no es una fecha válida (YYYY-MM-DD)',
 } as const;
@@ -56,6 +58,16 @@ const stockMessage: MessageFor = (value) => {
   if (value === null) return null;
   if (typeof value !== 'number' || !Number.isInteger(value)) return REWARD_FIELD_MESSAGES.stockNotInteger;
   if (value <= 0) return REWARD_FIELD_MESSAGES.positiveInteger;
+  if (value > REWARD_STOCK_MAX) return REWARD_FIELD_MESSAGES.stockMax;
+  return null;
+};
+
+// US-35 (§3.2.4): al editar, de 0 a 100.000 o null. Que no quede por debajo de los canjes
+// confirmados lo valida el servicio (409).
+const editStockMessage: MessageFor = (value) => {
+  if (value === null) return null;
+  if (typeof value !== 'number' || !Number.isInteger(value)) return REWARD_FIELD_MESSAGES.stockNotInteger;
+  if (value < 0) return REWARD_FIELD_MESSAGES.stockNotNegative;
   if (value > REWARD_STOCK_MAX) return REWARD_FIELD_MESSAGES.stockMax;
   return null;
 };
@@ -114,4 +126,9 @@ export class RewardStockValidator extends SingleMessageValidator {
 @ValidatorConstraint({ name: 'rewardExpiresAt', async: false })
 export class RewardExpiresAtValidator extends SingleMessageValidator {
   protected readonly messageFor = expiresAtMessage;
+}
+
+@ValidatorConstraint({ name: 'rewardEditStock', async: false })
+export class RewardEditStockValidator extends SingleMessageValidator {
+  protected readonly messageFor = editStockMessage;
 }
