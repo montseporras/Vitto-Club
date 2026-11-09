@@ -9,7 +9,7 @@ import { AccessTokenIssuer } from '../src/auth/domain/port/access-token-issuer.j
 import type { AuthRole } from '../src/auth/domain/auth-role.js';
 import { AuditRepository } from '../src/audit/domain/port/audit.repository.js';
 
-// US-57: la auditoría se escribe en la misma transacción que la operación, es inalterable y
+// US-56: la auditoría se escribe en la misma transacción que la operación, es inalterable y
 // registra la forma nueva del contrato (§3.9). Contra Postgres real, con los módulos reales.
 // audit_logs rechaza UPDATE, DELETE y TRUNCATE, así que estos tests NO pueden vaciarla entre
 // escenarios: cada uno lee solo las filas posteriores a `lastAuditId` (ver `newAuditRows`).

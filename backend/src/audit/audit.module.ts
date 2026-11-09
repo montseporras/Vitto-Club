@@ -8,7 +8,7 @@ import { AuditController } from './http/audit.controller.js';
 import { AuditPrismaRepository } from './infrastructure/audit.repository.js';
 
 // audit no importa a ningún otro módulo de negocio: todos escriben en él, nunca al revés.
-// Escritura (US-57): AuditService.capture. Consulta (US-58): AuditController.
+// Escritura (US-56): AuditService.capture. Consulta (US-57): AuditController.
 @Module({
   controllers: [AuditController],
   providers: [

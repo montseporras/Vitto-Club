@@ -8,7 +8,7 @@ import { PrismaService } from '../src/prisma/prisma.service.js';
 import { AccessTokenIssuer } from '../src/auth/domain/port/access-token-issuer.js';
 import type { AuthRole } from '../src/auth/domain/auth-role.js';
 
-// US-58: consulta del historial (GET /auditoria y GET /auditoria/actores), contra Postgres
+// US-57: consulta del historial (GET /auditoria y GET /auditoria/actores), contra Postgres
 // real. audit_logs es inalterable (no se puede borrar entre tests ni entre corridas), así que
 // las filas de prueba van a un día lejano elegido al azar en cada corrida: todas las consultas
 // de este archivo se acotan a ese día y nunca ven filas de otras corridas ni de otros tests.

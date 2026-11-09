@@ -337,7 +337,7 @@ describe('Alta de cliente con cuenta y contraseña inicial (e2e)', () => {
     });
   });
 
-  // CA-17AJ.8: la auditoría se escribe en la misma transacción (AuditService.capture, US-57).
+  // CA-17AJ.8: la auditoría se escribe en la misma transacción (AuditService.capture, US-56).
   // audit_logs es de solo inserción (no se puede vaciar), así que cada test lee solo las filas
   // posteriores a la última que había antes de empezar.
   describe('auditoría (CA-17AJ.8)', () => {

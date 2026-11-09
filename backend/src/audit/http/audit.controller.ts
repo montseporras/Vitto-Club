@@ -5,7 +5,7 @@ import { AuditActorResponseDto, AuditPageResponseDto } from './dto/audit-respons
 import { ListAuditQueryDto } from './dto/list-audit-query.dto.js';
 import { AuditExceptionFilter } from './filters/audit-exception.filter.js';
 
-// US-58: consulta del historial. Solo lectura y solo del Administrador (contrato §3.9.1, regla 2):
+// US-57: consulta del historial. Solo lectura y solo del Administrador (contrato §3.9.1, regla 2):
 // no hay endpoints de alta, modificación, borrado ni exportación.
 @Controller('auditoria')
 @Roles('ADMIN')

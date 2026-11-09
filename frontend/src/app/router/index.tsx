@@ -190,7 +190,7 @@ export const router = createBrowserRouter([
         },
       },
       {
-        // Consulta de auditoría (US-58)
+        // Consulta de auditoría (US-57)
         path: PATHS.admin.audit,
         lazy: async () => {
           const { AuditPage } = await import('@/features/audit')

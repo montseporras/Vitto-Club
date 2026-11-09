@@ -3,7 +3,7 @@ import { buildAuditFilters, type AuditActorOption, type AuditFilterInput } from 
 import type { AuditPage } from '../domain/audit-record.js';
 import { AuditRepository } from '../domain/port/audit.repository.js';
 
-// Consulta del historial (US-58). Solo lee: no abre transacción ni escribe nada.
+// Consulta del historial (US-57). Solo lee: no abre transacción ni escribe nada.
 @Injectable()
 export class AuditQueryService {
   constructor(private readonly repository: AuditRepository) {}

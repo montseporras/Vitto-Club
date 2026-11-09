@@ -61,7 +61,7 @@ corresponde, actualicen esa frase en el contrato y en la historia (son fuente de
   mayúscula en lo que escribe a mano) y reactivar un usuario (caso feliz y el caso EMAIL_IN_USE con la
   cuenta de prueba "Emilia Ríos").
 - Nada de `backend/`: según el pedido, ya está hecho.
-- Auditoría (US-57) y reactivación de empleados/clientes (no existe): fuera de alcance explícito de
+- Auditoría (US-56) y reactivación de empleados/clientes (no existe): fuera de alcance explícito de
   EMP-PASS.
 
 ## Preguntas abiertas
