@@ -11,6 +11,7 @@ import {
   pointsExpiredEntry,
   redemptionExpiredEntry,
   redemptionRejectedEntry,
+  rewardCreatedEntry,
   rewardDisabledEntry,
   rewardEnabledEntry,
   type CustomerSnapshot,
@@ -367,6 +368,36 @@ describe('consumptionVoidedEntry() (US-22)', () => {
       ],
     });
     expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+});
+
+describe('rewardCreatedEntry() (US-34)', () => {
+  const admin = { type: 'EMPLOYEE' as const, accountId: 1 };
+
+  it('description del contrato y Puntos · Stock · Vencimiento, sin cliente ni código (CA-34.2)', () => {
+    const entry = rewardCreatedEntry(admin, { name: 'Medialunas x3', points: 1500, stock: 20, expiresAt: '2026-12-08' });
+
+    expect(entry).toEqual({
+      actor: admin,
+      module: 'REWARDS',
+      action: 'REWARD_CREATED',
+      description: 'Creó la recompensa "Medialunas x3"',
+      details: [
+        { label: 'Puntos', value: '1.500 pts' },
+        { label: 'Stock', value: '20' },
+        { label: 'Vencimiento', value: '08/12/2026' },
+      ],
+    });
+  });
+
+  it('sin límite y sin vencimiento: "Sin límite" y "No vence" (CA-34.3)', () => {
+    const entry = rewardCreatedEntry(admin, { name: 'Café', points: 100, stock: null, expiresAt: null });
+
+    expect(entry.details).toEqual([
+      { label: 'Puntos', value: '100 pts' },
+      { label: 'Stock', value: 'Sin límite' },
+      { label: 'Vencimiento', value: 'No vence' },
+    ]);
   });
 });
 

@@ -379,6 +379,35 @@ export function rewardEnabledEntry(
   };
 }
 
+export type RewardSnapshot = {
+  name: string;
+  points: number;
+  // null = sin límite
+  stock: number | null;
+  // YYYY-MM-DD; null = no vence
+  expiresAt: string | null;
+};
+
+// YYYY-MM-DD → dd/mm/aaaa, sin pasar por Date (es un día, no un instante)
+const formatDateOnly = (value: string): string => value.split('-').reverse().join('/');
+
+// REWARD_CREATED (contrato S4 §3.14.2, US-34). Sin cliente afectado ni código de operación.
+// Formato de los valores (decisión de Jazmín): "150 pts", como REDEMPTION_CONFIRMED; el stock con
+// punto de miles; la fecha en dd/mm/aaaa, como en la pantalla.
+export function rewardCreatedEntry(actor: AuditActor, reward: RewardSnapshot): AuditEntryInput {
+  return {
+    actor,
+    module: 'REWARDS',
+    action: 'REWARD_CREATED',
+    description: `Creó la recompensa "${reward.name}"`,
+    details: [
+      { label: 'Puntos', value: `${formatNumber(reward.points)} pts` },
+      { label: 'Stock', value: reward.stock === null ? 'Sin límite' : formatNumber(reward.stock) },
+      { label: 'Vencimiento', value: reward.expiresAt === null ? 'No vence' : formatDateOnly(reward.expiresAt) },
+    ],
+  };
+}
+
 // --- Canjes ------------------------------------------------------------------------------
 
 export type RedemptionSnapshot = {
