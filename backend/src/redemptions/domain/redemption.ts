@@ -52,6 +52,23 @@ export class Redemption {
     return new Redemption({ ...props });
   }
 
+  // US-42 (§3.9.1 paso 9): pasa el canje a USED. Quien llama ya validó que está CONFIRMED,
+  // que el cliente y la recompensa están bien, y que el saldo alcanza (pasos 3 a 6).
+  use(input: {
+    resolvedByAccountId: number;
+    resolvedByName: string;
+    balanceBefore: number;
+    balanceAfter: number;
+    now: Date;
+  }): void {
+    this.props.status = 'USED';
+    this.props.resolvedAt = input.now;
+    this.props.resolvedByAccountId = input.resolvedByAccountId;
+    this.props.resolvedByName = input.resolvedByName;
+    this.props.balanceBefore = input.balanceBefore;
+    this.props.balanceAfter = input.balanceAfter;
+  }
+
   getId(): number {
     return this.props.id;
   }

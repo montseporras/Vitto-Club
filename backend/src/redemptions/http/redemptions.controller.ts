@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Query, UseFilters } from '@nestjs/common';
 import { RedemptionResolutionService } from '../application/redemption-resolution.service.js';
+import { RedemptionUseService } from '../application/redemption-use.service.js';
 import { RedemptionsQueryService } from '../application/redemptions-query.service.js';
 import { CurrentUser } from '../../shared/security/current-user.decorator.js';
 import type { CurrentUserData } from '../../shared/security/current-user-data.js';
@@ -18,8 +19,20 @@ import { RedemptionsExceptionFilter } from './filters/redemptions-exception.filt
 export class RedemptionsController {
   constructor(
     private readonly resolution: RedemptionResolutionService,
+    private readonly use: RedemptionUseService,
     private readonly query: RedemptionsQueryService,
   ) {}
+
+  // PATCH /api/canjes/:code/usar (US-42, §3.9.1, CA-42.1 a CA-42.11). Sin body.
+  @Patch(':code/usar')
+  @HttpCode(HttpStatus.OK)
+  async usar(@Param('code') code: string, @CurrentUser() user: CurrentUserData) {
+    const { redemption, customer, balanceBefore, balanceAfter } = await this.use.use({
+      code,
+      actor: { accountId: user.accountId, employeeId: user.employeeId as number },
+    });
+    return { redemption: toEmployeeRedemptionDto(redemption, customer), balanceBefore, balanceAfter };
+  }
 
   // GET /api/canjes — pantalla Canjes del Administrador (§3.12.3, CA-45.7). Solo el Administrador
   // (§4, CA-45.10): pisa el @Roles de la clase.

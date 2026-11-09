@@ -145,6 +145,14 @@ export class RewardsPrismaRepository implements RewardRepository {
     return rows.map((row) => row.id);
   }
 
+  async findActive(): Promise<Reward[]> {
+    const records = await this.prisma.reward.findMany({
+      where: { status: 'ACTIVE' },
+      orderBy: [{ points: 'asc' }, { id: 'asc' }],
+    });
+    return records.map(toDomain);
+  }
+
   async findExpiredCandidateIds(hoyArgentina: string): Promise<number[]> {
     const records = await this.prisma.reward.findMany({
       // expires_at es DATE: se compara con la medianoche UTC del día, igual que lo guarda Prisma.
@@ -169,6 +177,22 @@ export class RewardsPrismaRepository implements RewardRepository {
     await this.prisma.reward.update({
       where: { id: reward.getId() },
       data: { status: reward.getStatus(), disabledReason: reward.getDisabledReason() },
+    });
+  }
+
+  async lockForUpdate(id: number): Promise<Reward | null> {
+    // Espera al que la tenga tomada (no se saltea, a diferencia del proceso diario)
+    const locked = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM rewards WHERE id = ${id} FOR UPDATE
+    `;
+    if (locked.length === 0) return null;
+    return await this.findById(id);
+  }
+
+  async saveUsage(reward: Reward): Promise<void> {
+    await this.prisma.reward.update({
+      where: { id: reward.getId() },
+      data: { stock: reward.getStock(), usedCount: reward.getUsedCount() },
     });
   }
 }

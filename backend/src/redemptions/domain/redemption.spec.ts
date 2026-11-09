@@ -191,3 +191,26 @@ describe('Redemption: rechazar y cancelar (US-43)', () => {
     });
   });
 });
+
+// US-42 (CA-42.1, §3.9.1 paso 9)
+describe('Redemption.use()', () => {
+  it('pasa a USED con resolvedAt/resolvedBy y el saldo antes/después', () => {
+    const r = redemption();
+    const now = new Date(expiresAt.getTime() - seconds(60));
+
+    r.use({
+      resolvedByAccountId: 2,
+      resolvedByName: 'Bruno Pérez',
+      balanceBefore: 1240,
+      balanceAfter: 1090,
+      now,
+    });
+
+    expect(r.getStatus()).toBe('USED');
+    expect(r.getResolvedAt()).toEqual(now);
+    expect(r.getResolvedByAccountId()).toBe(2);
+    expect(r.getResolvedByName()).toBe('Bruno Pérez');
+    expect(r.getBalanceBefore()).toBe(1240);
+    expect(r.getBalanceAfter()).toBe(1090);
+  });
+});

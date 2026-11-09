@@ -36,6 +36,16 @@ export class Reward {
     return new Reward({ ...props });
   }
 
+  // US-42 (§3.9.1 paso 8): suma 1 a usedCount siempre; si tiene límite de stock (stock != null),
+  // lo descuenta. No toca status: si queda sin stock, quien llama reevalúa la disponibilidad
+  // (RewardsAvailabilityService.reevaluarDisponibilidad) y esa es la que deshabilita y audita.
+  registerUse(): void {
+    this.props.usedCount += 1;
+    if (this.props.stock !== null) {
+      this.props.stock -= 1;
+    }
+  }
+
   getId(): number {
     return this.props.id;
   }

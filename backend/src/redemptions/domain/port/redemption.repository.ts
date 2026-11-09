@@ -1,4 +1,5 @@
 import type { DocumentType } from '../../../customers/domain/customer.js';
+import type { NewRedemption } from '../new-redemption.js';
 import { Redemption, type RedemptionStatus } from '../redemption.js';
 import type { RedemptionDateRange, RedemptionOrder } from '../redemption-filters.js';
 
@@ -53,6 +54,9 @@ export type RedemptionPage<T> = { items: T[]; total: number };
 // BASE-4: puerto del repositorio de canjes. Cada historia agrega lo que necesita (crear,
 // bloquear con FOR UPDATE, listados, vencer...).
 export abstract class RedemptionRepository {
+  // US-40: guarda el canje recién confirmado (estado CONFIRMED por defecto de la base)
+  abstract create(data: NewRedemption): Promise<Redemption>;
+
   // Para generarCodigoUnico (CA-B4.5): true si algún canje, en cualquier estado, ya lo usa
   abstract existsByCode(code: string): Promise<boolean>;
 
@@ -76,8 +80,9 @@ export abstract class RedemptionRepository {
 
   abstract findCustomer(customerId: number): Promise<RedemptionCustomer>;
 
-  // US-43: el canje del código (ya normalizado) bloqueado con FOR UPDATE, para que un usar y un
-  // rechazar (o cancelar) a la vez no ganen los dos (decisión de Melisa). null si no existe.
+  // US-43 y US-42: el canje del código (ya normalizado) bloqueado con FOR UPDATE, para que dos
+  // operaciones a la vez (usar, rechazar, cancelar) no ganen las dos (decisión de Melisa). null si
+  // no existe.
   abstract lockByCodeForUpdate(code: string): Promise<Redemption | null>;
 
   // US-43 (§3.10.4): los CONFIRMED vigentes (expires_at > now) del filtro, bloqueados con
@@ -86,6 +91,9 @@ export abstract class RedemptionRepository {
 
   // US-43: guarda el pase a REJECTED o CANCELLED (status, resolved_at, resolved_by_*, rejection_reason)
   abstract saveResolution(redemption: Redemption): Promise<void>;
+
+  // US-42: guarda el pase a USED (status, resolved_at, resolved_by_*, balance_before, balance_after)
+  abstract saveUse(redemption: Redemption): Promise<void>;
 
   // US-45, Mis canjes (§3.12.1): los canjes del cliente, filtrados y paginados
   abstract findPageByCustomer(

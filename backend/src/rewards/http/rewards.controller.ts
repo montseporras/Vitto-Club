@@ -12,8 +12,8 @@ import { ListRewardsQueryDto } from './dto/list-rewards-query.dto.js';
 import { RewardResponseDto } from './dto/reward-response.dto.js';
 import { RewardsExceptionFilter } from './filters/rewards-exception.filter.js';
 
-// §3.2 y matriz de §4: /recompensas es solo del Administrador; el Cajero y el Cliente reciben 403
-// (CA-34.8). Cuando entre US-40, GET /recompensas/disponibles (A, C) va antes que /:id.
+// §3.2 y matriz de §4: /recompensas es del Administrador (CA-34.8); /disponibles (US-40) es de
+// Administrador y Cajero, y va declarada ANTES de cualquier /:id futuro.
 @Controller('recompensas')
 @Roles('ADMIN')
 @UseFilters(RewardsExceptionFilter)
@@ -22,6 +22,17 @@ export class RewardsController {
     private readonly rewardsService: RewardsService,
     private readonly auditService: AuditService,
   ) {}
+
+  // GET /api/recompensas/disponibles -> US-40, §3.5.2. Administrador y Cajero (matriz §4): para el
+  // bloque "Recompensas a las que puede acceder" del panel del cliente en Caja.
+  @Get('disponibles')
+  @Roles('ADMIN', 'CASHIER')
+  async findAvailable() {
+    const now = new Date();
+    const today = toArgentinaDateString(now);
+    const rewards = await this.rewardsService.findAvailable(now);
+    return rewards.map((reward) => RewardResponseDto.fromDomain(reward, 0, today));
+  }
 
   // GET /api/recompensas -> CA-34.1
   @Get()

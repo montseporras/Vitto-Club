@@ -19,6 +19,7 @@ import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js'
 // RewardsAvailabilityService se exporta para US-42 (redemptions, al usar un canje).
 @Module({
   imports: [AuditModule],
+  // US-34: GET y POST /recompensas. US-40 agrega GET /recompensas/disponibles al mismo controller.
   controllers: [RewardsController],
   providers: [
     RewardsService,

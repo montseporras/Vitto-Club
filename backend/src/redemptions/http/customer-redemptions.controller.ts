@@ -1,9 +1,11 @@
-import { Controller, ForbiddenException, Get, HttpCode, HttpStatus, Param, Patch, Query, UseFilters } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UseFilters } from '@nestjs/common';
+import { RedemptionConfirmationService } from '../application/redemption-confirmation.service.js';
 import { RedemptionResolutionService } from '../application/redemption-resolution.service.js';
 import { RedemptionsQueryService } from '../application/redemptions-query.service.js';
 import { CurrentUser } from '../../shared/security/current-user.decorator.js';
 import type { CurrentUserData } from '../../shared/security/current-user-data.js';
 import { Roles } from '../../shared/security/roles.decorator.js';
+import { ConfirmRedemptionDto } from './dto/confirm-redemption.dto.js';
 import { ListMyRedemptionsQueryDto } from './dto/list-my-redemptions-query.dto.js';
 import { toCustomerRedemptionDto } from './dto/redemption-response.dto.js';
 import { RedemptionsExceptionFilter } from './filters/redemptions-exception.filter.js';
@@ -17,9 +19,25 @@ import { RedemptionsExceptionFilter } from './filters/redemptions-exception.filt
 @UseFilters(RedemptionsExceptionFilter)
 export class CustomerRedemptionsController {
   constructor(
+    private readonly confirmation: RedemptionConfirmationService,
     private readonly resolution: RedemptionResolutionService,
     private readonly query: RedemptionsQueryService,
   ) {}
+
+  // POST /api/customers/me/canjes (US-40, §3.7.1, CA-40.1, CA-40.5, CA-40.10). El cliente sale
+  // del token, nunca del body.
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async confirmMine(@Body() dto: ConfirmRedemptionDto, @CurrentUser() user: CurrentUserData) {
+    const customerId = this.customerIdOf(user);
+    const { redemption } = await this.confirmation.confirm({
+      customerId,
+      rewardId: dto.rewardId,
+      confirmedBy: null,
+    });
+    // §3.6.2: el Cliente ve su vista reducida, con canCancel
+    return { redemption: toCustomerRedemptionDto(redemption) };
+  }
 
   // GET /api/customers/me/canjes — Mis canjes (§3.12.1, CA-45.1 y CA-45.2). Sin datos de empleados.
   @Get()
