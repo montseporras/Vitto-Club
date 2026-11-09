@@ -239,10 +239,13 @@ describe('Registrar uso del canje (e2e, US-42)', () => {
     const rewardAfter = await prisma.reward.findUniqueOrThrow({ where: { id: reward.id } });
     expect(rewardAfter).toMatchObject({ stock: 0, status: 'DISABLED', disabledReason: 'OUT_OF_STOCK' });
 
+    // Orden real (paso 8 antes que paso 10 del §3.9.1): primero REWARD_DISABLED (efecto de
+    // quedarse sin stock), después REDEMPTION_USED (la auditoría principal del paso 10).
     const rows = await newAuditRows();
-    expect(rows).toHaveLength(2); // REDEMPTION_USED + REWARD_DISABLED
-    expect(rows[1]).toMatchObject({ actorType: 'SYSTEM', actorAccountId: null, module: 'REWARDS', actionCode: 'REWARD_DISABLED' });
-    expect(rows[1].details).toEqual([{ label: 'Motivo', value: 'Sin stock' }]);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({ actorType: 'SYSTEM', actorAccountId: null, module: 'REWARDS', actionCode: 'REWARD_DISABLED' });
+    expect(rows[0].details).toEqual([{ label: 'Motivo', value: 'Sin stock' }]);
+    expect(rows[1]).toMatchObject({ actorType: 'EMPLOYEE', actorAccountId: account.id, module: 'REDEMPTIONS', actionCode: 'REDEMPTION_USED' });
   });
 
   it('CA-42.4: saldo insuficiente: 409 INSUFFICIENT_BALANCE, el canje sigue CONFIRMED y no se descuenta nada', async () => {
@@ -294,6 +297,36 @@ describe('Registrar uso del canje (e2e, US-42)', () => {
 
     expect(response.status).toBe(404);
     expect(response.body.message).toBe('Código no encontrado.');
+  });
+
+  it('CA-42.6: vencido (más de 15 min): 409 REDEMPTION_EXPIRED, y el canje queda EXPIRED igual (US-44)', async () => {
+    const { account, employee } = await seedEmployee('CASHIER', 'cajero10@vitto.club');
+    const customer = await seedCustomer({ documentNumber: '30111230', email: 'sofia10@mail.com', balance: 500 });
+    const reward = await seedReward({ points: 100, stock: 10 });
+    const redemption = await seedRedemption(customer.id, reward, account.id, {
+      createdAt: new Date(Date.now() - 20 * 60 * 1000),
+      expiresAt: new Date(Date.now() - 5 * 60 * 1000),
+    });
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/canjes/${redemption.code}/usar`)
+      .set(staffHeaders('CASHIER', account.id, employee.id))
+      .send();
+
+    expect(response.status).toBe(409);
+    expect(response.body).toMatchObject({
+      code: 'REDEMPTION_EXPIRED',
+      message: 'El canje venció. El cliente tiene que pedirlo de nuevo.',
+    });
+
+    // Se confirma igual en la base, aunque la respuesta sea error (CA-44.2)
+    const stored = await prisma.redemption.findUniqueOrThrow({ where: { id: redemption.id } });
+    expect(stored.status).toBe('EXPIRED');
+    expect(stored.resolvedByName).toBe('Sistema');
+
+    const rows = await newAuditRows();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ actorType: 'SYSTEM', actorAccountId: null, module: 'REDEMPTIONS', actionCode: 'REDEMPTION_EXPIRED' });
   });
 
   it('ya usado: 409 REDEMPTION_NOT_CONFIRMED', async () => {

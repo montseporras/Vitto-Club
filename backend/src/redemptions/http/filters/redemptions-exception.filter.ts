@@ -1,5 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { DomainError } from '../../domain/errors/domain.error.js';
 
 const STATUS_NAMES: Record<number, string> = {
   400: 'Bad Request',
@@ -10,10 +11,10 @@ const STATUS_NAMES: Record<number, string> = {
   500: 'Internal Server Error',
 };
 
-// Mismo patrón que ConsumptionsExceptionFilter (formato de error del contrato, §5): una
-// HttpException respeta su status, message y code tal cual (incluido el 403 con su `code`);
-// cualquier otra cosa es un error inesperado (por ejemplo, no se pudo generar un código único
-// después de 5 intentos, §3.6.1): se registra y se responde 500 genérico.
+// Mismo patrón que ConsumptionsExceptionFilter: HttpException respeta su status, message, code y
+// details tal cual (404 sin code, 409 REDEMPTION_NOT_CONFIRMED / REDEMPTION_EXPIRED, 403 con su
+// code, 400 de validación); DomainError se mapea a 400; cualquier otra cosa es un error
+// inesperado, se registra y se responde genérico. Formato de la §5 del contrato.
 @Catch()
 export class RedemptionsExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(RedemptionsExceptionFilter.name);
@@ -38,6 +39,12 @@ export class RedemptionsExceptionFilter implements ExceptionFilter {
         message = (bodyObj.message as string | string[]) ?? exception.message;
         details = bodyObj.details as { field: string; message: string }[] | undefined;
         code = typeof bodyObj.code === 'string' ? bodyObj.code : undefined;
+      }
+    } else if (exception instanceof DomainError) {
+      statusCode = HttpStatus.BAD_REQUEST;
+      message = exception.message;
+      if (exception.field) {
+        details = [{ field: exception.field, message: exception.message }];
       }
     } else {
       this.logger.error(

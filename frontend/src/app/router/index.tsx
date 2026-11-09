@@ -182,6 +182,14 @@ export const router = createBrowserRouter([
         },
       },
       {
+        // Catálogo y alta de recompensas del Administrador (US-34)
+        path: PATHS.admin.rewards,
+        lazy: async () => {
+          const { RewardsAdminPage } = await import('@/features/rewards')
+          return { Component: RewardsAdminPage }
+        },
+      },
+      {
         // Consulta de auditoría (US-58)
         path: PATHS.admin.audit,
         lazy: async () => {
@@ -192,7 +200,6 @@ export const router = createBrowserRouter([
       // Pantallas de otras historias o sprints: todavía no están construidas
       ...(
         [
-          [PATHS.admin.rewards, 'Recompensas', 'Catálogo de recompensas'],
           [PATHS.admin.missions, 'Misiones', 'Misiones'],
           [PATHS.admin.statistics, 'Estadísticas', 'Estadísticas y reportes'],
         ] as const

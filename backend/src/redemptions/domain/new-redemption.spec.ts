@@ -1,4 +1,5 @@
-import { crearCanjeConfirmado, REDEMPTION_DURATION_MS } from './new-redemption.js';
+import { crearCanjeConfirmado } from './new-redemption.js';
+import { REDEMPTION_DURATION_MS } from './redemption.js';
 
 describe('crearCanjeConfirmado (US-40)', () => {
   const now = new Date('2026-11-08T15:00:00.000Z');

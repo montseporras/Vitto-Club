@@ -1,7 +1,4 @@
-import type { RedemptionOrigin } from './redemption.js';
-
-// US-40 (contrato S4 §3.7.1, decisión S4-1): el canje nace Confirmado y dura 15 minutos.
-export const REDEMPTION_DURATION_MS = 15 * 60 * 1000;
+import { REDEMPTION_DURATION_MS, type RedemptionOrigin } from './redemption.js';
 
 // Lo que se guarda al confirmar. El id, el estado (CONFIRMED) y los campos de resolución los pone
 // la base: un canje recién confirmado no tiene resolución ni saldos (§3.6.2).

@@ -1,3 +1,5 @@
+import { DomainError } from './errors/domain.error.js';
+
 // BASE-4: tipo Reward (contrato S4 §3.1 y §3.15). Las reglas de cada operación (crear, editar,
 // activar, desactivar, eliminar) las agrega la historia que la necesita (US-34 a US-38).
 
@@ -34,22 +36,14 @@ export class Reward {
     return new Reward({ ...props });
   }
 
-  // US-42 (CA-42.3, §3.9.1 paso 8): suma 1 a usedCount siempre. Si tiene límite de stock
-  // (stock != null), lo descuenta; si llega a 0, pasa a DISABLED/OUT_OF_STOCK (lo pone el
-  // Sistema). Devuelve si se deshabilitó, para que quien orquesta decida si audita
-  // REWARD_DISABLED.
-  registerUse(): { disabled: boolean } {
+  // US-42 (§3.9.1 paso 8): suma 1 a usedCount siempre; si tiene límite de stock (stock != null),
+  // lo descuenta. No toca status: si queda sin stock, quien llama reevalúa la disponibilidad
+  // (RewardsAvailabilityService.reevaluarDisponibilidad) y esa es la que deshabilita y audita.
+  registerUse(): void {
     this.props.usedCount += 1;
-    if (this.props.stock === null) {
-      return { disabled: false };
+    if (this.props.stock !== null) {
+      this.props.stock -= 1;
     }
-    this.props.stock -= 1;
-    if (this.props.stock <= 0) {
-      this.props.status = 'DISABLED';
-      this.props.disabledReason = 'OUT_OF_STOCK';
-      return { disabled: true };
-    }
-    return { disabled: false };
   }
 
   getId(): number {
@@ -98,5 +92,25 @@ export class Reward {
 
   getDeletedAt(): Date | null {
     return this.props.deletedAt;
+  }
+
+  // US-37 (§3.4, §2.1): solo el Sistema la deshabilita, desde ACTIVE (sin stock o vencida). Una
+  // DISABLED puede cambiar de motivo: el motivo es la primera condición que falla (vencida primero,
+  // después sin stock; decisión de Melisa).
+  disable(reason: RewardDisabledReason): void {
+    if (this.props.status !== 'ACTIVE' && this.props.status !== 'DISABLED') {
+      throw new DomainError('Only an ACTIVE or DISABLED reward can be disabled', 'status');
+    }
+    this.props.status = 'DISABLED';
+    this.props.disabledReason = reason;
+  }
+
+  // US-37 (§3.4): el Sistema la habilita cuando vuelve a estar disponible (repuso stock o fecha)
+  enable(): void {
+    if (this.props.status !== 'DISABLED') {
+      throw new DomainError('Only a DISABLED reward can be enabled', 'status');
+    }
+    this.props.status = 'ACTIVE';
+    this.props.disabledReason = null;
   }
 }

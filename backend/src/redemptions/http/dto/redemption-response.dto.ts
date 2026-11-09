@@ -1,92 +1,118 @@
-import { Redemption } from '../../domain/redemption.js';
+import type { DocumentType } from '../../../customers/domain/customer.js';
+import type { Redemption, RedemptionOrigin, RedemptionStatus } from '../../domain/redemption.js';
+import type { RedemptionCustomer } from '../../domain/port/redemption.repository.js';
 
-type RedemptionCommon = {
+// Tipo Redemption del contrato S4 §3.6.2. Definido en US-43 a pedido de Melisa; lo reutilizan
+// US-41, US-42 y US-45 (ver src/redemptions/documentation-updates-us43.md). Dos vistas:
+// - empleado (Administrador y Cajero): todos los campos menos canCancel;
+// - Cliente: sin customer, origin, confirmedBy, resolvedBy ni balanceBefore/balanceAfter, y con
+//   canCancel (§3.6.2 "Lo ve el Cliente", CA-45.2). El Cliente nunca ve qué empleado lo resolvió.
+
+export type RedemptionRewardDto = { id: number; name: string; points: number };
+
+export type RedemptionCustomerDto = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  documentType: DocumentType;
+  documentNumber: string;
+};
+
+export type RedemptionResolvedByDto = {
+  actorType: 'EMPLOYEE' | 'SYSTEM';
+  accountId: number | null;
+  name: string;
+};
+
+export type EmployeeRedemptionDto = {
   id: number;
   code: string;
   createdAt: string;
   expiresAt: string;
-  status: string;
-  // Snapshot del nombre y de los puntos al confirmar (§3.6.2)
-  reward: { id: number; name: string; points: number };
-  resolvedAt: string | null;
-  rejectionReason: string | null;
-};
-
-// §3.6.2, columna "Lo ve el Cliente": sin customer, origin, confirmedBy, resolvedBy ni saldos.
-// `canCancel` solo viaja en lo que ve el Cliente. El Cliente nunca ve qué empleado resolvió su canje.
-export type CustomerRedemptionResponse = RedemptionCommon & { canCancel: boolean };
-
-// §3.6.2 completo: lo que ven el Administrador y el Cajero (no lleva `canCancel`)
-export type StaffRedemptionResponse = RedemptionCommon & {
-  customer: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    documentType: string;
-    documentNumber: string;
-  };
-  origin: string;
+  status: RedemptionStatus;
+  reward: RedemptionRewardDto;
+  customer: RedemptionCustomerDto;
+  origin: RedemptionOrigin;
   confirmedBy: { accountId: number; name: string } | null;
-  resolvedBy: { actorType: 'EMPLOYEE' | 'SYSTEM'; accountId: number | null; name: string } | null;
+  resolvedAt: string | null;
+  resolvedBy: RedemptionResolvedByDto | null;
+  rejectionReason: string | null;
   balanceBefore: number | null;
   balanceAfter: number | null;
 };
 
-const SYSTEM_NAME = 'Sistema';
+export type CustomerRedemptionDto = {
+  id: number;
+  code: string;
+  createdAt: string;
+  expiresAt: string;
+  status: RedemptionStatus;
+  reward: RedemptionRewardDto;
+  resolvedAt: string | null;
+  rejectionReason: string | null;
+  canCancel: boolean;
+};
 
-function commonOf(redemption: Redemption): RedemptionCommon {
+// Snapshot de la recompensa al confirmar (nombre y puntos)
+const rewardOf = (redemption: Redemption): RedemptionRewardDto => ({
+  id: redemption.getRewardId(),
+  name: redemption.getRewardName(),
+  points: redemption.getPoints(),
+});
+
+// null si nadie lo resolvió todavía o si lo canceló el Cliente; Sistema si no hay cuenta
+function resolvedByOf(redemption: Redemption): RedemptionResolvedByDto | null {
+  const name = redemption.getResolvedByName();
+  if (name === null) return null;
+  const accountId = redemption.getResolvedByAccountId();
+  return { actorType: accountId === null ? 'SYSTEM' : 'EMPLOYEE', accountId, name };
+}
+
+function confirmedByOf(redemption: Redemption): { accountId: number; name: string } | null {
+  const accountId = redemption.getConfirmedByAccountId();
+  const name = redemption.getConfirmedByName();
+  return accountId === null || name === null ? null : { accountId, name };
+}
+
+export function toEmployeeRedemptionDto(
+  redemption: Redemption,
+  customer: RedemptionCustomer,
+): EmployeeRedemptionDto {
   return {
     id: redemption.getId(),
     code: redemption.getCode(),
     createdAt: redemption.getCreatedAt().toISOString(),
     expiresAt: redemption.getExpiresAt().toISOString(),
     status: redemption.getStatus(),
-    reward: {
-      id: redemption.getRewardId(),
-      name: redemption.getRewardName(),
-      points: redemption.getPoints(),
+    reward: rewardOf(redemption),
+    customer: {
+      id: customer.id,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      documentType: customer.documentType,
+      documentNumber: customer.documentNumber,
     },
+    origin: redemption.getOrigin(),
+    confirmedBy: confirmedByOf(redemption),
     resolvedAt: redemption.getResolvedAt()?.toISOString() ?? null,
+    resolvedBy: resolvedByOf(redemption),
     rejectionReason: redemption.getRejectionReason(),
+    balanceBefore: redemption.getBalanceBefore(),
+    balanceAfter: redemption.getBalanceAfter(),
   };
 }
 
-// Empleado o "Sistema". null si todavía no se resolvió o lo canceló el Cliente (§3.6.2)
-function resolvedByOf(redemption: Redemption): StaffRedemptionResponse['resolvedBy'] {
-  const name = redemption.getResolvedByName();
-  if (name === null) return null;
-  const accountId = redemption.getResolvedByAccountId();
-  return accountId === null && name === SYSTEM_NAME
-    ? { actorType: 'SYSTEM', accountId: null, name }
-    : { actorType: 'EMPLOYEE', accountId, name };
+// canCancel (§3.6.2): status = CONFIRMED y no venció
+export function toCustomerRedemptionDto(redemption: Redemption, now: Date = new Date()): CustomerRedemptionDto {
+  return {
+    id: redemption.getId(),
+    code: redemption.getCode(),
+    createdAt: redemption.getCreatedAt().toISOString(),
+    expiresAt: redemption.getExpiresAt().toISOString(),
+    status: redemption.getStatus(),
+    reward: rewardOf(redemption),
+    resolvedAt: redemption.getResolvedAt()?.toISOString() ?? null,
+    rejectionReason: redemption.getRejectionReason(),
+    canCancel: redemption.getStatus() === 'CONFIRMED' && !redemption.isExpired(now),
+  };
 }
-
-export const RedemptionResponse = {
-  // `now` se pasa para poder probar el borde del vencimiento
-  forCustomer(redemption: Redemption, now: Date = new Date()): CustomerRedemptionResponse {
-    return {
-      ...commonOf(redemption),
-      canCancel: redemption.getStatus() === 'CONFIRMED' && redemption.getExpiresAt().getTime() > now.getTime(),
-    };
-  },
-
-  forStaff(
-    redemption: Redemption,
-    customer: StaffRedemptionResponse['customer'],
-  ): StaffRedemptionResponse {
-    const confirmedByAccountId = redemption.getConfirmedByAccountId();
-    const confirmedByName = redemption.getConfirmedByName();
-    return {
-      ...commonOf(redemption),
-      customer,
-      origin: redemption.getOrigin(),
-      confirmedBy:
-        confirmedByAccountId !== null && confirmedByName !== null
-          ? { accountId: confirmedByAccountId, name: confirmedByName }
-          : null,
-      resolvedBy: resolvedByOf(redemption),
-      balanceBefore: redemption.getBalanceBefore(),
-      balanceAfter: redemption.getBalanceAfter(),
-    };
-  },
-};

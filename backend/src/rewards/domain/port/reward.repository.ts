@@ -7,13 +7,25 @@ export abstract class RewardRepository {
   abstract findById(id: number): Promise<Reward | null>;
 
   // US-40 (GET /recompensas/disponibles): las ACTIVE por puntos ascendentes (desempate por id).
-  // Si además están disponibles por stock y fecha lo decide estaDisponible, no la base.
+  // La disponibilidad (stock y fecha) la mantiene al día US-37 (status), así que no se filtra de
+  // nuevo acá.
   abstract findActive(): Promise<Reward[]>;
 
-  // US-42 (§3.9.1, orden de bloqueos: recompensa → canje → customer_points). SELECT FOR UPDATE.
-  // null si no existe.
-  abstract lockById(id: number): Promise<Reward | null>;
+  // US-37, proceso diario (§3.4): ids de las ACTIVE con expires_at < hoy (YYYY-MM-DD, Argentina).
+  // Sin bloqueo: cada una se bloquea después, en su propia transacción.
+  abstract findExpiredCandidateIds(hoyArgentina: string): Promise<number[]>;
 
-  // US-42: persiste los cambios de registerUse() (stock, usedCount, status, disabledReason).
-  abstract update(reward: Reward): Promise<void>;
+  // US-37: FOR UPDATE SKIP LOCKED. null si otra operación la tiene tomada (se saltea) o no existe.
+  abstract lockForUpdateSkipLocked(id: number): Promise<Reward | null>;
+
+  // US-37: guarda status y disabled_reason
+  abstract saveAvailability(reward: Reward): Promise<void>;
+
+  // US-42 (§3.9.1, orden de bloqueos: recompensa → canje → customer_points). FOR UPDATE que
+  // espera (no SKIP LOCKED: un uso no se saltea una recompensa tomada, espera). null si no existe.
+  abstract lockForUpdate(id: number): Promise<Reward | null>;
+
+  // US-42: guarda stock y usedCount (el cambio de status/disabledReason lo guarda
+  // saveAvailability, desde RewardsAvailabilityService.reevaluarDisponibilidad)
+  abstract saveUsage(reward: Reward): Promise<void>;
 }

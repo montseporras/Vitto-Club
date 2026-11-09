@@ -50,26 +50,46 @@ export class RewardsPrismaRepository implements RewardRepository {
     return records.map(toDomain);
   }
 
-  // US-42 (§3.9.1, orden de bloqueos: recompensa → canje → customer_points)
-  async lockById(id: number): Promise<Reward | null> {
+  async findExpiredCandidateIds(hoyArgentina: string): Promise<number[]> {
+    const records = await this.prisma.reward.findMany({
+      // expires_at es DATE: se compara con la medianoche UTC del día, igual que lo guarda Prisma.
+      // Usa el índice (status, expires_at)
+      where: { status: 'ACTIVE', expiresAt: { lt: new Date(`${hoyArgentina}T00:00:00.000Z`) } },
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    });
+    return records.map((record) => record.id);
+  }
+
+  async lockForUpdateSkipLocked(id: number): Promise<Reward | null> {
+    // SKIP LOCKED: si una edición, un uso u otra corrida del proceso la tiene tomada, se saltea
+    const locked = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM rewards WHERE id = ${id} FOR UPDATE SKIP LOCKED
+    `;
+    if (locked.length === 0) return null;
+    return await this.findById(id);
+  }
+
+  async saveAvailability(reward: Reward): Promise<void> {
+    await this.prisma.reward.update({
+      where: { id: reward.getId() },
+      data: { status: reward.getStatus(), disabledReason: reward.getDisabledReason() },
+    });
+  }
+
+  async lockForUpdate(id: number): Promise<Reward | null> {
+    // Espera al que la tenga tomada (no se saltea, a diferencia del proceso diario)
     const locked = await this.prisma.$queryRaw<{ id: number }[]>`
       SELECT id FROM rewards WHERE id = ${id} FOR UPDATE
     `;
     if (locked.length === 0) return null;
-
-    const record = await this.prisma.reward.findUnique({ where: { id } });
-    return record ? toDomain(record) : null;
+    return await this.findById(id);
   }
 
-  async update(reward: Reward): Promise<void> {
+  async saveUsage(reward: Reward): Promise<void> {
     await this.prisma.reward.update({
       where: { id: reward.getId() },
-      data: {
-        stock: reward.getStock(),
-        usedCount: reward.getUsedCount(),
-        status: reward.getStatus(),
-        disabledReason: reward.getDisabledReason(),
-      },
+      data: { stock: reward.getStock(), usedCount: reward.getUsedCount() },
     });
   }
 }

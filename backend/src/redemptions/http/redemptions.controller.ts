@@ -1,43 +1,77 @@
-import { Controller, HttpCode, HttpStatus, Param, Patch, UseFilters } from '@nestjs/common';
-import { CustomersService } from '../../customers/application/customers.service.js';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Query, UseFilters } from '@nestjs/common';
+import { RedemptionResolutionService } from '../application/redemption-resolution.service.js';
+import { RedemptionUseService } from '../application/redemption-use.service.js';
+import { RedemptionsQueryService } from '../application/redemptions-query.service.js';
 import { CurrentUser } from '../../shared/security/current-user.decorator.js';
 import type { CurrentUserData } from '../../shared/security/current-user-data.js';
 import { Roles } from '../../shared/security/roles.decorator.js';
-import { RedemptionsService } from '../application/redemptions.service.js';
-import { RedemptionResponse } from './dto/redemption-response.dto.js';
+import { ListRedemptionsQueryDto } from './dto/list-redemptions-query.dto.js';
+import { RejectRedemptionDto } from './dto/reject-redemption.dto.js';
+import { toEmployeeRedemptionDto } from './dto/redemption-response.dto.js';
 import { RedemptionsExceptionFilter } from './filters/redemptions-exception.filter.js';
 
-// US-42, §3.9.1. Cajero y Administrador; el Cliente nunca llega acá (CA-42.11: 403, sin @Roles
-// para él en esta clase).
+// Contrato S4 §1 y §4: /canjes/:code, …/usar y …/rechazar son de Administrador y Cajero.
+// US-43 agrega …/rechazar y US-45, GET /canjes (solo A). GET /canjes/:code (US-41) y …/usar (US-42)
+// se suman acá.
 @Controller('canjes')
 @Roles('ADMIN', 'CASHIER')
 @UseFilters(RedemptionsExceptionFilter)
 export class RedemptionsController {
   constructor(
-    private readonly redemptionsService: RedemptionsService,
-    private readonly customersService: CustomersService,
+    private readonly resolution: RedemptionResolutionService,
+    private readonly use: RedemptionUseService,
+    private readonly query: RedemptionsQueryService,
   ) {}
 
-  // PATCH /api/canjes/:code/usar -> CA-42.1 a CA-42.5, CA-42.7 a CA-42.11. Sin body.
+  // PATCH /api/canjes/:code/usar (US-42, §3.9.1, CA-42.1 a CA-42.11). Sin body.
   @Patch(':code/usar')
   @HttpCode(HttpStatus.OK)
   async usar(@Param('code') code: string, @CurrentUser() user: CurrentUserData) {
-    const result = await this.redemptionsService.usar({
+    const { redemption, customer, balanceBefore, balanceAfter } = await this.use.use({
       code,
       actor: { accountId: user.accountId, employeeId: user.employeeId as number },
     });
+    return { redemption: toEmployeeRedemptionDto(redemption, customer), balanceBefore, balanceAfter };
+  }
 
-    const customer = await this.customersService.findById(result.redemption.getCustomerId());
+  // GET /api/canjes — pantalla Canjes del Administrador (§3.12.3, CA-45.7). Solo el Administrador
+  // (§4, CA-45.10): pisa el @Roles de la clase.
+  @Get()
+  @Roles('ADMIN')
+  async list(@Query() query: ListRedemptionsQueryDto) {
+    const result = await this.query.listAll({
+      documentType: query.documentType,
+      documentNumber: query.documentNumber,
+      code: query.code,
+      rewardName: query.rewardName,
+      status: query.status,
+      fromDate: query.fromDate,
+      toDate: query.toDate,
+      order: query.order,
+      page: query.page,
+      limit: query.limit,
+    });
     return {
-      redemption: RedemptionResponse.forStaff(result.redemption, {
-        id: customer.getId() as number,
-        firstName: customer.getFirstName(),
-        lastName: customer.getLastName(),
-        documentType: customer.getDocumentType(),
-        documentNumber: customer.getDocumentNumber(),
-      }),
-      balanceBefore: result.balanceBefore,
-      balanceAfter: result.balanceAfter,
+      items: result.items.map(({ redemption, customer }) => toEmployeeRedemptionDto(redemption, customer)),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
     };
+  }
+
+  // PATCH /api/canjes/:code/rechazar (§3.10.1, CA-43.1 a CA-43.3)
+  @Patch(':code/rechazar')
+  @HttpCode(HttpStatus.OK)
+  async reject(
+    @Param('code') code: string,
+    @Body() dto: RejectRedemptionDto,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    const { redemption, customer } = await this.resolution.reject({
+      code,
+      reason: dto.reason,
+      actor: { accountId: user.accountId, employeeId: user.employeeId as number },
+    });
+    return { redemption: toEmployeeRedemptionDto(redemption, customer) };
   }
 }
