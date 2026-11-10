@@ -72,7 +72,7 @@ de pantalla (eso lo cubren los e2e y el recorrido manual de cada historia).
 | B2 ✘ | Test: usar un canje rechazado por la desactivación → `409` 'El canje ya está en estado "Rechazado".' | No existe (solo se prueba el caso "Utilizado") | `backend/test/redemptions-use.e2e-spec.ts` |
 | B3 ✘ | Scripts `rewards:expire` y `redemptions:expire`; `REWARDS_…` y `REDEMPTIONS_EXPIRATION_CRON_ENABLED` en `.env.example`; apagados en `test/setup-e2e-env.ts` | No se agregaron (US-37 y US-44 no tocaron configuración compartida). Solo los apagan sus propios e2e: en las demás suites los procesos corren al iniciar la app | `backend/package.json`, `backend/.env.example`, `backend/test/setup-e2e-env.ts` |
 | B4 ⚠️ | — | Tras D-03 quedaron sin uso el evento `customer.document-changed` (y su listener en `accounts`) y `forbiddenField` | `backend/src/accounts/`, `backend/src/customers/domain/errors/forbidden-field.error.ts` |
-| B5 ⚠️ | Contrato S4 §10, PD-3 | `GET /movimientos-de-puntos` sigue existiendo y ya no tiene pantalla (el frontend la borró) | `backend/src/points/http/points-movements.controller.ts` |
+| B5 ⚠️ | Contrato S4 §10, PD-3 | `GET /movimientos-de-puntos` sigue existiendo y ya no tiene pantalla (el frontend la borró). Se elimina en el Sprint 5 (S5-13) | `backend/src/points/http/points-movements.controller.ts` |
 
 ### Frontend
 
@@ -101,7 +101,7 @@ de pantalla (eso lo cubren los e2e y el recorrido manual de cada historia).
 | P2 | RF-08: ver la cuenta de un usuario "cualquiera sea su rol" | Solo cuentas de empleados | CTA-CLI (S5-3) |
 | P3 | Foto de perfil del Cliente (decisión #9 del S3, PD-2 del S4) | No existe; no tiene RF ni US | FOTO-PERFIL (S5-1) |
 | P4 | RF-038: imagen de la recompensa | "Próximamente" | US-34 (Story Map del Sprint 5) |
-| P5 | Seguimiento §2.6: GitHub Actions, Vitest + Testing Library, despliegue en Vercel / Render / Neon | No están en el repo | ARRASTRE-S4 (PD-23) |
+| P5 | Seguimiento §2.6: GitHub Actions, Vitest + Testing Library, despliegue en Vercel / Render / Neon | No están en el repo. CI entra en el Sprint 5; Vitest se saca del Seguimiento (S5-30) | CI (S5-30) |
 
 ---
 
@@ -188,14 +188,14 @@ equipo no está de acuerdo con alguna, se marca y se pide el cambio de código.
 | D-12 | `customer.reactivated` y `ACTIVATED` sin uso | Borrar el evento |
 | D-13 | Orden por apellido con tildes | Dejarlo o usar collation |
 | D-15 | Límite de intentos en memoria | Dejarlo (una instancia) o pasarlo a una tabla |
-| D-17 / PD-23 | Tests del frontend y CI | Decidir si entran en el Sprint 5 |
+| D-17 / PD-23 | Tests del frontend y CI | ✅ Decidido (S5-30): se saca Vitest del Seguimiento y se hace el CI con GitHub Actions |
 | D-18 | `GET /customers/:id/status-history` sin pantalla | Mantener o quitar |
 | D-19 | Límite de intentos de login, limpieza de sesiones, `npm audit`, verificación de email | Priorizar o documentar como limitación |
 | D-35 | `main` no recibe `develop` | Pasarlo al cierre del Sprint 5 (entrega final) |
 | D-37 | Prototipo: archivo único distinto de `v2/`, falta el script | Reexportar con el prompt del Sprint 5 |
 | D-38 | Diferencias del prototipo que el frontend mantuvo a propósito | Confirmar o corregir el prototipo |
-| PD-3 | `GET /movimientos-de-puntos` sin pantalla | Ver contrato S5 §10 |
-| PD-6 | Aviso de canje rechazado | Ver contrato S5 §10 |
+| PD-3 | `GET /movimientos-de-puntos` sin pantalla | ✅ Decidido (S5-13): se elimina en el Sprint 5 |
+| PD-6 | Aviso de canje rechazado | ✅ Decidido (S5-14): no hay aviso; el Cliente lo ve en Mis canjes |
 
 Ya resueltas desde el cierre del Sprint 3: D-01 (US-59 / RF-065), D-02, D-03, D-04, D-05 (8 caracteres), D-14,
 D-16 y D-36; PD-4 y PD-5 (en la Definición del Producto v1.4 y el Seguimiento v1.7).

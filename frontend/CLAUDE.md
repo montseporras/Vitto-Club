@@ -22,7 +22,7 @@ primera tarea.
 | Pregunta | Fuente |
 |---|---|
 | ¿Cómo se ve? ¿Qué texto dice? ¿Qué campos tiene y en qué orden? ¿Qué pasa al apretar el botón? ¿Qué se muestra vacío? | **Prototipo v2**, en `docs/prototipo/v2/` |
-| ¿A qué endpoint llamo? ¿Qué campos mando y cuáles llegan? ¿Qué `code` puede volver y qué muestro? ¿Qué rol ve esto? | **Contrato del Sprint 4**, en `docs/sprint-4/API_CONTRACT_SPRINT_4.md`. Para lo que ya existe del Sprint 3, `docs/sprint-3/API_CONTRACT_SPRINT_3.md` |
+| ¿A qué endpoint llamo? ¿Qué campos mando y cuáles llegan? ¿Qué `code` puede volver y qué muestro? ¿Qué rol ve esto? | **Contrato del Sprint 5** (v1), en `docs/sprint-5/API_CONTRACT_SPRINT_5.md`. Para lo que ya existe, `docs/sprint-4/API_CONTRACT_SPRINT_4.md` (recompensas y canjes) y `docs/sprint-3/API_CONTRACT_SPRINT_3.md` |
 
 **Si no coinciden:**
 - Datos, reglas, permisos y mensajes de error → **el contrato**.
@@ -30,12 +30,25 @@ primera tarea.
 - El resto de los textos, la disposición y los estilos → **el prototipo**.
 
 Cada contrato lista en su **§8.1** las diferencias del prototipo que corrige. Leela antes de cada pantalla.
+
+**Sprint 5 (8 diferencias).** Las pantallas del Sprint 5 del prototipo son **de la primera versión** (antes del
+Sprint 3). **Primero se actualiza el prototipo** con `docs/sprint-5/PROMPT_PROTOTIPO_SPRINT_5.md` y se
+reexporta a `docs/prototipo/v2/` (lo hace el equipo). Si la pantalla de tu historia todavía no está
+actualizada, **frená y preguntá**: no la armes con la versión vieja. Por ejemplo, la versión vieja tiene:
+- la misión con "Objetivo" en texto libre y "Período" en días, semanas o meses (en el contrato: tipo de objetivo
+  medible y mes de inicio y de fin);
+- el estado "En curso" para la misión del cliente (en el contrato: "En progreso") y la misión "Inactiva" (en el
+  contrato: se "Elimina");
+- el beneficio del nivel como "Observaciones" (en el contrato: "Beneficio");
+- estadísticas con cuatro números fijos (en el contrato: cuatro bloques con período y tablas);
+- sin promociones, logo, cliente frecuente, foto de perfil ni cuenta del cliente (en el contrato: se agregan).
+
 Del Sprint 4 (5 diferencias), por ejemplo:
 - La lógica vieja de canjes de `pagina-principal.html` (estado "Pendiente", 30 minutos, reintegros) **no se
   usa**. Las pantallas de canjes son los componentes nuevos de la tabla de abajo.
-- Ninguna recompensa tiene foto: todas usan la imagen genérica (la foto es del Sprint 5).
 - Los canjes del prototipo vencen 15 minutos después de abrir el archivo; en la app, 15 minutos después de
   confirmar.
+- La foto de la recompensa entra en el Sprint 5 (US-34): sin foto, la imagen genérica.
 
 Del Sprint 3 (13 diferencias), por ejemplo: "Compra" pasa a ser "Consumo", se muestra el tipo de documento
 real y no "DNI" fijo, y la pantalla pide la contraseña actual para cambiar el correo.
@@ -54,7 +67,7 @@ real y no "DNI" fijo, y la pantalla pide la contraseña actual para cambiar el c
 | `RegistrarConsumo.html` | "Buscar cliente", la tarjeta del cliente, el monto, la vista previa, el modal de confirmación con Observaciones, "Consumo registrado", los paneles de 24 h y el panel "Canjes para usar ahora" / "Recompensas a las que puede acceder" |
 | `FichaCliente.html` | Ficha del cliente (Cajero y Administrador) |
 | `Consumos.html` | Listado y detalle de consumos (Administrador) y el modal de anulación |
-| `MovimientosPuntos.html` | Movimientos de puntos (Administrador). **Sin uso desde el Sprint 4:** salió del menú (S4 §3.13.3) |
+| `MovimientosPuntos.html` | Movimientos de puntos (Administrador). **Sin uso:** salió del menú (S4 §3.13.3) y `GET /movimientos-de-puntos` se elimina en el Sprint 5 (S5-13) |
 | `Recompensas.html` | Recompensas del Administrador: listado y modal Crear / Editar (Sprint 4) |
 | `GestionCanjes.html` | Canjes del Administrador y modal "Canje {código}" (Sprint 4) |
 | `CanjePorCodigo.html` | Caja → Canjes por código (Sprint 4) |
@@ -64,6 +77,10 @@ real y no "DNI" fijo, y la pantalla pide la contraseña actual para cambiar el c
 | `MiPerfil.html` | Mi perfil del Cliente |
 | `CambiarPassword.html` | Ventana "Cambiá tu contraseña" que se abre al ingresar (contrato del Sprint 3, §3.11.3) |
 | `SidebarMenu.html` | Menú lateral de mostrador y de administración |
+
+Las pantallas nuevas del Sprint 5 (misiones, estadísticas, notificaciones, promociones, foto de perfil, cuenta
+del cliente) aparecen en esta carpeta cuando el equipo reexporta el prototipo actualizado. Buscalas con grep
+por los textos del contrato; si no están, preguntá.
 
 `docs/prototipo/v2/LEEME.md` explica cómo se desempaquetó la carpeta y qué se cambió a mano. Leelo si
 algo del prototipo no coincide con la app.
@@ -98,7 +115,7 @@ literal. Por ejemplo: `grep -n "Ver movimientos de las últimas 24 hs" docs/prot
 - **Su código:** no es React. Se reproduce con los componentes de `src/shared/components/`.
 
 > **El prototipo puede cambiar.** Si el archivo de la carpeta no coincide con lo que dice
-> `HISTORIAS_SPRINT_4.md` (por ejemplo, porque falta una pantalla o un texto), frená y preguntá si hay
+> `HISTORIAS_SPRINT_5.md` (por ejemplo, porque falta una pantalla o un texto), frená y preguntá si hay
 > un export más nuevo.
 
 ---
@@ -172,7 +189,12 @@ literal. Por ejemplo: `grep -n "Ver movimientos de las últimas 24 hs" docs/prot
    - del Sprint 4 (decisión S4-2): comparar el saldo ya cargado con los puntos de la recompensa para
      deshabilitar "Canjear", "Te faltan {n} pts", "Saldo: {saldo} → {saldo − n} pts al usarlo" y filtrar en
      Caja las recompensas con `points <= saldo`; además, la etiqueta de vencimiento (S4 §3.1) y la cuenta
-     regresiva del canje con `expiresAt` (S4 §3.7.2).
+     regresiva del canje con `expiresAt` (S4 §3.7.2);
+   - del Sprint 5: la etiqueta "En curso", "Próxima" o "Finalizada" de una misión activa, con la fecha y su
+     mes de inicio y de fin (S5 §2.2).
+
+   **Avance de misiones, estadísticas, frecuentes y beneficios los calcula el backend.** Las barras de las
+   estadísticas se dibujan con CSS a partir de lo que llega, **sin librería de gráficos** (S5-27).
 2. **Decidí por `code`, nunca por el texto del error.** Usá `ApiError` y `toApiError` de
    `@/shared/api/ApiError`. `message` puede ser un arreglo, y `details` marca el campo con el error.
 3. **Roles:**
@@ -183,7 +205,7 @@ literal. Por ejemplo: `grep -n "Ver movimientos de las últimas 24 hs" docs/prot
 4. **Fechas:**
    - La API manda ISO UTC.
    - La pantalla muestra `dd/mm/aaaa hh:mm`, en hora de Argentina.
-   - Los filtros mandan `YYYY-MM-DD`.
+   - Los filtros mandan `YYYY-MM-DD`; los meses de las misiones, `YYYY-MM`.
    - Usá o extendé `@/shared/lib/dates`. No metas una librería nueva.
 5. **Montos:**
    - El input acepta `50000`, `50.000`, `12500,50` y `12.500,50`.
@@ -192,8 +214,10 @@ literal. Por ejemplo: `grep -n "Ver movimientos de las últimas 24 hs" docs/prot
 6. **Puntos:** siempre enteros. En los movimientos van con signo: verde si es +, rojo si es −. El saldo
    negativo va en rojo.
 7. **Tipo de documento real.** Mostrá "DNI" o "Pasaporte" según `documentType`. Nunca "DNI" fijo.
-8. **Lo de otros sprints** (misiones, foto, estadísticas, notificaciones) se muestra **exactamente** como dice el
-   contrato: "Próximamente", un botón deshabilitado o un texto fijo. Usá `ComingSoon` si corresponde.
+8. **No queda nada para otro sprint.** El Sprint 5 es el último: **ninguna pantalla muestra "Próximamente"**
+   (S5-33). Lo que en los sprints anteriores estaba como `ComingSoon` o deshabilitado (misiones, foto,
+   estadísticas, notificaciones) se habilita según el contrato S5 §3.13. Si algo del prototipo no está en el
+   contrato ni en un RF, preguntá.
 9. **Imports:**
    - Usá el alias `@/`.
    - Un feature importa otro **solo** desde su `index.ts` (`@/features/<nombre>`).
@@ -207,15 +231,21 @@ literal. Por ejemplo: `grep -n "Ver movimientos de las últimas 24 hs" docs/prot
 11. **Responsive.** La vista del Cliente es para celular: barra inferior fija y perfil desde el ícono
     superior (§3.10). Las del Cajero y el Administrador, para la computadora de la caja.
 12. **No toques `backend/`.**
-13. **No instales dependencias** (tampoco una librería de componentes o de fechas) sin permiso.
+13. **No instales dependencias** (tampoco una librería de componentes, de fechas o de gráficos) sin permiso.
+    `resend`, `pdfkit` y `cloudinary` son del backend: el frontend no los usa. El PDF se baja con
+    `shared/api/download.ts` y las fotos se suben como `multipart/form-data` al backend, nunca directo a
+    Cloudinary.
+14. **Fotos.** Se muestran con la `photoUrl` que manda el backend (la de perfil es una URL firmada que vence:
+    no la guardes ni la armes vos). Sin foto, la imagen genérica.
 
 ---
 
 ## 5. Carpeta de cada pantalla
 
-Cada historia de `docs/sprint-4/HISTORIAS_SPRINT_4.md` indica la **carpeta del feature** (sección 0). Si
-está vacía o dice "a confirmar", preguntá antes de crearla. `features/redemptions` es nueva en el Sprint 4:
-la crea la primera historia que la necesite, según la tabla de asignaciones.
+Cada historia de `docs/sprint-5/HISTORIAS_SPRINT_5.md` indica la **carpeta del feature** (sección 0). Si
+está vacía o dice "a confirmar", preguntá antes de crearla. Las carpetas `missions`, `notifications` y
+`statistics` ya existen vacías: las llena la primera historia que las necesite, según la tabla de
+asignaciones.
 
 Features que ya existen:
 - `auth`
@@ -227,10 +257,10 @@ Features que ya existen:
 - `audit`
 - `my-account`
 - `consumptions`
-- `points-movements` (sin pantalla desde el Sprint 4: salió del menú)
+- `points-movements` (sin pantalla: salió del menú en el Sprint 4 y su endpoint se elimina en el Sprint 5)
 - `rewards`
 - `redemptions` (Sprint 4)
-- `missions`, `notifications`, `statistics` y `levels` (vacías)
+- `missions`, `notifications` y `statistics` (vacías hasta el Sprint 5)
 
 ---
 
@@ -242,8 +272,8 @@ npm run build     # tsc -b + vite build: tiene que compilar sin errores
 npm run dev       # con mocks (VITE_API_MOCKS distinto de 'false'), para el recorrido manual
 ```
 
-**Hoy el frontend no tiene un framework de tests instalado.** No instales Vitest ni Testing Library por tu
-cuenta. Si el equipo decide sumarlos, te lo va a pedir.
+**El frontend no tiene un framework de tests, y no lo va a tener:** Vitest y Testing Library quedaron fuera
+(S5-30). No los instales. El CI de GitHub Actions corre `npm ci`, lint y build en cada PR (S5 §3.12).
 
 Mientras tanto, la verificación es un **recorrido manual con mocks**. Por cada criterio de la historia:
 1. qué hiciste;

@@ -11,8 +11,8 @@
 > **después de actualizarlo** con `PROMPT_PROTOTIPO_SPRINT_5.md`). Si un criterio de acá choca con el
 > contrato, **manda el contrato**. Hay que avisar para corregir este archivo.
 >
-> **Versión 0 (09/11/2026, borrador para el Planning).** Los criterios que dependen de una propuesta 🟡 del
-> contrato se confirman cuando se decida su PD (sección 2). **El Sprint 5 es el último.**
+> **Versión 1 (09/11/2026).** Alineada con el contrato v1: todas las PD del v0 quedaron decididas por Deni el
+> 09/11 (sección 2 y contrato §8.3, S5-12 a S5-33). **El Sprint 5 es el último: no queda nada "Próximamente".**
 
 ## Cómo se usa
 
@@ -29,7 +29,8 @@
 
 - Hacé solo la historia y la capa del pedido. Cumplí los `[B]` si sos backend, los `[F]` si sos frontend y los
   `[B+F]` en la parte que te toca.
-- **Si la historia depende de una PD que todavía no tiene decisión, preguntá antes de empezar.**
+- **Todas las PD están decididas** (sección 2). Si encontrás algo que no está en el contrato ni en un RF,
+  preguntá: no lo dejes como "Próximamente".
 - **Las pantallas del Sprint 5 del prototipo son viejas** (contrato §8.1). Si todavía no se actualizaron con el
   prompt, frená y preguntá.
 
@@ -59,7 +60,7 @@ objetivo pasa a **Completada**; sin recompensa, ahí termina. 4. Con recompensa,
 | ARRASTRE-S4 | Cierre del Sprint 4 (`CIERRE_SPRINT_4.md`) | | | | | Según el ítem | Sin empezar |
 | BASE-5 | Modelo de misiones, notificaciones, promociones, imágenes y beneficios | | | — (no tiene pantalla) | — | — | Sin empezar |
 | US-14 | Configurar imagen y mensajes automáticos | | | | | `features/notifications` | Sin empezar |
-| US-15 | Configurar promociones especiales | | | | | `features/notifications` 🟡 | Sin empezar |
+| US-15 | Configurar promociones especiales | | | | | `features/notifications` | Sin empezar |
 | US-28 | Crear misión mensual | | | | | `features/missions` | Sin empezar |
 | US-29 | Editar / dar de baja misión | | | | | `features/missions` | Sin empezar |
 | US-30 | Progreso y cumplimiento automático de misiones | | | — (sin pantalla propia) | — | `features/cashier` (aviso en "Consumo registrado") | Sin empezar |
@@ -79,6 +80,7 @@ objetivo pasa a **Completada**; sin recompensa, ahí termina. 4. Con recompensa,
 | FOTO-PERFIL | Foto de perfil del Cliente (S5-1) | | | | | `features/my-account` | Sin empezar |
 | NIV-BEN | Beneficios de los niveles (S5-2) | | | | | `features/points` y `features/my-account` | Sin empezar |
 | CTA-CLI | Cuentas de los clientes (S5-3) | | | | | `features/customers` | Sin empezar |
+| CI | Integración continua con GitHub Actions (S5-30) | | | — | — | `.github/workflows/` | Sin empezar |
 
 > **Ramas:** `<tipo>/US-XX-<descripcion-corta>`. Por ejemplo: `feature/US-28-crear-mision-back`.
 
@@ -101,6 +103,7 @@ BACKEND
            ├──> NIV-BEN
            └──> US-51 a US-54 ──> US-55
   CTA-CLI no depende de BASE-5
+  CI primero (sin dependencias), para que todas las ramas del sprint pasen por él
 
 FRONTEND
   Primero: actualizar el prototipo (PROMPT_PROTOTIPO_SPRINT_5.md).
@@ -111,10 +114,10 @@ FRONTEND
 
 | Pieza | Dueño | La usan |
 |---|---|---|
-| Tablas `missions`, `customer_missions`, `notification_templates`, `notifications`, `promotions`, `images`; columnas `points_movements.customer_mission_id`, beneficios y `photo_version`; enums; `CHECK` e índices | **BASE-5** | Todas |
-| Módulos `missions`, `notifications`, `statistics`, `images` (esqueleto, repositorios y tipos) | **BASE-5** | US-14 a US-55 |
-| `PointsService.acreditarRecompensaDeMision` (movimiento `MISSION_REWARD`, sin tocar `lifetimePoints`) | **BASE-5** | US-31, US-32 |
-| Servicio de imágenes (validar, guardar, servir, `photoUrl` versionada) | **BASE-5** | US-34, FOTO-PERFIL, US-14 |
+| Tablas `missions`, `customer_missions`, `notification_templates`, `notification_settings`, `notifications`, `promotions`; columnas `points_movements.customer_mission_id`, beneficios, `frequent_min_consumptions`, `photo_public_id` y `photo_url`; enums (`MISSION_REWARD`, `BIRTHDAY_BONUS` y las dos acciones de auditoría nuevas); `CHECK` e índices | **BASE-5** | Todas |
+| Módulos `missions`, `notifications`, `statistics` y el módulo técnico `images` (esqueleto, repositorios y tipos) | **BASE-5** | US-14 a US-55 |
+| `PointsService.acreditarBonificacion({ type, … })` (movimientos `MISSION_REWARD` y `BIRTHDAY_BONUS`, sin tocar `lifetimePoints`) | **BASE-5** | US-31, US-32, US-48 |
+| Puerto `ImageStorage` (Cloudinary y falso): validar por contenido, subir, borrar, URL firmadas | **BASE-5** | US-34, FOTO-PERFIL, US-14 |
 | Puerto `EmailSender` y su adaptador que solo deja en el log | **BASE-5** | US-47 a US-50 |
 | Asignación y avance de misiones (`registrarAvance` desde `POST /consumos`) | **US-30** | US-31, US-32, US-33 |
 | Reclamo (`reclamar(customerMission, por)`) | **US-31** | US-32 (automático), US-29 (al eliminar) |
@@ -127,31 +130,31 @@ FRONTEND
 
 ## 2. Pendientes que hay que decidir
 
-**Claude: si tu historia figura en la columna "Afecta", preguntá antes de empezar.** Las propuestas están en
-el contrato §10.
+**Todas decididas por Deni el 09/11/2026.** El detalle está en el contrato §8.3. Solo queda documentación fuera
+del repo (contrato §10).
 
 | # | Pendiente | Afecta | Decisión |
 |---|---|---|---|
-| PD-1 | Dónde se guardan las imágenes | BASE-5, US-34, FOTO-PERFIL, US-14 | |
-| PD-3 | ¿Se elimina `GET /movimientos-de-puntos`? | ARRASTRE-S4 | |
-| PD-6 | ¿Aviso de canje rechazado? | Nada (propuesta: no) | |
-| PD-7 | Qué mide una misión | BASE-5, US-28, US-30 | |
-| PD-8 | ¿La promoción cambia los puntos? | BASE-5, US-15, US-49 | |
-| PD-9 | Definiciones de las estadísticas | US-51, US-52 | |
-| PD-10 | Anticipación del aviso de vencimiento | US-47 | |
-| PD-11 | Dependencias `resend` y `pdfkit` | US-47 a US-50, US-55 | |
-| PD-12 | Foto de perfil: acceso y quién la ve | FOTO-PERFIL | |
-| PD-13 | ¿Anular un consumo resta avance? | US-30 | |
-| PD-14 | Asignación y repetición de misiones | BASE-5, US-30, US-32, US-33 | |
-| PD-15 | Editar o eliminar una misión con progreso | US-29 | |
-| PD-16 | ¿Reintentar correos fallidos? | US-14 | |
-| PD-17 | ¿Auditar envíos? | US-47 a US-50 | |
-| PD-18 | Puntos por cumpleaños | US-48 | |
-| PD-19 | Gráficos | US-51 a US-54 (frontend) | |
-| PD-20 | ¿El beneficio del nivel cambia los puntos? | NIV-BEN | |
-| PD-21 | ¿Resetear la contraseña de un cliente? | CTA-CLI | |
-| PD-22 | Actualizar Plan, Seguimiento y Definición del Producto | Solo documentación | |
-| PD-23 | Vitest y GitHub Actions | ARRASTRE-S4 | |
+| PD-1 | Dónde se guardan las imágenes | BASE-5, US-34, FOTO-PERFIL, US-14 | **Cloudinary** (S5-12); dependencia `cloudinary` autorizada (S5-24) |
+| PD-3 | ¿Se elimina `GET /movimientos-de-puntos`? | ARRASTRE-S4 | **Sí** (S5-13) |
+| PD-6 | ¿Aviso de canje rechazado? | — | **No** (S5-14) |
+| PD-7 | Qué mide una misión | BASE-5, US-28, US-30 | **Cantidad de consumos o monto**, con días y horario opcionales (S5-15) |
+| PD-8 | ¿La promoción cambia los puntos? | BASE-5, US-15, US-49 | **No: solo informativa** (S5-16) |
+| PD-9 | Definiciones de las estadísticas | US-51, US-52 | **Mínimo de frecuente configurable** en Configuración del programa (por defecto 3); franjas de 4 h; activo = no dado de baja (S5-22) |
+| PD-10 | Anticipación del aviso de vencimiento | US-47 | **7 días**, una vez por lote (S5-17) |
+| PD-11 | Dependencias `resend` y `pdfkit` | US-47 a US-50, US-55 | **Autorizadas** (S5-18) |
+| PD-12 | Foto de perfil: acceso y quién la ve | FOTO-PERFIL | **Cliente, Cajero y Administrador**, con URL firmada (S5-23) |
+| PD-13 | ¿Anular un consumo resta avance? | US-30 | **Sí, solo si sigue En progreso** (S5-21) |
+| PD-14 | Asignación y repetición de misiones | BASE-5, US-30, US-32, US-33 | **En el primer consumo o consulta del mes; sin mes de fin, se repite** (S5-19) |
+| PD-15 | Editar o eliminar una misión con progreso | US-29 | **Rige desde el mes siguiente; al eliminar, Vencida o Reclamada sola** (S5-20) |
+| PD-16 | ¿Reintentar correos fallidos? | US-14 | **No** (S5-28) |
+| PD-17 | ¿Auditar envíos? | US-47 a US-50 | **No** (S5-28) |
+| PD-18 | Puntos por cumpleaños | US-48 | **Sí, configurable, por defecto 100** (S5-25) |
+| PD-19 | Gráficos | US-51 a US-54 (frontend) | **Tablas y barras con CSS** (S5-27) |
+| PD-20 | ¿El beneficio del nivel cambia los puntos? | NIV-BEN | **No: texto informativo** (S5-26) |
+| PD-21 | ¿Resetear la contraseña de un cliente? | CTA-CLI | **No: solo verla** (S5-29) |
+| PD-22 | Actualizar Plan, Seguimiento y Definición del Producto | Solo documentación | Pendiente (contrato §10) |
+| PD-23 | Vitest y GitHub Actions | CI | **Se saca Vitest del Seguimiento; se hace el CI** (S5-30) |
 
 ---
 
@@ -172,6 +175,8 @@ BASE-5:
 | Trigger de solo inserción y `CHECK` de `points_movements` (A-02, A-03 del S3) | BASE-5 agrega `MISSION_REWARD` y un `CHECK` a la misma tabla |
 | Bloquear la recompensa al confirmar un canje | Es un error de concurrencia del S4 |
 | Scripts y variables de los crons, apagados en `setup-e2e-env.ts` | BASE-5 suma dos procesos más con el mismo patrón |
+| Eliminar `GET /movimientos-de-puntos` (S5-13) | No tiene pantalla y US-53 lo reemplaza |
+| CORS por variable de entorno | Lo necesita el despliegue de la entrega |
 
 | Fila de `CIERRE_SPRINT_4.md` | Responsable | Rama | Estado |
 |---|---|---|---|
@@ -184,26 +189,31 @@ BASE-5:
 | | |
 |---|---|
 | **Qué es** | No es una historia del backlog: es la base que usan todas las del sprint. Una sola migración |
-| **Contrato** | §3.14 (modelo), §2 (enums), §3.5.1 (imágenes), §8.4 (módulos) |
-| **Depende de** | ARRASTRE-S4 (lo mínimo) y las PD-1, PD-7, PD-8 y PD-14 |
+| **Contrato** | §3.15 (modelo), §2 (enums), §3.5.1 (imágenes), §3.8.3 (correo), §8.4 (módulos) |
+| **Depende de** | ARRASTRE-S4 (lo mínimo) |
 | **Fuera de alcance** | Los endpoints (cada historia tiene los suyos) y los procesos automáticos (US-32, US-47, US-48) |
+| **Dependencias** | Suma `resend`, `pdfkit` y `cloudinary` (autorizadas, S5-18 y S5-24). Avisar en el resumen |
 
 **Criterios de aceptación**
 
 - **CA-B5.1 [B] Migración** `sprint5_base5_missions_notifications` con las tablas, columnas, enums, `CHECK` e
-  índices de §3.14. Un test consulta `pg_constraint` y `pg_indexes` y confirma que existen.
+  índices de §3.15. Un test consulta `pg_constraint` y `pg_indexes` y confirma que existen.
 - **CA-B5.2 [B] Restricciones.** La base rechaza, como mínimo: `target = 0`; `reward_points = 0`; una sola de
   las dos horas; `end_month < start_month`; dos misiones no dadas de baja con el mismo nombre; `progress >
   target`; un movimiento `MISSION_REWARD` sin `customer_mission_id`; una asignación repetida (misma misión,
-  cliente y mes); una notificación repetida (mismo tipo, cliente y motivo); una imagen de más de 2 MB.
+  cliente y mes); una notificación repetida (mismo tipo, cliente y motivo); `birthday_bonus_points` fuera de
+  0–10.000; `frequent_min_consumptions` fuera de 1–100.
 - **CA-B5.3 [B] Solo inserción.** `notifications` rechaza `UPDATE`, `DELETE` y `TRUNCATE`.
-- **CA-B5.4 [B] Plantillas por defecto.** Después de migrar hay una fila por `NotificationType` con los textos
-  del contrato §3.6.1.
-- **CA-B5.5 [B] Acreditar la recompensa.** `PointsService.acreditarRecompensaDeMision` crea un lote con la
-  vigencia vigente, cancela primero la deuda, inserta `MISSION_REWARD` con `customer_mission_id` y **no
-  toca `lifetimePoints`** (el nivel no cambia).
-- **CA-B5.6 [B] Imágenes.** El servicio acepta JPG, PNG y WebP por contenido; rechaza un PDF renombrado a
-  `.jpg` y uno de 2 MB + 1 byte con `INVALID_IMAGE`; cada subida aumenta la versión.
+- **CA-B5.4 [B] Valores por defecto.** Después de migrar hay una fila por `NotificationType` con los textos del
+  contrato §3.6.1, `notification_settings` con 100 puntos de cumpleaños y la configuración vigente con mínimo
+  de frecuente 3.
+- **CA-B5.5 [B] Acreditar bonificaciones.** `PointsService.acreditarBonificacion` crea un lote con la vigencia
+  vigente, cancela primero la deuda, inserta `MISSION_REWARD` (con `customer_mission_id`) o `BIRTHDAY_BONUS` y
+  **no toca `lifetimePoints`** (el nivel no cambia).
+- **CA-B5.6 [B] Imágenes.** El puerto `ImageStorage` acepta JPG, PNG y WebP por contenido y rechaza un PDF
+  renombrado a `.jpg` y uno de 2 MB + 1 byte con `INVALID_IMAGE`, **antes** de subir. Con
+  `IMAGES_STORAGE_ENABLED=false` usa el adaptador falso (no llama a Cloudinary). Las fotos de perfil salen con
+  URL firmada que vence a la hora.
 - **CA-B5.7 [B] Correo apagado.** Con `NOTIFICATIONS_EMAIL_ENABLED=false`, el adaptador no llama a ningún
   proveedor y deja el envío en el log.
 - **CA-B5.8 [B] Módulos sin ciclos.** `missions` no importa `consumptions`; `points` no importa `missions`;
@@ -220,19 +230,22 @@ BASE-5:
 | **Historia** | Como Administrador, quiero configurar el logo de la organización y los mensajes de las notificaciones automáticas, para personalizar la comunicación del programa |
 | **RF** | RF-012 |
 | **Roles** | Administrador |
-| **Contrato** | §3.6, §3.8.2, §3.13 (`LOGO_AND_MESSAGES_UPDATED`) |
+| **Contrato** | §3.5.4, §3.6, §3.8.4, §3.14 (`LOGO_AND_MESSAGES_UPDATED`) |
 | **Depende de** | BASE-5 |
 | **Fuera de alcance** | Los envíos de cada tipo (US-47 a US-50) |
 
 **Criterios de aceptación**
 
-- **CA-14.1 [B+F] Ver la configuración.** `GET /configuracion/mensajes` trae el logo y los cuatro mensajes.
-  Configuración → Notificaciones deja de decir "Próx.".
+- **CA-14.1 [B+F] Ver la configuración.** `GET /configuracion/mensajes` trae el logo, los puntos de
+  cumpleaños y los cuatro mensajes. Configuración → Notificaciones deja de decir "Próx.".
+- **CA-14.1b [B+F] Puntos de cumpleaños.** "Puntos de regalo por cumpleaños": entero 0–10.000 (por defecto
+  100; 0 = no regala), con el mensaje del contrato §3.6.2. El cambio se audita en la misma entrada.
 - **CA-14.2 [B+F] Editar un mensaje.** Asunto 1–120 y mensaje 1–1.000, con las variables permitidas por tipo y
   vista previa. Una variable que no corresponde → `400` con el mensaje del contrato.
 - **CA-14.3 [B+F] Activar y desactivar** cada tipo. Un tipo desactivado no se envía (lo prueban US-47 a US-50).
-- **CA-14.4 [B+F] Logo.** Subir, reemplazar (JPG, PNG, WebP, ≤ 2 MB) y verlo en el login. `GET
-  /configuracion/logo` es público.
+- **CA-14.4 [B+F] Logo.** Subir y reemplazar (JPG, PNG, WebP, ≤ 2 MB, a Cloudinary) y verlo en el login.
+  `GET /configuracion/logo` es público y responde `302` a la URL del logo (`404` sin logo: el frontend usa el
+  del repo).
 - **CA-14.5 [B] Auditoría.** Una entrada `LOGO_AND_MESSAGES_UPDATED` por guardado, con una fila por cambio;
   "Se guardó sin modificar valores" si no cambió nada; "Logo: Actualizado" al subir el logo.
 - **CA-14.6 [B+F] Historial de notificaciones.** `GET /notificaciones` con sus filtros; pestaña "Historial".
@@ -256,8 +269,8 @@ historial con filtros, envío común (enviado, fallido, omitido, repetido), perm
 | **RF** | RF-013 |
 | **Roles** | Administrador (configura); Cliente (las ve) |
 | **Contrato** | §3.7 |
-| **Depende de** | BASE-5 y **PD-8** |
-| **Fuera de alcance** | El envío por correo (US-49). Si PD-8 elige que la promoción cambie los puntos, esta ficha se rehace |
+| **Depende de** | BASE-5 |
+| **Fuera de alcance** | El envío por correo (US-49). La promoción **no cambia los puntos** (S5-16) |
 
 **Criterios de aceptación**
 
@@ -283,8 +296,8 @@ permisos.
 | **Historia** | Como Administrador, quiero crear una misión mensual con objetivo medible y recompensa opcional, para incorporar gamificación al programa |
 | **RF** | RF-031 |
 | **Roles** | Administrador |
-| **Contrato** | §3.1.1 a §3.1.3, §2.3, §3.13 (`MISSION_CREATED`) |
-| **Depende de** | BASE-5 y **PD-7** |
+| **Contrato** | §3.1.1 a §3.1.3, §2.3, §3.14 (`MISSION_CREATED`) |
+| **Depende de** | BASE-5 |
 | **Fuera de alcance** | Editar y dar de baja (US-29); el avance (US-30) |
 
 **Criterios de aceptación**
@@ -312,8 +325,8 @@ permisos.
 | **Historia** | Como Administrador, quiero modificar o dar de baja lógicamente una misión, para mantener actualizado el catálogo de misiones |
 | **RF** | RF-032 |
 | **Roles** | Administrador |
-| **Contrato** | §3.1.4 a §3.1.6, §3.13 |
-| **Depende de** | US-28, US-30 (para el caso con progreso), US-31 (reclamo) y **PD-15** |
+| **Contrato** | §3.1.4 a §3.1.6, §3.14 |
+| **Depende de** | US-28, US-30 (para el caso con progreso) y US-31 (reclamo) |
 
 **Criterios de aceptación**
 
@@ -337,8 +350,8 @@ permisos.
 |---|---|
 | **Historia** | Como Sistema, quiero actualizar automáticamente el progreso de cada cliente en las misiones activas a partir de sus consumos y marcarlas como completadas al alcanzar el objetivo |
 | **RF** | RF-033, RF-034 |
-| **Contrato** | §3.2, §3.13 (`MISSION_COMPLETED`) |
-| **Depende de** | BASE-5, **PD-13** y **PD-14** |
+| **Contrato** | §3.2, §3.14 (`MISSION_COMPLETED`) |
+| **Depende de** | BASE-5 |
 | **Frontend** | Solo el aviso en "Consumo registrado" (`completedMissions`) |
 
 **Criterios de aceptación**
@@ -354,7 +367,7 @@ permisos.
 - **CA-30.6 [B] Misma transacción:** si falla el avance, no queda el consumo.
 - **CA-30.7 [B+F] Respuesta:** `POST /consumos` trae `completedMissions`; "Consumo registrado" muestra
   "¡{Nombre} completó la misión {misión}!".
-- **CA-30.8 [B] Anular** (PD-13): resta avance solo en las del mismo mes En progreso.
+- **CA-30.8 [B] Anular** (S5-21): resta avance solo en las del mismo mes que sigan En progreso; una Completada o Reclamada no se revierte.
 - **CA-30.9 [B] Cliente dado de baja:** no se le asignan misiones.
 
 ---
@@ -366,7 +379,7 @@ permisos.
 | **Historia** | Como Cliente, quiero reclamar la recompensa asociada a una misión completada, cuando corresponda, para obtener el beneficio ganado |
 | **RF** | RF-035 |
 | **Roles** | Cliente |
-| **Contrato** | §3.3.3, §2.7, §3.13 (`MISSION_REWARD_CLAIMED`) |
+| **Contrato** | §3.3.3, §2.7, §3.14 (`MISSION_REWARD_CLAIMED`) |
 | **Depende de** | US-30 |
 
 **Criterios de aceptación**
@@ -389,7 +402,7 @@ permisos.
 |---|---|
 | **Historia** | Como Sistema, quiero vencer automáticamente las misiones no completadas al finalizar el mes y habilitar las del nuevo período, para mantener la dinámica mensual |
 | **RF** | RF-036 |
-| **Contrato** | §3.4, §3.13 (`MISSIONS_EXPIRED`) |
+| **Contrato** | §3.4, §3.14 (`MISSIONS_EXPIRED`) |
 | **Depende de** | US-30, US-31 |
 
 **Criterios de aceptación**
@@ -421,7 +434,7 @@ permisos.
 
 - **CA-33.1 [B+F] Mis misiones:** pestaña "Misiones" habilitada; tarjetas con nombre, descripción, barra
   "2 / 3 consumos" o "$ 12.000 / $ 20.000", recompensa, estado y "Termina el {día}"; vacío del contrato.
-- **CA-33.2 [B] Asignar al consultar** las en curso que todavía no tenía (PD-14).
+- **CA-33.2 [B] Asignar al consultar** las en curso que todavía no tenía (S5-19). `GET /customers/:id/misiones` no asigna: muestra las que faltan con progreso 0.
 - **CA-33.3 [B+F] Meses anteriores** con `?period=`: Vencidas y Reclamadas.
 - **CA-33.4 [F] Inicio:** tarjeta "Misiones" con cuántas tiene en progreso.
 - **CA-33.5 [B+F] Personal:** `GET /customers/:id/misiones` en la ficha (pestaña "Misiones") y en el panel de
@@ -439,17 +452,21 @@ permisos.
 | **RF** | RF-038 |
 | **Roles** | Administrador (carga); todos (ven) |
 | **Contrato** | §3.5.1, §3.5.2 |
-| **Depende de** | BASE-5 y **PD-1** |
+| **Depende de** | BASE-5 (Cloudinary, S5-12) |
 
 **Criterios de aceptación**
 
-- **CA-34.9 [B+F] Subir y reemplazar** en el modal (vista previa, "Elegir imagen"); al crear, se sube después
-  del `POST`. `photoUrl` versionada.
-- **CA-34.10 [B+F] Quitar:** vuelve la imagen genérica.
-- **CA-34.11 [B+F] Validación:** `400 INVALID_IMAGE` con el mensaje del contrato (por contenido y tamaño).
+- **CA-34.9 [B+F] Subir y reemplazar** en el modal (vista previa, "Elegir imagen"); se sube a Cloudinary
+  (carpeta `vitto-club/rewards`) y `photoUrl` es la URL pública. Al crear, la foto se sube después del `POST`;
+  si falla, la recompensa queda sin foto con el aviso del contrato §3.5.2.
+- **CA-34.10 [B+F] Quitar:** vuelve la imagen genérica; sin foto, `404` "La recompensa no tiene foto.".
+- **CA-34.11 [B+F] Validación:** `400 INVALID_IMAGE` con el mensaje del contrato (por contenido y tamaño,
+  **antes** de subir).
 - **CA-34.12 [F] Se ve** en el listado, el catálogo del Cliente, el mostrador y los canjes.
 - **CA-34.13 [B] Auditoría** `REWARD_UPDATED` con "Foto: Actualizada" o "Foto: Quitada".
-- **CA-34.14 [B] `GET` público** con caché; `404` sin foto; Cajero y Cliente `403` en `PUT` y `DELETE`.
+- **CA-34.14 [B] Dada de baja:** `404` al subir o quitar; su foto no se borra de Cloudinary (la usan los canjes
+  viejos).
+- **CA-34.15 [B] Permisos:** Cajero y Cliente `403` en `PUT` y `DELETE`. Los e2e usan el adaptador falso.
 
 > Los CA-34.1 a CA-34.8 son los del Sprint 4 (`HISTORIAS_SPRINT_4.md`); se numeran a continuación.
 
@@ -462,7 +479,7 @@ permisos.
 | **Historia** | Como Cliente, quiero recibir una notificación antes de que mis puntos venzan, para poder utilizarlos a tiempo |
 | **RF** | RF-050 |
 | **Contrato** | §3.8 |
-| **Depende de** | US-14 y **PD-10** |
+| **Depende de** | US-14 |
 
 **Criterios de aceptación**
 
@@ -483,15 +500,21 @@ permisos.
 | **Historia** | Como Cliente, quiero recibir una notificación automática de cumpleaños si registré mi fecha de nacimiento, para sentirme reconocido por La Vitto |
 | **RF** | RF-051 |
 | **Contrato** | §3.8 |
-| **Depende de** | US-14 y **PD-18** |
+| **Depende de** | US-14 y BASE-5 (`BIRTHDAY_BONUS`) |
 
 **Criterios de aceptación**
 
 - **CA-48.1 [B]** El proceso diario manda `BIRTHDAY` a los clientes activos con `dateOfBirth` de hoy (día y
-  mes); el 29/02 se manda el 28/02 en años no bisiestos.
-- **CA-48.2 [B]** Sin fecha de nacimiento, no se manda.
-- **CA-48.3 [B]** Una vez por año por cliente.
-- **CA-48.4 [B]** Registro, `SKIPPED` y `FAILED` como US-47.
+  mes); el 29/02 se toma el 28/02 en años no bisiestos.
+- **CA-48.2 [B] Regalo de puntos** (S5-25): si `birthdayBonusPoints > 0` y el tipo está activo, acredita esos
+  puntos (`BIRTHDAY_BONUS`, lote nuevo, deuda primero, **sin tocar el nivel**) y audita
+  `BIRTHDAY_BONUS_GRANTED` (Sistema), en una transacción por cliente. Con 0, solo el saludo.
+- **CA-48.3 [B]** Los puntos se acreditan aunque el correo falle o el envío esté apagado; el correo va después
+  del commit, con `{puntos}`.
+- **CA-48.4 [B]** Sin fecha de nacimiento, no se manda ni se regala.
+- **CA-48.5 [B]** Una vez por año por cliente (puntos y correo), aunque el proceso corra dos veces.
+- **CA-48.6 [B]** Registro, `SKIPPED` y `FAILED` como US-47.
+- **CA-48.7 [F]** El Cliente ve el movimiento "Te regalamos {n} pts por tu cumpleaños".
 
 ---
 
@@ -542,26 +565,33 @@ permisos.
 | **Historia** | Como Administrador, quiero generar estadísticas de clientes activos, frecuentes y nuevos, para conocer la evolución de la base de clientes |
 | **RF** | RF-054 |
 | **Contrato** | §3.9 y §3.9.1 |
-| **Depende de** | **PD-9**. No depende de BASE-5 (solo lee) |
+| **Depende de** | BASE-5 (`frequent_min_consumptions`) |
 
 **Criterios de aceptación**
 
-- **CA-51.1 [B]** Activos, nuevos y frecuentes con datos conocidos (por ejemplo, 3 clientes con 3, 2 y 4
-  consumos → 2 frecuentes).
-- **CA-51.2 [B]** Período obligatorio, hora de Argentina; rango invertido y más de un año → `400`.
-- **CA-51.3 [F]** Pantalla "Estadísticas y reportes" habilitada; selector de período; bloque Clientes.
-- **CA-51.4 [B]** Cajero y Cliente: `403`.
+- **CA-51.1 [B]** Activos, nuevos y frecuentes con datos conocidos (por ejemplo, con mínimo 3: clientes con 3,
+  2 y 4 consumos → 2 frecuentes).
+- **CA-51.2 [B+F] Mínimo configurable** (S5-22): `GET`/`PUT /loyalty/configuration/frequent-customers` (entero
+  1–100, por defecto 3), en una versión nueva de la configuración, auditado con `FREQUENT_CUSTOMERS_UPDATED`;
+  tarjeta "Clientes frecuentes" en Configuración → Puntos.
+- **CA-51.3 [B]** Período obligatorio, hora de Argentina; falta, rango invertido y más de un año → `400` con los
+  mensajes del contrato §3.9.
+- **CA-51.4 [F]** Pantalla "Estadísticas y reportes" habilitada; selector de período (por defecto el mes
+  actual); bloque Clientes con "Frecuentes (al menos {n} consumos)".
+- **CA-51.5 [B]** Cajero y Cliente: `403`.
 
 ### US-52 — Estadísticas de consumos por período
 
 **RF-055 · Contrato §3.9.2.** CA-52.1 [B] totales y agrupación por día, semana o mes · CA-52.2 [B] por día de
-la semana y por franja horaria (PD-9), en hora de Argentina · CA-52.3 [B] solo `REGISTERED` · CA-52.4 [F]
+la semana y por las cinco franjas horarias del contrato (S5-22), en hora de Argentina · CA-52.3 [B] solo `REGISTERED` · CA-52.4 [F]
 bloque Consumos · CA-52.5 [B] permisos.
 
 ### US-53 — Estadísticas de puntos
 
-**RF-056 · Contrato §3.9.3.** CA-53.1 [B] otorgados, bonificación, recompensas de misión, canjeados, vencidos,
-ajustes y anulaciones del período, con datos conocidos · CA-53.2 [F] bloque Puntos · CA-53.3 [B] permisos.
+**RF-056 · Contrato §3.9.3.** CA-53.1 [B] otorgados, bonificación, recompensas de misión, regalos de
+cumpleaños, canjeados, vencidos, ajustes y anulaciones del período, con datos conocidos · CA-53.2 [F] bloque
+Puntos · CA-53.3 [B] permisos · CA-53.4 [B] `GET /movimientos-de-puntos` ya no existe (`404`, S5-13; lo saca el
+ARRASTRE-S4).
 
 ### US-54 — Estadísticas de niveles, misiones y recompensas
 
@@ -576,7 +606,7 @@ completadas, reclamadas y vencidas · CA-54.3 [B] las 10 recompensas más canjea
 | **Historia** | Como Administrador, quiero exportar los reportes generados en formato PDF, para compartir o archivar la información del programa |
 | **RF** | RF-058 |
 | **Contrato** | §3.9.5 |
-| **Depende de** | US-51 a US-54 y **PD-11** |
+| **Depende de** | US-51 a US-54 (`pdfkit`, autorizada) |
 
 **Criterios de aceptación**
 
@@ -591,21 +621,24 @@ completadas, reclamadas y vencidas · CA-54.3 [B] las 10 recompensas más canjea
 
 | | |
 |---|---|
-| **Qué es** | La foto del Cliente en Mi perfil. Estaba en el Sprint 4 (decisión #9 del S3), pasó al 5 (PD-2 del S4) y no tiene RF ni US (S5-1). Hay que sumarla a RF-065 / US-59 (PD-22) |
-| **Roles** | Cliente (carga); 🟡 Cajero y Administrador (ven) |
+| **Qué es** | La foto del Cliente en Mi perfil. Estaba en el Sprint 4 (decisión #9 del S3), pasó al 5 (PD-2 del S4) y no tiene RF ni US (S5-1). Hay que sumarla a RF-065 / US-59 (contrato §10, PD-22) |
+| **Roles** | Cliente (carga); Cliente, Cajero y Administrador (ven) (S5-23) |
 | **Contrato** | §3.5.1, §3.5.3 |
-| **Depende de** | BASE-5, **PD-1** y **PD-12** |
+| **Depende de** | BASE-5 (Cloudinary, S5-12) |
 
 **Criterios de aceptación**
 
-- **CA-FP.1 [B+F] Subir y reemplazar** desde Mi perfil ("Cambiar foto" habilitado); `photoUrl` en `GET
-  /customers/me`.
-- **CA-FP.2 [B+F] Quitar:** vuelve el avatar con las iniciales.
-- **CA-FP.3 [B+F] Validación** `INVALID_IMAGE`.
-- **CA-FP.4 [F]** La foto en el encabezado del Cliente (y, si PD-12 lo confirma, en la tarjeta de Caja y en la
-  ficha).
-- **CA-FP.5 [B] No se audita.**
-- **CA-FP.6 [B] Permisos:** solo el Cliente sube y quita la suya; el acceso al `GET` según PD-12.
+- **CA-FP.1 [B+F] Subir y reemplazar** desde Mi perfil ("Cambiar foto": elegir, vista previa); se sube a
+  Cloudinary con entrega **autenticada**.
+- **CA-FP.2 [B] URL firmada:** `photoUrl` en `GET /customers/me`, `GET /customers/:id` y `GET
+  /customers/by-document` es una URL firmada que vence a la hora, generada en cada respuesta; `null` sin foto.
+- **CA-FP.3 [B+F] Quitar:** vuelve el avatar con las iniciales; sin foto, `404` "No tenés foto de perfil.".
+- **CA-FP.4 [B+F] Validación** `INVALID_IMAGE`, antes de subir.
+- **CA-FP.5 [F] Dónde se ve:** el encabezado y Mi perfil del Cliente, la tarjeta de Caja → Buscar cliente y la
+  ficha del Administrador.
+- **CA-FP.6 [B] No se audita.**
+- **CA-FP.7 [B] Permisos:** solo el Cliente sube y quita la suya (`/customers/me/foto`); Administrador y Cajero
+  `403`.
 
 ---
 
@@ -616,7 +649,7 @@ completadas, reclamadas y vencidas · CA-54.3 [B] las 10 recompensas más canjea
 | **Qué es** | La parte de RF-029 que US-27 no hizo: los beneficios de Bronce, Plata y Oro (S5-2) |
 | **Roles** | Administrador (configura); Cliente (ve) |
 | **Contrato** | §3.10 |
-| **Depende de** | BASE-5 y **PD-20** |
+| **Depende de** | BASE-5 |
 
 **Criterios de aceptación**
 
@@ -625,7 +658,8 @@ completadas, reclamadas y vencidas · CA-54.3 [B] las 10 recompensas más canjea
 - **CA-NB.2 [B] Auditoría:** `LEVELS_UPDATED` suma "Beneficio {nivel}: {antes} → {después}".
 - **CA-NB.3 [B+F] El Cliente lo ve:** `level.benefit` y `level.nextBenefit` en `…/puntos`; en Inicio: "Tu
   beneficio: …" y "Con {nivel siguiente}: …".
-- **CA-NB.4 [B]** El beneficio no cambia los puntos de ningún consumo.
+- **CA-NB.4 [B]** El beneficio no cambia los puntos de ningún consumo (S5-26).
+- **CA-NB.5 [F]** La ficha del cliente muestra el beneficio junto al nivel.
 
 ---
 
@@ -645,3 +679,24 @@ completadas, reclamadas y vencidas · CA-54.3 [B] las 10 recompensas más canjea
 - **CA-CC.2 [B+F]** "Contraseña inicial sin cambiar" solo si `mustChangePassword`.
 - **CA-CC.3 [B]** Sin cuenta → `404` "El cliente no tiene cuenta."; inexistente → `404` "No existe el cliente.".
 - **CA-CC.4 [B]** Cajero y Cliente: `403`. No se audita (consulta).
+
+---
+
+### CI — Integración continua con GitHub Actions
+
+| | |
+|---|---|
+| **Qué es** | La integración continua que declaran el Seguimiento §2.6 y la Definición del Producto §10.1 y no estaba en el repo (S5-30). Vitest **no** entra: se saca del Seguimiento |
+| **Contrato** | §3.12 |
+| **Depende de** | Nada. Conviene hacerlo primero, para que todas las ramas del sprint pasen por el CI |
+| **Configuración** | Es configuración compartida nueva (`.github/workflows/ci.yml`): la autoriza esta historia. No toca `package.json` ni agrega dependencias |
+
+**Criterios de aceptación**
+
+- **CA-CI.1** `.github/workflows/ci.yml` corre en cada Pull Request a `develop` y `main`.
+- **CA-CI.2** Backend: `npm ci`, `npm run lint`, `npm test` y `npm run build`, desde `backend/`, con la versión
+  de Node de `backend/.nvmrc`.
+- **CA-CI.3** Frontend: `npm ci`, `npm run lint` y `npm run build`, desde `frontend/`.
+- **CA-CI.4** Los e2e no corren en el CI (necesitan PostgreSQL); el README lo aclara.
+- **CA-CI.5** Un PR con un error de lint o un test roto queda en rojo.
+- **CA-CI.6** No usa secretos: ningún paso necesita claves de Resend ni de Cloudinary.

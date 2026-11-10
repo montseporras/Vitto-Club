@@ -1,8 +1,6 @@
 # Prompt — Prototipo Sprint 5: Misiones, Notificaciones, Estadísticas y Fotos (Vitto Club)
 
-> **Cuándo se usa.** Después del Planning del Sprint 5, **con las PD del contrato ya decididas** (sobre todo
-> PD-7 misiones, PD-8 promociones, PD-9 estadísticas y PD-12 foto de perfil). Si alguna cambió respecto de la
-> propuesta, corregí este prompt antes de usarlo.
+> **Cuándo se usa.** Ya: el contrato del Sprint 5 está en v1 y todas las decisiones están tomadas (contrato §8.3).
 >
 > Copiá todo lo que está debajo de la línea y pegalo junto con el archivo HTML del prototipo.
 
@@ -91,7 +89,7 @@ archivo, con el mismo estilo, componentes, colores, tipografía, menús y forma 
   `{descripcion}`).
 - Se envían **por correo**. Cada envío queda en el **historial** con fecha, tipo, cliente, destinatario y estado
   (Enviada, Falló, No enviada).
-- El cumpleaños es **solo un saludo**: sacá "Te regalamos puntos extra".
+- El cumpleaños **regala puntos**: la cantidad se configura en Configuración → Notificaciones ("Puntos de regalo por cumpleaños", por defecto 100; 0 = solo el saludo). El mensaje usa `{puntos}`. Los puntos no cuentan para el nivel.
 
 ### Promociones
 
@@ -153,7 +151,7 @@ completaron reciben su recompensa.' · Cancelar · Eliminar.
 
 - Arriba: período con calendario (un día o un rango, como Canjes) y "Exportar reporte PDF".
 - Cuatro bloques con tarjetas de totales y tablas (barras simples, sin gráficos complejos):
-  - **Clientes:** Activos · Nuevos · Frecuentes (3 o más consumos), y una tabla por mes.
+  - **Clientes:** Activos · Nuevos · "Frecuentes (al menos {n} consumos)", y una tabla por mes.
   - **Consumos:** total y monto; por día/semana/mes; por día de la semana; por franja horaria.
   - **Puntos:** Otorgados · Bonificación · Por misiones · Canjeados · Vencidos · Ajustes · Anulados.
   - **Programa:** clientes por nivel; por misión (asignadas, completadas, reclamadas, vencidas); las 10
@@ -161,7 +159,7 @@ completaron reciben su recompensa.' · Cancelar · Eliminar.
 
 ### 3.6 Configuración → Notificaciones (US-14, US-47 a US-50)
 
-- Pestaña **Mensajes:** arriba el **logo** (vista previa, "Elegir imagen"); abajo una fila por tipo con el
+- Pestaña **Mensajes:** arriba el **logo** (vista previa, "Elegir imagen"); debajo "Puntos de regalo por cumpleaños" (número, por defecto 100); abajo una fila por tipo con el
   interruptor "Activa" y "Editar mensaje". Modal: Asunto · Mensaje · "Podés usar: {nombre}, …" · vista previa ·
   Cancelar · Guardar.
 - Pestaña **Historial:** filtros Tipo, Estado, documento del cliente y fechas; columnas Fecha y hora · Tipo ·
@@ -176,6 +174,12 @@ Título, Descripción (n/500), Días, Horario, Desde, Hasta (o "Sin fecha de fin
 ### 3.8 Configuración → Puntos → Niveles (NIV-BEN)
 
 Cada nivel suma el campo **"Beneficio"** (no "Observaciones"), opcional, hasta 255.
+
+### 3.8b Configuración → Puntos → Clientes frecuentes (US-51)
+
+Tarjeta nueva "Clientes frecuentes": "Un cliente es frecuente si tiene al menos {n} consumos en el período."
+con el campo "Mínimo de consumos" (1 a 100, por defecto 3) y "Guardar cambios", como las otras tarjetas de
+Puntos. En Auditoría: "Modificó cliente frecuente" (módulo Configuración).
 
 ### 3.9 Clientes → Ver más (CTA-CLI)
 
@@ -217,7 +221,7 @@ foto, las iniciales.
 
 ### 4.4 Historial de puntos
 
-Nuevo tipo de movimiento: "Ganaste {n} pts por la misión {misión}".
+Nuevos tipos de movimiento: "Ganaste {n} pts por la misión {misión}" y "Te regalamos {n} pts por tu cumpleaños".
 
 ---
 
@@ -233,7 +237,7 @@ Nuevo tipo de movimiento: "Ganaste {n} pts por la misión {misión}".
 
 - **Fin de mes (día 1, 00:10):** En progreso → Vencida; Completada con recompensa → Reclamada (la reclama el
   Sistema). En Auditoría: "Venció las misiones del mes" (actor Sistema).
-- **Todos los días a las 09:00:** aviso de puntos por vencer (7 días antes) y saludo de cumpleaños.
+- **Todos los días a las 09:00:** aviso de puntos por vencer (7 días antes) y saludo de cumpleaños con los puntos de regalo (en Auditoría: "Regaló puntos de cumpleaños", actor Sistema).
 - **Al completar una misión:** correo "¡Completaste una misión!".
 
 En Auditoría, habilitá el módulo **Misiones** con sus acciones y agregá las de Configuración "Modificó el logo y
@@ -247,6 +251,6 @@ los mensajes automáticos" y "Modificó las promociones".
 - [ ] Las notas usan la numeración nueva (US-28 a US-33, US-47 a US-55, etc.).
 - [ ] La misión del cliente usa "En progreso", "Completada", "Reclamada", "Vencida".
 - [ ] Una misión sin recompensa queda "Completada" y no muestra "Reclamar".
-- [ ] El cumpleaños no promete puntos.
+- [ ] El cumpleaños muestra los puntos configurados (o solo el saludo si son 0).
 - [ ] Las fotos validan tipo y tamaño con el mensaje del contrato.
 - [ ] Lo que ya funcionaba sigue igual.

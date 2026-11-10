@@ -1,6 +1,6 @@
 Soy {nombre}. Me toca la US-XX, capa {backend | frontend}.
 Seguí CLAUDE.md y {backend | frontend}/CLAUDE.md.
-Leé la US-XX en docs/sprint-4/HISTORIAS_SPRINT_4.md y las secciones del contrato que indica.
+Leé la US-XX en docs/sprint-5/HISTORIAS_SPRINT_5.md y las secciones del contrato que indica.
 No asumas nada: si algo no está en el contrato (o en el prototipo, si es frontend), preguntame.
 Antes de codear, mandame el Plan previo y esperá mi OK.
 
