@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<x-dc>
+<div class="vc-r" style="width:100%; display:flex; flex-direction:column; gap:20px;">
+  <div style="border-radius:24px; border:1px solid #f6d0b1; background:#ffffff; box-shadow:0 20px 25px -5px rgba(126,62,32,.1), 0 8px 10px -6px rgba(126,62,32,.1); padding:32px;">
+    <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px;">
+      <div><h2 style="margin:0; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.2; color:#2b1a10;">Estadísticas y reportes</h2><p style="margin:4px 0 0; font-size:13px; color:#7a6e63;">Elegí un día o un rango para ver los números del programa.</p></div>
+      <button type="button" class="btn btn-primary" disabled="{{ sinDatos }}" onClick="{{ exportar }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3"></path></svg>Exportar reporte PDF</button>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; align-items:stretch; border:1px solid #f6d0b1; border-radius:12px; background:#ffffff;">
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1 1 260px; position:relative;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Período</span>
+        <button type="button" onClick="{{ toggleCal }}" style="display:flex; align-items:center; gap:8px; height:34px; padding:0; border:none; background:transparent; cursor:pointer; font-family:var(--font-body); font-size:13px; color:{{ rangoColor }}; text-align:left;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7e3e20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"></path></svg>{{ rangoTxt }}</button>
+        <sc-if value="{{ cal.open }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; top:calc(100% + 6px); left:0; z-index:60; width:280px; background:#ffffff; border:1px solid #f6d0b1; border-radius:14px; box-shadow:0 20px 25px -5px rgba(126,62,32,.15), 0 8px 10px -6px rgba(126,62,32,.12); padding:12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;"><button type="button" class="btn btn-ghost" style="height:28px; padding:0 8px;" onClick="{{ cal.prev }}" aria-label="Mes anterior">‹</button><span style="font-family:var(--font-heading); font-weight:700; font-size:14px; color:#2b1a10;">{{ cal.titulo }}</span><button type="button" class="btn btn-ghost" style="height:28px; padding:0 8px;" onClick="{{ cal.next }}" aria-label="Mes siguiente">›</button></div>
+          <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:2px; text-align:center; font-size:11px; font-weight:700; color:#7a6e63; margin-bottom:4px;"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+          <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:2px;"><sc-for list="{{ cal.dias }}" as="d" hint-placeholder-count="35"><button type="button" onClick="{{ d.onClick }}" style="height:32px; border:none; border-radius:8px; cursor:pointer; font-family:var(--font-body); font-size:13px; background:{{ d.bg }}; color:{{ d.color }}; font-weight:{{ d.fw }};">{{ d.n }}</button></sc-for></div>
+          <p style="margin:8px 0 0; font-size:12px; color:#7a6e63;">{{ cal.ayuda }}</p>
+          <div style="display:flex; justify-content:space-between; gap:8px; margin-top:10px;"><button type="button" class="btn btn-ghost" style="height:30px; padding:0 10px; font-size:13px;" onClick="{{ cal.limpiar }}">Limpiar</button><button type="button" class="btn btn-secondary" style="height:30px; padding:0 12px; font-size:13px;" onClick="{{ toggleCal }}">Listo</button></div>
+        </div></sc-if>
+      </div>
+    </div>
+    <sc-if value="{{ cal.open }}" hint-placeholder-val="{{ false }}"><div onClick="{{ toggleCal }}" style="position:fixed; inset:0; z-index:50;"></div></sc-if>
+    <sc-if value="{{ err }}" hint-placeholder-val="{{ false }}"><p role="alert" style="margin:12px 0 0; font-size:14px; font-weight:500; color:#a8532a;">{{ err }}</p></sc-if>
+
+    <sc-if value="{{ ok }}" hint-placeholder-val="{{ true }}"><div>
+      <div class="vc-seg" role="tablist" style="margin-top:20px; max-width:560px; grid-template-columns:repeat(4, 1fr);"><sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4"><button type="button" role="tab" aria-selected="{{ t.sel }}" class="{{ t.cls }}" onClick="{{ t.onClick }}">{{ t.label }}</button></sc-for></div>
+
+      <sc-if value="{{ esClientes }}" hint-placeholder-val="{{ true }}"><div style="margin-top:20px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;"><sc-for list="{{ cli.tiles }}" as="x" hint-placeholder-count="3"><div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:16px 18px;"><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">{{ x.label }}</div><div style="font-family:var(--font-heading); font-weight:700; font-size:26px; color:#2b1a10; margin-top:4px;">{{ x.valor }}</div><sc-if value="{{ x.ayuda }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px; color:#7a6e63;">{{ x.ayuda }}</div></sc-if></div></sc-for></div>
+        <h3 style="margin:24px 0 8px; font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Por mes</h3>
+        <div style="overflow-x:auto;"><table class="table"><thead><tr><th>Mes</th><th>Clientes nuevos</th><th>Clientes con consumos</th></tr></thead><tbody><sc-for list="{{ cli.filas }}" as="f" hint-placeholder-count="2"><tr><td style="white-space:nowrap;">{{ f.label }}</td><td><div style="display:flex; align-items:center; gap:10px;"><div style="flex:1; max-width:240px; height:10px; border-radius:999px; background:#fbe6d4;"><div style="height:100%; width:{{ f.pa }}; background:#a8532a; border-radius:999px;"></div></div><span style="min-width:48px;">{{ f.a }}</span></div></td><td><div style="display:flex; align-items:center; gap:10px;"><div style="flex:1; max-width:240px; height:10px; border-radius:999px; background:#fbe6d4;"><div style="height:100%; width:{{ f.pb }}; background:#d9804f; border-radius:999px;"></div></div><span style="min-width:48px;">{{ f.b }}</span></div></td></tr></sc-for></tbody></table></div>
+      </div></sc-if>
+
+      <sc-if value="{{ esConsumos }}" hint-placeholder-val="{{ false }}"><div style="margin-top:20px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;"><sc-for list="{{ con.tiles }}" as="x" hint-placeholder-count="2"><div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:16px 18px;"><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">{{ x.label }}</div><div style="font-family:var(--font-heading); font-weight:700; font-size:26px; color:#2b1a10; margin-top:4px;">{{ x.valor }}</div></div></sc-for></div>
+        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin:24px 0 8px;"><h3 style="margin:0; font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Por período</h3><div class="vc-seg" style="grid-template-columns:repeat(3, 1fr); min-width:280px;"><sc-for list="{{ con.grupos }}" as="g" hint-placeholder-count="3"><button type="button" class="{{ g.cls }}" onClick="{{ g.onClick }}">{{ g.label }}</button></sc-for></div></div>
+        <div style="overflow-x:auto; max-height:360px; overflow-y:auto;"><table class="table"><thead><tr><th>{{ con.colPeriodo }}</th><th>Consumos</th><th style="text-align:right;">Monto</th></tr></thead><tbody><sc-for list="{{ con.periodo }}" as="f" hint-placeholder-count="3"><tr><td style="white-space:nowrap;">{{ f.label }}</td><td><div style="display:flex; align-items:center; gap:10px;"><div style="flex:1; max-width:280px; height:10px; border-radius:999px; background:#fbe6d4;"><div style="height:100%; width:{{ f.p }}; background:#a8532a; border-radius:999px;"></div></div><span style="min-width:48px;">{{ f.c }}</span></div></td><td style="text-align:right; white-space:nowrap;">{{ f.am }}</td></tr></sc-for></tbody></table></div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:20px; margin-top:8px;">
+          <div><h3 style="margin:16px 0 8px; font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Por día de la semana</h3><table class="table"><thead><tr><th>Día</th><th>Consumos</th><th style="text-align:right;">Monto</th></tr></thead><tbody><sc-for list="{{ con.semana }}" as="f" hint-placeholder-count="7"><tr><td>{{ f.label }}</td><td><div style="display:flex; align-items:center; gap:10px;"><div style="flex:1; height:10px; border-radius:999px; background:#fbe6d4;"><div style="height:100%; width:{{ f.p }}; background:#a8532a; border-radius:999px;"></div></div><span style="min-width:40px;">{{ f.c }}</span></div></td><td style="text-align:right; white-space:nowrap;">{{ f.am }}</td></tr></sc-for></tbody></table></div>
+          <div><h3 style="margin:16px 0 8px; font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Por franja horaria</h3><table class="table"><thead><tr><th>Franja</th><th>Consumos</th><th style="text-align:right;">Monto</th></tr></thead><tbody><sc-for list="{{ con.franjas }}" as="f" hint-placeholder-count="5"><tr><td style="white-space:nowrap;">{{ f.label }}</td><td><div style="display:flex; align-items:center; gap:10px;"><div style="flex:1; height:10px; border-radius:999px; background:#fbe6d4;"><div style="height:100%; width:{{ f.p }}; background:#d9804f; border-radius:999px;"></div></div><span style="min-width:40px;">{{ f.c }}</span></div></td><td style="text-align:right; white-space:nowrap;">{{ f.am }}</td></tr></sc-for></tbody></table></div>
+        </div>
+      </div></sc-if>
+
+      <sc-if value="{{ esPuntos }}" hint-placeholder-val="{{ false }}"><div style="margin-top:20px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px;"><sc-for list="{{ pts.tiles }}" as="x" hint-placeholder-count="8"><div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 16px;"><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">{{ x.label }}</div><div style="font-family:var(--font-heading); font-weight:700; font-size:22px; color:{{ x.color }}; margin-top:4px;">{{ x.valor }}</div></div></sc-for></div>
+        <p style="margin:10px 0 0; font-size:12px; color:#7a6e63;">Los puntos de misiones y de cumpleaños se acreditan como cualquier otro, pero no cuentan para el nivel.</p>
+        <h3 style="margin:24px 0 8px; font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Por mes</h3>
+        <div style="overflow-x:auto;"><table class="table"><thead><tr><th>Mes</th><th style="text-align:right;">Otorgados</th><th style="text-align:right;">Canjeados</th><th style="text-align:right;">Vencidos</th></tr></thead><tbody><sc-for list="{{ pts.filas }}" as="f" hint-placeholder-count="2"><tr><td>{{ f.label }}</td><td style="text-align:right;">{{ f.a }}</td><td style="text-align:right;">{{ f.b }}</td><td style="text-align:right;">{{ f.c }}</td></tr></sc-for></tbody></table></div>
+      </div></sc-if>
+
+      <sc-if value="{{ esPrograma }}" hint-placeholder-val="{{ false }}"><div style="margin-top:20px;">
+        <h3 style="margin:0 0 8px; font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Clientes por nivel</h3>
+        <div style="overflow-x:auto;"><table class="table"><thead><tr><th>Nivel</th><th>Clientes activos</th></tr></thead><tbody><sc-for list="{{ prog.niveles }}" as="f" hint-placeholder-count="3"><tr><td><span class="tag tag-accent">{{ f.label }}</span></td><td><div style="display:flex; align-items:center; gap:10px;"><div style="flex:1; max-width:360px; height:10px; border-radius:999px; background:#fbe6d4;"><div style="height:100%; width:{{ f.p }}; background:#a8532a; border-radius:999px;"></div></div><span style="min-width:48px;">{{ f.n }}</span></div></td></tr></sc-for></tbody></table></div>
+        <h3 style="margin:24px 0 8px; font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Misiones</h3>
+        <sc-if value="{{ prog.hayMis }}" hint-placeholder-val="{{ true }}"><div style="overflow-x:auto;"><table class="table"><thead><tr><th>Misión</th><th style="text-align:right;">Asignadas</th><th style="text-align:right;">Completadas</th><th style="text-align:right;">Reclamadas</th><th style="text-align:right;">Vencidas</th></tr></thead><tbody><sc-for list="{{ prog.misiones }}" as="f" hint-placeholder-count="3"><tr><td>{{ f.nombre }}</td><td style="text-align:right;">{{ f.a }}</td><td style="text-align:right;">{{ f.c }}</td><td style="text-align:right;">{{ f.r }}</td><td style="text-align:right;">{{ f.v }}</td></tr></sc-for></tbody></table></div></sc-if>
+        <sc-if value="{{ prog.sinMis }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; color:#5c5249;">No hubo misiones en el período.</p></sc-if>
+        <h3 style="margin:24px 0 8px; font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Recompensas más canjeadas</h3>
+        <div style="overflow-x:auto;"><table class="table"><thead><tr><th style="width:40px;">#</th><th>Recompensa</th><th>Canjes usados</th></tr></thead><tbody><sc-for list="{{ prog.top }}" as="f" hint-placeholder-count="5"><tr><td>{{ f.pos }}</td><td>{{ f.nombre }}</td><td><div style="display:flex; align-items:center; gap:10px;"><div style="flex:1; max-width:360px; height:10px; border-radius:999px; background:#fbe6d4;"><div style="height:100%; width:{{ f.p }}; background:#d9804f; border-radius:999px;"></div></div><span style="min-width:40px;">{{ f.n }}</span></div></td></tr></sc-for></tbody></table></div>
+      </div></sc-if>
+    </div></sc-if>
+  </div>
+  <div style="border:1px dashed #d9804f; background:#fffaf3; border-radius:12px; padding:10px 14px; font-size:13px; color:#6b5446;"><strong style="color:#7a3a1d;">Nota del prototipo:</strong> US-51 · RF-054 (clientes), US-52 · RF-055 (consumos por período, día de la semana y franja horaria), US-53 · RF-056 (puntos), US-54 · RF-057 (niveles, misiones y recompensas) y US-55 · RF-058 (exportar el reporte en PDF). Los números son de ejemplo y los calcula el backend; las barras se dibujan con CSS. El mínimo de un cliente frecuente se configura en Configuración → Puntos.</div>
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed; right:20px; bottom:20px; z-index:10060; max-width:min(520px, calc(100vw - 40px)); border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; font-weight:600; box-shadow:0 12px 30px -12px rgba(45,24,14,.4);">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1100,&quot;height&quot;:820}}">
+class Component extends DCLogic {
+  z = (x) => String(x).padStart(2, '0');
+  iso = (ts) => { const d = new Date(ts); return d.getFullYear() + '-' + this.z(d.getMonth() + 1) + '-' + this.z(d.getDate()); };
+  dmy = (s) => s ? s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4) : '';
+  state = (() => { const n = new Date(); const y = n.getFullYear(), m = n.getMonth(); const z = (x) => String(x).padStart(2, '0');
+    return { tab: 'clientes', grupo: 'mes', desde: y + '-' + z(m + 1) + '-01', hasta: y + '-' + z(m + 1) + '-' + z(new Date(y, m + 1, 0).getDate()), cal: { open: false, y, m }, toast: '', v: 0 }; })();
+  componentDidMount() { const t = () => { if (window.VCS5) { this._u = window.VCS5.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); }; t(); }
+  componentWillUnmount() { clearTimeout(this._p); clearTimeout(this._t); if (this._u) this._u(); }
+  say(t) { this.setState({ toast: t }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 4500); }
+  pickDay = (iso) => this.setState((s) => { let desde = s.desde, hasta = s.hasta; if (!desde || (hasta && hasta !== desde)) { desde = iso; hasta = iso; } else if (iso < desde) { desde = iso; } else { hasta = iso; } return { desde, hasta }; });
+  calData() {
+    const s = this.state, y = s.cal.y, m = s.cal.m; const MES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const off = (new Date(y, m, 1).getDay() + 6) % 7; const n = new Date(y, m + 1, 0).getDate(); const dias = []; const { desde, hasta } = s; const hoy = this.iso(Date.now());
+    for (let i = 0; i < off; i++) dias.push({ n: '', bg: 'transparent', color: 'transparent', fw: '400', onClick: () => {} });
+    for (let d = 1; d <= n; d++) { const iso = y + '-' + this.z(m + 1) + '-' + this.z(d); const ext = iso === desde || iso === hasta; const mid = desde && hasta && iso > desde && iso < hasta;
+      dias.push({ n: d, bg: ext ? '#a8532a' : mid ? '#fbe6d4' : 'transparent', color: ext ? '#ffffff' : '#2b1a10', fw: ext || iso === hoy ? '700' : '400', onClick: () => this.pickDay(iso) }); }
+    const mv = (k) => () => this.setState((st) => { const dt = new Date(st.cal.y, st.cal.m + k, 1); return { cal: { ...st.cal, y: dt.getFullYear(), m: dt.getMonth() } }; });
+    return { open: s.cal.open, titulo: MES[m] + ' ' + y, dias, prev: mv(-1), next: mv(1),
+      ayuda: !desde ? 'Elegí un día, o el primer día de un rango.' : desde === hasta ? 'Período: el ' + this.dmy(desde) + '. Para un rango, elegí el último día.' : 'Rango seleccionado.',
+      limpiar: () => this.setState({ desde: '', hasta: '' }) };
+  }
+  renderVals() {
+    const K = window.VCS5; const s = this.state; const N = (x) => K ? K.num(x) : String(x); const $ = (x) => '$ ' + N(x);
+    let err = '';
+    if (!s.desde || !s.hasta) err = 'Elegí un período.';
+    else if ((new Date(s.hasta) - new Date(s.desde)) / 864e5 + 1 > 366) err = 'El período no puede superar un año.';
+    const ok = !!K && !err; const st = ok ? K.stats(s.desde, s.hasta, s.grupo) : null;
+    const pct = (v, max) => (max > 0 ? Math.max(2, Math.round((v / max) * 100)) : 0) + '%';
+    const tabs = [['clientes', 'Clientes'], ['consumos', 'Consumos'], ['puntos', 'Puntos'], ['programa', 'Programa']].map(([k, l]) => ({ label: l, sel: s.tab === k ? 'true' : 'false', cls: s.tab === k ? 'vc-seg-opt vc-seg-on' : 'vc-seg-opt', onClick: () => this.setState({ tab: k }) }));
+    let cli = { tiles: [], filas: [] }, con = { tiles: [], grupos: [], periodo: [], semana: [], franjas: [] }, pts = { tiles: [], filas: [] }, prog = { niveles: [], misiones: [], top: [] };
+    if (st) {
+      const c = st.clientes; const mxA = Math.max(...c.porMes.map((f) => f.nuevos), 1), mxB = Math.max(...c.porMes.map((f) => f.conConsumos), 1);
+      cli = { tiles: [{ label: 'Clientes activos', valor: N(c.activos), ayuda: 'No dados de baja al final del período' }, { label: 'Clientes nuevos', valor: N(c.nuevos), ayuda: 'Dados de alta en el período' }, { label: 'Frecuentes (al menos ' + c.min + ' consumos)', valor: N(c.frecuentes), ayuda: 'Con ' + c.min + ' o más consumos en el período' }],
+        filas: c.porMes.map((f) => ({ label: f.label, a: N(f.nuevos), b: N(f.conConsumos), pa: pct(f.nuevos, mxA), pb: pct(f.conConsumos, mxB) })) };
+      const k = st.consumos; const mxP = Math.max(...k.porPeriodo.map((f) => f.c), 1), mxS = Math.max(...k.porDiaSemana.map((f) => f.c), 1), mxF = Math.max(...k.porFranja.map((f) => f.c), 1);
+      con = { tiles: [{ label: 'Consumos', valor: N(k.count) }, { label: 'Monto total', valor: $(k.amount) }],
+        grupos: [['dia', 'Día'], ['semana', 'Semana'], ['mes', 'Mes']].map(([g, l]) => ({ label: l, cls: s.grupo === g ? 'vc-seg-opt vc-seg-on' : 'vc-seg-opt', onClick: () => this.setState({ grupo: g }) })),
+        colPeriodo: s.grupo === 'dia' ? 'Día' : s.grupo === 'semana' ? 'Semana' : 'Mes',
+        periodo: k.porPeriodo.map((f) => ({ label: f.label, c: N(f.c), am: $(f.am), p: pct(f.c, mxP) })),
+        semana: k.porDiaSemana.map((f) => ({ label: f.label, c: N(f.c), am: $(f.am), p: pct(f.c, mxS) })),
+        franjas: k.porFranja.map((f) => ({ label: f.label, c: N(f.c), am: $(f.am), p: pct(f.c, mxF) })) };
+      const p = st.puntos; const pos = '#4e5e41', neg = '#a8532a';
+      pts = { tiles: [{ label: 'Otorgados por consumos', valor: N(p.otorgados), color: pos }, { label: 'Bonificación', valor: N(p.bonificacion), color: pos }, { label: 'Por misiones', valor: N(p.misiones), color: pos }, { label: 'Por cumpleaños', valor: N(p.cumpleanos), color: pos },
+        { label: 'Canjeados', valor: N(p.canjeados), color: neg }, { label: 'Vencidos', valor: N(p.vencidos), color: neg }, { label: 'Ajustes', valor: '+' + N(p.ajustesSuma) + ' / −' + N(p.ajustesResta), color: '#2b1a10' }, { label: 'Anulados', valor: N(p.anulados), color: neg }],
+        filas: p.porMes.map((f) => ({ label: f.label, a: N(f.otorgados), b: N(f.canjeados), c: N(f.vencidos) })) };
+      const g = st.programa; const mxN = Math.max(...g.niveles.map((f) => f.n), 1), mxT = Math.max(...g.top.map((f) => f.usados), 1);
+      prog = { niveles: g.niveles.map((f) => ({ label: f.label, n: N(f.n), p: pct(f.n, mxN) })), misiones: g.misiones.map((f) => ({ nombre: f.nombre, a: N(f.asignadas), c: N(f.completadas), r: N(f.reclamadas), v: N(f.vencidas) })),
+        hayMis: g.misiones.length > 0, sinMis: g.misiones.length === 0, top: g.top.map((f, i) => ({ pos: i + 1, nombre: f.nombre, n: N(f.usados), p: pct(f.usados, mxT) })) };
+    }
+    return {
+      rangoTxt: s.desde ? (s.desde === s.hasta ? this.dmy(s.desde) : this.dmy(s.desde) + ' – ' + this.dmy(s.hasta)) : 'dd/mm/aaaa – dd/mm/aaaa', rangoColor: s.desde ? '#2b1a10' : '#9c8f82',
+      cal: this.calData(), toggleCal: () => this.setState((x) => ({ cal: { ...x.cal, open: !x.cal.open } })),
+      err, ok, sinDatos: !ok, tabs, esClientes: s.tab === 'clientes', esConsumos: s.tab === 'consumos', esPuntos: s.tab === 'puntos', esPrograma: s.tab === 'programa',
+      cli, con, pts, prog, toast: s.toast,
+      exportar: () => this.say('Se descargó vitto-club-reporte-' + s.desde + '-' + s.hasta + '.pdf.')
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<x-dc>
+<div class="vc-r" style="display:flex; flex-direction:column; gap:20px; font-size:16px; line-height:1.5;">
+  <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;">
+    <p style="margin:0; font-size:16px; color:#5c5249; flex:1 1 360px;">Promociones que ven los clientes en el Inicio y que podés enviar por correo. Son informativas: no cambian los puntos de los consumos.</p>
+    <button type="button" class="btn btn-primary" onClick="{{ abrirCrear }}">+ Crear promoción</button>
+  </div>
+  <div style="display:flex; flex-wrap:wrap; align-items:stretch; border:1px solid #f6d0b1; border-radius:12px; background:#ffffff; max-width:420px;">
+    <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1 1 180px;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Estado</span><select style="height:34px; width:100%; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none; cursor:pointer;" value="{{ fase }}" onChange="{{ onFase }}"><option>Todas</option><option>Vigentes</option><option>Próximas</option><option>Terminadas</option></select></div>
+  </div>
+  <sc-if value="{{ hay }}" hint-placeholder-val="{{ true }}"><div style="overflow-x:auto; border:1px solid #f6d0b1; border-radius:16px;"><table class="table" style="border:none; border-radius:0;"><thead><tr><th>Título</th><th>Días y horario</th><th>Vigencia</th><th>Último envío</th><th>Estado</th><th style="width:28px;"></th></tr></thead><tbody>
+    <sc-for list="{{ rows }}" as="r" hint-placeholder-count="4"><tr class="vc-rowlink" title="Abrir promoción" onClick="{{ r.onAbrir }}">
+      <td style="min-width:200px;"><strong>{{ r.titulo }}</strong><div style="font-size:12px; line-height:1.4; color:#7a6e63; max-width:280px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ r.descripcion }}</div></td>
+      <td style="min-width:160px;">{{ r.dias }}</td><td style="white-space:nowrap;">{{ r.vigencia }}</td><td style="white-space:nowrap;">{{ r.envio }}</td><td><span class="{{ r.badge }}">{{ r.fase }}</span></td>
+      <td style="color:#a8532a;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></td></tr></sc-for>
+  </tbody></table></div>
+  <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;"><span style="font-size:14px; color:#5c5249;">{{ pg.info }}</span><div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary" disabled="{{ pg.prevDis }}" onClick="{{ pg.prev }}">Anterior</button><button type="button" class="btn btn-secondary" disabled="{{ pg.nextDis }}" onClick="{{ pg.next }}">Siguiente</button></div></div></sc-if>
+  <sc-if value="{{ vacio }}" hint-placeholder-val="{{ false }}"><p style="margin:0; padding:28px 16px; text-align:center; font-size:16px; color:#5c5249; border:1px dashed #f6d0b1; border-radius:16px;">No hay promociones para los filtros seleccionados.</p></sc-if>
+  <div style="border:1px dashed #d9804f; background:#fffaf3; border-radius:12px; padding:10px 14px; font-size:13px; color:#6b5446;"><strong style="color:#7a3a1d;">Nota del prototipo:</strong> US-15 · RF-013 (configurar promociones especiales) y US-49 · RF-052 (enviar la promoción por correo a todos los clientes activos, desde el modal). Las dadas de baja no se listan.</div>
+
+  <sc-if value="{{ m.open }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10010; padding:16px;">
+      <div class="dialog" style="position:relative; max-width:640px; width:100%; max-height:calc(100vh - 32px); overflow:auto;"><button type="button" onClick="{{ cerrar }}" aria-label="Cerrar" title="Cerrar" style="position:absolute; top:16px; right:16px; width:36px; height:36px; display:grid; place-items:center; border:none; border-radius:999px; background:transparent; color:#7e3e20; cursor:pointer; z-index:1;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
+        <div class="dialog-title" style="padding-right:40px;">{{ m.titulo }}</div>
+        <sc-if value="{{ m.edit }}" hint-placeholder-val="{{ false }}"><div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:-4px 0 4px; font-size:13px; color:#5c5249;"><span>Estado:</span><span class="{{ m.badge }}">{{ m.faseTxt }}</span><span>· Último envío: <strong>{{ m.envio }}</strong></span></div></sc-if>
+        <div class="dialog-body">
+          <div style="display:flex; align-items:center; margin:4px 0 10px; padding-bottom:4px; border-bottom:1px solid #fbe6d4;"><span style="font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Promoción</span></div>
+          <div class="field" style="margin:0 0 12px;"><label>Título</label><input class="input vc-input" maxLength="80" aria-invalid="{{ m.inv.titulo }}" value="{{ m.d.titulo }}" onChange="{{ on.titulo }}" placeholder="Ej: Pizza libre de los viernes" /><sc-if value="{{ m.e.titulo }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ m.e.titulo }}</p></sc-if></div>
+          <div class="field" style="margin:0 0 12px;"><label>Descripción</label><textarea class="input vc-input" rows="3" maxLength="500" style="height:auto; padding:10px 12px;" aria-invalid="{{ m.inv.descripcion }}" value="{{ m.d.descripcion }}" onChange="{{ on.descripcion }}" placeholder="Ej: Todos los viernes de 20:00 a 23:30, pizza libre para toda la mesa."></textarea><div style="display:flex; justify-content:space-between; gap:8px;"><sc-if value="{{ m.e.descripcion }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ m.e.descripcion }}</p></sc-if><p class="text-muted" style="margin:2px 0 0 auto; font-size:11px;">{{ m.descLen }}</p></div></div>
+
+          <div style="display:flex; align-items:center; margin:16px 0 10px; padding-bottom:4px; border-bottom:1px solid #fbe6d4;"><span style="font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Días y horario</span></div>
+          <div class="field" style="margin:0;"><label>Días</label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:500; cursor:pointer; margin:2px 0 8px;"><input type="checkbox" checked="{{ m.d.todos }}" onChange="{{ on.todos }}" />Todos los días</label>
+            <sc-if value="{{ m.eligeDias }}" hint-placeholder-val="{{ false }}"><div style="display:flex; flex-wrap:wrap; gap:8px;"><sc-for list="{{ m.chips }}" as="c" hint-placeholder-count="7"><button type="button" aria-pressed="{{ c.on }}" title="{{ c.titulo }}" onClick="{{ c.onClick }}" style="width:40px; height:40px; border-radius:999px; border:1px solid {{ c.borde }}; background:{{ c.bg }}; color:{{ c.fg }}; font-family:var(--font-heading); font-weight:700; font-size:14px; cursor:pointer;">{{ c.label }}</button></sc-for></div></sc-if>
+            <sc-if value="{{ m.e.dias }}" hint-placeholder-val="{{ false }}"><p style="margin:4px 0 0; font-size:12px; color:#a8532a;">{{ m.e.dias }}</p></sc-if></div>
+          <div class="field" style="margin:14px 0 0;"><label>Horario <span class="text-muted" style="font-weight:400;">(opcional)</span></label>
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;"><span class="vc-label">Desde</span><input class="input vc-input" type="time" style="width:140px;" value="{{ m.d.desde }}" onChange="{{ on.desde }}" /><span class="vc-label">Hasta</span><input class="input vc-input" type="time" style="width:140px;" value="{{ m.d.hasta }}" onChange="{{ on.hasta }}" /></div>
+            <sc-if value="{{ m.e.hora }}" hint-placeholder-val="{{ false }}"><p style="margin:4px 0 0; font-size:12px; color:#a8532a;">{{ m.e.hora }}</p></sc-if></div>
+
+          <div style="display:flex; align-items:center; margin:16px 0 10px; padding-bottom:4px; border-bottom:1px solid #fbe6d4;"><span style="font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Vigencia</span></div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px 20px;">
+            <div class="field" style="margin:0;"><label>Desde</label><input class="input vc-input" type="date" aria-invalid="{{ m.inv.desdeF }}" value="{{ m.d.desdeFecha }}" onChange="{{ on.desdeFecha }}" /><sc-if value="{{ m.e.desdeF }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ m.e.desdeF }}</p></sc-if></div>
+            <div class="field" style="margin:0;"><label>Hasta</label><input class="input vc-input" type="date" disabled="{{ m.d.sinFin }}" aria-invalid="{{ m.inv.hastaF }}" value="{{ m.hastaVal }}" onChange="{{ on.hastaFecha }}" />
+              <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:500; cursor:pointer; margin-top:4px;"><input type="checkbox" checked="{{ m.d.sinFin }}" onChange="{{ on.sinFin }}" />Sin fecha de fin</label>
+              <sc-if value="{{ m.e.hastaF }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ m.e.hastaF }}</p></sc-if></div>
+          </div>
+          <sc-if value="{{ m.errEnvio }}" hint-placeholder-val="{{ false }}"><div role="alert" style="margin-top:14px; border:1px solid #e0a79e; border-left:4px solid #b3261e; background:#fdeeea; color:#8e2417; border-radius:12px; padding:10px 14px; font-size:13px; font-weight:600;">{{ m.errEnvio }}</div></sc-if>
+        </div>
+        <div class="dialog-actions" style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;"><div style="display:flex; gap:8px; flex-wrap:wrap;"><sc-if value="{{ m.edit }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-ghost" style="color:#b3261e;" onClick="{{ m.onEliminar }}">Eliminar</button><button type="button" class="btn btn-secondary" onClick="{{ m.onEnviar }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z M22 6l-10 7L2 6"></path></svg>Enviar por correo</button></sc-if></div><div style="display:flex; gap:8px; flex-wrap:wrap; margin-left:auto;"><button type="button" class="btn btn-secondary" onClick="{{ cerrar }}">Cancelar</button><button type="button" class="btn btn-primary" onClick="{{ guardar }}">Guardar promoción</button></div></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ dlg.open }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10020; padding:16px;">
+      <div class="dialog" style="position:relative; max-width:460px; width:100%;"><button type="button" onClick="{{ cerrarDlg }}" aria-label="Cerrar" title="Cerrar" style="position:absolute; top:16px; right:16px; width:36px; height:36px; display:grid; place-items:center; border:none; border-radius:999px; background:transparent; color:#7e3e20; cursor:pointer; z-index:1;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
+        <div class="dialog-title" style="padding-right:40px;">{{ dlg.titulo }}</div>
+        <div class="dialog-body"><p style="margin:0; font-size:15px;">{{ dlg.texto }}</p></div>
+        <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px;"><button type="button" class="btn btn-secondary" onClick="{{ cerrarDlg }}">Cancelar</button><button type="button" class="btn btn-primary" onClick="{{ confirmarDlg }}">{{ dlg.boton }}</button></div>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed; right:20px; bottom:20px; z-index:10060; max-width:min(520px, calc(100vw - 40px)); border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; font-weight:600; box-shadow:0 12px 30px -12px rgba(45,24,14,.4);">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1000,&quot;height&quot;:720},&quot;usuario&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Denise Nagel&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  D0 = () => ({ titulo: '', descripcion: '', todos: true, dias: [], desde: '', hasta: '', desdeFecha: window.VCS5 ? window.VCS5.hoy() : '', hastaFecha: '', sinFin: true });
+  state = { fase: 'Todas', page: 1, m: { open: false, modo: 'crear', id: null, d: {}, e: {}, errEnvio: '' }, dlg: { open: false, tipo: '' }, toast: '', v: 0 };
+  componentDidMount() { const t = () => { if (window.VCS5) { this._u = window.VCS5.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); }; t(); }
+  componentWillUnmount() { clearTimeout(this._p); clearTimeout(this._t); if (this._u) this._u(); }
+  say(t) { this.setState({ toast: t }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 4500); }
+  usuario() { return (this.props && this.props.usuario) || 'Denise Nagel'; }
+  setD = (k, v) => this.setState((s) => ({ m: { ...s.m, errEnvio: '', d: { ...s.m.d, [k]: v }, e: { ...s.m.e, [({ todos: 'dias', desde: 'hora', hasta: 'hora', desdeFecha: 'desdeF', hastaFecha: 'hastaF', sinFin: 'hastaF' })[k] || k]: '' } } }));
+  abrirCrear = () => this.setState({ m: { open: true, modo: 'crear', id: null, d: this.D0(), e: {}, errEnvio: '' } });
+  abrirEditar = (p) => this.setState({ m: { open: true, modo: 'editar', id: p.id, e: {}, errEnvio: '', d: { titulo: p.titulo, descripcion: p.descripcion, todos: !(p.dias || []).length, dias: (p.dias || []).slice(), desde: p.desde || '', hasta: p.hasta || '', desdeFecha: p.desdeFecha, hastaFecha: p.hastaFecha || '', sinFin: !p.hastaFecha } } });
+  validar() {
+    const d = this.state.m.d; const e = {}; const t = d.titulo.trim(), ds = d.descripcion.trim();
+    if (!t) e.titulo = 'El título es obligatorio.'; else if (t.length > 80) e.titulo = 'El título no puede superar los 80 caracteres.';
+    if (!ds) e.descripcion = 'La descripción es obligatoria.'; else if (ds.length > 500) e.descripcion = 'La descripción no puede superar los 500 caracteres.';
+    if (!d.todos && !d.dias.length) e.dias = 'Elegí al menos un día o marcá «Todos los días».';
+    if (!!d.desde !== !!d.hasta) e.hora = 'Completá las dos horas o ninguna.'; else if (d.desde && d.desde >= d.hasta) e.hora = 'La hora de inicio tiene que ser anterior a la de fin.';
+    if (!d.desdeFecha) e.desdeF = 'Elegí una fecha de inicio.';
+    if (!d.sinFin && d.hastaFecha && d.desdeFecha && d.hastaFecha < d.desdeFecha) e.hastaF = 'La fecha de fin no puede ser anterior a la de inicio.';
+    return e;
+  }
+  guardar = () => {
+    const K = window.VCS5; const m = this.state.m; const d = m.d; const e = this.validar();
+    if (Object.keys(e).length) { this.setState({ m: { ...m, e } }); return; }
+    K.guardarPromo(m.modo === 'editar' ? m.id : null, { titulo: d.titulo.trim(), descripcion: d.descripcion.trim(), dias: d.todos ? null : d.dias.slice().sort(), desde: d.desde, hasta: d.hasta, desdeFecha: d.desdeFecha, hastaFecha: d.sinFin ? null : (d.hastaFecha || null) }, this.usuario());
+    this.setState({ m: { ...m, open: false } }); this.say('Promoción guardada.');
+  };
+  confirmarDlg = () => {
+    const K = window.VCS5; const g = this.state.dlg; const m = this.state.m;
+    if (g.tipo === 'eliminar') { K.eliminarPromo(m.id, this.usuario()); this.setState({ dlg: { open: false }, m: { ...m, open: false } }); this.say('Promoción eliminada.'); return; }
+    const r = K.enviarPromo(m.id);
+    if (!r.ok) { this.setState({ dlg: { open: false }, m: { ...m, errEnvio: r.msg } }); return; }
+    this.setState({ dlg: { open: false }, m: { ...m, open: false } }); this.say('Se están enviando ' + K.num(r.n) + ' correos.');
+  };
+  renderVals() {
+    const K = window.VCS5; const s = this.state;
+    if (!K) return { rows: [], hay: false, vacio: false, pg: {}, m: { open: false, d: {}, e: {}, inv: {}, chips: [] }, dlg: { open: false }, on: {} };
+    const MAP = { Vigentes: 'Vigente', 'Próximas': 'Próxima', Terminadas: 'Terminada' };
+    const lista = K.promociones(false).filter((p) => s.fase === 'Todas' || K.fasePromo(p) === MAP[s.fase]).slice().sort((a, b) => b.desdeFecha.localeCompare(a.desdeFecha));
+    const size = 10, pages = Math.max(1, Math.ceil(lista.length / size)), pg = Math.min(s.page, pages);
+    const rows = lista.slice((pg - 1) * size, pg * size).map((p) => ({ titulo: p.titulo, descripcion: p.descripcion, dias: K.diasHorarioTxt(p), vigencia: K.vigPromoTxt(p), envio: p.ultimoEnvio ? K.fdt(p.ultimoEnvio) : 'Sin envíos', fase: K.fasePromo(p), badge: K.badgePromo(K.fasePromo(p)), onAbrir: () => this.abrirEditar(p) }));
+    const m = s.m; const d = m.d || {}; const edit = m.modo === 'editar'; const p0 = edit ? K.promocion(m.id) : null;
+    const chips = [1, 2, 3, 4, 5, 6, 7].map((n) => { const on = (d.dias || []).includes(n); return { label: K.DIA_CORTO[n], titulo: K.DIA_PL[n], on: on ? 'true' : 'false', bg: on ? '#a8532a' : '#ffffff', fg: on ? '#ffffff' : '#7e3e20', borde: on ? '#a8532a' : '#f6d0b1', onClick: () => this.setD('dias', on ? d.dias.filter((y) => y !== n) : [...(d.dias || []), n]) }; });
+    const e = m.e || {};
+    const mv = { open: m.open, titulo: edit ? 'Editar promoción' : 'Crear promoción', d, e, edit: edit && !!p0, errEnvio: m.errEnvio,
+      inv: { titulo: e.titulo ? 'true' : 'false', descripcion: e.descripcion ? 'true' : 'false', desdeF: e.desdeF ? 'true' : 'false', hastaF: e.hastaF ? 'true' : 'false' },
+      descLen: (d.descripcion || '').length + '/500', eligeDias: !d.todos, chips, hastaVal: d.sinFin ? '' : d.hastaFecha,
+      faseTxt: p0 ? K.fasePromo(p0) : '', badge: p0 ? K.badgePromo(K.fasePromo(p0)) : '', envio: p0 && p0.ultimoEnvio ? K.fdt(p0.ultimoEnvio) : 'Sin envíos',
+      onEliminar: () => this.setState({ dlg: { open: true, tipo: 'eliminar' } }), onEnviar: () => this.setState({ dlg: { open: true, tipo: 'enviar' } }) };
+    const g = s.dlg; const tit = p0 ? p0.titulo : '';
+    const dlg = !g.open ? { open: false } : g.tipo === 'eliminar'
+      ? { open: true, titulo: 'Eliminar promoción', texto: '¿Eliminar la promoción "' + tit + '"? Los clientes dejan de verla.', boton: 'Eliminar' }
+      : { open: true, titulo: 'Enviar promoción', texto: '¿Enviar "' + tit + '" a ' + K.num(K.CLIENTES_ACTIVOS) + ' clientes por correo?', boton: 'Enviar' };
+    return {
+      fase: s.fase, onFase: (ev) => this.setState({ fase: ev.target.value, page: 1 }), rows, hay: lista.length > 0, vacio: lista.length === 0, abrirCrear: this.abrirCrear, toast: s.toast,
+      pg: { info: 'Mostrando ' + (lista.length ? (pg - 1) * size + 1 : 0) + '–' + Math.min(lista.length, pg * size) + ' de ' + lista.length, prevDis: pg <= 1, nextDis: pg >= pages, prev: () => this.setState({ page: pg - 1 }), next: () => this.setState({ page: pg + 1 }) },
+      m: mv, cerrar: () => this.setState({ m: { ...m, open: false } }), guardar: this.guardar,
+      on: { titulo: (ev) => this.setD('titulo', ev.target.value), descripcion: (ev) => this.setD('descripcion', String(ev.target.value).slice(0, 500)), todos: (ev) => this.setD('todos', !!ev.target.checked),
+        desde: (ev) => this.setD('desde', ev.target.value), hasta: (ev) => this.setD('hasta', ev.target.value), desdeFecha: (ev) => this.setD('desdeFecha', ev.target.value), hastaFecha: (ev) => this.setD('hastaFecha', ev.target.value), sinFin: (ev) => this.setD('sinFin', !!ev.target.checked) },
+      dlg, cerrarDlg: () => this.setState({ dlg: { open: false } }), confirmarDlg: this.confirmarDlg
+    };
+  }
+}
+</script>
+</body>
+</html>

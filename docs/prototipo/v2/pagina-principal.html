@@ -363,6 +363,7 @@ textarea.input { min-height: 90px; resize: vertical; }
   <script src="5c6c1815-bc47-41d5-9e91-3dd64bf93367"></script>
   <script src="f62f3ae9-4ff5-4631-ac82-4ec7589be7df"></script>
   <script src="a7c0e1d2-5b3f-4c8e-9d21-6f4a8b0c3e57"></script>
+  <script src="84a3590a-694b-4277-a817-c8aeccd7a598"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <style>/* latin-ext */
 @font-face {
@@ -1043,7 +1044,7 @@ textarea.input { min-height: 90px; resize: vertical; }
                 <div>
                   <div style="display:flex; align-items:center; gap:var(--space-3); margin-bottom:22px;">
                     <div style="width:52px; height:52px; flex-shrink:0; border:2px solid var(--color-divider); cursor:pointer; border-radius:50%; overflow:hidden;" sc-camel-on-click="{{ goPerfil }}" sc-camel-on-mouse-enter="{{ on_c_avatar }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
-                      <image-slot id="cliente-avatar" shape="circle" placeholder="Foto"></image-slot>
+                      <sc-if value="{{ cliFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ cliFoto }}" alt="Tu foto" style="width:100%; height:100%; object-fit:cover; display:block;"></sc-if><sc-if value="{{ cliSinFoto }}" hint-placeholder-val="{{ true }}"><div style="width:100%; height:100%; display:grid; place-items:center; background:#fbe6d4; color:#7e3e20; font-family:var(--font-heading); font-weight:700; font-size:18px;">{{ cliIniciales }}</div></sc-if>
                     </div>
                     <div style="flex:1;" sc-camel-on-mouse-enter="{{ on_c_inicio }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
                       <div class="text-muted" style="font-size:11px;">Puntos disponibles para canjear</div>
@@ -1051,7 +1052,7 @@ textarea.input { min-height: 90px; resize: vertical; }
                       <span class="tag tag-accent" style="margin-top:4px;">Nivel {{ nivelActual }}</span>
                       <div style="margin-top:8px; font-size:11px;"><div>Puntos acumulados: <strong>{{ nivHistTxt }} pts</strong></div>
                         <div style="margin-top:4px; height:6px; border-radius:999px; background:#fbe6d4; overflow:hidden;"><div style="height:100%; width:{{ progresoPctTxt }}; background:#a8532a; border-radius:999px;"></div></div>
-                        <div class="text-muted" style="margin-top:3px;">{{ nivMsgCliente }}</div></div>
+                        <div class="text-muted" style="margin-top:3px;">{{ nivMsgCliente }}</div><sc-if value="{{ benCli.actual }}" hint-placeholder-val="{{ true }}"><div style="margin-top:6px;"><strong>Tu beneficio:</strong> {{ benCli.actual }}</div></sc-if><sc-if value="{{ benCli.sig }}" hint-placeholder-val="{{ true }}"><div class="text-muted" style="margin-top:2px;">{{ benCli.sigTxt }}</div></sc-if></div>
                     </div>
                   </div>
 
@@ -1060,6 +1061,11 @@ textarea.input { min-height: 90px; resize: vertical; }
                     <h4 style="margin:0 0 12px; padding-bottom:6px; border-bottom:1px solid #f0d9c4; font-size:14px; line-height:1.2; text-transform:uppercase; letter-spacing:.08em;">Próximos vencimientos</h4>
                     <sc-if value="{{ misPuntos.hayVenc }}" hint-placeholder-val="{{ true }}"><div style="display:grid; gap:12px;"><sc-for list="{{ misPuntos.venc }}" as="v" hint-placeholder-count="2"><div class="card" style="border:2px solid var(--color-divider); padding:12px 14px; display:flex; flex-direction:row; justify-content:space-between; align-items:center; font-size:12px;"><strong>{{ v.pts }} pts</strong><span class="text-muted">vencen el {{ v.f }}</span></div></sc-for></div></sc-if>
                     <sc-if value="{{ misPuntos.sinVenc }}" hint-placeholder-val="{{ false }}"><p class="text-muted" style="font-size:12px; margin:0;">No tenés puntos por vencer.</p></sc-if>
+                  </div>
+
+<div style="display:grid; gap:12px; margin-bottom:22px;">
+                    <div class="card" style="border:2px solid var(--color-divider); padding:16px; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:10px; font-size:12px;" sc-camel-on-mouse-enter="{{ on_c_tab_misiones }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><span><strong style="display:block;">Misiones</strong><span class="text-muted">{{ misCli.txt }}</span></span><button type="button" class="btn btn-primary" style="font-size:11px; padding:6px 10px; white-space:nowrap;" sc-camel-on-click="{{ goMisiones }}">Ver misiones</button></div>
+                    <sc-if value="{{ promoCli.hay }}" hint-placeholder-val="{{ true }}"><div class="card" style="border:2px solid #d9804f; background:#fffaf3; padding:14px 16px; font-size:12px; text-align:left;" sc-camel-on-mouse-enter="{{ on_c_promos }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><strong>Promociones</strong><span class="{{ promoCli.cls }}">{{ promoCli.etiqueta }}</span></div><div style="font-family:var(--font-heading); font-weight:700; font-size:14px; margin-top:6px; color:#2b1a10;">{{ promoCli.titulo }}</div><div class="text-muted" style="margin-top:2px; line-height:1.4;">{{ promoCli.descripcion }}</div><div style="margin-top:6px; color:#7e3e20; font-weight:600;">{{ promoCli.cuando }}</div><sc-if value="{{ promoCli.mas }}" hint-placeholder-val="{{ false }}"><div class="text-muted" style="margin-top:4px;">{{ promoCli.mas }}</div></sc-if></div></sc-if>
                   </div>
 
 <sc-if value="{{ catalogoActivo }}" hint-placeholder-val="{{ false }}">
@@ -1118,18 +1124,7 @@ textarea.input { min-height: 90px; resize: vertical; }
               </sc-if>
 
               <sc-if value="{{ ctIsMisiones }}" hint-placeholder-val="{{ false }}">
-                <div sc-camel-on-mouse-enter="{{ on_c_tab_misiones }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
-                  <h4 style="margin:0 0 12px; padding-bottom:6px; border-bottom:1px solid #f0d9c4; font-size:14px; line-height:1.2; text-transform:uppercase; letter-spacing:.08em;">Misiones del mes</h4>
-                  <sc-for list="{{ misionesCliente }}" as="m" hint-placeholder-count="2">
-                    <div class="card" style="border:2px solid var(--color-divider); padding:16px; margin-bottom:14px;">
-                      <div style="display:flex; justify-content:space-between;"><strong style="font-size:14px;">{{ m.nombre }}</strong><span class="{{ m.claseTag }}">{{ m.estado }}</span></div>
-                      <div style="font-size:12px;" class="text-muted">Progreso: {{ m.progreso }} / {{ m.objetivo }} · Recompensa: {{ m.recompensa }}</div>
-                      <sc-if value="{{ m.puedeReclamar }}" hint-placeholder-val="{{ false }}">
-                        <button class="btn btn-primary btn-block" style="margin-top:8px;" sc-camel-on-click="{{ m.onReclamar }}" sc-camel-on-mouse-enter="{{ on_c_mision_reclamar }}" sc-camel-on-mouse-leave="{{ leaveTip }}">Reclamar recompensa</button>
-                      </sc-if>
-                    </div>
-                  </sc-for>
-                </div>
+                <div sc-camel-on-mouse-enter="{{ on_c_tab_misiones }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><dc-import name="ClienteMisiones" tipo="{{ cliCanje.tipo }}" num="{{ cliCanje.num }}" nombre="{{ cliCanje.nombre }}" hint-size="100%,700px"></dc-import></div>
               </sc-if>
 
               <sc-if value="{{ ctIsCanjes }}" hint-placeholder-val="{{ false }}">
@@ -1392,19 +1387,7 @@ textarea.input { min-height: 90px; resize: vertical; }
 
 
           <sc-if value="{{ aIsMisiones }}" hint-placeholder-val="{{ false }}">
-            <div class="card" style="padding:22px;" sc-camel-on-mouse-enter="{{ on_a_nav_misiones }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
-              <h4>Misiones mensuales</h4>
-              <div style="overflow-x:auto; overflow-y:hidden; max-width:100%;"><sc-raw-table class="table">
-                <sc-raw-thead><sc-raw-tr><sc-raw-th>Nombre</sc-raw-th><sc-raw-th>Objetivo</sc-raw-th><sc-raw-th>Recompensa</sc-raw-th><sc-raw-th>Estado</sc-raw-th><sc-raw-th></sc-raw-th></sc-raw-tr></sc-raw-thead>
-                <sc-raw-tbody>
-                  <sc-for list="{{ misionesAdmin }}" as="m" hint-placeholder-count="2">
-                    <sc-raw-tr><sc-raw-td>{{ m.nombre }}</sc-raw-td><sc-raw-td>{{ m.objetivo }}</sc-raw-td><sc-raw-td>{{ m.recompensa }} pts</sc-raw-td><sc-raw-td><span class="{{ m.claseTag }}">{{ m.estado }}</span></sc-raw-td>
-                      <sc-raw-td><button class="btn btn-ghost" sc-camel-on-mouse-enter="{{ on_a_mision_baja }}" sc-camel-on-mouse-leave="{{ leaveTip }}" sc-camel-on-click="{{ m.onEditar }}">Editar</button></sc-raw-td></sc-raw-tr>
-                  </sc-for>
-                </sc-raw-tbody>
-              </sc-raw-table></div>
-              <button class="btn btn-primary" style="margin-top:var(--space-3);" sc-camel-on-click="{{ crearMision }}" sc-camel-on-mouse-enter="{{ on_a_mision_crear }}" sc-camel-on-mouse-leave="{{ leaveTip }}">+ Crear misión mensual</button>
-            </div>
+            <div sc-camel-on-mouse-enter="{{ on_a_nav_misiones }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><dc-import name="Misiones" usuario="{{ consumoUsuario }}" hint-size="100%,620px"></dc-import></div>
           </sc-if>
 
           <sc-if value="{{ aIsClientes }}" hint-placeholder-val="{{ false }}">
@@ -1436,16 +1419,7 @@ textarea.input { min-height: 90px; resize: vertical; }
           </sc-if>
 
           <sc-if value="{{ aIsStats }}" hint-placeholder-val="{{ false }}">
-            <div class="card" style="padding:22px;" sc-camel-on-mouse-enter="{{ on_a_nav_stats }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
-              <h4>Estadísticas y reportes</h4>
-              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:var(--space-3);">
-                <div class="vc-panel"><div class="text-muted" style="font-size:11px;">Clientes activos</div><div style="font-size:18px; font-weight:800; font-family:var(--font-heading);">184</div></div>
-                <div class="vc-panel"><div class="text-muted" style="font-size:11px;">Consumos (mes)</div><div style="font-size:18px; font-weight:800; font-family:var(--font-heading);">612</div></div>
-                <div class="vc-panel"><div class="text-muted" style="font-size:11px;">Puntos otorgados</div><div style="font-size:18px; font-weight:800; font-family:var(--font-heading);">58.900</div></div>
-                <div class="vc-panel"><div class="text-muted" style="font-size:11px;">Recompensas canjeadas</div><div style="font-size:18px; font-weight:800; font-family:var(--font-heading);">37</div></div>
-              </div>
-              <button class="btn btn-primary" style="margin-top:var(--space-3);" sc-camel-on-click="{{ noop }}" sc-camel-on-mouse-enter="{{ on_a_stats_export }}" sc-camel-on-mouse-leave="{{ leaveTip }}">Exportar reporte PDF</button>
-            </div>
+            <div sc-camel-on-mouse-enter="{{ on_a_nav_stats }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><dc-import name="Estadisticas" hint-size="100%,760px"></dc-import></div>
           </sc-if>
 
           <sc-if value="{{ aIsAuditoria }}" hint-placeholder-val="{{ false }}">
@@ -1507,12 +1481,15 @@ textarea.input { min-height: 90px; resize: vertical; }
                   <div class="vc-c-pcard-actions"><button type="button" class="btn btn-primary btn-lg" disabled="{{ ptsDis.eq }}" sc-camel-on-click="{{ guardarEq }}">Guardar</button></div></div></div>
                 <div><div class="vc-c-pcard"><h3 class="vc-c-pcard-title">Niveles</h3><p style="margin:0; font-size:16px; color:#5c5249; margin:4px 0 24px;">El nivel del cliente se calcula según los puntos que acumuló por consumos a lo largo del tiempo.</p><sc-if value="{{ nivOk }}" hint-placeholder-val="{{ false }}"><div role="status" style="display:flex; align-items:flex-start; gap:12px; border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; line-height:1.5; box-shadow:0 1px 2px rgba(0,0,0,.05); margin-bottom:24px;"><span style="margin-top:1px; display:flex;"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M20 6 9 17l-5-5"></path></svg></span><div style="min-width:0;">Niveles actualizados. Se recalculó el nivel de los clientes.</div></div></sc-if>
                   <div style="display:flex; flex-direction:column; gap:14px;">
-                    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;"><span class="tag tag-accent" style="min-width:64px; text-align:center;">Bronce</span><span class="vc-label">Desde 0 puntos</span></div>
-                    <div><div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;"><span class="tag tag-accent" style="min-width:64px; text-align:center;">Plata</span><span class="vc-label">Desde</span><input class="input" sc-camel-input-mode="numeric" style="width:140px;" aria-invalid="{{ nivInv.plata }}" value="{{ nivDraft.plata }}" sc-camel-on-change="{{ onNivPlata }}"><span class="vc-label">puntos</span></div><sc-if value="{{ nivErr.plata }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ nivErr.plata }}</p></sc-if></div>
-                    <div><div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;"><span class="tag tag-accent" style="min-width:64px; text-align:center;">Oro</span><span class="vc-label">Desde</span><input class="input" sc-camel-input-mode="numeric" style="width:140px;" aria-invalid="{{ nivInv.oro }}" value="{{ nivDraft.oro }}" sc-camel-on-change="{{ onNivOro }}"><span class="vc-label">puntos</span></div><sc-if value="{{ nivErr.oro }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ nivErr.oro }}</p></sc-if></div>
+                    <div><div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;"><span class="tag tag-accent" style="min-width:64px; text-align:center;">Bronce</span><span class="vc-label">Desde 0 puntos</span></div><div class="field" style="margin:8px 0 0; max-width:560px;"><label>Beneficio <span class="vc-c-opt">(opcional)</span></label><input class="input" maxlength="255" placeholder="{{ benPh.Bronce }}" aria-invalid="{{ benInv.Bronce }}" value="{{ benDraft.Bronce }}" sc-camel-on-change="{{ onBenBronce }}"><sc-if value="{{ benErr.Bronce }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ benErr.Bronce }}</p></sc-if></div></div>
+                    <div><div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;"><span class="tag tag-accent" style="min-width:64px; text-align:center;">Plata</span><span class="vc-label">Desde</span><input class="input" sc-camel-input-mode="numeric" style="width:140px;" aria-invalid="{{ nivInv.plata }}" value="{{ nivDraft.plata }}" sc-camel-on-change="{{ onNivPlata }}"><span class="vc-label">puntos</span></div><sc-if value="{{ nivErr.plata }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ nivErr.plata }}</p></sc-if><div class="field" style="margin:8px 0 0; max-width:560px;"><label>Beneficio <span class="vc-c-opt">(opcional)</span></label><input class="input" maxlength="255" placeholder="{{ benPh.Plata }}" aria-invalid="{{ benInv.Plata }}" value="{{ benDraft.Plata }}" sc-camel-on-change="{{ onBenPlata }}"><sc-if value="{{ benErr.Plata }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ benErr.Plata }}</p></sc-if></div></div>
+                    <div><div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;"><span class="tag tag-accent" style="min-width:64px; text-align:center;">Oro</span><span class="vc-label">Desde</span><input class="input" sc-camel-input-mode="numeric" style="width:140px;" aria-invalid="{{ nivInv.oro }}" value="{{ nivDraft.oro }}" sc-camel-on-change="{{ onNivOro }}"><span class="vc-label">puntos</span></div><sc-if value="{{ nivErr.oro }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ nivErr.oro }}</p></sc-if><div class="field" style="margin:8px 0 0; max-width:560px;"><label>Beneficio <span class="vc-c-opt">(opcional)</span></label><input class="input" maxlength="255" placeholder="{{ benPh.Oro }}" aria-invalid="{{ benInv.Oro }}" value="{{ benDraft.Oro }}" sc-camel-on-change="{{ onBenOro }}"><sc-if value="{{ benErr.Oro }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ benErr.Oro }}</p></sc-if></div></div>
                   </div>
-                  <p style="margin:14px 0 0; font-size:12px; color:#7a6e63;">Los canjes y vencimientos no bajan el nivel. Los consumos anulados no suman.</p>
+                  <p style="margin:14px 0 0; font-size:12px; color:#7a6e63;">Los canjes y vencimientos no bajan el nivel. Los consumos anulados no suman. Los puntos de misiones y de cumpleaños no cuentan para el nivel. El beneficio es informativo: lo ven los clientes y no cambia los puntos.</p>
                   <div class="vc-c-pcard-actions"><button type="button" class="btn btn-primary btn-lg" sc-camel-on-click="{{ guardarNiveles }}">Guardar</button></div></div></div>
+                <div sc-camel-on-mouse-enter="{{ on_a_config_frecuentes }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><div class="vc-c-pcard"><h3 class="vc-c-pcard-title">Clientes frecuentes</h3><p style="margin:0; font-size:16px; color:#5c5249; margin:4px 0 24px;">Un cliente es frecuente si tiene al menos {{ frecActual }} consumos en el período. Se usa en Estadísticas y reportes.</p><sc-if value="{{ frecOk }}" hint-placeholder-val="{{ false }}"><div role="status" style="display:flex; align-items:flex-start; gap:12px; border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; line-height:1.5; margin-bottom:24px;"><div style="min-width:0;">Mínimo de cliente frecuente guardado.</div></div></sc-if>
+                  <div class="field"><label>Mínimo de consumos</label><input class="input" sc-camel-input-mode="numeric" style="width:160px;" aria-invalid="{{ frecInv }}" value="{{ frecDraft }}" sc-camel-on-change="{{ onFrec }}"><sc-if value="{{ frecErr }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ frecErr }}</p></sc-if></div>
+                  <div class="vc-c-pcard-actions"><button type="button" class="btn btn-primary btn-lg" sc-camel-on-click="{{ guardarFrec }}">Guardar cambios</button></div></div></div>
                 <div sc-camel-on-mouse-enter="{{ on_a_config_vigencia }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><div class="vc-c-pcard"><h3 class="vc-c-pcard-title">Vigencia de los puntos</h3><p style="margin:0; font-size:16px; color:#5c5249; margin:4px 0 24px;">Meses que los puntos permanecen disponibles desde que se acreditan.</p><sc-if value="{{ ptsOk.vig }}" hint-placeholder-val="{{ false }}"><div role="status" style="display:flex; align-items:flex-start; gap:12px; border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; line-height:1.5; box-shadow:0 1px 2px rgba(0,0,0,.05); margin-bottom:24px;"><span style="margin-top:1px; display:flex;"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M20 6 9 17l-5-5"></path></svg></span><div style="min-width:0;">Vigencia de los puntos guardada. Aplica a las operaciones futuras.</div></div></sc-if>
                   <div class="field"><label>Meses</label><input class="input" type="number" style="width:160px;" aria-invalid="{{ inv.ptsMeses }}" value="{{ config.vigenciaMeses }}" sc-camel-on-change="{{ on.ptsMeses }}"><sc-if value="{{ err.ptsMeses }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ err.ptsMeses }}</p></sc-if><sc-if value="{{ noErr.ptsMeses }}" hint-placeholder-val="{{ true }}"><p style="margin:0; font-size:12px; color:#7a6e63;">Entre 1 y 120 meses, sin decimales. Por defecto, 12 meses.</p></sc-if></div>
                   <div class="vc-c-pcard-actions"><button type="button" class="btn btn-primary btn-lg" disabled="{{ ptsDis.vig }}" sc-camel-on-click="{{ guardarVig }}">Guardar</button></div></div></div>
@@ -1523,17 +1500,10 @@ textarea.input { min-height: 90px; resize: vertical; }
             </sc-if>
 
             <sc-if value="{{ cIsNotif }}" hint-placeholder-val="{{ false }}">
-              <div style="background:#ffffff; border:1px solid #f0d9c4; border-radius:16px; overflow:hidden;" sc-camel-on-mouse-enter="{{ on_a_nav_notif }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
-                <sc-for list="{{ notifItems }}" as="n" hint-placeholder-count="3">
-                  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; border-bottom:1px solid #f5e6d8; padding:16px 20px; font-size:14px;">
-                    <span>{{ n.label }}</span>
-                    <div style="display:flex; align-items:center; gap:12px;">
-                      <span class="{{ n.claseTag }}">{{ n.estadoTexto }}</span>
-                      <button class="btn btn-secondary" sc-camel-on-click="{{ n.onEditar }}" sc-camel-on-mouse-enter="{{ on_a_notif_toggle }}" sc-camel-on-mouse-leave="{{ leaveTip }}">Editar</button>
-                    </div>
-                  </div>
-                </sc-for>
-              </div>
+              <div sc-camel-on-mouse-enter="{{ on_a_nav_notif }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><dc-import name="ConfigNotificaciones" usuario="{{ consumoUsuario }}" hint-size="100%,760px"></dc-import></div>
+            </sc-if>
+            <sc-if value="{{ cIsPromos }}" hint-placeholder-val="{{ false }}">
+              <div sc-camel-on-mouse-enter="{{ on_a_nav_promos }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><dc-import name="ConfigPromociones" usuario="{{ consumoUsuario }}" hint-size="100%,620px"></dc-import></div>
             </sc-if>
           </div>
         </div>
@@ -1687,6 +1657,10 @@ textarea.input { min-height: 90px; resize: vertical; }
             <p style="font-size:13px;"><strong>Teléfono:</strong> {{ clienteAdminModal.telefono }}</p>
             <p style="font-size:13px;"><strong>Mail:</strong> {{ clienteAdminModal.email }}</p>
             <p style="font-size:13px;"><strong>Estado:</strong> {{ clienteAdminModal.estado }}</p>
+            <div style="margin-top:14px; padding-top:12px; border-top:1px solid #fbe6d4;" sc-camel-on-mouse-enter="{{ on_a_cliente_cuenta }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><div style="font-family:var(--font-heading); font-size:15px; font-weight:700; color:#7e3e20; margin-bottom:6px;">Cuenta de acceso</div>
+              <p style="font-size:13px; margin:0 0 4px;"><strong>Email:</strong> {{ clienteAdminModal.cuenta.email }}</p>
+              <p style="font-size:13px; margin:0 0 4px;"><strong>Rol:</strong> Cliente</p>
+              <p style="font-size:13px; margin:0;"><strong>Estado:</strong> {{ clienteAdminModal.cuenta.estado }}<sc-if value="{{ clienteAdminModal.cuenta.inicial }}" hint-placeholder-val="{{ false }}"> · <span class="tag tag-accent" style="font-size:10px;">Contraseña inicial sin cambiar</span></sc-if></p></div>
           </sc-if>
         </div>
         <div class="dialog-actions">
@@ -1830,6 +1804,7 @@ class Component extends DCLogic {
     this._canjeTimer = setInterval(() => this.chequearVencimientosCanjes(), 15000);
     const sub = () => { if (window.VCStore) window.VCStore.subscribe(() => this.forceUpdate()); else setTimeout(sub, 40); }; sub();
     const subK = () => { if (window.VCCanjes) window.VCCanjes.subscribe(() => this.forceUpdate()); else setTimeout(subK, 40); }; subK();
+    const sub5 = () => { if (window.VCS5) window.VCS5.subscribe(() => this.forceUpdate()); else setTimeout(sub5, 40); }; sub5();
     this._kTimer = setInterval(() => { if (this.state.view === 'cliente' && this.state.clienteTab === 'recompensas') this.forceUpdate(); }, 20000);
   }
   componentWillUnmount() {
@@ -1913,8 +1888,8 @@ class Component extends DCLogic {
     ],
     niveles: [
       { id: 1, nombre: 'Bronce', minimo: 0, beneficio: 'Acumulación estándar de puntos' },
-      { id: 2, nombre: 'Plata', minimo: 300, beneficio: '5% de puntos extra por consumo' },
-      { id: 3, nombre: 'Oro', minimo: 800, beneficio: '10% de puntos extra + prioridad de reserva' }
+      { id: 2, nombre: 'Plata', minimo: 300, beneficio: 'Postre gratis en tu cumpleaños' },
+      { id: 3, nombre: 'Oro', minimo: 800, beneficio: 'Café gratis una vez por semana' }
     ],
     misionesAdmin: [
       { id: 1, nombre: 'Vení 3 veces esta semana', objetivo: '3 visitas en el mes', recompensa: 50, fechaDesde: '2026-09-01', fechaHasta: '2026-09-30', horaDesde: '', horaHasta: '', periodoTipo: 'Semanas', periodoCantidad: 1, estado: 'Activa' },
@@ -1969,8 +1944,8 @@ class Component extends DCLogic {
 
   TIP = {
     c_auth: 'Ingreso único por mail y contraseña para clientes, cajeros y administradores. El autorregistro (extensión de este prototipo, inspirada en RF-015) crea solo usuarios con rol Cliente',
-    c_inicio: 'US-19 · RF-017 / RF-025 / RF-029 — Consultar datos, saldo de puntos y nivel del cliente',
-    c_avatar: 'RF-016 — Editar / completar los datos del cliente (el alta la realiza el Cajero, RF-015)',
+    c_inicio: 'US-19 · RF-017 / RF-025 / RF-029 — Consultar datos, saldo de puntos, nivel y beneficio del nivel (NIV-BEN)',
+    c_avatar: 'FOTO-PERFIL · US-59 · RF-065 — Foto de perfil del Cliente (sin foto, las iniciales). Mi perfil',
     c_filtro: 'US-39 · RF-043 — Filtrar el catálogo: todas, más canjeadas, próximas a vencer',
     c_canjear: 'US-40 · RF-044 — Confirmar el canje de una recompensa',
     c_confirmar_canje: 'US-40 · RF-044 — Confirmar el canje: los puntos se descuentan al usarlo en caja',
@@ -1978,8 +1953,9 @@ class Component extends DCLogic {
     c_tab_historial: 'US-23 / US-26 · RF-022 / RF-027 — Historial de consumos y de movimientos de puntos',
     c_hist_compra: 'US-23 · RF-022 — Consultar el historial de consumos',
     c_hist_mov: 'US-26 · RF-027 — Consultar el historial de movimientos de puntos',
-    c_tab_misiones: 'US-33 · RF-036 — Consultar las misiones vigentes y el progreso',
-    c_mision_reclamar: 'US-31 · RF-034 — Reclamar la recompensa de una misión completada',
+    c_tab_misiones: 'US-33 · RF-037 — Consultar las misiones del mes y el progreso',
+    c_promos: 'US-15 · RF-013 — Promociones vigentes o que empiezan en los próximos 7 días',
+    c_mision_reclamar: 'US-31 · RF-035 — Reclamar la recompensa de una misión completada',
     c_tab_canjes: 'US-39 / US-40 / US-45 · RF-043 / RF-044 / RF-049 — Catálogo de recompensas y mis canjes',
     e_nav_cliente: 'US-46 · RNF-1 / RNF-2 — Identificar cliente, parte del flujo de Registrar consumo (US-21)',
     e_cliente_buscar: 'US-46 · RNF-2 — Identificar cliente por tipo y número de documento en máximo 3 pasos',
@@ -2004,22 +1980,25 @@ class Component extends DCLogic {
     a_config_vigencia: 'US-12 · RF-010 — Definir el período de vigencia de los puntos',
     a_config_bonif: 'US-13 · RF-011 — Definir la bonificación por primer consumo',
     a_config_guardar: 'US-16 · RF-014 — Modificar configuración sin afectar el historial',
-    a_nav_niveles: 'US-27 · RF-028 — Configurar niveles de fidelización, puntaje mínimo y beneficios',
-    a_nav_misiones: 'EP05 · RF-030 a RF-036 — Gestión de misiones mensuales',
-    a_mision_crear: 'US-28 · RF-030 — Crear misión mensual con objetivo medible',
-    a_mision_baja: 'US-29 · RF-031 — Editar o dar de baja una misión',
+    a_nav_niveles: 'US-27 · RF-028 / NIV-BEN · RF-029 — Configurar niveles de fidelización, puntaje mínimo y beneficios',
+    a_config_frecuentes: 'US-51 · RF-054 — Mínimo de consumos de un cliente frecuente (S5-22)',
+    a_nav_misiones: 'US-28 a US-32 · RF-031 a RF-036 — Gestión de misiones mensuales',
+    a_mision_crear: 'US-28 · RF-031 — Crear misión mensual con objetivo medible',
+    a_mision_baja: 'US-29 · RF-032 — Editar o dar de baja una misión',
     a_nav_recompensas: 'EP06 · US-34 a US-38 · RF-038 a RF-042 — Catálogo de recompensas',
-    a_recompensa_crear: 'US-34 · RF-038 — Crear recompensa (foto, stock y vencimiento opcionales)',
+    a_recompensa_crear: 'US-34 · RF-038 — Crear recompensa con su imagen (foto, stock y vencimiento opcionales)',
     a_recompensa_toggle: 'US-36 · RF-040 — Activar o desactivar una recompensa',
     a_recompensa_baja: 'US-38 · RF-042 — Eliminar recompensa (baja lógica)',
     a_nav_canjes: 'US-45 · RF-049 — Consultar canjes; aplicar (US-42 · RF-046) o rechazar (US-43 · RF-047)',
-    a_nav_notif: 'RF-012 / RF-050 a RF-053 — Configuración de mensajes y notificaciones automáticas',
-    a_notif_toggle: 'US-48 a US-51 · RF-050 a RF-053 — Activar / desactivar un tipo de notificación automática',
-    a_nav_stats: 'EP09 · RF-054 a RF-057 — Estadísticas del programa',
-    a_stats_export: 'US-56 · RF-058 — Exportar reportes generados en formato PDF',
-    a_nav_auditoria: 'US-58 · RF-063 — Consultar el historial de auditoría',
+    a_nav_notif: 'US-14 · RF-012 / US-47 a US-50 · RF-050 a RF-053 — Logo, mensajes automáticos e historial de notificaciones',
+    a_nav_promos: 'US-15 · RF-013 / US-49 · RF-052 — Promociones especiales y su envío por correo',
+    a_notif_toggle: 'US-47 a US-50 · RF-050 a RF-053 — Activar / desactivar un tipo de notificación automática',
+    a_nav_stats: 'US-51 a US-54 · RF-054 a RF-057 — Estadísticas del programa',
+    a_stats_export: 'US-55 · RF-058 — Exportar reportes generados en formato PDF',
+    a_nav_auditoria: 'US-57 · RF-063 — Consultar el historial de auditoría',
     a_nav_clientes: 'US-19 · RF-017 — Consultar clientes: datos, saldo de puntos y nivel',
-    a_cliente_editar: 'US-18 · RF-016 — Editar los datos de un cliente inscripto'
+    a_cliente_editar: 'US-18 · RF-016 — Editar los datos de un cliente inscripto',
+    a_cliente_cuenta: 'CTA-CLI · RF-08 — Ver la cuenta de acceso del cliente (solo lectura)'
   };
 
   ROLES = ['Cajero', 'Administrador'];
@@ -2028,23 +2007,24 @@ class Component extends DCLogic {
     empleados: ['Empleados', 'Cada empleado ingresa al sistema con su mail, según su rol.'],
     config: ['Puntos', 'Reglas con las que los clientes suman puntos en sus consumos.'],
     niveles: ['Niveles de fidelización', 'Puntaje mínimo y beneficios de cada nivel del programa.'],
-    notif: ['Notificaciones', 'Mensajes que el sistema envía automáticamente a los clientes.']
+    notif: ['Notificaciones', 'Logo, mensajes que el sistema envía automáticamente a los clientes e historial de envíos.'],
+    promos: ['Promociones', 'Promociones especiales que ven los clientes y que se pueden enviar por correo.']
   };
 
   DATOS = (() => {
     const DOC = 'enum', NUM = 'int', MAIL = 'String';
     const emp = [['Apellido', 'String', 'si'], ['Nombre', 'String', 'si'], ['Mail', MAIL, 'si'], ['Teléfono', 'String', 'no'], ['Rol', 'enum', 'si'], ['Contraseña', 'String', 'si'], ['Estado', 'enum', 'auto']];
-    const mis = [['Nombre', 'String', 'si'], ['Objetivo', 'String', 'si'], ['Recompensa', 'int', 'si'], ['Vigencia desde', 'Date', 'si'], ['Vigencia hasta', 'Date', 'si'], ['Horario desde', 'Time', 'no'], ['Horario hasta', 'Time', 'no'], ['Período', 'enum', 'si'], ['Cantidad de períodos', 'int', 'si'], ['Estado', 'enum', 'auto']];
+    const mis = [['Nombre', 'String (1 a 80)', 'si'], ['Descripción', 'String (hasta 255)', 'no'], ['Tipo de objetivo', 'enum (Cantidad de consumos / Monto acumulado)', 'si'], ['Objetivo', 'int (consumos) / decimal (monto)', 'si'], ['Días', 'int[] (1 a 7) · vacío = todos', 'no'], ['Horario desde / hasta', 'Time (HH:mm)', 'no'], ['Recompensa', 'int (1 a 100.000) · vacío = sin recompensa', 'no'], ['Mes de inicio', 'YYYY-MM', 'si'], ['Mes de fin', 'YYYY-MM · vacío = se repite', 'no'], ['Estado', 'enum (En curso / Próxima / Finalizada)', 'auto'], ['Completadas este mes', 'int', 'auto']];
     const rec = [['Foto', 'Image (JPG, PNG o WebP, hasta 2 MB)', 'no'], ['Nombre', 'String (1 a 80)', 'si'], ['Descripción', 'String (hasta 255)', 'no'], ['Puntos', 'int (1 a 1.000.000)', 'si'], ['Stock', 'int (1 a 100.000) · vacío = sin límite', 'no'], ['Vencimiento', 'Date · vacío = no vence', 'no'], ['Canjes confirmados', 'int', 'auto'], ['Estado', 'enum', 'auto']];
     const cjc = [['Código de canje', 'String (6)', 'si'], ['Cliente', 'String', 'auto'], ['Recompensa', 'String', 'auto'], ['Puntos', 'int', 'auto'], ['Vence', 'DateTime (15 min)', 'auto'], ['Estado', 'enum', 'auto'], ['Motivo de rechazo', 'String (5 a 500)', 'si']];
-    const niv = [['Nombre', 'String', 'si'], ['Puntaje mínimo', 'int', 'si'], ['Observaciones', 'String', 'no']];
+    const niv = [['Nombre', 'String', 'si'], ['Puntaje mínimo', 'int', 'si'], ['Beneficio', 'String (hasta 255)', 'no']];
     const cli = [['Nombre', 'String', 'si'], ['Apellido', 'String', 'si'], ['Tipo de documento', DOC, 'si'], ['Número de documento', NUM, 'si'], ['Mail', MAIL, 'si'], ['Teléfono', 'String', 'no']];
     return {
       login: { t: 'Ingresar', c: [['Mail', MAIL, 'si'], ['Contraseña', 'String', 'si'], ['Rol', 'enum', 'auto']] },
       registro: { t: 'Registrarme', c: cli.concat([['Contraseña', 'String', 'si'], ['Rol', 'enum', 'auto']]) },
       c_recompensas: { t: 'Inicio · Recompensas', c: [['Puntos disponibles', 'int', 'auto'], ['Nivel', 'String', 'auto'], ['Recompensa', 'String', 'si'], ['Puntos requeridos', 'int', 'si'], ['Vencimiento', 'Date', 'si'], ['Foto', 'Image', 'no'], ['Filtro', 'enum', 'no']] },
       c_historial: { t: 'Historial', c: [['Fecha de consumo', 'Date', 'auto'], ['Monto', 'float', 'si'], ['Puntos acreditados', 'int', 'auto'], ['Estado de consumo', 'enum', 'auto'], ['Fecha de movimiento', 'Date', 'auto'], ['Cantidad de puntos', 'int', 'auto'], ['Motivo', 'String', 'auto'], ['Estado de puntos', 'enum', 'auto']] },
-      c_misiones: { t: 'Misiones', c: [['Nombre', 'String', 'si'], ['Progreso', 'int', 'auto'], ['Objetivo', 'int', 'si'], ['Recompensa', 'int', 'si'], ['Estado', 'enum', 'auto']] },
+      c_misiones: { t: 'Misiones', c: [['Nombre', 'String', 'auto'], ['Descripción', 'String', 'auto'], ['Progreso', 'int / decimal', 'auto'], ['Objetivo', 'int / decimal', 'auto'], ['Recompensa', 'int · vacío = sin recompensa', 'auto'], ['Estado', 'enum (En progreso / Completada / Reclamada / Vencida)', 'auto'], ['Mes', 'YYYY-MM', 'no']] },
       c_canjes: { t: 'Canjes', c: [['Recompensa', 'String', 'auto'], ['Puntos', 'int', 'auto'], ['Código', 'String (6)', 'auto'], ['Vence', 'DateTime (15 min)', 'auto'], ['Estado', 'enum', 'auto'], ['Filtro del catálogo', 'enum', 'no'], ['Filtro: estado', 'enum', 'no'], ['Filtro: fecha o rango', 'Date', 'no'], ['Orden', 'enum', 'no']] },
       c_perfil: { t: 'Mi perfil', c: [['Nombre y apellido', 'String', 'auto'], ['Documento', 'enum + String', 'auto'], ['Teléfono', 'String', 'no'], ['Mail', MAIL, 'si'], ['Fecha de nacimiento', 'Date', 'no'], ['Contraseña actual · solo si cambia el correo', 'String', 'si']] },
       c_password: { t: 'Cambiá tu contraseña', c: [['Contraseña actual', 'String', 'si'], ['Nueva contraseña', 'String', 'si'], ['Confirmar nueva contraseña', 'String', 'si']] },
@@ -2060,11 +2040,12 @@ class Component extends DCLogic {
       a_misiones: { t: 'Misiones', c: mis },
       a_clientes: { t: 'Clientes', c: [['Apellido', 'String', 'si'], ['Nombre', 'String', 'si'], ['Nivel', 'String', 'auto'], ['Saldo', 'int', 'auto'], ['Fecha de alta', 'Date', 'auto'], ['Estado', 'enum', 'auto'], ['Filtro: tipo de documento', 'enum', 'no'], ['Filtro: número de documento', 'String', 'no'], ['Filtro de nivel', 'enum', 'no']] },
       a_cliente_edit: { t: 'Editar cliente', c: [['Nombre', 'String', 'si'], ['Apellido', 'String', 'si'], ['Número de documento', 'String', 'si'], ['Teléfono', 'String', 'no'], ['Mail', MAIL, 'si'], ['Motivo del cambio', 'String', 'si']] },
-      a_stats: { t: 'Estadísticas', c: [['Clientes activos', 'int', 'auto'], ['Consumos del mes', 'int', 'auto'], ['Puntos otorgados', 'int', 'auto'], ['Recompensas canjeadas', 'int', 'auto']] },
+      a_stats: { t: 'Estadísticas y reportes', c: [['Período: desde', 'Date', 'si'], ['Período: hasta', 'Date (hasta 366 días)', 'si'], ['Agrupar consumos', 'enum (Día / Semana / Mes)', 'no'], ['Clientes activos, nuevos y frecuentes', 'int', 'auto'], ['Consumos y monto', 'int / decimal', 'auto'], ['Puntos por tipo', 'int', 'auto'], ['Clientes por nivel, misiones y recompensas', 'int', 'auto'], ['Reporte', 'PDF', 'auto']] },
       a_auditoria: { t: 'Auditoría', c: [['Fecha y hora', 'DateTime', 'auto'], ['Realizado por', 'String', 'auto'], ['Módulo', 'enum', 'auto'], ['Acción', 'String', 'auto'], ['Cliente afectado', 'String', 'auto'], ['Detalle', 'lista', 'auto'], ['Filtro: realizado por', 'enum', 'no'], ['Filtro: módulo', 'enum', 'no'], ['Filtro: acción', 'enum', 'no'], ['Filtro: tipo y N° de documento', 'enum + String', 'no'], ['Filtro: fecha o rango', 'Date', 'no']] },
       cfg_empleados: { t: 'Empleados', c: emp },
       cfg_config: { t: 'Puntos', c: [['Monto base ($)', 'float', 'si'], ['Puntos por monto', 'int', 'si'], ['Vigencia', 'int', 'si'], ['Tipo de bonificación', 'enum', 'si'], ['Valor de bonificación', 'decimal (porcentaje) / int (fijo)', 'si'], ['Umbral Plata', 'int', 'si'], ['Umbral Oro', 'int', 'si']] },
-      cfg_notif: { t: 'Notificaciones', c: [['Tipo', 'enum', 'auto'], ['Mensaje', 'String', 'si'], ['Activa', 'boolean', 'si']] },
+      cfg_notif: { t: 'Notificaciones', c: [['Logo', 'Image (JPG, PNG o WebP, hasta 2 MB)', 'no'], ['Puntos de regalo por cumpleaños', 'int (0 a 10.000)', 'si'], ['Tipo', 'enum', 'auto'], ['Activa', 'boolean', 'si'], ['Asunto', 'String (1 a 120)', 'si'], ['Mensaje', 'String (1 a 1.000)', 'si'], ['Historial: fecha, tipo, canal, cliente, destinatario, estado', 'varios', 'auto']] },
+      cfg_promos: { t: 'Promociones', c: [['Título', 'String (1 a 80)', 'si'], ['Descripción', 'String (1 a 500)', 'si'], ['Días', 'int[] (1 a 7) · vacío = todos', 'no'], ['Horario desde / hasta', 'Time (HH:mm)', 'no'], ['Desde', 'Date', 'si'], ['Hasta', 'Date · vacío = sin fecha de fin', 'no'], ['Estado', 'enum (Vigente / Próxima / Terminada)', 'auto'], ['Último envío', 'DateTime', 'auto']] },
       m_empleado: { t: 'Crear / editar empleado', c: emp },
       m_nivel: { t: 'Crear / editar nivel', c: niv },
       m_mision: { t: 'Crear / editar misión', c: mis },
@@ -2366,11 +2347,20 @@ class Component extends DCLogic {
     const val = (x) => !t(x) ? 'Completá este campo.' : !/^\d+$/.test(t(x)) ? 'Ingresá un número entero, sin decimales.' : '';
     e.plata = val(d.plata) || (Number(d.plata) <= 0 ? 'El umbral de Plata debe ser mayor que 0' : ''); e.oro = val(d.oro);
     if (!e.plata && !e.oro && Number(d.oro) <= Number(d.plata)) e.oro = 'El umbral de Oro debe ser mayor que el de Plata';
-    if (e.plata || e.oro) { this.setState({ nivErr: e, nivOk: false }); return; }
+    const bd = this.benActual(); const be = {}; ['Bronce', 'Plata', 'Oro'].forEach((k) => { if (String(bd[k] || '').trim().length > 255) be[k] = 'El beneficio no puede superar los 255 caracteres.'; });
+    if (e.plata || e.oro || Object.keys(be).length) { this.setState({ nivErr: e, benErr: be, nivOk: false }); return; }
     const ant = {}; this.state.niveles.forEach((n) => { ant[n.nombre] = n.minimo; });
-    const niveles = this.state.niveles.map((n) => n.nombre === 'Plata' ? { ...n, minimo: Number(d.plata) } : n.nombre === 'Oro' ? { ...n, minimo: Number(d.oro) } : n);
+    const niveles = this.state.niveles.map((n) => ({ ...(n.nombre === 'Plata' ? { ...n, minimo: Number(d.plata) } : n.nombre === 'Oro' ? { ...n, minimo: Number(d.oro) } : n), beneficio: String(bd[n.nombre] || '').trim() }));
     const det = [['Plata', this.fmtN(ant.Plata) + ' → ' + this.fmtN(Number(d.plata)) + ' pts'], ['Oro', this.fmtN(ant.Oro) + ' → ' + this.fmtN(Number(d.oro)) + ' pts']];
-    this.setState({ niveles, nivErr: {}, nivOk: true, auditoria: this.addAudit('Modificó niveles', { detalle: det }) });
+    this.state.niveles.forEach((n) => { const nv = String(bd[n.nombre] || '').trim(); if ((n.beneficio || '') !== nv) det.push(['Beneficio ' + n.nombre, (n.beneficio || '—') + ' → ' + (nv || '—')]); });
+    this.setState({ niveles, nivErr: {}, benErr: {}, benDraft: null, nivOk: true, auditoria: this.addAudit('Modificó niveles', { detalle: det }) });
+  };
+  benActual() { const b = {}; this.state.niveles.forEach((n) => { b[n.nombre] = n.beneficio || ''; }); return { ...b, ...(this.state.benDraft || {}) }; }
+  guardarFrec = () => {
+    const v = String(this.state.frecDraft == null ? (window.VCS5 ? window.VCS5.frecMin() : 3) : this.state.frecDraft).trim();
+    if (!/^\d+$/.test(v) || Number(v) < 1 || Number(v) > 100) { this.setState({ frecErr: 'Ingresá un número entero de 1 a 100.', frecOk: false }); return; }
+    if (window.VCS5) window.VCS5.setFrecMin(Number(v), this.actor());
+    this.setState({ frecErr: '', frecOk: true, frecDraft: null });
   };
   fmtN(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
   getNivel(puntos) {
@@ -3056,11 +3046,11 @@ class Component extends DCLogic {
       { key: 'canjes', label: 'Canjes', tip: 'on_c_tab_canjes' }
     ];
     const clienteTabs = clienteTabsBase.map((t) => ({
-      ...t, active: s.clienteTab === t.key, prox: t.key === 'misiones',
+      ...t, active: s.clienteTab === t.key, prox: false,
       bg: s.clienteTab === t.key ? 'var(--color-accent)' : 'transparent',
       fg: s.clienteTab === t.key ? 'var(--color-bg)' : 'var(--color-text)',
-      cursor: t.key === 'misiones' ? 'default' : 'pointer', op: t.key === 'misiones' ? '.5' : '1', title: t.key === 'misiones' ? 'Próximamente' : '',
-      onClick: () => { if (t.key !== 'misiones') this.setState({ clienteTab: t.key, clienteCanjesVista: 'catalogo' }); }, onEnter: tipHandlers[t.tip]
+      cursor: 'pointer', op: '1', title: '',
+      onClick: () => this.setState({ clienteTab: t.key, clienteCanjesVista: 'catalogo' }), onEnter: tipHandlers[t.tip]
     }));
 
     const IC = {
@@ -3078,7 +3068,8 @@ class Component extends DCLogic {
       coins: 'M2 8a6 6 0 1 0 12 0a6 6 0 1 0-12 0 M18.09 10.37A6 6 0 1 1 10.34 18 M7 6h1v4 M16.71 13.88l.7.71-2.82 2.82',
       award: 'M6 8a6 6 0 1 0 12 0a6 6 0 1 0-12 0 M15.48 12.89 17 22l-5-3-5 3 1.52-9.11',
       bell: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0',
-      scan: 'M3 7V5a2 2 0 0 1 2-2h2 M17 3h2a2 2 0 0 1 2 2v2 M21 17v2a2 2 0 0 1-2 2h-2 M7 21H5a2 2 0 0 1-2-2v-2 M7 12h10'
+      scan: 'M3 7V5a2 2 0 0 1 2-2h2 M17 3h2a2 2 0 0 1 2 2v2 M21 17v2a2 2 0 0 1-2 2h-2 M7 21H5a2 2 0 0 1-2-2v-2 M7 12h10',
+      tag: 'M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z M7.5 7.5h.01'
     };
     const prox = (this.props && this.props.marcarProximamente) ?? true;
     const mkNav = (base, current, setter, collapsed) => base.map((n) => ({
@@ -3094,16 +3085,17 @@ class Component extends DCLogic {
     const adminNavItems = mkNav([
       { key: 'recompensas', label: 'Recompensas', ic: 'gift', tip: 'on_a_nav_recompensas' },
       { key: 'canjes', label: 'Canjes', ic: 'ticket', tip: 'on_a_nav_canjes' },
-      { key: 'misiones', label: 'Misiones', ic: 'target', tip: 'on_a_nav_misiones', prox: true },
+      { key: 'misiones', label: 'Misiones', ic: 'target', tip: 'on_a_nav_misiones' },
       { key: 'clientes', label: 'Clientes', ic: 'users', tip: 'on_a_nav_clientes' },
-      { key: 'stats', label: 'Estadísticas y reportes', ic: 'chart', tip: 'on_a_nav_stats', prox: true },
+      { key: 'stats', label: 'Estadísticas y reportes', ic: 'chart', tip: 'on_a_nav_stats' },
       { key: 'auditoria', label: 'Auditoría', ic: 'history', tip: 'on_a_nav_auditoria' },
       { key: 'consumos', label: 'Consumos', ic: 'receiptList', tip: 'on_e_cliente_historial' }
     ], s.adminScreen, this.setAdminScreen, s.navColapsado);
     const configNavItems = mkNav([
       { key: 'empleados', label: 'Empleados', ic: 'users', tip: 'on_a_nav_empleados' },
       { key: 'config', label: 'Puntos', ic: 'coins', tip: 'on_a_nav_config' },
-      { key: 'notif', label: 'Notificaciones', ic: 'bell', tip: 'on_a_nav_notif', prox: true }
+      { key: 'notif', label: 'Notificaciones', ic: 'bell', tip: 'on_a_nav_notif' },
+      { key: 'promos', label: 'Promociones', ic: 'tag', tip: 'on_a_nav_promos' }
     ], s.configScreen, this.setConfigScreen, s.cfgNavColapsado);
     const PANEL_CLOSE = 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M9 3v18 M16 15l-3-3 3-3';
     const PANEL_OPEN = 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M9 3v18 M14 9l3 3-3 3';
@@ -3136,7 +3128,8 @@ class Component extends DCLogic {
       if (s.recompensaFiltro === 'provenirVencer') recompensasFiltradas = recompensasFiltradas.slice().sort((a, b) => a.diasRestantes - b.diasRestantes);
     }
     const mpStore = window.VCStore && window.VCStore.porDni(s.cliente.dni);
-    const mpSaldo = mpStore ? mpStore.saldo : Number(s.cliente.puntos) || 0; const misPuntosNeg = mpSaldo < 0;
+    const s5 = window.VCS5; const s5Tipo = s.cliente.tipoDocumento || 'DNI';
+    const mpSaldo = (mpStore ? mpStore.saldo : Number(s.cliente.puntos) || 0) + (s5 && !mpStore ? s5.saldoExtra(s5Tipo, s.cliente.dni) : 0); const misPuntosNeg = mpSaldo < 0;
     const mpNum = (n) => String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     const mpFdt = (ts) => { const d = new Date(ts), z = (x) => String(x).padStart(2, '0'); return z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear(); };
     const mpTexto = (tipo, pts, det) => tipo === 'ac' ? 'Sumaste ' + mpNum(pts) + ' pts por tu consumo' : tipo === 've' ? 'Se vencieron ' + mpNum(pts) + ' pts' : tipo === 're' ? 'Se descontaron ' + mpNum(pts) + ' pts por la anulación de un consumo' : tipo === 'ca' ? 'Canjeaste ' + String(det || '').replace(/^Canje:\s*/, '') : 'Ajuste del restaurante';
@@ -3266,7 +3259,13 @@ class Component extends DCLogic {
       setDocDni: this.setDocDni, setDocPasaporte: this.setDocPasaporte, hacerRegistro: this.hacerRegistro, authMsg: s.authMsg,
 
       ctIsHistorial: s.clienteTab === 'historial', ctIsMisiones: s.clienteTab === 'misiones',
-      histPuntos: mpStore ? misPuntos.movs.map((m) => ({ fecha: m.fecha, motivo: m.texto, cantidad: m.pts.replace(/\s*pts$/, ''), estado: '', claseTag: '' })) : clienteConClase(s.cliente.movimientos),
+      histPuntos: mpStore ? misPuntos.movs.map((m) => ({ fecha: m.fecha, motivo: m.texto, cantidad: m.pts.replace(/\s*pts$/, ''), estado: '', claseTag: '' })) : [...(s5 ? s5.movimientosDe(s5Tipo, s.cliente.dni).map((m) => ({ fecha: s5.fdt(m.ts).slice(0, 10), motivo: m.texto, cantidad: '+' + mpNum(m.pts), estado: 'Vigente', ts: m.ts })) : []), ...s.cliente.movimientos].map((it) => ({ ...it, claseTag: this.claseEstado(it.estado) })),
+      cliFoto: s5 ? (s5.foto(s5Tipo, s.cliente.dni) || '') : '', cliSinFoto: !(s5 && s5.foto(s5Tipo, s.cliente.dni)), cliIniciales: s5 ? s5.iniciales(s.cliente.nombre) : '',
+      benCli: { actual: nivelInfo.actual.beneficio || '', sig: !!(nivelInfo.siguiente && nivelInfo.siguiente.beneficio), sigTxt: nivelInfo.siguiente && nivelInfo.siguiente.beneficio ? 'Con ' + nivelInfo.siguiente.nombre + ': ' + nivelInfo.siguiente.beneficio : '' },
+      misCli: (() => { const n = s5 ? s5.enProgreso(s5Tipo, s.cliente.dni) : 0; return { txt: n === 1 ? '1 en progreso' : n + ' en progreso' }; })(),
+      promoCli: (() => { const l = s5 ? s5.promosCliente() : []; const p = l[0]; if (!p) return { hay: false }; const vig = s5.fasePromo(p) === 'Vigente';
+        return { hay: true, titulo: p.titulo, descripcion: p.descripcion, cuando: s5.diasHorarioTxt(p) + (vig ? '' : ' · Desde el ' + s5.dmy(p.desdeFecha)), etiqueta: vig ? 'Vigente' : 'Próxima', cls: vig ? 'tag tag-ok' : 'tag tag-neutral', mas: l.length > 1 ? 'Y ' + (l.length - 1) + (l.length - 1 === 1 ? ' promoción más.' : ' promociones más.') : '' }; })(),
+      goMisiones: () => this.setState({ clienteTab: 'misiones' }),
       perfilCliente: (() => { const reg = s.clientes.find((c) => String(c.numeroDocumento) === String(s.cliente.dni) && (c.tipoDocumento || 'DNI') === (s.cliente.tipoDocumento || 'DNI')) || {}; const st = mpStore || {};
         return { nombreSolo: reg.nombre || String(s.cliente.nombre || '').split(' ')[0], apellido: reg.apellido || String(s.cliente.nombre || '').split(' ').slice(1).join(' '), tipoDocumento: s.cliente.tipoDocumento || 'DNI', dni: s.cliente.dni, alta: reg.alta || st.alta || '—', telefono: s.cliente.telefono || '', email: s.cliente.email || '', fechaNacimiento: s.cliente.fechaNacimiento || '' }; })(),
       perfilSituacion: { neg: misPuntosNeg, saldo: mpNum(mpSaldo) === '0' ? '0' : (mpSaldo < 0 ? '-' : '') + mpNum(mpSaldo), nivel: nivelInfo.actual.nombre, hist: this.fmtN(histCli) },
@@ -3307,7 +3306,7 @@ class Component extends DCLogic {
       adminNavItems,
       configAbierto: s.configAbierto, abrirConfig: this.abrirConfig, cerrarConfig: this.cerrarConfig, configNavItems,
       cIsEmpleados: s.configScreen === 'empleados', cIsConfig: s.configScreen === 'config', cIsNiveles: s.configScreen === 'niveles',
-      cIsNotif: s.configScreen === 'notif',
+      cIsNotif: s.configScreen === 'notif', cIsPromos: s.configScreen === 'promos',
       crearEmpleado: () => this.abrirAdminModalCrear('empleado'),
       crearNivel: () => this.abrirAdminModalCrear('nivel'), crearMision: () => this.abrirAdminModalCrear('mision'),
       crearRecompensa: () => this.abrirAdminModalCrear('recompensa'),
@@ -3352,6 +3351,7 @@ class Component extends DCLogic {
         saldo: (() => { const sc = window.VCStore && window.VCStore.porDni(clienteAdminActual.numeroDocumento); const v = sc ? sc.saldo : clienteAdminActual.puntos; return (v < 0 ? '-' : '') + this.fmtN(Math.abs(v)); })(), acumulados: this.fmtN(this.historicosDe(clienteAdminActual)),
         err: { nombre: (s.errores || {}).cadNombre, apellido: (s.errores || {}).cadApellido, numero: (s.errores || {}).cadNumero, telefono: (s.errores || {}).cadTelefono, email: (s.errores || {}).cadEmail },
         nivel: clienteAdminActual.nivel, estado: clienteAdminActual.estado,
+        cuenta: { email: clienteAdminActual.email, estado: clienteAdminActual.estado === 'Inactivo' || clienteAdminActual.estado === 'Dado de baja' ? 'Dada de baja' : 'Activa', inicial: !!clienteAdminActual.debeCambiar },
         bajaLabel: 'Eliminar', onToggleBaja: () => this.setState({ clienteEliminarId: clienteAdminActual.id }),
         editando: s.clienteAdminEditando, noEditando: !s.clienteAdminEditando,
         motivo: s.clienteAdminMotivo, error: s.clienteAdminError,
@@ -3371,6 +3371,12 @@ class Component extends DCLogic {
       nivHistTxt: this.fmtN(histCli), progresoPctTxt: progresoPct + '%', nivMsgCliente: nivelInfo.siguiente ? 'Te faltan ' + this.fmtN(nivelInfo.faltante) + ' pts para llegar a ' + nivelInfo.siguiente.nombre : '¡Llegaste al nivel máximo!',
       nivDraft: s.nivDraft || { plata: String((s.niveles.find((n) => n.nombre === 'Plata') || {}).minimo || ''), oro: String((s.niveles.find((n) => n.nombre === 'Oro') || {}).minimo || '') }, nivErr: s.nivErr || {}, nivInv: { plata: (s.nivErr || {}).plata ? 'true' : 'false', oro: (s.nivErr || {}).oro ? 'true' : 'false' }, nivOk: !!s.nivOk,
       onNivPlata: (e) => { const val = e.target.value; this.setState((st) => ({ nivDraft: { ...(st.nivDraft || { plata: String((st.niveles.find((n) => n.nombre === 'Plata') || {}).minimo), oro: String((st.niveles.find((n) => n.nombre === 'Oro') || {}).minimo) }), plata: val }, nivErr: { ...(st.nivErr || {}), plata: '' }, nivOk: false })); },
+      benDraft: this.benActual(), benErr: s.benErr || {}, benInv: { Bronce: (s.benErr || {}).Bronce ? 'true' : 'false', Plata: (s.benErr || {}).Plata ? 'true' : 'false', Oro: (s.benErr || {}).Oro ? 'true' : 'false' }, benPh: { Bronce: 'Ej: Acumulación estándar de puntos', Plata: 'Ej: Postre gratis en tu cumpleaños', Oro: 'Ej: Café gratis una vez por semana' },
+      onBenBronce: (e) => { const v = e.target.value; this.setState((st) => ({ benDraft: { ...this.benActual(), ...(st.benDraft || {}), Bronce: v }, benErr: { ...(st.benErr || {}), Bronce: '' }, nivOk: false })); },
+      onBenPlata: (e) => { const v = e.target.value; this.setState((st) => ({ benDraft: { ...this.benActual(), ...(st.benDraft || {}), Plata: v }, benErr: { ...(st.benErr || {}), Plata: '' }, nivOk: false })); },
+      onBenOro: (e) => { const v = e.target.value; this.setState((st) => ({ benDraft: { ...this.benActual(), ...(st.benDraft || {}), Oro: v }, benErr: { ...(st.benErr || {}), Oro: '' }, nivOk: false })); },
+      frecActual: window.VCS5 ? window.VCS5.frecMin() : 3, frecDraft: s.frecDraft == null ? String(window.VCS5 ? window.VCS5.frecMin() : 3) : s.frecDraft, frecErr: s.frecErr || '', frecInv: s.frecErr ? 'true' : 'false', frecOk: !!s.frecOk,
+      onFrec: (e) => this.setState({ frecDraft: e.target.value, frecErr: '', frecOk: false }), guardarFrec: this.guardarFrec,
       onNivOro: (e) => { const val = e.target.value; this.setState((st) => ({ nivDraft: { ...(st.nivDraft || { plata: String((st.niveles.find((n) => n.nombre === 'Plata') || {}).minimo), oro: String((st.niveles.find((n) => n.nombre === 'Oro') || {}).minimo) }), oro: val }, nivErr: { ...(st.nivErr || {}), oro: '' }, nivOk: false })); },
       guardarNiveles: this.guardarNiveles,
       nivelesLista: s.niveles.map((n) => ({ nombre: n.nombre, minimo: n.minimo })),

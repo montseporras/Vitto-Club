@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<x-dc>
+<div class="vc-r" style="display:flex; flex-direction:column; gap:24px; font-size:16px; line-height:1.5;">
+  <div class="vc-seg" role="tablist" style="max-width:420px;"><button type="button" role="tab" aria-selected="{{ selM }}" class="{{ clsM }}" onClick="{{ irMensajes }}">Mensajes</button><button type="button" role="tab" aria-selected="{{ selH }}" class="{{ clsH }}" onClick="{{ irHistorial }}">Historial</button></div>
+
+  <sc-if value="{{ esMensajes }}" hint-placeholder-val="{{ true }}"><div style="display:flex; flex-direction:column; gap:24px;">
+    <sc-if value="{{ okMsg }}" hint-placeholder-val="{{ false }}"><div role="status" style="display:flex; align-items:flex-start; gap:12px; border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; line-height:1.5;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:1px;"><path d="M20 6 9 17l-5-5"></path></svg><div>{{ okMsg }}</div></div></sc-if>
+    <div class="vc-c-pcard"><h3 class="vc-c-pcard-title">Logo</h3><p style="margin:4px 0 20px; font-size:16px; color:#5c5249;">Se muestra en el encabezado de la aplicación y en los correos que reciben los clientes.</p>
+      <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+        <sc-if value="{{ logo }}" hint-placeholder-val="{{ false }}"><img src="{{ logo }}" alt="Logo" style="width:96px; height:96px; object-fit:contain; border-radius:14px; background:#ffffff; border:1px solid #f6d0b1; display:block;" /></sc-if>
+        <sc-if value="{{ sinLogo }}" hint-placeholder-val="{{ true }}"><div style="width:96px; height:96px; border-radius:14px; display:grid; place-items:center; background:#a9532b; color:#ffffff; font-family:Georgia, serif; font-weight:700; font-size:44px;">V</div></sc-if>
+        <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px;"><div style="display:flex; flex-wrap:wrap; gap:8px;"><label class="btn btn-secondary" style="height:34px; padding:0 14px; font-size:13px; cursor:pointer;">Elegir imagen<input type="file" accept="image/png,image/jpeg,image/webp" style="display:none;" onChange="{{ onLogo }}" /></label><sc-if value="{{ logo }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-ghost" style="height:34px; padding:0 12px; font-size:13px;" onClick="{{ quitarLogo }}">Quitar</button></sc-if></div><span class="text-muted" style="font-size:12px;">{{ logoAyuda }}</span><sc-if value="{{ errLogo }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px; font-weight:500; color:#a8532a;">{{ errLogo }}</span></sc-if></div>
+      </div></div>
+
+    <div class="vc-c-pcard"><h3 class="vc-c-pcard-title">Puntos de regalo por cumpleaños</h3><p style="margin:4px 0 20px; font-size:16px; color:#5c5249;">Puntos que recibe el cliente el día de su cumpleaños, junto con el saludo. Con 0 solo se manda el saludo.</p>
+      <div class="field" style="margin:0;"><label>Puntos</label><input class="input" inputMode="numeric" style="width:160px;" aria-invalid="{{ invPts }}" value="{{ d.cumplePuntos }}" onChange="{{ onPts }}" /><sc-if value="{{ errPts }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; font-weight:500; color:#a8532a;">{{ errPts }}</p></sc-if></div>
+      <p style="margin:12px 0 0; font-size:12px; color:#7a6e63;">Se acreditan una vez por año, solo si el mensaje de cumpleaños está activo. No cuentan para el nivel.</p></div>
+
+    <div class="vc-c-pcard"><h3 class="vc-c-pcard-title">Mensajes automáticos</h3><p style="margin:4px 0 20px; font-size:16px; color:#5c5249;">Se envían por correo. Si un tipo está desactivado, no se envía y queda en el historial como "No enviada".</p>
+      <div style="background:#ffffff; border:1px solid #f6d0b1; border-radius:14px; overflow:hidden;">
+        <sc-for list="{{ filas }}" as="f" hint-placeholder-count="4"><div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; border-bottom:1px solid #fbe6d4; padding:14px 18px;">
+          <div style="min-width:220px; flex:1;"><strong style="font-size:15px;">{{ f.label }}</strong><div style="font-size:13px; color:#7a6e63;">{{ f.cuando }}</div><div style="font-size:13px; color:#2b1a10; margin-top:2px;">Asunto: {{ f.asunto }}</div></div>
+          <div style="display:flex; align-items:center; gap:14px;">
+            <button type="button" role="switch" aria-checked="{{ f.on }}" aria-label="{{ f.aria }}" onClick="{{ f.toggle }}" style="display:flex; align-items:center; gap:8px; border:none; background:transparent; cursor:pointer; font-family:var(--font-body); font-size:14px; font-weight:600; color:{{ f.txtColor }}; padding:0;"><span style="position:relative; width:44px; height:24px; border-radius:999px; background:{{ f.track }}; transition:background .15s;"><span style="position:absolute; top:3px; left:{{ f.knob }}; width:18px; height:18px; border-radius:999px; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:left .15s;"></span></span><span style="min-width:86px; text-align:left;">{{ f.estado }}</span></button>
+            <button type="button" class="btn btn-secondary" onClick="{{ f.editar }}">Editar mensaje</button>
+          </div></div></sc-for>
+      </div>
+      <div class="vc-c-pcard-actions"><sc-if value="{{ pendientes }}" hint-placeholder-val="{{ false }}"><span style="margin-right:auto; font-size:14px; color:#7e3e20;">Tenés cambios sin guardar.</span></sc-if><button type="button" class="btn btn-secondary btn-lg" disabled="{{ sinCambios }}" onClick="{{ descartar }}">Descartar</button><button type="button" class="btn btn-primary btn-lg" onClick="{{ guardar }}">Guardar cambios</button></div></div>
+    <div style="border:1px dashed #d9804f; background:#fffaf3; border-radius:12px; padding:10px 14px; font-size:13px; color:#6b5446;"><strong style="color:#7a3a1d;">Nota del prototipo:</strong> US-14 · RF-012 (logo y mensajes automáticos), US-47 · RF-050 (vencimiento de puntos, 7 días antes), US-48 · RF-051 (cumpleaños, con puntos de regalo), US-49 · RF-052 (promociones, se envían desde Configuración → Promociones) y US-50 · RF-053 (al completar una misión). Logo: JPG, PNG o WebP de hasta 2 MB.</div>
+  </div></sc-if>
+
+  <sc-if value="{{ esHistorial }}" hint-placeholder-val="{{ false }}"><div style="display:flex; flex-direction:column; gap:16px;">
+    <div style="display:flex; flex-wrap:wrap; align-items:stretch; border:1px solid #f6d0b1; border-radius:12px; background:#ffffff;">
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1 1 170px;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Tipo</span><select style="height:34px; width:100%; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none; cursor:pointer;" value="{{ f.tipo }}" onChange="{{ on.tipo }}"><option value="">Todos</option><sc-for list="{{ tiposOpt }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.t }}</option></sc-for></select></div>
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1 1 140px; border-left:1px solid #f6d0b1;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Estado</span><select style="height:34px; width:100%; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none; cursor:pointer;" value="{{ f.estado }}" onChange="{{ on.estado }}"><option value="">Todos</option><option value="SENT">Enviada</option><option value="FAILED">Falló</option><option value="SKIPPED">No enviada</option></select></div>
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1.3 1 220px; border-left:1px solid #f6d0b1;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Documento del cliente</span><div style="display:flex; gap:8px; align-items:center;"><select style="height:34px; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none; cursor:pointer;" value="{{ f.tipoDoc }}" onChange="{{ on.tipoDoc }}"><option>DNI</option><option>Pasaporte</option></select><input style="height:34px; flex:1; min-width:0; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none;" placeholder="Número" value="{{ f.num }}" onChange="{{ on.num }}" /></div></div>
+      <div style="flex-basis:100%; height:0; border-top:1px solid #f6d0b1;"></div>
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1 1 180px;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Desde</span><input type="date" style="height:34px; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none;" value="{{ f.desde }}" onChange="{{ on.desde }}" /></div>
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1 1 180px; border-left:1px solid #f6d0b1;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Hasta</span><input type="date" style="height:34px; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none;" value="{{ f.hasta }}" onChange="{{ on.hasta }}" /></div>
+      <div style="display:flex; align-items:center; padding:8px 14px; border-left:1px solid #f6d0b1;"><button type="button" class="btn btn-ghost" style="height:34px; padding:0 12px; font-size:13px;" onClick="{{ limpiar }}">Limpiar filtros</button></div>
+    </div>
+    <sc-if value="{{ hay }}" hint-placeholder-val="{{ true }}"><div style="overflow-x:auto;"><table class="table"><thead><tr><th>Fecha y hora</th><th>Tipo</th><th>Cliente</th><th>Destinatario</th><th>Estado</th></tr></thead><tbody>
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6"><tr><td style="white-space:nowrap;">{{ r.fecha }}</td><td style="white-space:nowrap;">{{ r.tipo }}<div style="font-size:12px; color:#7a6e63; max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ r.asunto }}</div></td><td><strong>{{ r.cliente }}</strong><div style="font-size:12px; color:#7a6e63;">{{ r.doc }}</div></td><td style="font-size:14px;">{{ r.dest }}</td><td><span class="{{ r.badge }}" title="{{ r.error }}">{{ r.estado }}</span><sc-if value="{{ r.error }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px; color:#a8532a; max-width:220px;">{{ r.error }}</div></sc-if></td></tr></sc-for>
+    </tbody></table></div>
+    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;"><span style="font-size:14px; color:#5c5249;">{{ pg.info }}</span><div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary" disabled="{{ pg.prevDis }}" onClick="{{ pg.prev }}">Anterior</button><button type="button" class="btn btn-secondary" disabled="{{ pg.nextDis }}" onClick="{{ pg.next }}">Siguiente</button></div></div></sc-if>
+    <sc-if value="{{ vacio }}" hint-placeholder-val="{{ false }}"><p style="margin:0; padding:28px 16px; text-align:center; font-size:16px; color:#5c5249; border:1px dashed #f6d0b1; border-radius:16px;">No hay notificaciones para los filtros seleccionados.</p></sc-if>
+    <div style="border:1px dashed #d9804f; background:#fffaf3; border-radius:12px; padding:10px 14px; font-size:13px; color:#6b5446; display:flex; flex-wrap:wrap; align-items:center; gap:10px;"><span style="flex:1 1 420px;"><strong style="color:#7a3a1d;">Nota del prototipo:</strong> RF-050 a RF-053: cada notificación queda registrada con tipo, canal, fecha y destinatario. Un correo que falla no se reintenta. Todos los días a las 09:00 salen los avisos de puntos por vencer y los saludos de cumpleaños; el botón simula ese envío y no es parte del diseño.</span><button type="button" class="btn btn-secondary" style="height:34px; padding:0 14px; font-size:13px;" onClick="{{ simular }}">Simular envío de las 09:00</button></div>
+  </div></sc-if>
+
+  <sc-if value="{{ mm.open }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10010; padding:16px;">
+      <div class="dialog" style="position:relative; max-width:640px; width:100%; max-height:calc(100vh - 32px); overflow:auto;"><button type="button" onClick="{{ cerrarMM }}" aria-label="Cerrar" title="Cerrar" style="position:absolute; top:16px; right:16px; width:36px; height:36px; display:grid; place-items:center; border:none; border-radius:999px; background:transparent; color:#7e3e20; cursor:pointer; z-index:1;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
+        <div class="dialog-title" style="padding-right:40px;">Mensaje: {{ mm.label }}</div>
+        <div class="dialog-body">
+          <div class="field" style="margin:0 0 12px;"><label>Asunto</label><input class="input vc-input" maxLength="120" aria-invalid="{{ mm.invA }}" value="{{ mm.asunto }}" onChange="{{ mm.onAsunto }}" /><sc-if value="{{ mm.eA }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ mm.eA }}</p></sc-if></div>
+          <div class="field" style="margin:0 0 4px;"><label>Mensaje</label><textarea class="input vc-input" rows="4" maxLength="1000" style="height:auto; padding:10px 12px;" aria-invalid="{{ mm.invC }}" value="{{ mm.cuerpo }}" onChange="{{ mm.onCuerpo }}"></textarea><div style="display:flex; justify-content:space-between; gap:8px;"><sc-if value="{{ mm.eC }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ mm.eC }}</p></sc-if><p class="text-muted" style="margin:2px 0 0 auto; font-size:11px;">{{ mm.len }}</p></div></div>
+          <p style="margin:0 0 14px; font-size:13px; color:#5c5249;">Podés usar: {{ mm.vars }}</p>
+          <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20; margin-bottom:6px;">Vista previa</div>
+          <div style="border:1px solid #f6d0b1; border-radius:14px; overflow:hidden; background:#ffffff;">
+            <div style="background:#a9532b; padding:12px 16px; display:flex; align-items:center; gap:10px;"><sc-if value="{{ logo }}" hint-placeholder-val="{{ false }}"><img src="{{ logo }}" alt="" style="width:32px; height:32px; object-fit:contain; border-radius:6px; background:#ffffff;" /></sc-if><sc-if value="{{ sinLogo }}" hint-placeholder-val="{{ true }}"><span style="font-family:Georgia, serif; font-weight:700; font-size:22px; color:#ffffff;">V</span></sc-if><span style="font-family:var(--font-heading); font-weight:700; color:#ffffff;">Vitto Club</span></div>
+            <div style="padding:14px 16px;"><div style="font-family:var(--font-heading); font-weight:700; font-size:16px; color:#2b1a10;">{{ mm.prevAsunto }}</div><p style="margin:8px 0 0; font-size:14px; color:#2b1a10; white-space:pre-wrap;">{{ mm.prevCuerpo }}</p><p style="margin:14px 0 0; padding-top:10px; border-top:1px solid #fbe6d4; font-size:11px; color:#7a6e63;">Recibís este correo porque sos parte de Vitto Club.</p></div>
+          </div>
+          <p class="text-muted" style="margin:6px 0 0; font-size:11px;">La vista previa usa datos de ejemplo.</p>
+        </div>
+        <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px;"><button type="button" class="btn btn-secondary" onClick="{{ cerrarMM }}">Cancelar</button><button type="button" class="btn btn-primary" onClick="{{ aceptarMM }}">Guardar</button></div>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed; right:20px; bottom:20px; z-index:10060; max-width:min(520px, calc(100vw - 40px)); border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; font-weight:600; box-shadow:0 12px 30px -12px rgba(45,24,14,.4);">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1000,&quot;height&quot;:820},&quot;usuario&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Denise Nagel&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  CUANDO = { POINTS_EXPIRING: 'Todos los días a las 09:00, a quienes tienen puntos que vencen en 7 días.', BIRTHDAY: 'Todos los días a las 09:00, el día del cumpleaños del cliente.', PROMOTION: 'Cuando enviás una promoción desde Configuración → Promociones.', MISSION: 'Cuando el cliente completa una misión.' };
+  F0 = { tipo: '', estado: '', tipoDoc: 'DNI', num: '', desde: '', hasta: '' };
+  state = { tab: 'mensajes', d: null, errPts: '', errLogo: '', okMsg: '', mm: { open: false }, f: { ...this.F0 }, page: 1, toast: '', v: 0 };
+  componentDidMount() { const t = () => { if (window.VCS5) { this._u = window.VCS5.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState({ d: this.copia() }); } else this._p = setTimeout(t, 40); }; t(); }
+  componentWillUnmount() { clearTimeout(this._p); clearTimeout(this._t); if (this._u) this._u(); }
+  copia() { const a = window.VCS5.ajustes; const m = {}; Object.keys(a.mensajes).forEach((k) => { m[k] = { ...a.mensajes[k] }; }); return { logo: a.logo, cumplePuntos: String(a.cumplePuntos), mensajes: m }; }
+  say(t) { this.setState({ toast: t }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 4500); }
+  usuario() { return (this.props && this.props.usuario) || 'Denise Nagel'; }
+  setMsg = (k, patch) => this.setState((s) => ({ okMsg: '', d: { ...s.d, mensajes: { ...s.d.mensajes, [k]: { ...s.d.mensajes[k], ...patch } } } }));
+  onLogo = (ev) => { const K = window.VCS5; const f = ev.target.files && ev.target.files[0]; if (!f) return; if (!K.fotoValida(f)) { this.setState({ errLogo: K.ERROR_FOTO }); return; } const rd = new FileReader(); rd.onload = () => this.setState((s) => ({ errLogo: '', okMsg: '', d: { ...s.d, logo: String(rd.result) } })); rd.readAsDataURL(f); };
+  guardar = () => {
+    const K = window.VCS5; const d = this.state.d; const p = String(d.cumplePuntos).trim().replace(/\./g, '');
+    if (!/^\d+$/.test(p) || Number(p) > 10000) { this.setState({ errPts: 'Ingresá puntos enteros de 0 a 10.000.' }); return; }
+    K.guardarMensajes({ ...d, cumplePuntos: Number(p) }, this.usuario());
+    this.setState({ errPts: '', okMsg: 'Notificaciones guardadas. Se aplican a los próximos envíos.', d: this.copia() });
+  };
+  aceptarMM = () => {
+    const K = window.VCS5; const mm = this.state.mm; const e = {};
+    const a = mm.asunto.trim(), c = mm.cuerpo.trim();
+    if (!a) e.eA = 'El asunto es obligatorio.'; else if (a.length > 120) e.eA = 'El asunto no puede superar los 120 caracteres.';
+    if (!c) e.eC = 'El mensaje es obligatorio.'; else if (c.length > 1000) e.eC = 'El mensaje no puede superar los 1.000 caracteres.';
+    const permitidas = K.TIPOS[mm.k].vars; const mala = ((a + ' ' + c).match(/\{[a-z]+\}/g) || []).find((v) => !permitidas.includes(v));
+    if (mala && !e.eC) e.eC = 'La variable ' + mala + ' no se puede usar en este mensaje.';
+    if (Object.keys(e).length) { this.setState({ mm: { ...mm, ...e } }); return; }
+    this.setMsg(mm.k, { asunto: a, cuerpo: c }); this.setState({ mm: { open: false } });
+  };
+  renderVals() {
+    const K = window.VCS5; const s = this.state;
+    if (!K || !s.d) return { filas: [], rows: [], tiposOpt: [], f: this.F0, on: {}, pg: {}, mm: { open: false }, d: {} };
+    const d = s.d; const a = K.ajustes;
+    const igual = String(a.cumplePuntos) === String(d.cumplePuntos).trim() && (a.logo || '') === (d.logo || '') && Object.keys(a.mensajes).every((k) => JSON.stringify(a.mensajes[k]) === JSON.stringify(d.mensajes[k]));
+    const filas = Object.keys(K.TIPOS).map((k) => { const m = d.mensajes[k]; return { label: K.TIPOS[k].label, cuando: this.CUANDO[k], asunto: m.asunto, on: m.activa ? 'true' : 'false', estado: m.activa ? 'Activa' : 'Desactivada', aria: 'Activar ' + K.TIPOS[k].label,
+      track: m.activa ? '#a8532a' : '#d8cfc6', knob: m.activa ? '23px' : '3px', txtColor: m.activa ? '#7e3e20' : '#7a6e63',
+      toggle: () => this.setMsg(k, { activa: !m.activa }), editar: () => this.setState({ mm: { open: true, k, asunto: m.asunto, cuerpo: m.cuerpo, eA: '', eC: '' } }) }; });
+    const mm = s.mm; let mv = { open: false };
+    if (mm.open) {
+      const vars = K.TIPOS[mm.k].vars; const ej = { ...K.EJ, '{puntos}': mm.k === 'BIRTHDAY' ? String(Number(d.cumplePuntos) || 0) : K.EJ['{puntos}'] };
+      mv = { open: true, label: K.TIPOS[mm.k].label, asunto: mm.asunto, cuerpo: mm.cuerpo, eA: mm.eA, eC: mm.eC, invA: mm.eA ? 'true' : 'false', invC: mm.eC ? 'true' : 'false', len: mm.cuerpo.length + '/1000',
+        vars: K.lista(vars) + '.', prevAsunto: K.reemplazar(mm.asunto, ej), prevCuerpo: K.reemplazar(mm.cuerpo, ej),
+        onAsunto: (e) => this.setState({ mm: { ...mm, asunto: e.target.value, eA: '' } }), onCuerpo: (e) => this.setState({ mm: { ...mm, cuerpo: String(e.target.value).slice(0, 1000), eC: '' } }) };
+    }
+    const f = s.f; const nd = f.num.replace(/\D/g, '');
+    const lista = K.notificaciones().filter((n) => (!f.tipo || n.tipo === f.tipo) && (!f.estado || n.estado === f.estado) && (!nd || (n.cliente.tipo === f.tipoDoc && String(n.cliente.num).includes(nd))) && (!f.desde || K.iso(n.ts) >= f.desde) && (!f.hasta || K.iso(n.ts) <= f.hasta));
+    const size = 20, pages = Math.max(1, Math.ceil(lista.length / size)), pg = Math.min(s.page, pages);
+    const rows = lista.slice((pg - 1) * size, pg * size).map((n) => ({ fecha: K.fdt(n.ts), tipo: K.TIPOS[n.tipo].label, asunto: n.asunto, cliente: n.cliente.nombre, doc: n.cliente.tipo + ' ' + n.cliente.num, dest: n.cliente.email, estado: K.ESTADO_N[n.estado], error: n.error,
+      badge: 'vc-b ' + (n.estado === 'SENT' ? 'vc-b-ok' : n.estado === 'FAILED' ? 'vc-b-off' : 'vc-b-neu') }));
+    const setF = (k) => (e) => { const v = e.target.value; this.setState((st) => ({ f: { ...st.f, [k]: v }, page: 1 })); };
+    return {
+      esMensajes: s.tab === 'mensajes', esHistorial: s.tab === 'historial', selM: s.tab === 'mensajes' ? 'true' : 'false', selH: s.tab === 'historial' ? 'true' : 'false',
+      clsM: s.tab === 'mensajes' ? 'vc-seg-opt vc-seg-on' : 'vc-seg-opt', clsH: s.tab === 'historial' ? 'vc-seg-opt vc-seg-on' : 'vc-seg-opt',
+      irMensajes: () => this.setState({ tab: 'mensajes' }), irHistorial: () => this.setState({ tab: 'historial' }),
+      okMsg: s.okMsg, logo: d.logo || '', sinLogo: !d.logo, logoAyuda: d.logo ? 'Logo cargado. Se ve después de guardar.' : 'Ahora se usa el logo de Vitto Club.', errLogo: s.errLogo, onLogo: this.onLogo, quitarLogo: () => this.setState((st) => ({ okMsg: '', d: { ...st.d, logo: null } })),
+      d, onPts: (e) => this.setState((st) => ({ okMsg: '', errPts: '', d: { ...st.d, cumplePuntos: e.target.value } })), errPts: s.errPts, invPts: s.errPts ? 'true' : 'false',
+      filas, pendientes: !igual, sinCambios: igual, guardar: this.guardar, descartar: () => this.setState({ d: this.copia(), errPts: '', errLogo: '' }),
+      mm: mv, cerrarMM: () => this.setState({ mm: { open: false } }), aceptarMM: this.aceptarMM,
+      f, on: { tipo: setF('tipo'), estado: setF('estado'), tipoDoc: setF('tipoDoc'), num: setF('num'), desde: setF('desde'), hasta: setF('hasta') }, limpiar: () => this.setState({ f: { ...this.F0 }, page: 1 }),
+      tiposOpt: Object.keys(K.TIPOS).map((k) => ({ v: k, t: K.TIPOS[k].label })), rows, hay: lista.length > 0, vacio: lista.length === 0,
+      pg: { info: 'Mostrando ' + (lista.length ? (pg - 1) * size + 1 : 0) + '–' + Math.min(lista.length, pg * size) + ' de ' + lista.length, prevDis: pg <= 1, nextDis: pg >= pages, prev: () => this.setState({ page: pg - 1 }), next: () => this.setState({ page: pg + 1 }) },
+      toast: s.toast, simular: () => { const r = K.simularEnvioDiario(); this.say('Envío simulado: ' + r.venc + ' avisos de vencimiento y ' + r.cumple + ' saludo de cumpleaños.'); }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -16,7 +16,7 @@
 
   <div>
     <h4 style="margin:0 0 12px; padding-bottom:6px; border-bottom:1px solid #f0d9c4; font-size:14px; line-height:1.2; text-transform:uppercase; letter-spacing:.08em;">Mis datos</h4>
-    <div style="display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:14px;"><div style="width:88px; height:88px; border-radius:50%; overflow:hidden; border:2px solid var(--color-divider); opacity:.5; pointer-events:none;" aria-hidden="true"><image-slot id="cliente-avatar" shape="circle" placeholder="Foto"></image-slot></div><button type="button" class="btn btn-secondary" disabled="{{ true }}" title="Disponible en el próximo sprint" style="height:30px; padding:0 12px; font-size:12px;">Cambiar foto</button><span class="text-muted" style="font-size:11px;">Disponible en el próximo sprint</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:14px;"><div style="width:88px; height:88px; border-radius:50%; overflow:hidden; border:2px solid var(--color-divider);"><sc-if value="{{ foto.src }}" hint-placeholder-val="{{ false }}"><img src="{{ foto.src }}" alt="Tu foto de perfil" style="width:100%; height:100%; object-fit:cover; display:block;" /></sc-if><sc-if value="{{ foto.sinSrc }}" hint-placeholder-val="{{ true }}"><div style="width:100%; height:100%; display:grid; place-items:center; background:#fbe6d4; color:#7e3e20; font-family:var(--font-heading); font-weight:700; font-size:28px;">{{ foto.iniciales }}</div></sc-if></div><sc-if value="{{ foto.previa }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px; color:#7e3e20;">Vista previa de tu nueva foto</span><div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary" style="height:30px; padding:0 12px; font-size:12px;" onClick="{{ foto.cancelar }}">Cancelar</button><button type="button" class="btn btn-primary" style="height:30px; padding:0 12px; font-size:12px;" onClick="{{ foto.guardar }}">Guardar foto</button></div></sc-if><sc-if value="{{ foto.botones }}" hint-placeholder-val="{{ true }}"><div style="display:flex; gap:8px;"><label class="btn btn-secondary" style="height:30px; padding:0 12px; font-size:12px; cursor:pointer;">Cambiar foto<input type="file" accept="image/png,image/jpeg,image/webp" style="display:none;" onChange="{{ foto.elegir }}" /></label><sc-if value="{{ foto.puedeQuitar }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-ghost" style="height:30px; padding:0 10px; font-size:12px;" onClick="{{ foto.quitar }}">Quitar foto</button></sc-if></div></sc-if><sc-if value="{{ foto.err }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px; font-weight:500; color:#a8532a; text-align:center;">{{ foto.err }}</span></sc-if><span class="text-muted" style="font-size:11px;">JPG, PNG o WebP de hasta 2 MB.</span></div>
     <div class="card" style="border:2px solid var(--color-divider); padding:4px 14px; text-align:left;">
       <sc-for list="{{ fijos }}" as="d" hint-placeholder-count="3"><div style="display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:2px 12px; padding:9px 0; border-top:{{ d.borde }};"><span class="text-muted" style="font-size:11px;">{{ d.k }}</span><span style="font-size:14px; font-weight:600; color:#2b1a10; overflow-wrap:anywhere;">{{ d.v }}</span></div></sc-for>
     </div>
@@ -61,7 +61,7 @@
 class Component extends DCLogic {
   EYE = 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z';
   EYE_OFF = 'M3 3l18 18 M10.6 10.6a2 2 0 0 0 2.8 2.8 M9.9 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2 M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6';
-  state = { f: null, e: {}, pw: { actual: '', nueva: '', conf: '' }, pwErr: {}, ver: {}, pwEmail: '', verEmail: false, toast: '' };
+  state = { f: null, e: {}, pw: { actual: '', nueva: '', conf: '' }, pwErr: {}, ver: {}, pwEmail: '', verEmail: false, toast: '', fotoPrevia: '', fotoErr: '' };
   actualOk() { return (this.props && this.props.passwordActual) || 'vitto2026'; }
   norm(v) { return String(v || '').replace(/[.\s-]/g, '').toUpperCase(); }
   base() { const c = (this.props && this.props.cliente) || {}; return { telefono: c.telefono || '', email: c.email || '', fechaNacimiento: c.fechaNacimiento || '' }; }
@@ -95,7 +95,14 @@ class Component extends DCLogic {
     const sinCambios = f.telefono === b.telefono && f.email === b.email && f.fechaNacimiento === b.fechaNacimiento;
     const pwDef = [['actual', 'Contraseña actual', ''], ['nueva', 'Nueva contraseña', 'Entre 8 y 64 caracteres. No puede ser tu mail ni tu número de documento.'], ['conf', 'Confirmar nueva contraseña', '']];
     const sit = p.situacion || {};
+    const K5 = window.VCS5; const fTipo = c.tipoDocumento || 'DNI'; const actual = K5 ? K5.foto(fTipo, c.dni) : null; const src = s.fotoPrevia || actual || '';
+    const foto = { src, sinSrc: !src, iniciales: K5 ? K5.iniciales(((c.nombreSolo || '') + ' ' + (c.apellido || '')).trim()) : '', previa: !!s.fotoPrevia, botones: !s.fotoPrevia, puedeQuitar: !!actual, err: s.fotoErr,
+      elegir: (ev) => { const fl = ev.target.files && ev.target.files[0]; if (!fl || !K5) return; if (!K5.fotoValida(fl)) { this.setState({ fotoErr: K5.ERROR_FOTO }); return; } const rd = new FileReader(); rd.onload = () => this.setState({ fotoPrevia: String(rd.result), fotoErr: '' }); rd.readAsDataURL(fl); },
+      cancelar: () => this.setState({ fotoPrevia: '', fotoErr: '' }),
+      guardar: () => { K5.setFoto(fTipo, c.dni, s.fotoPrevia); this.setState({ fotoPrevia: '' }); this.say('Foto actualizada'); },
+      quitar: () => { K5.setFoto(fTipo, c.dni, null); this.setState({ fotoErr: '' }); this.say('Foto quitada'); } };
     return {
+      foto,
       volver: () => p.onVolver && p.onVolver(), cerrarSesion: () => p.onCerrarSesion && p.onCerrarSesion(),
       fijos: [['Nombre y apellido', ((c.nombreSolo || '') + ' ' + (c.apellido || '')).trim()], ['Documento', (c.tipoDocumento || 'DNI') + ' ' + (c.dni || '')], ['Fecha de alta', c.alta || '—']].map(([k, v], i) => ({ k, v, borde: i ? '1px solid #f0d9c4' : 'none' })),
       f, e: { ...s.e, telInv: s.e.telefono ? 'true' : 'false', mailInv: s.e.email ? 'true' : 'false', pwEmailInv: s.e.pwEmail ? 'true' : 'false' },

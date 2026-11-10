@@ -1,0 +1,78 @@
+{
+  "nota": "Lista para volver a armar el archivo único (../Vitto Club Prototipo - archivo unico.html). Ver LEEME.md.",
+  "componentes": [
+    {
+      "nombre": "SidebarMenu"
+    },
+    {
+      "nombre": "MiPerfil"
+    },
+    {
+      "nombre": "FichaCliente"
+    },
+    {
+      "nombre": "Auditoria"
+    },
+    {
+      "nombre": "CambiarPassword"
+    },
+    {
+      "nombre": "RegistrarConsumo"
+    },
+    {
+      "nombre": "Consumos"
+    },
+    {
+      "nombre": "MovimientosPuntos"
+    },
+    {
+      "nombre": "CanjeAccion"
+    },
+    {
+      "nombre": "CanjePorCodigo"
+    },
+    {
+      "nombre": "ClienteCanjes"
+    },
+    {
+      "nombre": "GestionCanjes"
+    },
+    {
+      "nombre": "Recompensas"
+    },
+    {
+      "nombre": "Misiones",
+      "uuid": "4495a31a-d6f2-401d-853a-dbb2766bead4"
+    },
+    {
+      "nombre": "ClienteMisiones",
+      "uuid": "8bf3ad53-9b2a-4f7b-a320-9a294a83a99b"
+    },
+    {
+      "nombre": "Estadisticas",
+      "uuid": "c609a77f-f35b-43e7-a634-e736d15dedc8"
+    },
+    {
+      "nombre": "ConfigNotificaciones",
+      "uuid": "afa4b116-29a9-4e38-96e3-2e78de98c548"
+    },
+    {
+      "nombre": "ConfigPromociones",
+      "uuid": "bbe5bf48-968e-4137-b179-326110056664"
+    }
+  ],
+  "datos": [
+    {
+      "archivo": "datos-consumos.js",
+      "uuid": "f62f3ae9-4ff5-4631-ac82-4ec7589be7df"
+    },
+    {
+      "archivo": "datos-canjes.js",
+      "uuid": "a7c0e1d2-5b3f-4c8e-9d21-6f4a8b0c3e57"
+    },
+    {
+      "archivo": "datos-sprint5.js",
+      "uuid": "84a3590a-694b-4277-a817-c8aeccd7a598"
+    }
+  ]
+}
