@@ -18,9 +18,11 @@ for (const c of comps.componentes) {
 for (const j of comps.datos) manifest[j.uuid] = { mime: 'application/javascript', ...gz(rd(j.archivo)) };
 const template = fs.readFileSync(path.join(dir, 'pagina-principal.html'), 'utf8').replace(/\r\n/g, '\n');
 const BS = String.fromCharCode(92);
-const CLOSE = '<' + '/script>';
+// Se escapa todo "</" (por ejemplo </script> y </body>): si quedara literal, el navegador cortaría el
+// bloque de datos y Live Server inyectaría su script dentro del JSON.
+const CLOSE = '<' + '/';
 lines[idx('manifest')] = JSON.stringify(manifest);
 lines[idx('ext_resources')] = JSON.stringify(ext);
-lines[idx('template')] = JSON.stringify(template).split(CLOSE).join('<' + BS + 'u002Fscript>');
+lines[idx('template')] = JSON.stringify(template).split(CLOSE).join('<' + BS + 'u002F');
 fs.writeFileSync(single, lines.join('\n'));
 console.log('ok', comps.componentes.length, 'componentes,', comps.datos.length, 'datos');
