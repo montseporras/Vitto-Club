@@ -8,8 +8,10 @@
    - Editar objetivo, condición o recompensa con clientes este mes: rige desde el mes siguiente (S5-20).
    - Eliminar: En progreso → Vencida; Completadas con recompensa → Reclamadas (Sistema).
    - Puntos de misión y de cumpleaños: no suman al nivel (S5-9).
-   - Promociones y beneficios: solo informativos (S5-16, S5-26).
-   - Notificaciones por correo; se registran todas; sin reintento ni auditoría (S5-28).
+   - Promociones y beneficios: solo informativos (S5-16, S5-26). Las promociones se escriben y se envían en el
+     momento desde Notificaciones: no se guardan (pedido de Denise, 11/11/2026).
+   - Notificaciones por correo; se registran todas; sin auditoría (S5-28). Las que fallaron se pueden reenviar
+     a mano con «Reenviar» (pedido de Denise, 11/11/2026; el contrato S5-28 todavía dice sin reintento).
    - Los datos son de demostración: no son fuente de verdad. */
 (function () {
   if (window.VCS5) return;
@@ -109,7 +111,6 @@
   aud({ ts: T0 - 3 * DIA + 7200000, usuario: 'Sistema', modulo: 'Misiones', accion: 'Reclamó recompensa de misión', texto: 'Reclamó la recompensa de la misión "Vení 3 veces este mes" de Carolina Fernández', cliente: { nombre: 'Carolina Fernández', tipo: 'DNI', num: '38456123' }, filas: [['Misión', 'Vení 3 veces este mes'], ['Puntos otorgados', '50'], ['Saldo resultante', '1.240 pts'], ['Reclamada por', 'Cliente']] });
   aud({ ts: T0 - 6 * DIA, usuario: 'Sistema', modulo: 'Puntos', accion: 'Regaló puntos de cumpleaños', texto: 'Regaló puntos de cumpleaños a Sofía Ríos', cliente: { nombre: 'Sofía Ríos', tipo: 'DNI', num: '35222880' }, filas: [['Puntos otorgados', '100'], ['Saldo resultante', '100 pts']] });
   aud({ ts: T0 - 8 * DIA, usuario: 'Denise Nagel', modulo: 'Configuración', accion: 'Modificó logo y mensajes', texto: 'Modificó el logo y los mensajes automáticos', filas: [['Puntos de cumpleaños', '50 → 100'], ['Mensaje de cumpleaños', 'Modificado']] });
-  aud({ ts: T0 - 9 * DIA, usuario: 'Denise Nagel', modulo: 'Configuración', accion: 'Modificó promociones', texto: 'Creó la promoción "Merienda buffet de los domingos"', filas: [['Días y horario', 'Los domingos de 16:00 a 19:00'], ['Vigencia', 'Desde ' + dmy(iso(T0 - 9 * DIA))]] });
   aud({ ts: T0 - 10 * DIA, usuario: 'Valeria Vitto', modulo: 'Configuración', accion: 'Modificó cliente frecuente', texto: 'Modificó el mínimo de cliente frecuente', filas: [['Mínimo de consumos', '4 → 3']] });
 
   // ---------- Notificaciones ----------
@@ -216,6 +217,8 @@
     fase, objetivoTxt, recompensaTxt, vigenciaTxt,
     badgeFase(f) { return 'vc-b ' + (f === 'En curso' ? 'vc-b-ok' : f === 'Próxima' ? 'vc-b-neu' : 'vc-b-off'); },
     completadasMes(m) { return asignaciones.filter((a) => a.mid === m.id && a.periodo === mesActual() && (a.estado === 'Completada' || a.estado === 'Reclamada')).length; },
+    // Clientes que completaron la misión en un mes (Completada + Reclamada), para el detalle de la misión.
+    completaronMes(m, periodo) { const p = periodo || mesActual(); return asignaciones.filter((a) => a.mid === m.id && a.periodo === p && (a.estado === 'Completada' || a.estado === 'Reclamada')).slice().sort((x, y) => (y.completadaTs || 0) - (x.completadaTs || 0)).map((a) => { const [tipo, n] = a.k.split('|'); return { nombre: a.nombre, tipo, num: n, estado: a.estado, completadaTs: a.completadaTs, reclamadaTs: a.reclamadaTs, reclamadaPor: a.reclamadaPor }; }); },
     tieneAsignacionesMes(m) { return asignaciones.some((a) => a.mid === m.id && a.periodo === mesActual()); },
     nombreUsado(nombre, exceptoId) { const n = String(nombre || '').trim().toLowerCase(); return misiones.some((m) => m.id !== exceptoId && m.estado !== 'Eliminada' && m.nombre.trim().toLowerCase() === n); },
     crearMision(d, por) {
@@ -357,6 +360,19 @@
       }
       API.notificar('BIRTHDAY', c, { '{nombre}': c.nombre.split(' ')[0], '{puntos}': String(pts) }); cumple++;
       emit(); return { venc, cumple };
+    },
+    // Reenvía un correo que falló (botón "Reenviar" del historial). Crea un registro nuevo; el que falló queda.
+    reenviar(id) {
+      const n0 = notifs.find((x) => x.id === id); if (!n0 || n0.estado !== 'FAILED') return { ok: false, msg: 'Solo se pueden reenviar los correos que fallaron.' };
+      if (n0.reenviada) return { ok: false, msg: 'Este correo ya se reenvió.' };
+      if (!ajustes.mensajes[n0.tipo].activa) return { ok: false, msg: 'Las notificaciones de ' + TIPOS[n0.tipo].label.toLowerCase() + ' están desactivadas.' };
+      n0.reenviada = true; N({ ts: Date.now(), tipo: n0.tipo, cliente: n0.cliente, asunto: n0.asunto, estado: 'SENT', reenvioDe: n0.id }); emit(); return { ok: true };
+    },
+    // Promoción enviada en el momento desde Notificaciones: no se guarda (solo quedan los envíos en el historial).
+    enviarPromoAhora(d) {
+      if (!ajustes.mensajes.PROMOTION.activa) return { ok: false, msg: 'Las notificaciones de promociones están desactivadas.' };
+      [MARCOS, CARO, SOFI, MARTIN].forEach((c) => N({ ts: Date.now(), tipo: 'PROMOTION', cliente: c, asunto: reemplazar(ajustes.mensajes.PROMOTION.asunto, { '{nombre}': c.nombre.split(' ')[0], '{promocion}': d.titulo, '{descripcion}': d.descripcion }), estado: 'SENT' }));
+      emit(); return { ok: true, n: CLIENTES_ACTIVOS };
     },
     // ----- promociones -----
     promociones(incluirBaja) { return promociones.filter((p) => incluirBaja || p.estado !== 'Dada de baja'); },

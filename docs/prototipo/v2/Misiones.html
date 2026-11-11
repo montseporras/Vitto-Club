@@ -9,7 +9,7 @@
 <div class="vc-r" style="width:100%; display:flex; flex-direction:column; gap:20px;">
   <div style="border-radius:24px; border:1px solid #f6d0b1; background:#ffffff; box-shadow:0 20px 25px -5px rgba(126,62,32,.1), 0 8px 10px -6px rgba(126,62,32,.1); padding:32px;">
     <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px;">
-      <div><h2 style="margin:0; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.2; color:#2b1a10;">Misiones mensuales</h2><p style="margin:4px 0 0; font-size:13px; color:#7a6e63;">Hacé clic en una misión para editarla o eliminarla.</p></div>
+      <div><h2 style="margin:0; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.2; color:#2b1a10;">Misiones mensuales</h2><p style="margin:4px 0 0; font-size:13px; color:#7a6e63;">Hacé clic en una misión para ver su detalle y quiénes la completaron.</p></div>
       <button type="button" class="btn btn-primary" onClick="{{ abrirCrear }}">+ Crear misión mensual</button>
     </div>
     <div style="display:flex; flex-wrap:wrap; align-items:stretch; border:1px solid #f6d0b1; border-radius:12px; background:#ffffff;">
@@ -32,20 +32,37 @@
   </div>
   <div style="border:1px dashed #d9804f; background:#fffaf3; border-radius:12px; padding:10px 14px; font-size:13px; color:#6b5446; display:flex; flex-wrap:wrap; align-items:center; gap:10px;"><span style="flex:1 1 420px;"><strong style="color:#7a3a1d;">Nota del prototipo:</strong> US-28 · RF-031 (crear misión mensual), US-29 · RF-032 (editar o dar de baja), US-30 · RF-033 / RF-034 (el avance sale de cada consumo) y US-32 · RF-036 (el día 1 a las 00:10 las En progreso vencen y las Completadas con recompensa se reclaman solas). El botón de la derecha simula ese proceso sobre el mes actual: no es parte del diseño.</span><button type="button" class="btn btn-secondary" style="height:34px; padding:0 14px; font-size:13px;" onClick="{{ simular }}">Simular fin de mes</button></div>
 
+  <sc-if value="{{ det.open }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000; padding:16px;">
+      <div class="dialog" style="position:relative; max-width:720px; width:100%; max-height:calc(100vh - 32px); overflow:auto;"><button type="button" onClick="{{ cerrarDet }}" aria-label="Cerrar" title="Cerrar" style="position:absolute; top:16px; right:16px; width:36px; height:36px; display:grid; place-items:center; border:none; border-radius:999px; background:transparent; color:#7e3e20; cursor:pointer; z-index:1;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
+        <div class="dialog-title" style="padding-right:40px;">{{ det.nombre }}</div>
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:-4px 0 4px; font-size:13px; color:#5c5249;"><span>Estado:</span><span class="{{ det.badge }}">{{ det.fase }}</span><sc-if value="{{ det.pendiente }}" hint-placeholder-val="{{ false }}"><span class="tag tag-accent" style="font-size:10px;">{{ det.pendiente }}</span></sc-if></div>
+        <div class="dialog-body">
+          <sc-if value="{{ det.descripcion }}" hint-placeholder-val="{{ false }}"><p style="margin:0 0 12px; font-size:14px; color:#5c5249;">{{ det.descripcion }}</p></sc-if>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-bottom:16px;">
+            <sc-for list="{{ det.datos }}" as="x" hint-placeholder-count="4"><div style="border:1px solid #f6d0b1; border-radius:12px; background:#fffaf5; padding:10px 12px;"><div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">{{ x.k }}</div><div style="margin-top:2px; font-size:14px; font-weight:600; color:#2b1a10;">{{ x.v }}</div><sc-if value="{{ x.s }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px; color:#7a6e63;">{{ x.s }}</div></sc-if></div></sc-for>
+          </div>
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin:4px 0 8px; padding-bottom:4px; border-bottom:1px solid #fbe6d4;"><span style="font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Clientes que la completaron</span><span style="font-size:12px; color:#7a6e63;">{{ det.mesTxt }} · {{ det.cuantos }}</span></div>
+          <sc-if value="{{ det.hay }}" hint-placeholder-val="{{ true }}"><div style="overflow-x:auto;"><table class="table"><thead><tr><th>Cliente</th><th>Documento</th><th>Completada</th><th>Estado</th></tr></thead><tbody><sc-for list="{{ det.clientes }}" as="c" hint-placeholder-count="3"><tr><td><strong>{{ c.nombre }}</strong></td><td style="white-space:nowrap;">{{ c.doc }}</td><td style="white-space:nowrap;">{{ c.fecha }}</td><td><span class="{{ c.badge }}">{{ c.estado }}</span><sc-if value="{{ c.sub }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px; color:#7a6e63;">{{ c.sub }}</div></sc-if></td></tr></sc-for></tbody></table></div></sc-if>
+          <sc-if value="{{ det.vacio }}" hint-placeholder-val="{{ false }}"><p style="margin:0; padding:18px 12px; text-align:center; font-size:14px; color:#5c5249; border:1px dashed #f6d0b1; border-radius:12px;">Ningún cliente completó esta misión este mes.</p></sc-if>
+        </div>
+        <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-secondary" onClick="{{ cerrarDet }}">Cerrar</button><button type="button" class="btn btn-primary" onClick="{{ det.onEditar }}">Editar misión</button></div>
+      </div>
+    </div>
+  </sc-if>
+
   <sc-if value="{{ m.open }}" hint-placeholder-val="{{ false }}">
     <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000; padding:16px;">
       <div class="dialog" style="position:relative; max-width:640px; width:100%; max-height:calc(100vh - 32px); overflow:auto;"><button type="button" onClick="{{ cerrar }}" aria-label="Cerrar" title="Cerrar" style="position:absolute; top:16px; right:16px; width:36px; height:36px; display:grid; place-items:center; border:none; border-radius:999px; background:transparent; color:#7e3e20; cursor:pointer; z-index:1;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
         <div class="dialog-title" style="padding-right:40px;">{{ m.titulo }}</div>
-        <sc-if value="{{ m.edit }}" hint-placeholder-val="{{ false }}"><div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:-4px 0 4px; font-size:13px; color:#5c5249;"><span>Estado:</span><span class="{{ m.badge }}">{{ m.faseTxt }}</span><span>· Completadas este mes: <strong>{{ m.comp }}</strong></span></div></sc-if>
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:-4px 0 6px; font-size:12px; font-weight:700; color:#7e3e20;"><span style="display:inline-grid; place-items:center; width:22px; height:22px; border-radius:999px; background:{{ m.p1bg }}; color:{{ m.p1fg }};">1</span><span>Objetivo</span><span style="width:28px; height:2px; background:#f6d0b1;"></span><span style="display:inline-grid; place-items:center; width:22px; height:22px; border-radius:999px; background:{{ m.p2bg }}; color:{{ m.p2fg }};">2</span><span>Recompensa y vigencia</span></div>
         <sc-if value="{{ m.aviso }}" hint-placeholder-val="{{ false }}"><div role="status" style="margin:8px 0 4px; border:1px solid rgba(202,100,60,.4); border-left:4px solid #ca643c; background:#fdf3ea; color:#7e3e20; border-radius:12px; padding:10px 14px; font-size:13px; line-height:1.45;">{{ m.aviso }}</div></sc-if>
-        <div class="dialog-body">
-          <div style="display:flex; align-items:center; margin:4px 0 10px; padding-bottom:4px; border-bottom:1px solid #fbe6d4;"><span style="font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Misión</span></div>
+        <sc-if value="{{ m.paso1 }}" hint-placeholder-val="{{ true }}"><div class="dialog-body">
           <div class="field" style="margin:0 0 12px;"><label>Nombre</label><input class="input vc-input" maxLength="80" aria-invalid="{{ m.inv.nombre }}" value="{{ m.d.nombre }}" onChange="{{ on.nombre }}" placeholder="Ej: Vení 3 veces este mes" /><sc-if value="{{ m.e.nombre }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ m.e.nombre }}</p></sc-if></div>
           <div class="field" style="margin:0 0 12px;"><label>Descripción <span class="text-muted" style="font-weight:400;">(opcional)</span></label><textarea class="input vc-input" rows="2" maxLength="255" style="height:auto; padding:10px 12px;" value="{{ m.d.descripcion }}" onChange="{{ on.descripcion }}" placeholder="Ej: Sumá 3 consumos en el mes y ganá 50 puntos."></textarea><p class="text-muted" style="margin:2px 0 0; font-size:11px; text-align:right;">{{ m.descLen }}</p></div>
-
-          <div style="display:flex; align-items:center; margin:16px 0 10px; padding-bottom:4px; border-bottom:1px solid #fbe6d4;"><span style="font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Objetivo</span></div>
           <div style="display:flex; flex-direction:column; gap:12px;">
-            <div class="field" style="margin:0;"><label>Tipo de objetivo</label><div class="vc-seg" style="max-width:420px;"><button type="button" class="{{ m.segCount }}" style="white-space:nowrap;" onClick="{{ on.tipoCount }}">Cantidad de consumos</button><button type="button" class="{{ m.segAmount }}" style="white-space:nowrap;" onClick="{{ on.tipoAmount }}">Monto acumulado</button></div></div>
+            <div class="field" style="margin:0;"><label style="display:flex; align-items:center; gap:6px;">Tipo de objetivo <button type="button" aria-label="¿Qué mide cada tipo?" title="¿Qué mide cada tipo?" aria-expanded="{{ m.ayudaExp }}" onClick="{{ on.ayuda }}" style="width:20px; height:20px; display:inline-grid; place-items:center; border-radius:999px; border:1px solid #d9804f; background:{{ m.ayudaBg }}; color:{{ m.ayudaFg }}; font-family:var(--font-heading); font-size:12px; font-weight:700; line-height:1; cursor:pointer; padding:0;">?</button></label><div class="vc-seg" style="max-width:420px;"><button type="button" class="{{ m.segCount }}" style="white-space:nowrap;" title="Cuenta cuántos consumos hace el cliente en el mes que cumplen los días y el horario elegidos." onClick="{{ on.tipoCount }}">Cantidad de consumos</button><button type="button" class="{{ m.segAmount }}" style="white-space:nowrap;" title="Suma el monto en $ de los consumos del mes que cumplen los días y el horario elegidos." onClick="{{ on.tipoAmount }}">Monto acumulado</button></div>
+              <sc-if value="{{ m.ayuda }}" hint-placeholder-val="{{ false }}"><div role="note" style="margin-top:8px; max-width:520px; border:1px solid #f6d0b1; background:#fffaf5; border-radius:12px; padding:10px 14px; font-size:13px; line-height:1.5; color:#5c5249;"><div><strong style="color:#7e3e20;">Cantidad de consumos:</strong> cuenta cuántos consumos hace el cliente en el mes que cumplen los días y el horario elegidos. Ej.: objetivo 3 → tiene que venir 3 veces.</div><div style="margin-top:4px;"><strong style="color:#7e3e20;">Monto acumulado:</strong> suma el monto en $ de esos consumos. Ej.: objetivo $ 20.000 → sus consumos del mes tienen que sumar $ 20.000, en una o varias visitas.</div></div></sc-if></div>
             <div class="field" style="margin:0; max-width:280px;"><label>{{ m.objLabel }}</label><input class="input vc-input" inputMode="{{ m.objMode }}" aria-invalid="{{ m.inv.objetivo }}" value="{{ m.d.objetivo }}" onChange="{{ on.objetivo }}" placeholder="{{ m.objPh }}" /><sc-if value="{{ m.e.objetivo }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ m.e.objetivo }}</p></sc-if></div>
           </div>
           <div class="field" style="margin:14px 0 0;"><label>Días</label>
@@ -55,13 +72,15 @@
           <div class="field" style="margin:14px 0 0;"><label>Horario <span class="text-muted" style="font-weight:400;">(opcional)</span></label>
             <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;"><span class="vc-label">Desde</span><input class="input vc-input" type="time" style="width:140px;" aria-invalid="{{ m.inv.hora }}" value="{{ m.d.desde }}" onChange="{{ on.desde }}" /><span class="vc-label">Hasta</span><input class="input vc-input" type="time" style="width:140px;" aria-invalid="{{ m.inv.hora }}" value="{{ m.d.hasta }}" onChange="{{ on.hasta }}" /></div>
             <sc-if value="{{ m.e.hora }}" hint-placeholder-val="{{ false }}"><p style="margin:4px 0 0; font-size:12px; color:#a8532a;">{{ m.e.hora }}</p></sc-if></div>
-
-          <div style="display:flex; align-items:center; margin:16px 0 10px; padding-bottom:4px; border-bottom:1px solid #fbe6d4;"><span style="font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Recompensa</span></div>
+        </div>
+        <div class="dialog-actions" style="display:flex; justify-content:flex-end; align-items:center; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-secondary" onClick="{{ cerrar }}">Cancelar</button><button type="button" class="btn btn-primary" onClick="{{ siguiente }}">Siguiente</button></div></sc-if>
+        <sc-if value="{{ m.paso2 }}" hint-placeholder-val="{{ false }}"><div class="dialog-body">
+          <div style="margin:0 0 12px; border:1px solid #f6d0b1; background:#fffaf5; border-radius:12px; padding:10px 14px; font-size:13px; color:#5c5249;"><strong style="color:#2b1a10;">{{ m.d.nombre }}</strong> · {{ m.resumenObj }}</div>
+          <div style="display:flex; align-items:center; margin:4px 0 10px; padding-bottom:4px; border-bottom:1px solid #fbe6d4;"><span style="font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Recompensa</span></div>
           <div class="field" style="margin:0; max-width:240px;"><label>Puntos</label><input class="input vc-input" inputMode="numeric" disabled="{{ m.d.sinRec }}" aria-invalid="{{ m.inv.recompensa }}" value="{{ m.recVal }}" onChange="{{ on.recompensa }}" placeholder="{{ m.recPh }}" />
             <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:500; cursor:pointer; margin-top:4px;"><input type="checkbox" checked="{{ m.d.sinRec }}" onChange="{{ on.sinRec }}" />Sin recompensa</label>
             <sc-if value="{{ m.e.recompensa }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ m.e.recompensa }}</p></sc-if></div>
           <p class="text-muted" style="margin:6px 0 0; font-size:12px;">Los puntos de una misión no cuentan para el nivel del cliente.</p>
-
           <div style="display:flex; align-items:center; margin:16px 0 10px; padding-bottom:4px; border-bottom:1px solid #fbe6d4;"><span style="font-family:var(--font-heading); font-size:16px; font-weight:700; color:#7e3e20;">Vigencia</span></div>
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px 20px;">
             <div class="field" style="margin:0;"><label>Mes de inicio</label><select class="input vc-input" disabled="{{ m.inicioDis }}" aria-invalid="{{ m.inv.inicio }}" value="{{ m.d.inicio }}" onChange="{{ on.inicio }}"><sc-for list="{{ m.mesesInicio }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.t }}</option></sc-for></select>
@@ -72,7 +91,7 @@
               <sc-if value="{{ m.e.fin }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ m.e.fin }}</p></sc-if></div>
           </div>
         </div>
-        <div class="dialog-actions" style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;"><div style="display:flex; gap:8px; flex-wrap:wrap;"><sc-if value="{{ m.edit }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-ghost" style="color:#b3261e;" onClick="{{ m.onEliminar }}">Eliminar</button></sc-if></div><div style="display:flex; gap:8px; flex-wrap:wrap; margin-left:auto;"><button type="button" class="btn btn-secondary" onClick="{{ cerrar }}">Cancelar</button><button type="button" class="btn btn-primary" onClick="{{ guardar }}">Guardar misión</button></div></div>
+        <div class="dialog-actions" style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;"><div style="display:flex; gap:8px; flex-wrap:wrap;"><sc-if value="{{ m.edit }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-ghost" style="color:#b3261e;" onClick="{{ m.onEliminar }}">Eliminar</button></sc-if></div><div style="display:flex; gap:8px; flex-wrap:wrap; margin-left:auto;"><button type="button" class="btn btn-secondary" onClick="{{ atras }}">Atrás</button><button type="button" class="btn btn-primary" onClick="{{ guardar }}">Guardar misión</button></div></div></sc-if>
       </div>
     </div>
   </sc-if>
@@ -92,7 +111,7 @@
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1100,&quot;height&quot;:760},&quot;usuario&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Denise Nagel&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
   D0 = () => ({ nombre: '', descripcion: '', tipo: 'COUNT', objetivo: '', todos: true, dias: [], desde: '', hasta: '', recompensa: '', sinRec: false, inicio: window.VCS5 ? window.VCS5.mesActual() : '', fin: '', repite: true });
-  state = { q: '', fase: 'Todas', page: 1, m: { open: false, modo: 'crear', id: null, d: {}, e: {} }, dlg: { open: false, id: null }, toast: '', v: 0 };
+  state = { q: '', fase: 'Todas', page: 1, m: { open: false, modo: 'crear', id: null, paso: 1, ayuda: false, d: {}, e: {} }, det: { open: false, id: null }, dlg: { open: false, id: null }, toast: '', v: 0 };
   componentDidMount() {
     const t = () => { if (window.VCS5) { this._u = window.VCS5.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); };
     t();
@@ -101,20 +120,29 @@ class Component extends DCLogic {
   say(t) { this.setState({ toast: t }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 4500); }
   usuario() { return (this.props && this.props.usuario) || 'Denise Nagel'; }
   setD = (k, v) => this.setState((s) => ({ m: { ...s.m, d: { ...s.m.d, [k]: v }, e: { ...s.m.e, [({ todos: 'dias', desde: 'hora', hasta: 'hora', sinRec: 'recompensa', repite: 'fin', tipo: 'objetivo' })[k] || k]: '' } } }));
-  abrirCrear = () => this.setState({ m: { open: true, modo: 'crear', id: null, d: this.D0(), e: {} } });
-  abrirEditar = (x) => this.setState({ m: { open: true, modo: 'editar', id: x.id, e: {}, d: {
-    nombre: x.nombre, descripcion: x.descripcion || '', tipo: (x.pendiente || x).tipo, objetivo: String((x.pendiente || x).objetivo), todos: !((x.pendiente || x).dias || []).length, dias: ((x.pendiente || x).dias || []).slice(),
-    desde: (x.pendiente || x).desde || '', hasta: (x.pendiente || x).hasta || '', recompensa: (x.pendiente || x).recompensa ? String((x.pendiente || x).recompensa) : '', sinRec: !(x.pendiente || x).recompensa,
-    inicio: x.inicio, fin: x.fin || '', repite: !x.fin } } });
-  guardar = () => {
-    const K = window.VCS5; const m = this.state.m; const d = m.d; const e = {}; const edit = m.modo === 'editar'; const x0 = edit ? K.mision(m.id) : null;
-    const nom = d.nombre.trim();
-    if (!nom) e.nombre = 'El nombre es obligatorio.'; else if (nom.length > 80) e.nombre = 'El nombre no puede superar los 80 caracteres.'; else if (K.nombreUsado(nom, edit ? m.id : null)) e.nombre = 'Ya existe una misión con ese nombre.';
+  abrirCrear = () => this.setState({ m: { open: true, modo: 'crear', id: null, paso: 1, ayuda: false, d: this.D0(), e: {} } });
+  abrirDetalle = (x) => this.setState({ det: { open: true, id: x.id } });
+  // Paso 1: nombre y objetivo. Paso 2: recompensa y vigencia.
+  validar1(d, edit, id) {
+    const K = window.VCS5; const e = {}; const nom = d.nombre.trim();
+    if (!nom) e.nombre = 'El nombre es obligatorio.'; else if (nom.length > 80) e.nombre = 'El nombre no puede superar los 80 caracteres.'; else if (K.nombreUsado(nom, edit ? id : null)) e.nombre = 'Ya existe una misión con ese nombre.';
     const raw = String(d.objetivo).trim().replace(/\./g, '').replace(',', '.');
     const obj = Number(raw); const max = d.tipo === 'AMOUNT' ? 10000000 : 1000;
     if (!raw || !(obj > 0)) e.objetivo = 'Ingresá un objetivo mayor a 0.'; else if (d.tipo === 'COUNT' && !/^\d+$/.test(raw)) e.objetivo = 'Ingresá un número entero.'; else if (obj > max) e.objetivo = 'El objetivo máximo es ' + K.num(max) + '.';
     if (!d.todos && !d.dias.length) e.dias = 'Elegí al menos un día o marcá «Todos los días».';
     if (!!d.desde !== !!d.hasta) e.hora = 'Completá las dos horas o ninguna.'; else if (d.desde && d.desde >= d.hasta) e.hora = 'La hora de inicio tiene que ser anterior a la de fin.';
+    return { e, nom, obj };
+  }
+  siguiente = () => { const m = this.state.m; const r = this.validar1(m.d, m.modo === 'editar', m.id); if (Object.keys(r.e).length) { this.setState({ m: { ...m, e: r.e } }); return; } this.setState({ m: { ...m, paso: 2, e: {} } }); };
+  atras = () => this.setState((s) => ({ m: { ...s.m, paso: 1, e: {} } }));
+  abrirEditar = (x) => this.setState({ det: { open: false, id: null }, m: { open: true, modo: 'editar', id: x.id, paso: 1, ayuda: false, e: {}, d: {
+    nombre: x.nombre, descripcion: x.descripcion || '', tipo: (x.pendiente || x).tipo, objetivo: String((x.pendiente || x).objetivo), todos: !((x.pendiente || x).dias || []).length, dias: ((x.pendiente || x).dias || []).slice(),
+    desde: (x.pendiente || x).desde || '', hasta: (x.pendiente || x).hasta || '', recompensa: (x.pendiente || x).recompensa ? String((x.pendiente || x).recompensa) : '', sinRec: !(x.pendiente || x).recompensa,
+    inicio: x.inicio, fin: x.fin || '', repite: !x.fin } } });
+  guardar = () => {
+    const K = window.VCS5; const m = this.state.m; const d = m.d; const e = {}; const edit = m.modo === 'editar'; const x0 = edit ? K.mision(m.id) : null;
+    const r1 = this.validar1(d, edit, m.id); const nom = r1.nom, obj = r1.obj;
+    if (Object.keys(r1.e).length) { this.setState({ m: { ...m, paso: 1, e: r1.e } }); return; }
     let rec = null;
     if (!d.sinRec) { const r = String(d.recompensa).trim().replace(/\./g, ''); if (!/^\d+$/.test(r) || Number(r) <= 0) e.recompensa = 'Ingresá puntos enteros mayores a 0.'; else if (Number(r) > 100000) e.recompensa = 'El máximo es 100.000 puntos.'; else rec = Number(r); }
     const empezo = edit && x0 && x0.inicio <= K.mesActual();
@@ -130,15 +158,24 @@ class Component extends DCLogic {
   confirmarDlg = () => { window.VCS5.eliminarMision(this.state.dlg.id, this.usuario()); this.setState((s) => ({ dlg: { open: false, id: null }, m: { ...s.m, open: false } })); this.say('Misión eliminada.'); };
   renderVals() {
     const K = window.VCS5; const s = this.state;
-    if (!K) return { rows: [], hay: false, vacio: false, pg: {}, m: { open: false, e: {}, inv: {}, d: {}, chips: [], mesesInicio: [], mesesFin: [] }, dlg: { open: false }, on: {} };
+    if (!K) return { rows: [], hay: false, vacio: false, pg: {}, m: { open: false, e: {}, inv: {}, d: {}, chips: [], mesesInicio: [], mesesFin: [] }, det: { open: false, datos: [], clientes: [] }, dlg: { open: false }, on: {} };
     const q = s.q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     const MAP = { 'En curso': 'En curso', 'Próximas': 'Próxima', 'Finalizadas': 'Finalizada' };
     const lista = K.misiones(false).filter((x) => (s.fase === 'Todas' || K.fase(x) === MAP[s.fase]) && (!q || x.nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(q))).slice().sort((a, b) => b.modTs - a.modTs);
     const size = 10, pages = Math.max(1, Math.ceil(lista.length / size)), pg = Math.min(s.page, pages);
     const rows = lista.slice((pg - 1) * size, pg * size).map((x) => ({
       nombre: x.nombre, descripcion: x.descripcion, objetivo: K.objetivoTxt(x), cond: K.condTxt(x), recompensa: K.recompensaTxt(x), vigencia: K.vigenciaTxt(x), completadas: K.num(K.completadasMes(x)),
-      fase: K.fase(x), badge: K.badgeFase(K.fase(x)), pendiente: x.pendiente ? 'Cambios desde ' + K.mesTxtMin(x.pendiente.rige) : '', onAbrir: () => this.abrirEditar(x)
+      fase: K.fase(x), badge: K.badgeFase(K.fase(x)), pendiente: x.pendiente ? 'Cambios desde ' + K.mesTxtMin(x.pendiente.rige) : '', onAbrir: () => this.abrirDetalle(x)
     }));
+    // Detalle de la misión: datos generales y clientes que la completaron este mes.
+    const xm = s.det.open ? K.mision(s.det.id) : null;
+    const comp = xm ? K.completaronMes(xm) : [];
+    const det = xm ? { open: true, nombre: xm.nombre, descripcion: xm.descripcion, fase: K.fase(xm), badge: K.badgeFase(K.fase(xm)), pendiente: xm.pendiente ? 'Cambios desde ' + K.mesTxtMin(xm.pendiente.rige) : '',
+      datos: [{ k: 'Objetivo', v: K.objetivoTxt(xm), s: K.condTxt(xm) ? K.condTxt(xm).charAt(0).toUpperCase() + K.condTxt(xm).slice(1) : 'Todos los días' }, { k: 'Recompensa', v: K.recompensaTxt(xm), s: '' }, { k: 'Vigencia', v: K.vigenciaTxt(xm), s: '' }, { k: 'Completadas este mes', v: K.num(comp.length), s: '' }],
+      mesTxt: K.mesTxt(K.mesActual()), cuantos: comp.length === 1 ? '1 cliente' : K.num(comp.length) + ' clientes', hay: comp.length > 0, vacio: comp.length === 0,
+      clientes: comp.map((c) => ({ nombre: c.nombre, doc: c.tipo + ' ' + K.num(c.num), fecha: c.completadaTs ? K.fdt(c.completadaTs) : '—', estado: c.estado, badge: K.badgeMision(c.estado),
+        sub: c.estado === 'Reclamada' ? 'Por ' + (c.reclamadaPor === 'Cliente' ? 'el cliente' : 'el sistema') + ' · ' + K.fdt(c.reclamadaTs) : (xm.recompensa ? 'Falta reclamar' : 'Sin recompensa') })),
+      onEditar: () => this.abrirEditar(xm) } : { open: false, datos: [], clientes: [] };
     const m = s.m; const d = m.d || {}; const edit = m.modo === 'editar'; const x0 = edit ? K.mision(m.id) : null;
     const hoyMes = K.mesActual(); const empezo = !!(x0 && x0.inicio <= hoyMes);
     const opts = (desde, n) => Array.from({ length: n }, (_, i) => { const v = K.sumarMes(desde, i); return { v, t: K.mesTxt(v) }; });
@@ -156,14 +193,19 @@ class Component extends DCLogic {
       mesesInicio, mesesFin, finVal: d.repite ? '' : (d.fin || d.inicio), inicioDis: empezo, inicioAyuda: empezo ? 'La misión ya empezó: no se puede cambiar el mes de inicio.' : '',
       aviso: conAsig ? 'Los cambios del objetivo y la recompensa se aplican desde ' + K.mesTxtMin(K.sumarMes(hoyMes, 1)) + '. Este mes sigue igual para los clientes.' : '',
       faseTxt: x0 ? K.fase(x0) : '', badge: x0 ? K.badgeFase(K.fase(x0)) : '', comp: x0 ? K.num(K.completadasMes(x0)) : '0',
-      onEliminar: () => x0 && this.setState({ dlg: { open: true, id: x0.id } }) };
+      onEliminar: () => x0 && this.setState({ dlg: { open: true, id: x0.id } }),
+      paso1: m.paso !== 2, paso2: m.paso === 2,
+      p1bg: m.paso !== 2 ? '#a8532a' : '#fbe6d4', p1fg: m.paso !== 2 ? '#ffffff' : '#7e3e20', p2bg: m.paso === 2 ? '#a8532a' : '#fbe6d4', p2fg: m.paso === 2 ? '#ffffff' : '#7e3e20',
+      ayuda: !!m.ayuda, ayudaExp: m.ayuda ? 'true' : 'false', ayudaBg: m.ayuda ? '#a8532a' : '#ffffff', ayudaFg: m.ayuda ? '#ffffff' : '#a8532a',
+      resumenObj: d.tipo ? K.objetivoTxt({ tipo: d.tipo, objetivo: Number(String(d.objetivo || '0').replace(/\./g, '').replace(',', '.')) }) + (K.condTxt({ dias: d.todos ? null : d.dias, desde: d.desde, hasta: d.hasta }) ? ', ' + K.condTxt({ dias: d.todos ? null : d.dias, desde: d.desde, hasta: d.hasta }) : ', todos los días') : '' };
     const xd = s.dlg.open ? K.mision(s.dlg.id) : null;
     return {
       q: s.q, fase: s.fase, onQ: (e) => this.setState({ q: e.target.value, page: 1 }), onFase: (e) => this.setState({ fase: e.target.value, page: 1 }),
       rows, hay: lista.length > 0, vacio: lista.length === 0, toast: s.toast, abrirCrear: this.abrirCrear,
       pg: { info: 'Mostrando ' + (lista.length ? (pg - 1) * size + 1 : 0) + '–' + Math.min(lista.length, pg * size) + ' de ' + lista.length, prevDis: pg <= 1, nextDis: pg >= pages, prev: () => this.setState({ page: pg - 1 }), next: () => this.setState({ page: pg + 1 }) },
-      m: mv, cerrar: () => this.setState({ m: { ...m, open: false } }), guardar: this.guardar,
-      on: { nombre: (e) => this.setD('nombre', e.target.value), descripcion: (e) => this.setD('descripcion', String(e.target.value).slice(0, 255)), objetivo: (e) => this.setD('objetivo', e.target.value),
+      m: mv, cerrar: () => this.setState({ m: { ...m, open: false } }), guardar: this.guardar, siguiente: this.siguiente, atras: this.atras,
+      det, cerrarDet: () => this.setState({ det: { open: false, id: null } }),
+      on: { ayuda: () => this.setState((s2) => ({ m: { ...s2.m, ayuda: !s2.m.ayuda } })), nombre: (e) => this.setD('nombre', e.target.value), descripcion: (e) => this.setD('descripcion', String(e.target.value).slice(0, 255)), objetivo: (e) => this.setD('objetivo', e.target.value),
         tipoCount: () => this.setD('tipo', 'COUNT'), tipoAmount: () => this.setD('tipo', 'AMOUNT'), todos: (e) => this.setD('todos', !!e.target.checked),
         desde: (e) => this.setD('desde', e.target.value), hasta: (e) => this.setD('hasta', e.target.value), recompensa: (e) => this.setD('recompensa', e.target.value), sinRec: (e) => this.setD('sinRec', !!e.target.checked),
         inicio: (e) => this.setD('inicio', e.target.value), fin: (e) => this.setD('fin', e.target.value), repite: (e) => this.setD('repite', !!e.target.checked) },

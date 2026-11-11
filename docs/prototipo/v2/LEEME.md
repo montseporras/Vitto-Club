@@ -98,3 +98,33 @@ Se editaron los `.html` de esta carpeta para alinear el vocabulario con el contr
 **Pendiente (se hace en Claude Design y se vuelve a exportar):** el canje del prototipo todavía nace `Pendiente` y el Cajero lo "confirma". Según la Definición del Producto (sección 9) el canje **nace Confirmado** y pasa a Utilizado, Rechazado, Cancelado o Vencido. Esa lógica sigue en `pagina-principal.html`. En los lotes de puntos falta mostrar el estado "Anulado".
 
 **El archivo único (`../Vitto Club Prototipo - archivo unico.html`) NO se actualizó** con estos cambios: guarda los componentes comprimidos y `scripts/desempaquetar_prototipo.py`, que lo arma, no está en el repo. Hasta que se vuelva a exportar, ese archivo y esta carpeta no coinciden.
+
+## Cambios hechos a mano (11/11/2026, a pedido de Denise)
+
+Se cambiaron los `.html` de esta carpeta **y** se volvió a armar el archivo único con `_empaquetar.mjs`.
+Si se vuelve a exportar desde Claude Design sin hacer estos cambios allá, se pierden.
+
+| Dónde | Cambio |
+|---|---|
+| `Misiones.html` | Al hacer clic en una misión se abre su **detalle** (datos generales y los clientes que la completaron este mes, con su estado) y el botón "Editar misión". Crear y editar van en **dos modales**: 1) Objetivo (nombre, descripción, tipo, días y horario) y 2) Recompensa y vigencia. El "Tipo de objetivo" tiene un botón **?** que explica Cantidad de consumos y Monto acumulado |
+| `ConfigNotificaciones.html` | Se sacó la tarjeta del **logo**. Nueva tarjeta **Promociones**: "+ Enviar promoción" abre un modal (Título, Descripción, vista previa) que manda el correo en el momento, **sin guardar la promoción**. En el historial, las notificaciones que **fallaron** tienen el botón **Reenviar**. El filtro de fechas es un solo campo con calendario, como el de Consumos |
+| `ConfigPromociones.html` | **Se eliminó.** Configuración ya no tiene la sección Promociones; tampoco está la tarjeta "Promociones" del Inicio del Cliente |
+| Configuración → Puntos (`pagina-principal.html`) | Tarjetas más compactas (clase `vc-pts`): menos aire entre el contenido, el botón y los bordes |
+| Panel del Administrador (`pagina-principal.html`) | Se sacó el botón "Volver" del encabezado. Todos los modales tienen su cruz para cerrar (se agregó la que faltaba en "Anular consumo") |
+| `ClienteCanjes.html` | En "Mis canjes", "Día específico" y "Rango" pasan a una sola opción "Elegir fechas" con el calendario de Consumos |
+| `Estadisticas.html` | El período es **un mes** (Mes y Año), sin fecha de inicio y fin ni selector Día / Semana / Mes. Más gráficos, todos con CSS y con colores pastel: **Clientes** (torta de frecuentes y columnas de los últimos 6 meses), **Consumos** (columnas por día de la semana y por franja horaria, con cantidad y monto), **Puntos** (torta por origen y barras acreditados / canjeados / vencidos / anulados; sin "Ajustes" ni la tabla por mes) y **Programa** (torta de las misiones asignadas por estado, torta de clientes por nivel y barras de recompensas más canjeadas). Todos los números usan la misma letra |
+| `Auditoria.html` | El módulo **Misiones** del filtro ya no dice "(Próximamente)" (S5-33) y muestra los registros de `datos-sprint5.js`. Se agregaron las acciones "Regaló puntos de cumpleaños" y "Modificó cliente frecuente"; se sacó "Modificó promociones" (las promociones ya no se guardan) y dos registros de ejemplo viejos de una misión semanal |
+| `datos-sprint5.js` | Funciones nuevas del prototipo: `completaronMes`, `reenviar` y `enviarPromoAhora` |. Se sacó el registro de auditoría de ejemplo de una promoción
+
+**Diferencias con el contrato del Sprint 5 que hay que llevar al contrato** (el prototipo ya las tiene):
+
+- Promociones sin guardar: el contrato tiene la tabla `promotions`, los endpoints 17 a 22, la auditoría
+  `PROMOTIONS_UPDATED` y la tarjeta del Inicio del Cliente (§3.7).
+- Reenviar un correo que falló: S5-28 dice "sin reintento" y no hay endpoint.
+- Clientes que completaron una misión: el contrato solo trae `completedCount` (§2.3); falta un endpoint o campo
+  con la lista.
+- Estadísticas por mes: §3.9 pide `fromDate` / `toDate` y `groupBy`; con un mes alcanza con mandar el primer y
+  el último día, pero `groupBy` y "por período" dejan de usarse. Los últimos 6 meses de Clientes usan `byMonth`.
+- Gráficos de torta: S5-27 dice "tablas y barras con CSS"; las tortas también son CSS (`conic-gradient`), sin
+  librería.
+- Logo: se sacó de Notificaciones; el contrato lo ubica en Configuración → Notificaciones (US-14).

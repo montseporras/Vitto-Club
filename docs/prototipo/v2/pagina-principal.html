@@ -860,6 +860,11 @@ textarea.input { min-height: 90px; resize: vertical; }
     .vc-root .vc-c-pcard { border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:24px; font-size:16px; line-height:1.5; }
     .vc-root .vc-c-pcard-title { margin:0; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.25; color:#2b1a10; }
     .vc-root .vc-c-pcard-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:12px; margin:32px -24px 0; padding:20px 24px; border-top:1px solid #fbe6d4; background:#fdf7ee; }
+    /* Configuración → Puntos: tarjetas compactas (menos aire entre contenido, botón y bordes). */
+    .vc-root .vc-pts .vc-c-pcard { padding:16px 20px; }
+    .vc-root .vc-pts .vc-c-pcard-title { font-size:20px; }
+    .vc-root .vc-pts .vc-c-pcard > p:first-of-type { margin:2px 0 12px !important; font-size:14px !important; }
+    .vc-root .vc-pts .vc-c-pcard-actions { margin:14px -20px -16px; padding:10px 20px; border-radius:0 0 16px 16px; }
     .vc-root .vc-c-badge-alert { border-color:#ca643c; background:#ca643c; color:#ffffff; }
     @media (max-width: 640px) { .vc-root .vc-c-grid { grid-template-columns:1fr; } .vc-root .vc-c-card-body { padding:24px 20px; } .vc-root .vc-c-actions { margin:32px -20px 0; padding:20px; flex-direction:column-reverse; align-items:stretch; } }
     /* Cruz en la esquina, para diálogos sin encabezado naranja (ej. cerrar sesión) */
@@ -1065,7 +1070,6 @@ textarea.input { min-height: 90px; resize: vertical; }
 
 <div style="display:grid; gap:12px; margin-bottom:22px;">
                     <div class="card" style="border:2px solid var(--color-divider); padding:16px; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:10px; font-size:12px;" sc-camel-on-mouse-enter="{{ on_c_tab_misiones }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><span><strong style="display:block;">Misiones</strong><span class="text-muted">{{ misCli.txt }}</span></span><button type="button" class="btn btn-primary" style="font-size:11px; padding:6px 10px; white-space:nowrap;" sc-camel-on-click="{{ goMisiones }}">Ver misiones</button></div>
-                    <sc-if value="{{ promoCli.hay }}" hint-placeholder-val="{{ true }}"><div class="card" style="border:2px solid #d9804f; background:#fffaf3; padding:14px 16px; font-size:12px; text-align:left;" sc-camel-on-mouse-enter="{{ on_c_promos }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><strong>Promociones</strong><span class="{{ promoCli.cls }}">{{ promoCli.etiqueta }}</span></div><div style="font-family:var(--font-heading); font-weight:700; font-size:14px; margin-top:6px; color:#2b1a10;">{{ promoCli.titulo }}</div><div class="text-muted" style="margin-top:2px; line-height:1.4;">{{ promoCli.descripcion }}</div><div style="margin-top:6px; color:#7e3e20; font-weight:600;">{{ promoCli.cuando }}</div><sc-if value="{{ promoCli.mas }}" hint-placeholder-val="{{ false }}"><div class="text-muted" style="margin-top:4px;">{{ promoCli.mas }}</div></sc-if></div></sc-if>
                   </div>
 
 <sc-if value="{{ catalogoActivo }}" hint-placeholder-val="{{ false }}">
@@ -1364,7 +1368,7 @@ textarea.input { min-height: 90px; resize: vertical; }
     <div style="min-height:100vh; display:flex; flex-direction:column;">
       <div style="position:sticky; top:0; z-index:20; background:#a8532a; box-shadow:0 4px 6px -1px rgba(79,39,20,.2), 0 2px 4px -2px rgba(79,39,20,.2);">
         <div style="display:flex; align-items:center; gap:16px; padding:12px 16px; box-sizing:border-box; max-width:1280px; margin:0 auto;">
-          <button type="button" class="vc-menu-btn" sc-camel-on-click="{{ abrirDrawer }}" aria-label="Abrir menú" style="width:40px; height:40px; align-items:center; justify-content:center; border-radius:8px; background:rgba(255,255,255,.15); color:#ffffff; border:none; cursor:pointer; flex-shrink:0;"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button><button type="button" sc-camel-on-click="{{ goBack }}" style="display:inline-flex; align-items:center; gap:6px; height:40px; padding:0 16px; border-radius:999px; background:#fdf7ee; color:#7e3e20; border:none; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.1);" style-hover="background:#fdf3ea;"><svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="m12 19-7-7 7-7M19 12H5"></path></svg>Volver</button><span style="width:1px; height:32px; background:rgba(255,255,255,.3);"></span>
+          <button type="button" class="vc-menu-btn" sc-camel-on-click="{{ abrirDrawer }}" aria-label="Abrir menú" style="width:40px; height:40px; align-items:center; justify-content:center; border-radius:8px; background:rgba(255,255,255,.15); color:#ffffff; border:none; cursor:pointer; flex-shrink:0;"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
           <div style="display:flex; align-items:center; gap:10px; min-width:0;"><img src="18d8eab9-bc9e-4d21-8bcd-645497ceadec" alt="" style="height:36px; width:auto;"><h1 style="margin:0; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.35; color:#ffffff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Vitto Club<span style="font-family:var(--font-body); font-size:18px; font-weight:600;"> · Administración</span></h1></div>
           <div style="margin-left:auto; display:flex; align-items:center; gap:12px;"><button type="button" sc-camel-on-click="{{ irACaja }}" style="display:inline-flex; align-items:center; gap:6px; height:40px; padding:0 16px; border-radius:999px; background:rgba(255,255,255,.15); color:#ffffff; border:none; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; white-space:nowrap;" style-hover="background:rgba(255,255,255,.25);"><svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M3 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2ZM13 5v2m0 4v2m0 4v2"></path></svg>Caja</button><span class="vc-hdr-meta" style="font-size:14px; color:rgba(255,255,255,.9); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;">{{ sesionLabel }}</span><button type="button" sc-camel-on-click="{{ cerrarSesionCliente }}" style="display:inline-flex; align-items:center; gap:6px; height:40px; padding:0 16px; border-radius:999px; background:rgba(255,255,255,.15); color:#ffffff; border:none; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; white-space:nowrap;" style-hover="background:rgba(255,255,255,.25);"><svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"></path></svg>Cerrar sesión</button><button type="button" sc-camel-on-click="{{ abrirConfig }}" sc-camel-on-mouse-enter="{{ on_a_nav_config }}" sc-camel-on-mouse-leave="{{ leaveTip }}" aria-label="Abrir configuración" title="Configuración" style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.15); border:none; color:#ffffff; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;" style-hover="background:rgba(255,255,255,.25);"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2ZM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path></svg></button></div>
         </div>
@@ -1473,7 +1477,7 @@ textarea.input { min-height: 90px; resize: vertical; }
               </div>
             </sc-if>
             <sc-if value="{{ cIsConfig }}" hint-placeholder-val="{{ false }}">
-              <div class="vc-r" style="display:flex; flex-direction:column; gap:24px;">
+              <div class="vc-r vc-pts" style="display:flex; flex-direction:column; gap:16px;">
                 <p style="margin:0; font-size:16px; color:#5c5249;">Los cambios se aplican a las operaciones futuras. Los movimientos ya registrados no se modifican.</p>
                 <div sc-camel-on-mouse-enter="{{ on_a_config_equivalencia }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><div class="vc-c-pcard"><h3 class="vc-c-pcard-title">Equivalencia de puntos</h3><p style="margin:0; font-size:16px; color:#5c5249; margin:4px 0 24px;">Cantidad de puntos que suma el cliente según el monto de cada consumo.</p><sc-if value="{{ ptsOk.eq }}" hint-placeholder-val="{{ false }}"><div role="status" style="display:flex; align-items:flex-start; gap:12px; border:1px solid rgba(112,132,95,.4); border-left:4px solid #70845f; background:#eef1e8; color:#4e5e41; border-radius:12px; padding:12px 16px; font-size:14px; line-height:1.5; box-shadow:0 1px 2px rgba(0,0,0,.05); margin-bottom:24px;"><span style="margin-top:1px; display:flex;"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M20 6 9 17l-5-5"></path></svg></span><div style="min-width:0;">Equivalencia de puntos guardada. Aplica a las operaciones futuras.</div></div></sc-if>
                   <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;"><span class="vc-label">Por cada $</span><input class="input" type="number" style="width:160px;" aria-invalid="{{ inv.ptsMonto }}" value="{{ config.montoBase }}" sc-camel-on-change="{{ on.ptsMonto }}"><span class="vc-label">se otorgan</span><input class="input" type="number" style="width:112px;" aria-invalid="{{ inv.ptsPuntos }}" value="{{ config.puntosPorMonto }}" sc-camel-on-change="{{ on.ptsPuntos }}"><span class="vc-label">puntos</span></div>
@@ -1501,9 +1505,6 @@ textarea.input { min-height: 90px; resize: vertical; }
 
             <sc-if value="{{ cIsNotif }}" hint-placeholder-val="{{ false }}">
               <div sc-camel-on-mouse-enter="{{ on_a_nav_notif }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><dc-import name="ConfigNotificaciones" usuario="{{ consumoUsuario }}" hint-size="100%,760px"></dc-import></div>
-            </sc-if>
-            <sc-if value="{{ cIsPromos }}" hint-placeholder-val="{{ false }}">
-              <div sc-camel-on-mouse-enter="{{ on_a_nav_promos }}" sc-camel-on-mouse-leave="{{ leaveTip }}"><dc-import name="ConfigPromociones" usuario="{{ consumoUsuario }}" hint-size="100%,620px"></dc-import></div>
             </sc-if>
           </div>
         </div>
@@ -1729,8 +1730,8 @@ textarea.input { min-height: 90px; resize: vertical; }
 
   <sc-if value="{{ anulacion.compraId }}" hint-placeholder-val="{{ false }}">
     <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000;">
-      <div class="dialog" style="max-width:420px;">
-        <div class="dialog-title">Anular consumo #{{ anulacion.compraId }}</div>
+      <div class="dialog" style="position:relative; max-width:420px;"><button type="button" sc-camel-on-click="{{ cerrarAnulacion }}" aria-label="Cerrar" title="Cerrar" style="position:absolute; top:16px; right:16px; width:36px; height:36px; display:grid; place-items:center; border:none; border-radius:999px; background:transparent; color:#7e3e20; cursor:pointer; z-index:1;"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
+        <div class="dialog-title" style="padding-right:40px;">Anular consumo #{{ anulacion.compraId }}</div>
         <div class="dialog-body">
           <p style="font-size:13px; color:var(--color-accent-700); margin-top:0;">Esta acción revertirá los puntos acreditados por este consumo y quedará registrada en el historial de auditoría. Esta operación no se puede deshacer.</p>
           <div class="field"><label>Motivo de la anulación (obligatorio)</label><textarea class="input vc-input" rows="3" value="{{ anulacion.motivo }}" sc-camel-on-change="{{ setMotivoAnulacion }}" placeholder="Ej: error en el monto ingresado"></textarea></div>
@@ -1990,7 +1991,7 @@ class Component extends DCLogic {
     a_recompensa_toggle: 'US-36 · RF-040 — Activar o desactivar una recompensa',
     a_recompensa_baja: 'US-38 · RF-042 — Eliminar recompensa (baja lógica)',
     a_nav_canjes: 'US-45 · RF-049 — Consultar canjes; aplicar (US-42 · RF-046) o rechazar (US-43 · RF-047)',
-    a_nav_notif: 'US-14 · RF-012 / US-47 a US-50 · RF-050 a RF-053 — Logo, mensajes automáticos e historial de notificaciones',
+    a_nav_notif: 'US-14 · RF-012 / US-47 a US-50 · RF-050 a RF-053 — Mensajes automáticos, envío de promociones e historial de notificaciones',
     a_nav_promos: 'US-15 · RF-013 / US-49 · RF-052 — Promociones especiales y su envío por correo',
     a_notif_toggle: 'US-47 a US-50 · RF-050 a RF-053 — Activar / desactivar un tipo de notificación automática',
     a_nav_stats: 'US-51 a US-54 · RF-054 a RF-057 — Estadísticas del programa',
@@ -2007,8 +2008,7 @@ class Component extends DCLogic {
     empleados: ['Empleados', 'Cada empleado ingresa al sistema con su mail, según su rol.'],
     config: ['Puntos', 'Reglas con las que los clientes suman puntos en sus consumos.'],
     niveles: ['Niveles de fidelización', 'Puntaje mínimo y beneficios de cada nivel del programa.'],
-    notif: ['Notificaciones', 'Logo, mensajes que el sistema envía automáticamente a los clientes e historial de envíos.'],
-    promos: ['Promociones', 'Promociones especiales que ven los clientes y que se pueden enviar por correo.']
+    notif: ['Notificaciones', 'Mensajes que el sistema envía automáticamente a los clientes, envío de promociones e historial de envíos.']
   };
 
   DATOS = (() => {
@@ -2040,12 +2040,11 @@ class Component extends DCLogic {
       a_misiones: { t: 'Misiones', c: mis },
       a_clientes: { t: 'Clientes', c: [['Apellido', 'String', 'si'], ['Nombre', 'String', 'si'], ['Nivel', 'String', 'auto'], ['Saldo', 'int', 'auto'], ['Fecha de alta', 'Date', 'auto'], ['Estado', 'enum', 'auto'], ['Filtro: tipo de documento', 'enum', 'no'], ['Filtro: número de documento', 'String', 'no'], ['Filtro de nivel', 'enum', 'no']] },
       a_cliente_edit: { t: 'Editar cliente', c: [['Nombre', 'String', 'si'], ['Apellido', 'String', 'si'], ['Número de documento', 'String', 'si'], ['Teléfono', 'String', 'no'], ['Mail', MAIL, 'si'], ['Motivo del cambio', 'String', 'si']] },
-      a_stats: { t: 'Estadísticas y reportes', c: [['Período: desde', 'Date', 'si'], ['Período: hasta', 'Date (hasta 366 días)', 'si'], ['Agrupar consumos', 'enum (Día / Semana / Mes)', 'no'], ['Clientes activos, nuevos y frecuentes', 'int', 'auto'], ['Consumos y monto', 'int / decimal', 'auto'], ['Puntos por tipo', 'int', 'auto'], ['Clientes por nivel, misiones y recompensas', 'int', 'auto'], ['Reporte', 'PDF', 'auto']] },
+      a_stats: { t: 'Estadísticas y reportes', c: [['Mes', 'int (1 a 12)', 'si'], ['Año', 'int', 'si'], ['Clientes activos, nuevos y frecuentes', 'int', 'auto'], ['Consumos y monto por día de la semana y franja horaria', 'int / decimal', 'auto'], ['Puntos por tipo (sin ajustes)', 'int', 'auto'], ['Clientes por nivel, misiones y recompensas', 'int', 'auto'], ['Reporte', 'PDF', 'auto']] },
       a_auditoria: { t: 'Auditoría', c: [['Fecha y hora', 'DateTime', 'auto'], ['Realizado por', 'String', 'auto'], ['Módulo', 'enum', 'auto'], ['Acción', 'String', 'auto'], ['Cliente afectado', 'String', 'auto'], ['Detalle', 'lista', 'auto'], ['Filtro: realizado por', 'enum', 'no'], ['Filtro: módulo', 'enum', 'no'], ['Filtro: acción', 'enum', 'no'], ['Filtro: tipo y N° de documento', 'enum + String', 'no'], ['Filtro: fecha o rango', 'Date', 'no']] },
       cfg_empleados: { t: 'Empleados', c: emp },
       cfg_config: { t: 'Puntos', c: [['Monto base ($)', 'float', 'si'], ['Puntos por monto', 'int', 'si'], ['Vigencia', 'int', 'si'], ['Tipo de bonificación', 'enum', 'si'], ['Valor de bonificación', 'decimal (porcentaje) / int (fijo)', 'si'], ['Umbral Plata', 'int', 'si'], ['Umbral Oro', 'int', 'si']] },
-      cfg_notif: { t: 'Notificaciones', c: [['Logo', 'Image (JPG, PNG o WebP, hasta 2 MB)', 'no'], ['Puntos de regalo por cumpleaños', 'int (0 a 10.000)', 'si'], ['Tipo', 'enum', 'auto'], ['Activa', 'boolean', 'si'], ['Asunto', 'String (1 a 120)', 'si'], ['Mensaje', 'String (1 a 1.000)', 'si'], ['Historial: fecha, tipo, canal, cliente, destinatario, estado', 'varios', 'auto']] },
-      cfg_promos: { t: 'Promociones', c: [['Título', 'String (1 a 80)', 'si'], ['Descripción', 'String (1 a 500)', 'si'], ['Días', 'int[] (1 a 7) · vacío = todos', 'no'], ['Horario desde / hasta', 'Time (HH:mm)', 'no'], ['Desde', 'Date', 'si'], ['Hasta', 'Date · vacío = sin fecha de fin', 'no'], ['Estado', 'enum (Vigente / Próxima / Terminada)', 'auto'], ['Último envío', 'DateTime', 'auto']] },
+      cfg_notif: { t: 'Notificaciones', c: [['Puntos de regalo por cumpleaños', 'int (0 a 10.000)', 'si'], ['Tipo', 'enum', 'auto'], ['Activa', 'boolean', 'si'], ['Asunto', 'String (1 a 120)', 'si'], ['Mensaje', 'String (1 a 1.000)', 'si'], ['Historial: fecha, tipo, canal, cliente, destinatario, estado', 'varios', 'auto'], ['Promoción: título', 'String (1 a 80)', 'si'], ['Promoción: descripción', 'String (1 a 500)', 'si'], ['Reenviar (solo Falló)', 'acción', 'no']] },
       m_empleado: { t: 'Crear / editar empleado', c: emp },
       m_nivel: { t: 'Crear / editar nivel', c: niv },
       m_mision: { t: 'Crear / editar misión', c: mis },
@@ -3094,8 +3093,7 @@ class Component extends DCLogic {
     const configNavItems = mkNav([
       { key: 'empleados', label: 'Empleados', ic: 'users', tip: 'on_a_nav_empleados' },
       { key: 'config', label: 'Puntos', ic: 'coins', tip: 'on_a_nav_config' },
-      { key: 'notif', label: 'Notificaciones', ic: 'bell', tip: 'on_a_nav_notif' },
-      { key: 'promos', label: 'Promociones', ic: 'tag', tip: 'on_a_nav_promos' }
+      { key: 'notif', label: 'Notificaciones', ic: 'bell', tip: 'on_a_nav_notif' }
     ], s.configScreen, this.setConfigScreen, s.cfgNavColapsado);
     const PANEL_CLOSE = 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M9 3v18 M16 15l-3-3 3-3';
     const PANEL_OPEN = 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M9 3v18 M14 9l3 3-3 3';
@@ -3263,8 +3261,6 @@ class Component extends DCLogic {
       cliFoto: s5 ? (s5.foto(s5Tipo, s.cliente.dni) || '') : '', cliSinFoto: !(s5 && s5.foto(s5Tipo, s.cliente.dni)), cliIniciales: s5 ? s5.iniciales(s.cliente.nombre) : '',
       benCli: { actual: nivelInfo.actual.beneficio || '', sig: !!(nivelInfo.siguiente && nivelInfo.siguiente.beneficio), sigTxt: nivelInfo.siguiente && nivelInfo.siguiente.beneficio ? 'Con ' + nivelInfo.siguiente.nombre + ': ' + nivelInfo.siguiente.beneficio : '' },
       misCli: (() => { const n = s5 ? s5.enProgreso(s5Tipo, s.cliente.dni) : 0; return { txt: n === 1 ? '1 en progreso' : n + ' en progreso' }; })(),
-      promoCli: (() => { const l = s5 ? s5.promosCliente() : []; const p = l[0]; if (!p) return { hay: false }; const vig = s5.fasePromo(p) === 'Vigente';
-        return { hay: true, titulo: p.titulo, descripcion: p.descripcion, cuando: s5.diasHorarioTxt(p) + (vig ? '' : ' · Desde el ' + s5.dmy(p.desdeFecha)), etiqueta: vig ? 'Vigente' : 'Próxima', cls: vig ? 'tag tag-ok' : 'tag tag-neutral', mas: l.length > 1 ? 'Y ' + (l.length - 1) + (l.length - 1 === 1 ? ' promoción más.' : ' promociones más.') : '' }; })(),
       goMisiones: () => this.setState({ clienteTab: 'misiones' }),
       perfilCliente: (() => { const reg = s.clientes.find((c) => String(c.numeroDocumento) === String(s.cliente.dni) && (c.tipoDocumento || 'DNI') === (s.cliente.tipoDocumento || 'DNI')) || {}; const st = mpStore || {};
         return { nombreSolo: reg.nombre || String(s.cliente.nombre || '').split(' ')[0], apellido: reg.apellido || String(s.cliente.nombre || '').split(' ').slice(1).join(' '), tipoDocumento: s.cliente.tipoDocumento || 'DNI', dni: s.cliente.dni, alta: reg.alta || st.alta || '—', telefono: s.cliente.telefono || '', email: s.cliente.email || '', fechaNacimiento: s.cliente.fechaNacimiento || '' }; })(),

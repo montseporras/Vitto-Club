@@ -55,10 +55,6 @@
     {
       "nombre": "ConfigNotificaciones",
       "uuid": "afa4b116-29a9-4e38-96e3-2e78de98c548"
-    },
-    {
-      "nombre": "ConfigPromociones",
-      "uuid": "bbe5bf48-968e-4137-b179-326110056664"
     }
   ],
   "datos": [
