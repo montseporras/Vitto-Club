@@ -15,6 +15,7 @@
     <div style="display:flex; flex-wrap:wrap; align-items:stretch; border:1px solid #f6d0b1; border-radius:12px; background:#ffffff;">
       <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1.4 1 220px;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Buscar</span><input style="height:34px; width:100%; box-sizing:border-box; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none;" placeholder="Nombre de la recompensa" value="{{ q }}" onChange="{{ onQ }}" /></div>
       <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1 1 180px; border-left:1px solid #f6d0b1;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Estado</span><select style="height:34px; width:100%; box-sizing:border-box; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none; cursor:pointer;" value="{{ estado }}" onChange="{{ onEstado }}"><option>Todas</option><option>Activas</option><option>Deshabilitadas</option><option>Inactivas</option></select></div>
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:1 1 180px; border-left:1px solid #f6d0b1;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Orden</span><select style="height:34px; width:100%; box-sizing:border-box; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none; cursor:pointer;" value="{{ orden }}" onChange="{{ onOrden }}"><option>Más recientes</option><option>Más antiguas</option></select></div>
     </div>
     <sc-if value="{{ hay }}" hint-placeholder-val="{{ true }}"><div style="margin-top:20px; overflow-x:auto;"><table class="table"><thead><tr><th style="width:56px;">Foto</th><th>Nombre</th><th style="text-align:right;">Puntos</th><th style="text-align:right;">Stock</th><th>Vencimiento</th><th style="text-align:right;">Canjes confirmados</th><th>Estado</th><th style="width:28px;"></th></tr></thead><tbody>
       <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5"><tr class="vc-rowlink" title="Abrir recompensa" onClick="{{ r.onAbrir }}">
@@ -83,7 +84,7 @@
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1100,&quot;height&quot;:760},&quot;usuario&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Denise Nagel&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
   D0 = { nombre: '', descripcion: '', puntos: '', stock: '', sinLimite: false, vence: '', noVence: false, foto: '' };
-  state = { q: '', estado: 'Todas', page: 1, m: { open: false, modo: 'crear', id: null, d: { ...this.D0 }, e: {} }, dlg: { open: false, tipo: '', id: null }, toast: '', v: 0 };
+  state = { q: '', estado: 'Todas', orden: 'Más recientes', page: 1, m: { open: false, modo: 'crear', id: null, d: { ...this.D0 }, e: {} }, dlg: { open: false, tipo: '', id: null }, toast: '', v: 0 };
   componentDidMount() {
     const t = () => { if (window.VCCanjes) { this._u = window.VCCanjes.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); };
     t();
@@ -139,7 +140,7 @@ class Component extends DCLogic {
     if (!K) return { rows: [], hay: false, vacio: false, pg: {}, m: { open: false, e: {}, inv: {}, d: {} }, dlg: { open: false }, on: {} };
     const q = s.q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     const MAP = { Activas: 'Activa', Deshabilitadas: 'Deshabilitada', Inactivas: 'Inactiva' };
-    const lista = K.recompensas(false).filter((r) => (s.estado === 'Todas' || r.estado === MAP[s.estado]) && (!q || r.nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(q))).slice().sort((a, b) => b.modTs - a.modTs);
+    const lista = K.recompensas(false).filter((r) => (s.estado === 'Todas' || r.estado === MAP[s.estado]) && (!q || r.nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(q))).slice().sort((a, b) => s.orden === 'Más antiguas' ? a.id - b.id : b.id - a.id);
     const size = 10, pages = Math.max(1, Math.ceil(lista.length / size)), pg = Math.min(s.page, pages);
     const rows = lista.slice((pg - 1) * size, pg * size).map((r) => ({
       nombre: r.nombre, descripcion: r.descripcion, foto: r.foto || '', sinFoto: !r.foto, puntos: K.num(r.puntos), stock: r.stock === null ? 'Sin límite' : K.num(r.stock), vence: r.vence ? K.dmy(r.vence) : 'No vence', confirmados: K.num(K.confirmadosDe(r)),
@@ -162,7 +163,7 @@ class Component extends DCLogic {
       ? { open: true, titulo: 'Desactivar recompensa', pre: '¿Desactivar', nombre: rg.nombre, post: '? Los clientes no la van a ver en el catálogo.', boton: 'Desactivar', aviso: n ? 'Hay ' + n + ' canjes confirmados de esta recompensa. Se van a rechazar automáticamente.' : '' }
       : { open: true, titulo: 'Eliminar recompensa', pre: '¿Eliminar', nombre: rg.nombre, post: '? Va a dejar de aparecer en el catálogo y no se puede deshacer.', boton: 'Eliminar', aviso: n ? 'Hay ' + n + ' canjes confirmados de esta recompensa. Se van a rechazar automáticamente.' : '' }) : { open: false };
     return {
-      q: s.q, estado: s.estado, onQ: (e) => this.setState({ q: e.target.value, page: 1 }), onEstado: (e) => this.setState({ estado: e.target.value, page: 1 }),
+      q: s.q, estado: s.estado, onQ: (e) => this.setState({ q: e.target.value, page: 1 }), onEstado: (e) => this.setState({ estado: e.target.value, page: 1 }), orden: s.orden, onOrden: (e) => this.setState({ orden: e.target.value, page: 1 }),
       rows, hay: lista.length > 0, vacio: lista.length === 0, toast: s.toast, abrirCrear: this.abrirCrear,
       pg: { info: 'Mostrando ' + (lista.length ? (pg - 1) * size + 1 : 0) + '–' + Math.min(lista.length, pg * size) + ' de ' + lista.length, prevDis: pg <= 1, nextDis: pg >= pages, prev: () => this.setState({ page: pg - 1 }), next: () => this.setState({ page: pg + 1 }) },
       m: mv, cerrar: () => this.setState({ m: { ...m, open: false } }), guardar: this.guardar, onFoto: this.onFoto, quitarFoto: () => this.setD('foto', ''),

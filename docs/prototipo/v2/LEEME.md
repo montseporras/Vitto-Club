@@ -128,3 +128,21 @@ Si se vuelve a exportar desde Claude Design sin hacer estos cambios allá, se pi
 - Gráficos de torta: S5-27 dice "tablas y barras con CSS"; las tortas también son CSS (`conic-gradient`), sin
   librería.
 - Logo: se sacó de Notificaciones; el contrato lo ubica en Configuración → Notificaciones (US-14).
+
+## Cambios hechos a mano (12/11/2026, a pedido de Denise)
+
+| Dónde | Cambio |
+|---|---|
+| `Misiones.html` | Botón "Quitar horario" para borrar el horario si te arrepentís. La explicación del tipo de objetivo aparece al pasar el mouse (o al enfocar) el **?**, sin botón que despliega texto. Filtro **Orden**: Más recientes (por defecto) o Más antiguas |
+| `Recompensas.html` | Filtro **Orden**: Más recientes (por defecto) o Más antiguas |
+| `ConfigNotificaciones.html` | Promociones sale de la lista de mensajes automáticos. "Enviar promoción" arranca **vacío** (Asunto y Mensaje desde cero, con {nombre}), con **Cuándo se envía** (Ahora o Programar fecha y hora) y **Destinatarios** (todos los clientes activos o los de un nivel). Los envíos programados se listan en la tarjeta y se pueden cancelar |
+| `Estadisticas.html` | Paleta pastel de la gama del naranja con turquesa y lavanda de apoyo (durazno, turquesa, mostaza, lavanda, terracota; validada para daltonismo). El centro de las tortas se lee mejor. Misiones asignadas: sin la aclaración de que se reclama sola a fin de mes, y "En progreso" solo en el mes en curso. Clientes por nivel: porcentaje de clientes que **subieron de nivel** en el mes. Recompensas más canjeadas: porcentaje sobre el total de canjes usados del mes. "Exportar reporte PDF" abre un modal para elegir las secciones (Clientes, Consumos, Puntos, Programa) con "Seleccionar todo" / "Deseleccionar todo" |
+| `datos-sprint5.js` | La plantilla de Promociones queda vacía. Funciones nuevas: `destinatariosPromo`, `programarPromo`, `promosProgramadas`, `cancelarProgramada` y `enviarProgramadas`; dato de ejemplo `subieron` en las estadísticas |
+
+**Más diferencias para llevar al contrato del Sprint 5:**
+
+- Promociones: envío programado (fecha y hora) y destinatarios por nivel; `PROMOTION` deja de ser un mensaje
+  automático configurable.
+- Estadísticas: `GET /estadisticas/programa` no trae cuántos clientes subieron de nivel en el período.
+- Reporte PDF: `GET /estadisticas/reporte.pdf` no recibe qué secciones incluir.
+- Misiones y recompensas: el orden Más recientes / Más antiguas no está como parámetro de los listados.

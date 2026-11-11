@@ -89,8 +89,8 @@ src/<modulo>/
 
 **Módulos nuevos del Sprint 5** (contrato §8.4; el esqueleto, los repositorios y los tipos los crea BASE-5):
 - `missions`: misiones, asignación, avance, reclamo y proceso de fin de mes.
-- `notifications`: plantillas, ajustes (logo y puntos de cumpleaños), promociones, envío y registro, y el
-  proceso diario. Puerto `EmailSender` (Resend y un adaptador que solo deja en el log).
+- `notifications`: plantillas, puntos de cumpleaños, envíos de promociones (ahora y programados), envío,
+  registro y reenvío, y los procesos diario y de programados. Puerto `EmailSender` (Resend y un adaptador que solo deja en el log).
 - `statistics`: solo lectura; lee las tablas por Prisma sin importar los módulos de negocio.
 - `images`: **módulo técnico sin dominio**, como `prisma`. Puerto `ImageStorage` (Cloudinary y un adaptador
   falso), validación por contenido y URL firmadas.
@@ -156,7 +156,7 @@ Si necesitás romper esa dirección, frená y preguntá.
    - Usá `class-validator`, con las reglas y los mensajes **del contrato**.
    - Los campos que el contrato dice que **no** se envían no van en el DTO. `forbidNonWhitelisted` los
      rechaza con `400`.
-   - Fotos y logo: `multipart/form-data`; el tipo se valida **por contenido**, no por la extensión.
+   - Fotos: `multipart/form-data`; el tipo se valida **por contenido**, no por la extensión.
 6. **Controller.**
    - Usá `@Roles(...)` exactamente según la matriz de la §4.
    - El usuario sale de `@CurrentUser()`, **nunca** del body.

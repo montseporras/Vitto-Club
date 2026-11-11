@@ -1,6 +1,9 @@
 # Prompt — Prototipo Sprint 5: Misiones, Notificaciones, Estadísticas y Fotos (Vitto Club)
 
-> **Cuándo se usa.** Ya: el contrato del Sprint 5 está en v1 y todas las decisiones están tomadas (contrato §8.3).
+> **Estado (12/11/2026): ya se aplicó.** El prototipo v2 (`docs/prototipo/v2/`) tiene las pantallas del Sprint 5
+> y además los cambios hechos a mano el 11/11 y el 12/11 a pedido de Deni (contrato v2, S5-34 a S5-50). **Si
+> alguna vez se vuelve a usar este prompt** (por ejemplo, para reexportar desde Claude Design), la **sección 8**
+> pisa lo que digan las secciones 1 a 7.
 >
 > Copiá todo lo que está debajo de la línea y pegalo junto con el archivo HTML del prototipo.
 
@@ -254,3 +257,55 @@ los mensajes automáticos" y "Modificó las promociones".
 - [ ] El cumpleaños muestra los puntos configurados (o solo el saludo si son 0).
 - [ ] Las fotos validan tipo y tamaño con el mensaje del contrato.
 - [ ] Lo que ya funcionaba sigue igual.
+- [ ] Se aplicó la sección 8.
+
+---
+
+## 8. Cambios del 11/11 y el 12/11 (pisan las secciones anteriores)
+
+Contrato v2, §8.3 (S5-34 a S5-50). El detalle de cada pantalla está en el contrato.
+
+**Misiones** (§3.1)
+- Filtro **Orden**: Más recientes (por defecto) · Más antiguas.
+- Un clic en la fila abre el **detalle**: estado, descripción, Objetivo, Recompensa, Vigencia, Completadas este
+  mes y "Clientes que la completaron" (Cliente · Documento · Completada · Estado, con "Falta reclamar", "Sin
+  recompensa" o "Por el cliente / el sistema · {fecha}"). Botones Cerrar · Editar misión.
+- Crear y editar en **dos pasos**: 1) Objetivo (con "Siguiente"); 2) Recompensa y vigencia (con "Atrás" y
+  "Guardar misión").
+- El **?** del tipo de objetivo muestra la explicación **al pasar el mouse** (no es un botón que despliega texto).
+- Botón **"Quitar horario"** cuando hay alguna hora cargada.
+
+**Recompensas:** filtro **Orden** (Más recientes · Más antiguas).
+
+**Configuración → Notificaciones** (§3.6, §3.7, §3.8)
+- **Sin logo.** Mensajes automáticos: solo Vencimiento de puntos, Cumpleaños y Misiones (sin Promociones).
+- Tarjeta **"Promociones"** con "+ Enviar promoción": modal **vacío** con Asunto, Mensaje ({nombre}), **Cuándo**
+  (Ahora / Programar con fecha y hora), **Destinatarios** (todos los clientes activos o un nivel, con "Le llega a
+  {n} clientes activos.") y vista previa. Lista "Envíos programados" con "Cancelar envío". **No se guarda la
+  promoción.**
+- **Historial:** filtro Fechas de un solo campo con calendario (como Consumos) y botón **"Reenviar"** en las que
+  fallaron.
+- **No hay** Configuración → Promociones ni tarjeta de promociones en el Inicio del Cliente.
+
+**Configuración → Puntos:** tarjetas más compactas.
+
+**Panel del Administrador:** sin botón "Volver"; todos los modales con cruz.
+
+**Cliente → Mis canjes:** "Día específico" y "Rango" pasan a "Elegir fechas" con el calendario de Consumos.
+
+**Estadísticas y reportes** (§3.9)
+- Selectores **Mes** y **Año** (sin fechas de inicio y fin).
+- Paleta pastel de la gama del naranja con turquesa y lavanda: `#f0945e`, `#2aa0b8`, `#d6a23a`, `#b07ad0`,
+  `#c4604f`. Todos los números con la misma letra. Gráficos con CSS (barras y tortas con `conic-gradient`).
+- **Clientes:** tarjetas, torta de frecuentes y columnas de los últimos 6 meses.
+- **Consumos:** solo por día de la semana y por franja horaria (columnas con cantidad y monto); sin Día /
+  Semana / Mes.
+- **Puntos:** tarjetas, torta "De dónde salen los puntos" (total legible en el centro) y barras "Qué pasó con
+  los puntos"; sin ajustes ni tabla por mes.
+- **Programa:** torta de misiones asignadas (En progreso solo en el mes actual; sin "a fin de mes se reclama
+  sola"), torta de niveles con "Subieron de nivel en el mes: {%}" y barras de recompensas con su %.
+- "Exportar reporte PDF" abre un **modal de secciones** (Clientes, Consumos, Puntos, Programa) con "Seleccionar
+  todo" / "Deseleccionar todo".
+
+**Auditoría:** módulo Misiones habilitado; "Regaló puntos de cumpleaños" y "Modificó cliente frecuente"; **sin**
+"Modificó las promociones".

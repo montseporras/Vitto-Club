@@ -117,7 +117,7 @@
   const TIPOS = {
     POINTS_EXPIRING: { label: 'Vencimiento de puntos', vars: ['{nombre}', '{puntos}', '{fecha}'], hist: 'US-47' },
     BIRTHDAY: { label: 'Cumpleaños', vars: ['{nombre}', '{puntos}'], hist: 'US-48' },
-    PROMOTION: { label: 'Promociones', vars: ['{nombre}', '{promocion}', '{descripcion}'], hist: 'US-49' },
+    PROMOTION: { label: 'Promociones', vars: ['{nombre}'], hist: 'US-49' },
     MISSION: { label: 'Misiones', vars: ['{nombre}', '{mision}'], hist: 'US-50' }
   };
   const ajustes = {
@@ -125,7 +125,7 @@
     mensajes: {
       POINTS_EXPIRING: { activa: true, asunto: 'Tus puntos están por vencer', cuerpo: 'Hola {nombre}: tenés {puntos} pts que vencen el {fecha}. ¡Usalos antes de que caduquen!' },
       BIRTHDAY: { activa: true, asunto: '¡Feliz cumpleaños!', cuerpo: '¡Feliz cumpleaños, {nombre}! Te regalamos {puntos} pts para celebrar con nosotros.' },
-      PROMOTION: { activa: true, asunto: '{promocion}', cuerpo: '{descripcion}' },
+      PROMOTION: { activa: true, asunto: '', cuerpo: '' }, // se escribe desde cero en cada envío
       MISSION: { activa: true, asunto: '¡Completaste una misión!', cuerpo: '¡Bien, {nombre}! Completaste la misión {mision}. Entrá a Vitto Club para ver tu recompensa.' }
     }
   };
@@ -202,7 +202,7 @@
       consumos: { count: out.count, amount: out.amount, porPeriodo, porDiaSemana: [1, 2, 3, 4, 5, 6, 7].map((w) => ({ label: DIA_PL[w].charAt(0).toUpperCase() + DIA_PL[w].slice(1).replace(/s$/, (w === 6 || w === 7) ? '' : 's'), c: out.wd[w][0], am: out.wd[w][1] })), porFranja: FRANJAS.map(([f, t, p]) => ({ label: f + '–' + t, c: Math.round(out.count * p), am: Math.round(out.amount * p) })) },
       puntos: { otorgados, bonificacion: nuevos * 30, misiones: misionesP.reduce((s2, m) => s2 + m.reclamadas, 0) * 60, cumpleanos: Math.round(out.dias / 6) * ajustes.cumplePuntos, canjeados: Math.round(otorgados * 0.38), vencidos: Math.round(otorgados * 0.06), ajustesSuma: Math.round(otorgados * 0.01), ajustesResta: 0, anulados: Math.round(otorgados * 0.02),
         porMes: Object.keys(out.porMes).map((k) => { const o2 = Math.floor(out.porMes[k].am / 100); return { label: mesTxt(k), otorgados: o2, canjeados: Math.round(o2 * 0.38), vencidos: Math.round(o2 * 0.06) }; }) },
-      programa: { niveles: [{ label: 'Bronce', n: 120 }, { label: 'Plata', n: 50 }, { label: 'Oro', n: 14 }], misiones: misionesP, top }
+      programa: { niveles: [{ label: 'Bronce', n: 120 }, { label: 'Plata', n: 50 }, { label: 'Oro', n: 14 }], subieron: Math.round(CLIENTES_ACTIVOS * (0.03 + h('niv' + desde) * 0.06)), misiones: misionesP, top }
     };
   }
 
@@ -368,12 +368,21 @@
       if (!ajustes.mensajes[n0.tipo].activa) return { ok: false, msg: 'Las notificaciones de ' + TIPOS[n0.tipo].label.toLowerCase() + ' están desactivadas.' };
       n0.reenviada = true; N({ ts: Date.now(), tipo: n0.tipo, cliente: n0.cliente, asunto: n0.asunto, estado: 'SENT', reenvioDe: n0.id }); emit(); return { ok: true };
     },
-    // Promoción enviada en el momento desde Notificaciones: no se guarda (solo quedan los envíos en el historial).
-    enviarPromoAhora(d) {
-      if (!ajustes.mensajes.PROMOTION.activa) return { ok: false, msg: 'Las notificaciones de promociones están desactivadas.' };
-      [MARCOS, CARO, SOFI, MARTIN].forEach((c) => N({ ts: Date.now(), tipo: 'PROMOTION', cliente: c, asunto: reemplazar(ajustes.mensajes.PROMOTION.asunto, { '{nombre}': c.nombre.split(' ')[0], '{promocion}': d.titulo, '{descripcion}': d.descripcion }), estado: 'SENT' }));
-      emit(); return { ok: true, n: CLIENTES_ACTIVOS };
+    // Promociones escritas desde cero en Notificaciones: no se guardan. Se envían ahora o se programan,
+    // a todos los clientes activos o a los de un nivel.
+    NIVEL_TXT: { BRONZE: 'Bronce', SILVER: 'Plata', GOLD: 'Oro' },
+    destinatariosPromo(nivel) { return nivel ? ({ BRONZE: 120, SILVER: 50, GOLD: 14 })[nivel] : CLIENTES_ACTIVOS; },
+    _mandarPromo(d) {
+      const NIV = { 'DNI|30111222': 'SILVER', 'DNI|38456123': 'GOLD', 'DNI|35222880': 'GOLD', 'DNI|41987654': 'GOLD' };
+      [MARCOS, CARO, SOFI, MARTIN].filter((c) => !d.nivel || NIV[cliK('DNI', c.num)] === d.nivel).forEach((c) => N({ ts: Date.now(), tipo: 'PROMOTION', cliente: c, asunto: reemplazar(d.asunto, { '{nombre}': c.nombre.split(' ')[0] }), estado: 'SENT' }));
     },
+    enviarPromoAhora(d) { API._mandarPromo(d); emit(); return { ok: true, n: API.destinatariosPromo(d.nivel) }; },
+    _prog: [],
+    programarPromo(d) { const p = { id: Date.now(), ...d, n: API.destinatariosPromo(d.nivel) }; API._prog.push(p); emit(); return p; },
+    promosProgramadas() { return API._prog.slice().sort((a, b) => a.ts - b.ts); },
+    cancelarProgramada(id) { API._prog = API._prog.filter((p) => p.id !== id); emit(); },
+    // Simula que llegó la fecha y hora de los envíos programados.
+    enviarProgramadas() { const n = API._prog.length; API._prog.forEach((p) => API._mandarPromo(p)); API._prog = []; emit(); return n; },
     // ----- promociones -----
     promociones(incluirBaja) { return promociones.filter((p) => incluirBaja || p.estado !== 'Dada de baja'); },
     promocion(id) { return promociones.find((p) => p.id === id); },

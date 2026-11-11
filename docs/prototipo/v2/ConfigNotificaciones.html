@@ -25,7 +25,9 @@
           </div></div></sc-for>
       </div>
       <div class="vc-c-pcard-actions"><sc-if value="{{ pendientes }}" hint-placeholder-val="{{ false }}"><span style="margin-right:auto; font-size:14px; color:#7e3e20;">Tenés cambios sin guardar.</span></sc-if><button type="button" class="btn btn-secondary btn-lg" disabled="{{ sinCambios }}" onClick="{{ descartar }}">Descartar</button><button type="button" class="btn btn-primary btn-lg" onClick="{{ guardar }}">Guardar cambios</button></div></div>
-    <div class="vc-c-pcard"><div style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:12px;"><div style="flex:1 1 320px;"><h3 class="vc-c-pcard-title">Promociones</h3><p style="margin:4px 0 0; font-size:16px; color:#5c5249;">Escribí una promoción y mandala por correo a todos los clientes activos. No se guarda: solo quedan los envíos en el historial.</p></div><button type="button" class="btn btn-primary" onClick="{{ abrirPromo }}">+ Enviar promoción</button></div></div>
+    <div class="vc-c-pcard"><div style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:12px;"><div style="flex:1 1 320px;"><h3 class="vc-c-pcard-title">Promociones</h3><p style="margin:4px 0 0; font-size:16px; color:#5c5249;">Escribí el asunto y el mensaje de cada promoción desde cero, elegí a quién va y si sale ahora o en una fecha y hora. No se guarda: solo quedan los envíos en el historial.</p></div><button type="button" class="btn btn-primary" onClick="{{ abrirPromo }}">+ Enviar promoción</button></div>
+      <sc-if value="{{ hayProg }}" hint-placeholder-val="{{ false }}"><div style="margin-top:16px;"><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20; margin-bottom:6px;">Envíos programados</div><div style="background:#ffffff; border:1px solid #f6d0b1; border-radius:14px; overflow:hidden;"><sc-for list="{{ programadas }}" as="p" hint-placeholder-count="2"><div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; border-bottom:1px solid #fbe6d4; padding:10px 16px;"><div style="min-width:200px; flex:1;"><strong style="font-size:14px;">{{ p.asunto }}</strong><div style="font-size:13px; color:#7a6e63;">{{ p.cuando }} · {{ p.dest }}</div></div><div style="display:flex; gap:8px;"><button type="button" class="btn btn-ghost" style="height:34px; padding:0 12px; font-size:13px;" onClick="{{ p.cancelar }}">Cancelar envío</button></div></div></sc-for></div>
+        <div style="display:flex; justify-content:flex-end; margin-top:8px;"><button type="button" class="btn btn-secondary" style="height:30px; padding:0 12px; font-size:12px;" onClick="{{ simularProg }}">Simular: enviar los programados ahora</button></div></div></sc-if></div>
     <div style="border:1px dashed #d9804f; background:#fffaf3; border-radius:12px; padding:10px 14px; font-size:13px; color:#6b5446;"><strong style="color:#7a3a1d;">Nota del prototipo:</strong> US-14 · RF-012 (mensajes automáticos), US-47 · RF-050 (vencimiento de puntos, 7 días antes), US-48 · RF-051 (cumpleaños, con puntos de regalo), US-49 · RF-052 (promociones: se escriben y se envían en el momento desde esta pantalla, sin guardarse) y US-50 · RF-053 (al completar una misión).</div>
   </div></sc-if>
 
@@ -81,16 +83,27 @@
         <div class="dialog-title" style="padding-right:40px;">Enviar promoción</div>
         <sc-if value="{{ pr.err }}" hint-placeholder-val="{{ false }}"><div role="alert" style="margin:8px 0 4px; border:1px solid rgba(179,38,30,.35); border-left:4px solid #b3261e; background:#fdecea; color:#8c1d18; border-radius:12px; padding:10px 14px; font-size:13px;">{{ pr.err }}</div></sc-if>
         <div class="dialog-body">
-          <div class="field" style="margin:0 0 12px;"><label>Título</label><input class="input vc-input" maxLength="80" aria-invalid="{{ pr.invT }}" value="{{ pr.titulo }}" onChange="{{ pr.onTitulo }}" placeholder="Ej: Pizza libre de los viernes" /><sc-if value="{{ pr.eT }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ pr.eT }}</p></sc-if></div>
-          <div class="field" style="margin:0 0 4px;"><label>Descripción</label><textarea class="input vc-input" rows="3" maxLength="500" style="height:auto; padding:10px 12px;" aria-invalid="{{ pr.invD }}" value="{{ pr.descripcion }}" onChange="{{ pr.onDesc }}" placeholder="Ej: Todos los viernes de 20:00 a 23:30, pizza libre para toda la mesa."></textarea><div style="display:flex; justify-content:space-between; gap:8px;"><sc-if value="{{ pr.eD }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ pr.eD }}</p></sc-if><p class="text-muted" style="margin:2px 0 0 auto; font-size:11px;">{{ pr.len }}</p></div></div>
-          <p style="margin:0 0 14px; font-size:13px; color:#5c5249;">Se manda a los {{ pr.activos }} clientes activos con el mensaje de Promociones. No se guarda: solo quedan los envíos en el historial.</p>
+          <div class="field" style="margin:0 0 12px;"><label>Asunto</label><input class="input vc-input" maxLength="120" aria-invalid="{{ pr.invA }}" value="{{ pr.asunto }}" onChange="{{ pr.onAsunto }}" placeholder="Ej: ¡Este viernes, pizza libre!" /><sc-if value="{{ pr.eA }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ pr.eA }}</p></sc-if></div>
+          <div class="field" style="margin:0 0 4px;"><label>Mensaje</label><textarea class="input vc-input" rows="4" maxLength="1000" style="height:auto; padding:10px 12px;" aria-invalid="{{ pr.invC }}" value="{{ pr.cuerpo }}" onChange="{{ pr.onCuerpo }}" placeholder="Ej: Hola {nombre}: todos los viernes de 20:00 a 23:30, pizza libre para toda la mesa."></textarea><div style="display:flex; justify-content:space-between; gap:8px;"><sc-if value="{{ pr.eC }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ pr.eC }}</p></sc-if><p class="text-muted" style="margin:2px 0 0 auto; font-size:11px;">{{ pr.len }}</p></div></div>
+          <p style="margin:0 0 14px; font-size:13px; color:#5c5249;">Podés usar: {nombre}.</p>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px 20px; margin-bottom:14px;">
+            <div class="field" style="margin:0;"><label>Cuándo se envía</label>
+              <div class="vc-seg" style="grid-template-columns:1fr 1fr;"><button type="button" class="{{ pr.clsAhora }}" onClick="{{ pr.onAhora }}">Ahora</button><button type="button" class="{{ pr.clsProg }}" onClick="{{ pr.onProg }}">Programar</button></div>
+              <sc-if value="{{ pr.programar }}" hint-placeholder-val="{{ false }}"><div style="margin-top:8px;"><input class="input vc-input" type="datetime-local" min="{{ pr.minFecha }}" aria-label="Fecha y hora del envío" aria-invalid="{{ pr.invF }}" value="{{ pr.fecha }}" onChange="{{ pr.onFecha }}" /><sc-if value="{{ pr.eF }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0; font-size:12px; color:#a8532a;">{{ pr.eF }}</p></sc-if></div></sc-if></div>
+            <div class="field" style="margin:0;"><label>Destinatarios</label>
+              <select class="input vc-input" value="{{ pr.dest }}" onChange="{{ pr.onDest }}"><option value="TODOS">Todos los clientes activos</option><option value="BRONZE">Clientes de nivel Bronce</option><option value="SILVER">Clientes de nivel Plata</option><option value="GOLD">Clientes de nivel Oro</option></select>
+              <p class="text-muted" style="margin:4px 0 0; font-size:12px;">{{ pr.destTxt }}</p></div>
+          </div>
+
           <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20; margin-bottom:6px;">Vista previa</div>
           <div style="border:1px solid #f6d0b1; border-radius:14px; overflow:hidden; background:#ffffff;">
             <div style="background:#a9532b; padding:12px 16px; display:flex; align-items:center; gap:10px;"><sc-if value="{{ logo }}" hint-placeholder-val="{{ false }}"><img src="{{ logo }}" alt="" style="width:32px; height:32px; object-fit:contain; border-radius:6px; background:#ffffff;" /></sc-if><sc-if value="{{ sinLogo }}" hint-placeholder-val="{{ true }}"><span style="font-family:Georgia, serif; font-weight:700; font-size:22px; color:#ffffff;">V</span></sc-if><span style="font-family:var(--font-heading); font-weight:700; color:#ffffff;">Vitto Club</span></div>
-            <div style="padding:14px 16px;"><div style="font-family:var(--font-heading); font-weight:700; font-size:16px; color:#2b1a10;">{{ pr.prevAsunto }}</div><p style="margin:8px 0 0; font-size:14px; color:#2b1a10; white-space:pre-wrap;">{{ pr.prevCuerpo }}</p><p style="margin:14px 0 0; padding-top:10px; border-top:1px solid #fbe6d4; font-size:11px; color:#7a6e63;">Recibís este correo porque sos parte de Vitto Club.</p></div>
+            <div style="padding:14px 16px;"><div style="font-family:var(--font-heading); font-weight:700; font-size:16px; color:{{ pr.prevColorA }};">{{ pr.prevAsunto }}</div><p style="margin:8px 0 0; font-size:14px; color:{{ pr.prevColorC }}; white-space:pre-wrap;">{{ pr.prevCuerpo }}</p><p style="margin:14px 0 0; padding-top:10px; border-top:1px solid #fbe6d4; font-size:11px; color:#7a6e63;">Recibís este correo porque sos parte de Vitto Club.</p></div>
           </div>
+          <p class="text-muted" style="margin:6px 0 0; font-size:11px;">La promoción no se guarda: solo quedan los envíos en el historial.</p>
         </div>
-        <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px;"><button type="button" class="btn btn-secondary" onClick="{{ cerrarPromo }}">Cancelar</button><button type="button" class="btn btn-primary" onClick="{{ enviarPromo }}">Enviar por correo</button></div>
+        <div class="dialog-actions" style="display:flex; justify-content:flex-end; gap:8px;"><button type="button" class="btn btn-secondary" onClick="{{ cerrarPromo }}">Cancelar</button><button type="button" class="btn btn-primary" onClick="{{ enviarPromo }}">{{ pr.btn }}</button></div>
       </div>
     </div>
   </sc-if>
@@ -114,12 +127,16 @@ class Component extends DCLogic {
     return { open: s.cal.open, titulo: K.MESES[m] + ' ' + y, dias, prev: mv(-1), next: mv(1), ayuda: !desde ? 'Elegí la fecha de inicio.' : !hasta ? 'Ahora elegí la fecha de fin.' : 'Rango seleccionado.', limpiar: () => this.setState((st) => ({ f: { ...st.f, desde: '', hasta: '' }, page: 1 })) };
   }
   enviarPromo = () => {
-    const K = window.VCS5; const pr = this.state.pr; const e = {}; const t = pr.titulo.trim(), d = pr.descripcion.trim();
-    if (!t) e.eT = 'El título es obligatorio.'; else if (t.length > 80) e.eT = 'El título no puede superar los 80 caracteres.';
-    if (!d) e.eD = 'La descripción es obligatoria.'; else if (d.length > 500) e.eD = 'La descripción no puede superar los 500 caracteres.';
+    const K = window.VCS5; const pr = this.state.pr; const e = {}; const a = pr.asunto.trim(), c = pr.cuerpo.trim();
+    if (!a) e.eA = 'El asunto es obligatorio.'; else if (a.length > 120) e.eA = 'El asunto no puede superar los 120 caracteres.';
+    if (!c) e.eC = 'El mensaje es obligatorio.'; else if (c.length > 1000) e.eC = 'El mensaje no puede superar los 1.000 caracteres.';
+    const mala = ((a + ' ' + c).match(/\{[a-z]+\}/g) || []).find((v) => v !== '{nombre}'); if (mala && !e.eC) e.eC = 'La variable ' + mala + ' no se puede usar en este mensaje.';
+    let ts = null;
+    if (pr.programar) { ts = pr.fecha ? new Date(pr.fecha).getTime() : NaN; if (!pr.fecha || isNaN(ts)) e.eF = 'Elegí la fecha y la hora del envío.'; else if (ts <= Date.now()) e.eF = 'La fecha y hora tienen que ser posteriores a ahora.'; }
     if (Object.keys(e).length) { this.setState({ pr: { ...pr, ...e, err: '' } }); return; }
-    const r = K.enviarPromoAhora({ titulo: t, descripcion: d });
-    if (!r.ok) { this.setState({ pr: { ...pr, err: r.msg } }); return; }
+    const datos = { asunto: a, cuerpo: c, nivel: pr.dest === 'TODOS' ? null : pr.dest };
+    if (pr.programar) { const r = K.programarPromo({ ...datos, ts }); this.setState({ pr: { open: false } }); this.say('Promoción programada para el ' + K.fdt(ts) + ' (' + K.num(r.n) + ' clientes).'); return; }
+    const r = K.enviarPromoAhora(datos);
     this.setState({ pr: { open: false } }); this.say('Se está enviando la promoción a ' + K.num(r.n) + ' clientes.');
   };
   componentDidMount() { const t = () => { if (window.VCS5) { this._u = window.VCS5.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState({ d: this.copia() }); } else this._p = setTimeout(t, 40); }; t(); }
@@ -150,7 +167,8 @@ class Component extends DCLogic {
     if (!K || !s.d) return { filas: [], rows: [], tiposOpt: [], f: this.F0, on: {}, pg: {}, mm: { open: false }, pr: { open: false }, cal: { open: false, dias: [] }, d: {} };
     const d = s.d; const a = K.ajustes;
     const igual = String(a.cumplePuntos) === String(d.cumplePuntos).trim() && (a.logo || '') === (d.logo || '') && Object.keys(a.mensajes).every((k) => JSON.stringify(a.mensajes[k]) === JSON.stringify(d.mensajes[k]));
-    const filas = Object.keys(K.TIPOS).map((k) => { const m = d.mensajes[k]; return { label: K.TIPOS[k].label, cuando: this.CUANDO[k], asunto: m.asunto, on: m.activa ? 'true' : 'false', estado: m.activa ? 'Activa' : 'Desactivada', aria: 'Activar ' + K.TIPOS[k].label,
+    // Promociones no es un mensaje automático: se escribe desde cero en su propia tarjeta.
+    const filas = Object.keys(K.TIPOS).filter((k) => k !== 'PROMOTION').map((k) => { const m = d.mensajes[k]; return { label: K.TIPOS[k].label, cuando: this.CUANDO[k], asunto: m.asunto, on: m.activa ? 'true' : 'false', estado: m.activa ? 'Activa' : 'Desactivada', aria: 'Activar ' + K.TIPOS[k].label,
       track: m.activa ? '#a8532a' : '#d8cfc6', knob: m.activa ? '23px' : '3px', txtColor: m.activa ? '#7e3e20' : '#7a6e63',
       toggle: () => this.setMsg(k, { activa: !m.activa }), editar: () => this.setState({ mm: { open: true, k, asunto: m.asunto, cuerpo: m.cuerpo, eA: '', eC: '' } }) }; });
     const mm = s.mm; let mv = { open: false };
@@ -176,11 +194,18 @@ class Component extends DCLogic {
       d, onPts: (e) => this.setState((st) => ({ okMsg: '', errPts: '', d: { ...st.d, cumplePuntos: e.target.value } })), errPts: s.errPts, invPts: s.errPts ? 'true' : 'false',
       filas, pendientes: !igual, sinCambios: igual, guardar: this.guardar, descartar: () => this.setState({ d: this.copia(), errPts: '', errLogo: '' }),
       mm: mv, cerrarMM: () => this.setState({ mm: { open: false } }), aceptarMM: this.aceptarMM,
-      abrirPromo: () => this.setState({ pr: { open: true, titulo: '', descripcion: '', eT: '', eD: '', err: '' } }), cerrarPromo: () => this.setState({ pr: { open: false } }), enviarPromo: this.enviarPromo,
-      pr: s.pr.open ? (() => { const pr = s.pr; const vars = { '{nombre}': K.EJ['{nombre}'], '{promocion}': pr.titulo || 'Título de la promoción', '{descripcion}': pr.descripcion || 'Descripción de la promoción.' }; const msg = d.mensajes.PROMOTION;
-        return { open: true, titulo: pr.titulo, descripcion: pr.descripcion, eT: pr.eT, eD: pr.eD, err: pr.err, invT: pr.eT ? 'true' : 'false', invD: pr.eD ? 'true' : 'false', len: pr.descripcion.length + '/500', activos: K.num(K.CLIENTES_ACTIVOS),
-          prevAsunto: K.reemplazar(msg.asunto, vars), prevCuerpo: K.reemplazar(msg.cuerpo, vars),
-          onTitulo: (e) => this.setState({ pr: { ...pr, titulo: e.target.value, eT: '' } }), onDesc: (e) => this.setState({ pr: { ...pr, descripcion: String(e.target.value).slice(0, 500), eD: '' } }) }; })() : { open: false },
+      abrirPromo: () => this.setState({ pr: { open: true, asunto: '', cuerpo: '', programar: false, fecha: '', dest: 'TODOS', eA: '', eC: '', eF: '', err: '' } }), cerrarPromo: () => this.setState({ pr: { open: false } }), enviarPromo: this.enviarPromo,
+      pr: s.pr.open ? (() => { const pr = s.pr; const vars = { '{nombre}': K.EJ['{nombre}'] }; const up = (patch) => this.setState((st) => ({ pr: { ...st.pr, ...patch } }));
+        const n = K.destinatariosPromo(pr.dest === 'TODOS' ? null : pr.dest); const ahora = new Date(Date.now() + 60000); const z = (x) => String(x).padStart(2, '0');
+        return { open: true, asunto: pr.asunto, cuerpo: pr.cuerpo, eA: pr.eA, eC: pr.eC, eF: pr.eF, err: pr.err, invA: pr.eA ? 'true' : 'false', invC: pr.eC ? 'true' : 'false', invF: pr.eF ? 'true' : 'false', len: pr.cuerpo.length + '/1000',
+          programar: pr.programar, fecha: pr.fecha, minFecha: K.iso(ahora.getTime()) + 'T' + z(ahora.getHours()) + ':' + z(ahora.getMinutes()), dest: pr.dest,
+          clsAhora: pr.programar ? 'vc-seg-opt' : 'vc-seg-opt vc-seg-on', clsProg: pr.programar ? 'vc-seg-opt vc-seg-on' : 'vc-seg-opt',
+          destTxt: 'Le llega a ' + K.num(n) + (n === 1 ? ' cliente activo.' : ' clientes activos.'), btn: pr.programar ? 'Programar envío' : 'Enviar ahora',
+          prevAsunto: pr.asunto ? K.reemplazar(pr.asunto, vars) : 'Asunto de la promoción', prevCuerpo: pr.cuerpo ? K.reemplazar(pr.cuerpo, vars) : 'Mensaje de la promoción.', prevColorA: pr.asunto ? '#2b1a10' : '#9c8f82', prevColorC: pr.cuerpo ? '#2b1a10' : '#9c8f82',
+          onAsunto: (e) => up({ asunto: e.target.value, eA: '' }), onCuerpo: (e) => up({ cuerpo: String(e.target.value).slice(0, 1000), eC: '' }),
+          onAhora: () => up({ programar: false, eF: '' }), onProg: () => up({ programar: true }), onFecha: (e) => up({ fecha: e.target.value, eF: '' }), onDest: (e) => up({ dest: e.target.value }) }; })() : { open: false },
+      programadas: K.promosProgramadas().map((p) => ({ asunto: p.asunto, cuando: 'Sale el ' + K.fdt(p.ts), dest: (p.nivel ? 'Nivel ' + K.NIVEL_TXT[p.nivel] : 'Todos los clientes') + ' · ' + K.num(p.n) + ' clientes', cancelar: () => { K.cancelarProgramada(p.id); this.say('Se canceló el envío programado.'); } })),
+      hayProg: K.promosProgramadas().length > 0, simularProg: () => { const r = K.enviarProgramadas(); this.say('Se enviaron ' + r + ' promociones programadas.'); },
       cal: this.calData(), toggleCal: () => this.setState((st) => ({ cal: { ...st.cal, open: !st.cal.open } })),
       rangoTxt: f.desde ? K.dmy(f.desde) + ' – ' + (f.hasta ? K.dmy(f.hasta) : 'dd/mm/aaaa') : 'dd/mm/aaaa – dd/mm/aaaa', rangoColor: f.desde ? '#2b1a10' : '#9c8f82',
       f, on: { tipo: setF('tipo'), estado: setF('estado'), tipoDoc: setF('tipoDoc'), num: setF('num'), desde: setF('desde'), hasta: setF('hasta') }, limpiar: () => this.setState({ f: { ...this.F0 }, page: 1 }),

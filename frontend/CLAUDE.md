@@ -31,17 +31,19 @@ primera tarea.
 
 Cada contrato lista en su **§8.1** las diferencias del prototipo que corrige. Leela antes de cada pantalla.
 
-**Sprint 5 (8 diferencias).** Las pantallas del Sprint 5 del prototipo son **de la primera versión** (antes del
-Sprint 3). **Primero se actualiza el prototipo** con `docs/sprint-5/PROMPT_PROTOTIPO_SPRINT_5.md` y se
-reexporta a `docs/prototipo/v2/` (lo hace el equipo). Si la pantalla de tu historia todavía no está
-actualizada, **frená y preguntá**: no la armes con la versión vieja. Por ejemplo, la versión vieja tiene:
+**Sprint 5.** Las pantallas del Sprint 5 del prototipo **ya están actualizadas**, con los cambios a mano del
+11/11 y el 12/11 (`docs/prototipo/v2/LEEME.md`; contrato v2, S5-34 a S5-50). Lo que el prototipo simula y no es
+diseño está en el contrato S5 §8.1 (botones "Simular…", números de ejemplo, envíos que quedan "Enviada" al
+instante). La versión vieja (antes del 10/11) tenía, y **ya no vale**:
 - la misión con "Objetivo" en texto libre y "Período" en días, semanas o meses (en el contrato: tipo de objetivo
   medible y mes de inicio y de fin);
 - el estado "En curso" para la misión del cliente (en el contrato: "En progreso") y la misión "Inactiva" (en el
   contrato: se "Elimina");
 - el beneficio del nivel como "Observaciones" (en el contrato: "Beneficio");
 - estadísticas con cuatro números fijos (en el contrato: cuatro bloques con período y tablas);
-- sin promociones, logo, cliente frecuente, foto de perfil ni cuenta del cliente (en el contrato: se agregan).
+- sin cliente frecuente, foto de perfil ni cuenta del cliente (en el contrato: se agregan);
+- promociones guardadas en Configuración → Promociones y logo configurable (en el contrato v2: las promociones
+  se escriben y se envían desde Notificaciones sin guardarse, y el logo es fijo).
 
 Del Sprint 4 (5 diferencias), por ejemplo:
 - La lógica vieja de canjes de `pagina-principal.html` (estado "Pendiente", 30 minutos, reintegros) **no se
@@ -78,9 +80,10 @@ real y no "DNI" fijo, y la pantalla pide la contraseña actual para cambiar el c
 | `CambiarPassword.html` | Ventana "Cambiá tu contraseña" que se abre al ingresar (contrato del Sprint 3, §3.11.3) |
 | `SidebarMenu.html` | Menú lateral de mostrador y de administración |
 
-Las pantallas nuevas del Sprint 5 (misiones, estadísticas, notificaciones, promociones, foto de perfil, cuenta
-del cliente) aparecen en esta carpeta cuando el equipo reexporta el prototipo actualizado. Buscalas con grep
-por los textos del contrato; si no están, preguntá.
+Las pantallas del Sprint 5 están en `Misiones.html`, `ClienteMisiones.html`, `Estadisticas.html`,
+`ConfigNotificaciones.html` (mensajes, promociones e historial) y `pagina-principal.html` (foto de perfil,
+cuenta del cliente, beneficios). **No hay** `ConfigPromociones.html` (se eliminó el 11/11). Buscá con grep
+por los textos del contrato; si algo no está, preguntá.
 
 `docs/prototipo/v2/LEEME.md` explica cómo se desempaquetó la carpeta y qué se cambió a mano. Leelo si
 algo del prototipo no coincide con la app.
@@ -193,8 +196,9 @@ literal. Por ejemplo: `grep -n "Ver movimientos de las últimas 24 hs" docs/prot
    - del Sprint 5: la etiqueta "En curso", "Próxima" o "Finalizada" de una misión activa, con la fecha y su
      mes de inicio y de fin (S5 §2.2).
 
-   **Avance de misiones, estadísticas, frecuentes y beneficios los calcula el backend.** Las barras de las
-   estadísticas se dibujan con CSS a partir de lo que llega, **sin librería de gráficos** (S5-27).
+   **Avance de misiones, estadísticas, frecuentes y beneficios los calcula el backend.** Las barras y tortas de
+   las estadísticas se dibujan con CSS (`conic-gradient`) a partir de lo que llega, **sin librería de gráficos**
+   (S5-27, S5-46); las únicas cuentas son las sumas y porcentajes del contrato S5 §3.9.7.
 2. **Decidí por `code`, nunca por el texto del error.** Usá `ApiError` y `toApiError` de
    `@/shared/api/ApiError`. `message` puede ser un arreglo, y `details` marca el campo con el error.
 3. **Roles:**

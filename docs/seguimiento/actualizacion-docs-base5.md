@@ -1,6 +1,6 @@
 # Qué hay que actualizar en la documentación por BASE-5
 
-> **Para qué es este archivo.** BASE-5 (modelo de misiones, notificaciones, promociones, imágenes y
+> **Para qué es este archivo.** BASE-5 (modelo de misiones, notificaciones, envíos de promociones, imágenes y
 > beneficios de los niveles, los módulos `missions`, `notifications` y `statistics`, y el módulo técnico `images` con Cloudinary) todavía **no
 > está hecho**. Esta es la lista de lo que hay que cambiar en `docs/`, documento por documento, **en la misma
 > rama de BASE-5 o apenas se mergee**. Es el equivalente de `actualizacion-docs-base4.md`, que quedó sin aplicar
@@ -41,10 +41,10 @@
 |---|---|---|
 | `Mission` | `missions` | Misión mensual: nombre, descripción, tipo de objetivo, objetivo, condición (días y franja horaria), recompensa en puntos (`null` = sin recompensa), mes de inicio y de fin, estado y baja lógica |
 | `CustomerMission` | `customer_missions` | La misión de un cliente en un mes: **snapshot** del objetivo, la condición y la recompensa, progreso, estado, fechas de completada, reclamada y vencida, quién la reclamó (Cliente o Sistema) y motivo del vencimiento |
-| `NotificationTemplate` | `notification_templates` | Un mensaje por tipo: activo, asunto y cuerpo |
-| `Notification` | `notifications` | Cada notificación: tipo, canal, destinatario, cliente, asunto, estado, error y fecha. Solo inserción |
-| `Promotion` | `promotions` | Promociones: título, descripción, días, horario, vigencia, último envío y baja lógica |
-| `NotificationSettings` | `notification_settings` | Fila única: puntos de regalo por cumpleaños y el logo (`public_id` y URL de Cloudinary) |
+| `NotificationTemplate` | `notification_templates` | Un mensaje por tipo **automático** (vencimiento, cumpleaños, misiones): activo, asunto y cuerpo. Promociones no tiene plantilla |
+| `Notification` | `notifications` | Cada notificación: tipo, canal, destinatario, cliente, asunto, mensaje, estado, error, fecha, el envío de promoción (si es una) y el original (si es un reenvío). Solo inserción |
+| `PromotionSend` | `promotion_sends` | Cada envío de promoción: asunto, mensaje, nivel (o todos), fecha programada, estado (`SCHEDULED`, `SENT`, `CANCELLED`), destinatarios y quién lo cargó. **No hay tabla de promociones** (S5-36) |
+| `NotificationSettings` | `notification_settings` | Fila única: puntos de regalo por cumpleaños. **Sin logo** (S5-35) |
 
 ### 1.2 "Enums"
 
@@ -56,6 +56,7 @@
 | `NotificationType` | `POINTS_EXPIRING`, `BIRTHDAY`, `PROMOTION`, `MISSION` |
 | `NotificationChannel` | `EMAIL` |
 | `NotificationStatus` | `SENT`, `FAILED`, `SKIPPED` |
+| `PromotionSendStatus` | `SCHEDULED`, `SENT`, `CANCELLED` |
 | `AuditAction` | Suma `BIRTHDAY_BONUS_GRANTED` (módulo `POINTS`, Sistema) y `FREQUENT_CUSTOMERS_UPDATED` (módulo `CONFIGURATION`) |
 | `PointsMovementType` | Suma `MISSION_REWARD` y `BIRTHDAY_BONUS` |
 
@@ -66,6 +67,8 @@ Mission         1 ── 0..N CustomerMission
 Customer        1 ── 0..N CustomerMission
 CustomerMission 1 ── 0..1 PointsMovement (MISSION_REWARD)
 Customer        1 ── 0..N Notification
+PromotionSend   1 ── 0..N Notification
+Notification    1 ── 0..1 Notification (reenvío)
 ```
 
 ### 1.4 "Restricciones relevantes": nueva sección "Sprint 5"
@@ -102,7 +105,7 @@ los `CHECK` de `points_movements`.
 | Módulo | Sprint | Qué tiene |
 |---|---|---|
 | `missions` | 5 | Misiones, asignación, avance, reclamo y proceso de fin de mes (`/misiones`, `/customers/me/misiones`, `/customers/:id/misiones`) |
-| `notifications` | 5 | Plantillas, logo, promociones, envío y registro de notificaciones, procesos diarios (`/configuracion/*`, `/promociones`, `/notificaciones`) |
+| `notifications` | 5 | Plantillas, envíos de promociones (ahora y programados), envío, registro y reenvío de notificaciones, procesos diario y de programados (`/configuracion/mensajes`, `/promociones/*`, `/notificaciones`) |
 | `statistics` | 5 | Estadísticas y PDF (`/estadisticas/*`), solo lectura |
 | `images` | 5 | Módulo técnico (sin dominio): puerto `ImageStorage` con Cloudinary y un adaptador falso; validación por contenido; URL firmadas |
 
@@ -111,7 +114,7 @@ los `CHECK` de `points_movements`.
 ```text
 consumptions ──> missions ──> points
 notifications ──> customers, points   (lectura)
-rewards, customers, notifications ──> images
+rewards, customers ──> images
 statistics ──> (ninguno de negocio: lee por Prisma)
 ```
 
@@ -119,9 +122,10 @@ statistics ──> (ninguno de negocio: lee por Prisma)
 - `missions` publica `mission.completed` y `notifications` lo atiende **después del commit**.
 - Actualizar `backend/src/architecture.spec.ts` con estas reglas.
 
-### 3.3 "Procesos automáticos": de tres a cinco
+### 3.3 "Procesos automáticos": de tres a seis
 
-Sumar misiones (día 1, 00:10, y al iniciar) y notificaciones (09:00), con sus variables y comandos. Agregar
+Sumar misiones (día 1, 00:10, y al iniciar), notificaciones (09:00) y promociones programadas (cada minuto), con
+sus variables y comandos. Agregar
 los puertos `ImageStorage` (Cloudinary) y `EmailSender` (Resend), con sus adaptadores falsos.
 
 ---
@@ -135,7 +139,7 @@ await prisma.notification.deleteMany();      // solo si el trigger lo permite: s
 await prisma.pointsMovement.deleteMany();    // apunta a lotes, consumos, canjes y misiones de clientes
 await prisma.customerMission.deleteMany();
 await prisma.mission.deleteMany();
-await prisma.promotion.deleteMany();
+await prisma.promotionSend.deleteMany();
 // ... después, lo del Sprint 4
 ```
 
@@ -147,14 +151,14 @@ await prisma.promotion.deleteMany();
 
 Agregar `base5-schema`, `missions-*`, `notifications-*`, `statistics-*`, `images-*` y las de NIV-BEN, CTA-CLI y clientes frecuentes. Los e2e usan los adaptadores falsos de `ImageStorage` y `EmailSender`: nunca llaman a Cloudinary ni a Resend.
 Sumar a `setup-e2e-env.ts`: `MISSIONS_EXPIRATION_CRON_ENABLED=false`, `NOTIFICATIONS_CRON_ENABLED=false` y
-`NOTIFICATIONS_EMAIL_ENABLED=false` e `IMAGES_STORAGE_ENABLED=false`.
+`NOTIFICATIONS_EMAIL_ENABLED=false`, `PROMOTIONS_CRON_ENABLED=false` e `IMAGES_STORAGE_ENABLED=false`.
 
 ---
 
 ## 5. `SETUP.md`
 
-- §2.5 "Procesos automáticos": dos filas más (misiones y notificaciones) y sus comandos (`npm run
-  missions:expire`, `npm run notifications:send`).
+- §2.5 "Procesos automáticos": tres filas más (misiones, notificaciones y promociones programadas) y sus
+  comandos (`npm run missions:expire`, `npm run notifications:send`, `npm run promotions:send`).
 - §2.1 "Variables de entorno": `RESEND_API_KEY`, `NOTIFICATIONS_FROM`, `NOTIFICATIONS_EMAIL_ENABLED` (en
   `false` para desarrollo), `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`,
   `IMAGES_STORAGE_ENABLED` (en `false` sin cuenta: el adaptador falso devuelve una URL de prueba),
@@ -171,7 +175,7 @@ Sumar a `setup-e2e-env.ts`: `MISSIONS_EXPIRATION_CRON_ENABLED=false`, `NOTIFICAT
 
 - **`roles-y-permisos.md`:** las filas nuevas de la matriz del contrato S5 §4.
 - **`errores-y-codigos.md`:** `MISSION_NAME_IN_USE`, `MISSION_NOT_CLAIMABLE`, `INVALID_IMAGE`,
-  `NOTIFICATION_DISABLED`, `PROMOTION_FINISHED` y los `404` nuevos. Marcar `FORBIDDEN_FIELD` como fuera de uso.
+  `NOTIFICATION_DISABLED`, `NOTIFICATION_NOT_RESENDABLE`, `PROMOTION_SEND_NOT_CANCELLABLE` y los `404` nuevos (`PROMOTION_FINISHED` ya no existe). Marcar `FORBIDDEN_FIELD` como fuera de uso.
 - **`transacciones-y-eventos.md`:** el avance de misiones dentro de la transacción del consumo; el reclamo
   bloquea la asignación y después `customer_points`; los correos siempre después del commit; el proceso de fin
   de mes con `SKIP LOCKED`.
@@ -190,8 +194,8 @@ niveles, los beneficios (texto informativo) y el umbral de clientes frecuentes.
 
 - Árbol: `missions`, `notifications` y `statistics` dejan de estar vacías.
 - Mapa de pantallas: `/admin/misiones`, `/admin/estadisticas`, la pestaña Misiones del Cliente
-  (ruta según el prototipo actualizado), Configuración → Notificaciones y Promociones, y el historial de
-  notificaciones. Sacar la página de "Movimientos de puntos": `GET /movimientos-de-puntos` se elimina (S5-13).
+  (ruta según el prototipo actualizado), Configuración → Notificaciones (mensajes, promociones e historial con
+  reenvío). **No hay** Configuración → Promociones. Sacar la página de "Movimientos de puntos": `GET /movimientos-de-puntos` se elimina (S5-13).
 
 ---
 

@@ -7,12 +7,15 @@
 > - **qué tiene que cumplir cada historia para darla por terminada:** sección 3.
 >
 > **Este archivo dice QUÉ hay que lograr. El CÓMO exacto está en el contrato**
-> (`docs/sprint-5/API_CONTRACT_SPRINT_5.md`) y, para las pantallas, en el prototipo (`docs/prototipo/v2/`,
-> **después de actualizarlo** con `PROMPT_PROTOTIPO_SPRINT_5.md`). Si un criterio de acá choca con el
-> contrato, **manda el contrato**. Hay que avisar para corregir este archivo.
+> (`docs/sprint-5/API_CONTRACT_SPRINT_5.md`) y, para las pantallas, en el prototipo (`docs/prototipo/v2/`, ya
+> actualizado a mano el 11/11 y el 12/11; ver su `LEEME.md`). Si un criterio de acá choca con el contrato,
+> **manda el contrato**. Hay que avisar para corregir este archivo.
 >
-> **Versión 1 (09/11/2026).** Alineada con el contrato v1: todas las PD del v0 quedaron decididas por Deni el
-> 09/11 (sección 2 y contrato §8.3, S5-12 a S5-33). **El Sprint 5 es el último: no queda nada "Próximamente".**
+> **Versión 2 (12/11/2026).** Alineada con el contrato v2: suma los cambios del prototipo del 11/11 y el 12/11
+> (contrato §8.3, S5-34 a S5-50): promociones que no se guardan (se envían ahora o programadas, a todos o a un
+> nivel), sin logo configurable, reenvío de correos fallidos, detalle de la misión con quiénes la completaron,
+> modal de misión en dos pasos, orden en Misiones y Recompensas, y estadísticas por mes con más gráficos y PDF
+> por secciones. **El Sprint 5 es el último: no queda nada "Próximamente".**
 
 ## Cómo se usa
 
@@ -31,8 +34,8 @@
   `[B+F]` en la parte que te toca.
 - **Todas las PD están decididas** (sección 2). Si encontrás algo que no está en el contrato ni en un RF,
   preguntá: no lo dejes como "Próximamente".
-- **Las pantallas del Sprint 5 del prototipo son viejas** (contrato §8.1). Si todavía no se actualizaron con el
-  prompt, frená y preguntá.
+- **Las pantallas del Sprint 5 del prototipo ya están actualizadas** (contrato §8.1). Lo que el prototipo simula
+  (botones "Simular…", números de ejemplo) no es parte del diseño.
 
 **Etiquetas de los criterios**
 
@@ -58,8 +61,8 @@ objetivo pasa a **Completada**; sin recompensa, ahí termina. 4. Con recompensa,
 | Ítem | Título | Backend: responsable | Backend: rama | Frontend: responsable | Frontend: rama | Carpeta del front | Estado |
 |---|---|---|---|---|---|---|---|
 | ARRASTRE-S4 | Cierre del Sprint 4 (`CIERRE_SPRINT_4.md`) | | | | | Según el ítem | Sin empezar |
-| BASE-5 | Modelo de misiones, notificaciones, promociones, imágenes y beneficios | | | — (no tiene pantalla) | — | — | Sin empezar |
-| US-14 | Configurar imagen y mensajes automáticos | | | | | `features/notifications` | Sin empezar |
+| BASE-5 | Modelo de misiones, notificaciones, envíos de promociones, imágenes y beneficios | | | — (no tiene pantalla) | — | — | Sin empezar |
+| US-14 | Configurar mensajes automáticos | | | | | `features/notifications` | Sin empezar |
 | US-15 | Configurar promociones especiales | | | | | `features/notifications` | Sin empezar |
 | US-28 | Crear misión mensual | | | | | `features/missions` | Sin empezar |
 | US-29 | Editar / dar de baja misión | | | | | `features/missions` | Sin empezar |
@@ -98,59 +101,61 @@ BACKEND
            │               ├──> US-32
            │               └──> US-33
            ├──> US-34, FOTO-PERFIL (imágenes)
-           ├──> US-14 ──> US-47, US-48, US-50 (notificaciones)
-           ├──> US-15 ──> US-49
+           ├──> US-14 ──> US-47, US-48, US-50 (notificaciones, historial y reenvío)
+           ├──> US-14 ──> US-15 ──> US-49 (envío de promociones)
            ├──> NIV-BEN
            └──> US-51 a US-54 ──> US-55
   CTA-CLI no depende de BASE-5
   CI primero (sin dependencias), para que todas las ramas del sprint pasen por él
 
 FRONTEND
-  Primero: actualizar el prototipo (PROMPT_PROTOTIPO_SPRINT_5.md).
-  Después, todo en paralelo con MSW, siguiendo el contrato.
+  El prototipo ya está actualizado (11/11 y 12/11).
+  Todo en paralelo con MSW, siguiendo el contrato.
 ```
 
 **Piezas compartidas.** Cada una tiene un solo dueño. Las demás historias la **usan**.
 
 | Pieza | Dueño | La usan |
 |---|---|---|
-| Tablas `missions`, `customer_missions`, `notification_templates`, `notification_settings`, `notifications`, `promotions`; columnas `points_movements.customer_mission_id`, beneficios, `frequent_min_consumptions`, `photo_public_id` y `photo_url`; enums (`MISSION_REWARD`, `BIRTHDAY_BONUS` y las dos acciones de auditoría nuevas); `CHECK` e índices | **BASE-5** | Todas |
+| Tablas `missions`, `customer_missions`, `notification_templates`, `notification_settings`, `notifications` (con `body`, `promotion_send_id` y `resent_from_id`), `promotion_sends`; columnas `points_movements.customer_mission_id`, beneficios, `frequent_min_consumptions`, `photo_public_id` y `photo_url`; enums (`MISSION_REWARD`, `BIRTHDAY_BONUS` y las dos acciones de auditoría nuevas); `CHECK` e índices | **BASE-5** | Todas |
 | Módulos `missions`, `notifications`, `statistics` y el módulo técnico `images` (esqueleto, repositorios y tipos) | **BASE-5** | US-14 a US-55 |
 | `PointsService.acreditarBonificacion({ type, … })` (movimientos `MISSION_REWARD` y `BIRTHDAY_BONUS`, sin tocar `lifetimePoints`) | **BASE-5** | US-31, US-32, US-48 |
-| Puerto `ImageStorage` (Cloudinary y falso): validar por contenido, subir, borrar, URL firmadas | **BASE-5** | US-34, FOTO-PERFIL, US-14 |
+| Puerto `ImageStorage` (Cloudinary y falso): validar por contenido, subir, borrar, URL firmadas | **BASE-5** | US-34, FOTO-PERFIL |
 | Puerto `EmailSender` y su adaptador que solo deja en el log | **BASE-5** | US-47 a US-50 |
 | Asignación y avance de misiones (`registrarAvance` desde `POST /consumos`) | **US-30** | US-31, US-32, US-33 |
 | Reclamo (`reclamar(customerMission, por)`) | **US-31** | US-32 (automático), US-29 (al eliminar) |
-| Envío y registro de una notificación (`enviar(tipo, cliente, motivo, variables)`) | **US-14** | US-47 a US-50 |
+| Envío y registro de una notificación (`enviar(tipo, cliente, motivo, asunto, mensaje)`) y su reenvío | **US-14** | US-15, US-47 a US-50 |
+| Envío de promociones (ahora y programados) y el proceso de programados | **US-15** | US-49 |
 | Tarjeta de misión con barra de progreso (frontend) | **US-33** | US-31 |
-| Selector de imagen con vista previa (frontend) | **US-34** | FOTO-PERFIL, US-14 |
-| Selector de período (frontend) | **US-51** | US-52 a US-55 |
+| Selector de imagen con vista previa (frontend) | **US-34** | FOTO-PERFIL |
+| Selector de mes y año, y los gráficos de torta y barras con CSS (frontend) | **US-51** | US-52 a US-55 |
+| Filtro de fechas con calendario de inicio y fin (frontend, ya existe en Consumos) | — | US-14 (historial), Mis canjes |
 
 ---
 
 ## 2. Pendientes que hay que decidir
 
-**Todas decididas por Deni el 09/11/2026.** El detalle está en el contrato §8.3. Solo queda documentación fuera
-del repo (contrato §10).
+**Todas decididas por Deni el 09/11/2026**, con los cambios del 11/11 y el 12/11 (S5-34 a S5-50). El detalle está
+en el contrato §8.3. Solo queda documentación fuera del repo (contrato §10).
 
 | # | Pendiente | Afecta | Decisión |
 |---|---|---|---|
-| PD-1 | Dónde se guardan las imágenes | BASE-5, US-34, FOTO-PERFIL, US-14 | **Cloudinary** (S5-12); dependencia `cloudinary` autorizada (S5-24) |
+| PD-1 | Dónde se guardan las imágenes | BASE-5, US-34, FOTO-PERFIL | **Cloudinary** (S5-12); dependencia `cloudinary` autorizada (S5-24) |
 | PD-3 | ¿Se elimina `GET /movimientos-de-puntos`? | ARRASTRE-S4 | **Sí** (S5-13) |
 | PD-6 | ¿Aviso de canje rechazado? | — | **No** (S5-14) |
 | PD-7 | Qué mide una misión | BASE-5, US-28, US-30 | **Cantidad de consumos o monto**, con días y horario opcionales (S5-15) |
-| PD-8 | ¿La promoción cambia los puntos? | BASE-5, US-15, US-49 | **No: solo informativa** (S5-16) |
-| PD-9 | Definiciones de las estadísticas | US-51, US-52 | **Mínimo de frecuente configurable** en Configuración del programa (por defecto 3); franjas de 4 h; activo = no dado de baja (S5-22) |
+| PD-8 | ¿La promoción cambia los puntos? | BASE-5, US-15, US-49 | **No: solo informativa** (S5-16). Además, **no se guarda**: solo el envío (S5-36) |
+| PD-9 | Definiciones de las estadísticas | US-51, US-52 | **Mínimo de frecuente configurable** en Configuración del programa (por defecto 3); franjas de 4 h; activo = no dado de baja (S5-22). **Por mes** (S5-42) |
 | PD-10 | Anticipación del aviso de vencimiento | US-47 | **7 días**, una vez por lote (S5-17) |
 | PD-11 | Dependencias `resend` y `pdfkit` | US-47 a US-50, US-55 | **Autorizadas** (S5-18) |
 | PD-12 | Foto de perfil: acceso y quién la ve | FOTO-PERFIL | **Cliente, Cajero y Administrador**, con URL firmada (S5-23) |
 | PD-13 | ¿Anular un consumo resta avance? | US-30 | **Sí, solo si sigue En progreso** (S5-21) |
 | PD-14 | Asignación y repetición de misiones | BASE-5, US-30, US-32, US-33 | **En el primer consumo o consulta del mes; sin mes de fin, se repite** (S5-19) |
 | PD-15 | Editar o eliminar una misión con progreso | US-29 | **Rige desde el mes siguiente; al eliminar, Vencida o Reclamada sola** (S5-20) |
-| PD-16 | ¿Reintentar correos fallidos? | US-14 | **No** (S5-28) |
+| PD-16 | ¿Reintentar correos fallidos? | US-14 | **No automáticamente**; sí a mano, una vez, con "Reenviar" (S5-28, S5-38) |
 | PD-17 | ¿Auditar envíos? | US-47 a US-50 | **No** (S5-28) |
 | PD-18 | Puntos por cumpleaños | US-48 | **Sí, configurable, por defecto 100** (S5-25) |
-| PD-19 | Gráficos | US-51 a US-54 (frontend) | **Tablas y barras con CSS** (S5-27) |
+| PD-19 | Gráficos | US-51 a US-54 (frontend) | **Barras y tortas con CSS**, paleta pastel del contrato §3.9.7 (S5-27, S5-46) |
 | PD-20 | ¿El beneficio del nivel cambia los puntos? | NIV-BEN | **No: texto informativo** (S5-26) |
 | PD-21 | ¿Resetear la contraseña de un cliente? | CTA-CLI | **No: solo verla** (S5-29) |
 | PD-22 | Actualizar Plan, Seguimiento y Definición del Producto | Solo documentación | Pendiente (contrato §10) |
@@ -178,20 +183,25 @@ BASE-5:
 | Eliminar `GET /movimientos-de-puntos` (S5-13) | No tiene pantalla y US-53 lo reemplaza |
 | CORS por variable de entorno | Lo necesita el despliegue de la entrega |
 
+**Ajustes de pantalla del 11/11 (S5-41, solo frontend)**, que van con el ARRASTRE-S4 porque tocan pantallas de
+sprints anteriores: tarjetas de Configuración → Puntos más compactas; sin botón "Volver" en el encabezado del
+Administrador (y todos los modales con cruz); en Cliente → Mis canjes, "Día específico" y "Rango" pasan a
+"Elegir fechas" con el calendario de Consumos (S5-40). Contrato §3.13.
+
 | Fila de `CIERRE_SPRINT_4.md` | Responsable | Rama | Estado |
 |---|---|---|---|
 | | | | |
 
 ---
 
-### BASE-5 — Modelo de misiones, notificaciones, promociones, imágenes y beneficios (solo backend)
+### BASE-5 — Modelo de misiones, notificaciones, envíos de promociones, imágenes y beneficios (solo backend)
 
 | | |
 |---|---|
 | **Qué es** | No es una historia del backlog: es la base que usan todas las del sprint. Una sola migración |
 | **Contrato** | §3.15 (modelo), §2 (enums), §3.5.1 (imágenes), §3.8.3 (correo), §8.4 (módulos) |
 | **Depende de** | ARRASTRE-S4 (lo mínimo) |
-| **Fuera de alcance** | Los endpoints (cada historia tiene los suyos) y los procesos automáticos (US-32, US-47, US-48) |
+| **Fuera de alcance** | Los endpoints (cada historia tiene los suyos) y los procesos automáticos (US-32, US-47, US-48, US-15) |
 | **Dependencias** | Suma `resend`, `pdfkit` y `cloudinary` (autorizadas, S5-18 y S5-24). Avisar en el resumen |
 
 **Criterios de aceptación**
@@ -202,11 +212,13 @@ BASE-5:
   las dos horas; `end_month < start_month`; dos misiones no dadas de baja con el mismo nombre; `progress >
   target`; un movimiento `MISSION_REWARD` sin `customer_mission_id`; una asignación repetida (misma misión,
   cliente y mes); una notificación repetida (mismo tipo, cliente y motivo); `birthday_bonus_points` fuera de
-  0–10.000; `frequent_min_consumptions` fuera de 1–100.
+  0–10.000; `frequent_min_consumptions` fuera de 1–100; una plantilla de tipo `PROMOTION`; un `promotion_sends`
+  `SCHEDULED` sin `scheduled_at` o `SENT` sin `sent_at`; un nivel que no es `BRONZE`, `SILVER` ni `GOLD`; una
+  notificación `PROMOTION` sin `promotion_send_id` (o de otro tipo con él); dos reenvíos del mismo correo.
 - **CA-B5.3 [B] Solo inserción.** `notifications` rechaza `UPDATE`, `DELETE` y `TRUNCATE`.
-- **CA-B5.4 [B] Valores por defecto.** Después de migrar hay una fila por `NotificationType` con los textos del
-  contrato §3.6.1, `notification_settings` con 100 puntos de cumpleaños y la configuración vigente con mínimo
-  de frecuente 3.
+- **CA-B5.4 [B] Valores por defecto.** Después de migrar hay una fila por tipo **automático** (`POINTS_EXPIRING`,
+  `BIRTHDAY`, `MISSION`; no `PROMOTION`) con los textos del contrato §3.6.1, `notification_settings` con 100
+  puntos de cumpleaños (sin columnas de logo) y la configuración vigente con mínimo de frecuente 3.
 - **CA-B5.5 [B] Acreditar bonificaciones.** `PointsService.acreditarBonificacion` crea un lote con la vigencia
   vigente, cancela primero la deuda, inserta `MISSION_REWARD` (con `customer_mission_id`) o `BIRTHDAY_BONUS` y
   **no toca `lifetimePoints`** (el nivel no cambia).
@@ -223,41 +235,50 @@ BASE-5:
 
 ---
 
-### US-14 — Configurar imagen y mensajes automáticos
+### US-14 — Configurar mensajes automáticos
 
 | | |
 |---|---|
-| **Historia** | Como Administrador, quiero configurar el logo de la organización y los mensajes de las notificaciones automáticas, para personalizar la comunicación del programa |
-| **RF** | RF-012 |
+| **Historia** | Como Administrador, quiero configurar los mensajes de las notificaciones automáticas, para personalizar la comunicación del programa |
+| **RF** | RF-012 (el logo queda fijo: S5-35, contrato §10 PD-25) |
 | **Roles** | Administrador |
-| **Contrato** | §3.5.4, §3.6, §3.8.4, §3.14 (`LOGO_AND_MESSAGES_UPDATED`) |
+| **Contrato** | §3.5.4, §3.6, §3.8.4, §3.8.5, §3.14 (`LOGO_AND_MESSAGES_UPDATED`) |
 | **Depende de** | BASE-5 |
-| **Fuera de alcance** | Los envíos de cada tipo (US-47 a US-50) |
+| **Fuera de alcance** | Los envíos de cada tipo (US-47 a US-50) y el de promociones (US-15, US-49). **El logo no se configura** (S5-35) |
 
 **Criterios de aceptación**
 
-- **CA-14.1 [B+F] Ver la configuración.** `GET /configuracion/mensajes` trae el logo, los puntos de
-  cumpleaños y los cuatro mensajes. Configuración → Notificaciones deja de decir "Próx.".
+- **CA-14.1 [B+F] Ver la configuración.** `GET /configuracion/mensajes` trae los puntos de cumpleaños y los
+  **tres** mensajes automáticos (vencimiento de puntos, cumpleaños y misiones; **no** promociones).
+  Configuración → Notificaciones deja de decir "Próx." y tiene el subtítulo del contrato §3.6.2.
 - **CA-14.1b [B+F] Puntos de cumpleaños.** "Puntos de regalo por cumpleaños": entero 0–10.000 (por defecto
   100; 0 = no regala), con el mensaje del contrato §3.6.2. El cambio se audita en la misma entrada.
 - **CA-14.2 [B+F] Editar un mensaje.** Asunto 1–120 y mensaje 1–1.000, con las variables permitidas por tipo y
-  vista previa. Una variable que no corresponde → `400` con el mensaje del contrato.
-- **CA-14.3 [B+F] Activar y desactivar** cada tipo. Un tipo desactivado no se envía (lo prueban US-47 a US-50).
-- **CA-14.4 [B+F] Logo.** Subir y reemplazar (JPG, PNG, WebP, ≤ 2 MB, a Cloudinary) y verlo en el login.
-  `GET /configuracion/logo` es público y responde `302` a la URL del logo (`404` sin logo: el frontend usa el
-  del repo).
-- **CA-14.5 [B] Auditoría.** Una entrada `LOGO_AND_MESSAGES_UPDATED` por guardado, con una fila por cambio;
-  "Se guardó sin modificar valores" si no cambió nada; "Logo: Actualizado" al subir el logo.
-- **CA-14.6 [B+F] Historial de notificaciones.** `GET /notificaciones` con sus filtros; pestaña "Historial".
-- **CA-14.7 [B] Envío común.** `enviar(tipo, cliente, motivo, variables)` reemplaza las variables, registra
-  la notificación (tipo, canal, fecha, destinatario) con `SENT`, `FAILED` o `SKIPPED`, y no se repite por el
-  mismo motivo.
-- **CA-14.8 [B] Permisos.** Cajero y Cliente: `403`.
+  vista previa. Una variable que no corresponde → `400` con el mensaje del contrato. Un mensaje `PROMOTION`
+  en el `PUT` → `400` "Las promociones no tienen mensaje automático.".
+- **CA-14.3 [B+F] Activar y desactivar** cada tipo automático. Un tipo desactivado no se envía (lo prueban
+  US-47, US-48 y US-50).
+- **CA-14.4 [F] Sin logo.** La pestaña Mensajes no tiene sección de logo; la app y la vista previa del correo
+  usan el logo fijo de Vitto Club. No hay endpoints de logo (`GET /configuracion/logo` → `404`).
+- **CA-14.5 [B] Auditoría.** Una entrada `LOGO_AND_MESSAGES_UPDATED` ("Modificó los mensajes automáticos")
+  por guardado, con una fila por cambio; "Se guardó sin modificar valores" si no cambió nada.
+- **CA-14.6 [B+F] Historial de notificaciones.** `GET /notificaciones` con sus filtros (`resentFromId` y
+  `resent` en cada fila); pestaña "Historial" con el filtro **Fechas** de un solo campo con calendario, como el
+  de Consumos (S5-40).
+- **CA-14.7 [B] Envío común.** `enviar(tipo, cliente, motivo, asunto, mensaje)` reemplaza las variables,
+  registra la notificación (tipo, canal, fecha, destinatario, asunto y mensaje) con `SENT`, `FAILED` o
+  `SKIPPED`, y no se repite por el mismo motivo.
+- **CA-14.8 [B+F] Reenviar** (S5-38, contrato §3.8.5). Dada una `FAILED`, "Reenviar" → `202`, un registro nuevo
+  con `resentFromId` y el toast "Correo reenviado a {email}."; el botón deja de verse y la fila original dice
+  "Ya se reenvió.". Una `SENT`/`SKIPPED` o ya reenviada → `409 NOTIFICATION_NOT_RESENDABLE`; tipo desactivado
+  → `409 NOTIFICATION_DISABLED`; inexistente → `404`. No se audita.
+- **CA-14.9 [B] Permisos.** Cajero y Cliente: `403`.
 
-**Casos de prueba:** guardar con y sin cambios, variable inválida, logo válido e inválido, `GET` público,
-historial con filtros, envío común (enviado, fallido, omitido, repetido), permisos.
+**Casos de prueba:** guardar con y sin cambios, variable inválida, `PROMOTION` en el `PUT`, historial con
+filtros, envío común (enviado, fallido, omitido, repetido), reenvío (cada caso de CA-14.8), permisos.
 
-**Recorrido del frontend:** editar cada mensaje, activar/desactivar, subir el logo, historial, errores.
+**Recorrido del frontend:** editar cada mensaje, activar/desactivar, historial con el calendario, reenviar,
+errores.
 
 ---
 
@@ -266,26 +287,35 @@ historial con filtros, envío común (enviado, fallido, omitido, repetido), perm
 | | |
 |---|---|
 | **Historia** | Como Administrador, quiero definir promociones especiales del programa, para aprovechar las propuestas propias de La Vitto |
-| **RF** | RF-013 |
-| **Roles** | Administrador (configura); Cliente (las ve) |
+| **RF** | RF-013 (ajustar: las promociones no se guardan, S5-36; contrato §10 PD-26) |
+| **Roles** | Administrador |
 | **Contrato** | §3.7 |
-| **Depende de** | BASE-5 |
-| **Fuera de alcance** | El envío por correo (US-49). La promoción **no cambia los puntos** (S5-16) |
+| **Depende de** | BASE-5, US-14 (envío común) |
+| **Fuera de alcance** | La promoción **no cambia los puntos** (S5-16). **No hay catálogo** de promociones ni tarjeta para el Cliente (S5-36) |
 
 **Criterios de aceptación**
 
-- **CA-15.1 [B+F] Listado** con filtro Vigentes · Próximas · Terminadas y paginado.
-- **CA-15.2 [B+F] Crear y editar** con título, descripción, días, horario y vigencia, con los mensajes del
-  contrato §3.7.2.
-- **CA-15.3 [B+F] Dar de baja** con confirmación.
-- **CA-15.4 [B+F] El Cliente las ve.** `GET /customers/me/promociones` devuelve las vigentes y las de los
-  próximos 7 días; tarjeta "Promociones" en Inicio.
-- **CA-15.5 [B] Auditoría** `PROMOTIONS_UPDATED` en alta, edición (una fila por campo) y baja.
-- **CA-15.6 [B] Permisos.** Cajero y Cliente: `403` en `/promociones`; Administrador y Cajero: `403` en
-  `/customers/me/promociones`.
+- **CA-15.1 [F] Tarjeta "Promociones"** en Configuración → Notificaciones → Mensajes, con el texto del
+  contrato §3.7.5 y "+ Enviar promoción". No hay opción "Promociones" en el menú de Configuración.
+- **CA-15.2 [B+F] Escribir desde cero** (S5-37). El modal abre vacío; Asunto 1–120 y Mensaje 1–1.000 con los
+  mensajes del contrato §3.7.3; solo `{nombre}`; vista previa con el logo fijo.
+- **CA-15.3 [B+F] Destinatarios** (S5-39). "Todos los clientes activos" o un nivel; "Le llega a {n} clientes
+  activos." con `GET /promociones/destinatarios`. El nivel es el **actual** del cliente.
+- **CA-15.4 [B+F] Cuándo.** "Ahora" → `202 { id, queued }` y el toast del contrato. "Programar" con fecha y
+  hora futura → `201 PromotionSend` `SCHEDULED`; fecha que falta o pasada → los mensajes del contrato.
+- **CA-15.5 [B+F] Programados.** La lista "Envíos programados" con `GET /promociones/envios`; "Cancelar envío"
+  → `CANCELLED`; cancelar uno que ya salió → `409 PROMOTION_SEND_NOT_CANCELLABLE`.
+- **CA-15.6 [B] Proceso de programados.** Cada minuto (`PROMOTIONS_CRON_ENABLED`, `npm run promotions:send`):
+  manda los `SCHEDULED` vencidos, los pasa a `SENT` y no repite correos si corre dos veces. Un cancelado no
+  sale.
+- **CA-15.7 [B] Sin auditoría** (S5-28): enviar, programar y cancelar no auditan.
+- **CA-15.8 [B] Permisos.** Cajero y Cliente: `403` en `/promociones/*`.
+- **CA-15.9 [B] Ya no existen** `GET /customers/me/promociones` ni el ABM de `/promociones` (`404`).
 
-**Casos de prueba:** cada validación, vigencia (hoy, futura, terminada), baja, la vista del Cliente, auditoría,
-permisos.
+**Casos de prueba:** cada validación, a todos y a un nivel, ahora y programado, el proceso (vencido, futuro,
+cancelado, dos corridas), cancelar, permisos.
+
+**Recorrido del frontend:** enviar ahora a todos, programar a un nivel, cancelar, errores.
 
 ---
 
@@ -303,8 +333,8 @@ permisos.
 **Criterios de aceptación**
 
 - **CA-28.1 [B+F] Listado** de §3.1.2: columnas, objetivo armado en texto, "Sin recompensa", vigencia,
-  completadas este mes, estado; filtro y búsqueda; paginado de a 10; vacío. La fila no tiene botones (abre el
-  modal).
+  completadas este mes, estado; filtro, búsqueda y **Orden** (Más recientes por defecto · Más antiguas,
+  `order`, S5-45); paginado de a 10; vacío. La fila no tiene botones: abre el **detalle** (US-29).
 - **CA-28.2 [B+F] Crear con recompensa.** Dado "Vení 3 veces", `CONSUMPTION_COUNT`, objetivo 3, 50 pts, desde
   el mes actual, cuando se guarda: `201`, `ACTIVE`, auditoría `MISSION_CREATED` y toast "Misión guardada.".
 - **CA-28.3 [B+F] Sin recompensa.** Con la casilla "Sin recompensa", `rewardPoints: null` y el listado dice "Sin
@@ -312,6 +342,10 @@ permisos.
 - **CA-28.4 [B+F] Condición.** Días (domingo) y horario (09:00 a 13:00) se guardan y se ven en el objetivo
   armado.
 - **CA-28.5 [B+F] Validaciones** de §3.1.3, en las dos capas.
+- **CA-28.5b [F] Modal en dos pasos** (S5-34): 1) Objetivo, con "Siguiente" que valida nombre, objetivo, días y
+  horario; 2) Recompensa y vigencia, con "Atrás" y "Guardar misión". El **?** del tipo de objetivo muestra la
+  explicación al pasar el mouse o al enfocarlo (S5-44). "Quitar horario" borra las dos horas (S5-43). Se
+  manda un solo `POST` al guardar.
 - **CA-28.6 [B+F] Nombre repetido:** `409 MISSION_NAME_IN_USE`; el nombre de una dada de baja se puede usar.
 - **CA-28.7 [B] El servidor decide:** `status`, `id` o fechas en el body → `400`.
 - **CA-28.8 [B] Permisos.** Cajero y Cliente: `403`.
@@ -325,10 +359,16 @@ permisos.
 | **Historia** | Como Administrador, quiero modificar o dar de baja lógicamente una misión, para mantener actualizado el catálogo de misiones |
 | **RF** | RF-032 |
 | **Roles** | Administrador |
-| **Contrato** | §3.1.4 a §3.1.6, §3.14 |
+| **Contrato** | §3.1.4 a §3.1.7, §3.14 |
 | **Depende de** | US-28, US-30 (para el caso con progreso) y US-31 (reclamo) |
 
 **Criterios de aceptación**
+
+- **CA-29.0 [B+F] Detalle** (S5-34, §3.1.6 y §3.1.7). Un clic en la fila abre el modal con estado, descripción,
+  objetivo, recompensa, vigencia y completadas este mes, y "Clientes que la completaron" con
+  `GET /misiones/:id/completadas` (Completadas y Reclamadas del mes, con "Falta reclamar", "Sin recompensa" o
+  "Por el cliente / el sistema"); vacío del contrato; "Editar misión" abre el modal de dos pasos. Mes inválido
+  → `400`; misión dada de baja → `404`.
 
 - **CA-29.1 [B+F] Editar sin progreso:** cambia todo y rige desde ya.
 - **CA-29.2 [B+F] Editar con progreso este mes:** el objetivo y la recompensa rigen desde el mes siguiente
@@ -463,6 +503,9 @@ permisos.
 - **CA-34.11 [B+F] Validación:** `400 INVALID_IMAGE` con el mensaje del contrato (por contenido y tamaño,
   **antes** de subir).
 - **CA-34.12 [F] Se ve** en el listado, el catálogo del Cliente, el mostrador y los canjes.
+- **CA-34.13 [B+F] Orden del listado** (S5-45, contrato §1 "Existentes que cambian"): `GET /recompensas` acepta
+  `order` = `RECENT` (por defecto) · `OLDEST`, por fecha de alta; filtro "Orden" (Más recientes · Más antiguas) en
+  Administración → Recompensas. Otro valor → `400`.
 - **CA-34.13 [B] Auditoría** `REWARD_UPDATED` con "Foto: Actualizada" o "Foto: Quitada".
 - **CA-34.14 [B] Dada de baja:** `404` al subir o quitar; su foto no se borra de Cloudinary (la usan los canjes
   viejos).
@@ -525,17 +568,19 @@ permisos.
 | **Historia** | Como Cliente, quiero recibir notificaciones de promociones, para enterarme de las propuestas especiales de La Vitto |
 | **RF** | RF-052 |
 | **Roles** | Administrador (envía) |
-| **Contrato** | §3.7.3, §3.8 |
+| **Contrato** | §3.7.3, §3.7.4, §3.8 |
 | **Depende de** | US-14, US-15 |
 
 **Criterios de aceptación**
 
-- **CA-49.1 [B+F] Enviar** con confirmación "¿Enviar "{título}" a {n} clientes por correo?" → `202 {
-  queued }`; `lastSentAt` actualizado.
-- **CA-49.2 [B]** Solo a clientes activos; una vez por cliente por envío.
-- **CA-49.3 [B+F]** Tipo desactivado → `409 NOTIFICATION_DISABLED`; promoción terminada → `409
-  PROMOTION_FINISHED`.
-- **CA-49.4 [B]** El envío sigue en segundo plano: la respuesta no espera a los correos.
+- **CA-49.1 [B]** Cada destinatario recibe **un** correo `PROMOTION` por envío, con `{nombre}` reemplazado, y queda
+  en el historial con el `promotion_send_id`.
+- **CA-49.2 [B]** Solo clientes activos (todos o los del nivel elegido, con su nivel actual).
+- **CA-49.3 [B]** El envío "ahora" sigue en segundo plano: la respuesta no espera a los correos. Los programados
+  salen con el proceso de US-15, después del commit.
+- **CA-49.4 [B]** `PROMOTION` no tiene interruptor: no hay `409 NOTIFICATION_DISABLED` ni
+  `PROMOTION_FINISHED`. Con el envío apagado en el entorno, `SKIPPED`.
+- **CA-49.5 [B]** Un correo que falla queda `FAILED` y no frena a los demás; se puede reenviar (US-14).
 
 ---
 
@@ -569,35 +614,41 @@ permisos.
 
 **Criterios de aceptación**
 
-- **CA-51.1 [B]** Activos, nuevos y frecuentes con datos conocidos (por ejemplo, con mínimo 3: clientes con 3,
-  2 y 4 consumos → 2 frecuentes).
+- **CA-51.1 [B]** Activos, nuevos y frecuentes **del mes** con datos conocidos (por ejemplo, con mínimo 3:
+  clientes con 3, 2 y 4 consumos → 2 frecuentes) y `last6Months` (los 6 meses que terminan en el elegido).
 - **CA-51.2 [B+F] Mínimo configurable** (S5-22): `GET`/`PUT /loyalty/configuration/frequent-customers` (entero
   1–100, por defecto 3), en una versión nueva de la configuración, auditado con `FREQUENT_CUSTOMERS_UPDATED`;
   tarjeta "Clientes frecuentes" en Configuración → Puntos.
-- **CA-51.3 [B]** Período obligatorio, hora de Argentina; falta, rango invertido y más de un año → `400` con los
-  mensajes del contrato §3.9.
-- **CA-51.4 [F]** Pantalla "Estadísticas y reportes" habilitada; selector de período (por defecto el mes
-  actual); bloque Clientes con "Frecuentes (al menos {n} consumos)".
+- **CA-51.3 [B]** `month` obligatorio (`YYYY-MM`, hora de Argentina): falta, formato inválido, futuro y anterior
+  a enero del año pasado → `400` con los mensajes del contrato §3.9 (S5-42).
+- **CA-51.4 [F]** Pantalla "Estadísticas y reportes" habilitada; selectores **Mes** y **Año** (por defecto el mes
+  actual; meses futuros deshabilitados); pestaña Clientes con las tarjetas, la torta de frecuentes y las
+  columnas de los últimos 6 meses, con la paleta y la letra de los números del contrato §3.9.7.
 - **CA-51.5 [B]** Cajero y Cliente: `403`.
 
 ### US-52 — Estadísticas de consumos por período
 
-**RF-055 · Contrato §3.9.2.** CA-52.1 [B] totales y agrupación por día, semana o mes · CA-52.2 [B] por día de
-la semana y por las cinco franjas horarias del contrato (S5-22), en hora de Argentina · CA-52.3 [B] solo `REGISTERED` · CA-52.4 [F]
-bloque Consumos · CA-52.5 [B] permisos.
+**RF-055 · Contrato §3.9.2.** CA-52.1 [B] totales del mes (sin `groupBy` ni "por período", S5-42) · CA-52.2 [B]
+por día de la semana (los 7) y por las cinco franjas horarias del contrato (S5-22), en hora de Argentina ·
+CA-52.3 [B] solo `REGISTERED` · CA-52.4 [F] pestaña Consumos: tarjetas Consumos y Monto total, y columnas por
+día y por franja con cantidad y monto, resaltando el más fuerte · CA-52.5 [B] permisos.
 
 ### US-53 — Estadísticas de puntos
 
-**RF-056 · Contrato §3.9.3.** CA-53.1 [B] otorgados, bonificación, recompensas de misión, regalos de
-cumpleaños, canjeados, vencidos, ajustes y anulaciones del período, con datos conocidos · CA-53.2 [F] bloque
-Puntos · CA-53.3 [B] permisos · CA-53.4 [B] `GET /movimientos-de-puntos` ya no existe (`404`, S5-13; lo saca el
-ARRASTRE-S4).
+**RF-056 · Contrato §3.9.3.** CA-53.1 [B] consumos, bonificación, recompensas de misión, regalos de cumpleaños,
+canjeados, vencidos y anulaciones del mes, con datos conocidos; **sin ajustes ni `byMonth`** (S5-42) · CA-53.2
+[F] pestaña Puntos: tarjetas, torta "De dónde salen los puntos" (con el total legible en el centro) y barras
+"Qué pasó con los puntos" con "Usados del total acreditado"; sin la tabla por mes · CA-53.3 [B] permisos ·
+CA-53.4 [B] `GET /movimientos-de-puntos` ya no existe (`404`, S5-13; lo saca el ARRASTRE-S4).
 
 ### US-54 — Estadísticas de niveles, misiones y recompensas
 
-**RF-057 · Contrato §3.9.4.** CA-54.1 [B] distribución por nivel actual · CA-54.2 [B] por misión: asignadas,
-completadas, reclamadas y vencidas · CA-54.3 [B] las 10 recompensas más canjeadas (canjes `USED`) · CA-54.4
-[F] bloque Programa · CA-54.5 [B] permisos.
+**RF-057 · Contrato §3.9.4.** CA-54.1 [B] distribución por nivel actual · CA-54.2 [B] `levelUps`: clientes que
+subieron de nivel en el mes (S5-47) · CA-54.3 [B] misiones del mes por estado (`inProgress`, `completed` sin
+reclamar, `claimed`, `expired`) · CA-54.4 [B] las 10 recompensas más canjeadas (canjes `USED`) y
+`redemptionsUsed` · CA-54.5 [F] pestaña Programa: torta de misiones (**En progreso solo en el mes actual**, sin
+"a fin de mes se reclama sola", S5-50), torta de niveles con "Subieron de nivel en el mes: {%}" y barras de
+recompensas con su % (S5-48) · CA-54.6 [B] permisos.
 
 ### US-55 — Exportar reportes generados
 
@@ -605,15 +656,19 @@ completadas, reclamadas y vencidas · CA-54.3 [B] las 10 recompensas más canjea
 |---|---|
 | **Historia** | Como Administrador, quiero exportar los reportes generados en formato PDF, para compartir o archivar la información del programa |
 | **RF** | RF-058 |
-| **Contrato** | §3.9.5 |
+| **Contrato** | §3.9.5, §3.9.7 (modal) |
 | **Depende de** | US-51 a US-54 (`pdfkit`, autorizada) |
 
 **Criterios de aceptación**
 
-- **CA-55.1 [B]** `GET /estadisticas/reporte.pdf` responde `application/pdf` con el nombre del contrato.
-- **CA-55.2 [B]** El PDF trae el logo, el período, la fecha de generación y las cuatro secciones.
-- **CA-55.3 [F]** "Exportar reporte PDF" lo descarga con `shared/api/download.ts`.
-- **CA-55.4 [B]** Mismas validaciones de período y permisos que US-51.
+- **CA-55.1 [B]** `GET /estadisticas/reporte.pdf?month&sections` responde `application/pdf` con el nombre del
+  contrato.
+- **CA-55.2 [B]** El PDF trae el logo fijo, el mes, la fecha de generación y **solo las secciones pedidas**, en
+  el orden del contrato. Sin secciones → `400` "Elegí al menos una sección.".
+- **CA-55.3 [F]** "Exportar reporte PDF" abre el modal de secciones (S5-49): todas marcadas al abrir,
+  "Deseleccionar todo" / "Seleccionar todo", "Descargar PDF" deshabilitado sin ninguna; descarga con
+  `shared/api/download.ts`.
+- **CA-55.4 [B]** Mismas validaciones de mes y permisos que US-51.
 
 ---
 

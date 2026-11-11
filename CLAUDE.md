@@ -62,11 +62,11 @@ datos que el contrato no tenga.
 
 | Qué necesitás saber | Fuente de verdad | Dónde está |
 |---|---|---|
-| **Backend:** endpoints, rutas, body, query params, respuestas, tipos, enums, validaciones, códigos HTTP, `code` de error, permisos por rol, reglas de negocio, auditoría, modelo de datos | **Contrato de API del Sprint 5** (v1, sin puntos abiertos) | `docs/sprint-5/API_CONTRACT_SPRINT_5.md` |
+| **Backend:** endpoints, rutas, body, query params, respuestas, tipos, enums, validaciones, códigos HTTP, `code` de error, permisos por rol, reglas de negocio, auditoría, modelo de datos | **Contrato de API del Sprint 5** (v2 del 12/11, sin puntos abiertos) | `docs/sprint-5/API_CONTRACT_SPRINT_5.md` |
 | **Las dos capas:** lo que ya existe del Sprint 4 (recompensas y canjes) y lo que quedó pendiente de él | **Contrato de API del Sprint 4** y el cierre del Sprint 4 | `docs/sprint-4/API_CONTRACT_SPRINT_4.md` y `docs/sprint-5/CIERRE_SPRINT_4.md` |
 | **Las dos capas:** lo que ya existe del Sprint 3 (consumos, puntos, clientes, auditoría) y las convenciones que los contratos siguientes dan por sabidas ("igual que en el Sprint 3") | **Contrato de API del Sprint 3** y el cierre del Sprint 3 | `docs/sprint-3/API_CONTRACT_SPRINT_3.md` y `docs/sprint-4/CIERRE_SPRINT_3.md` |
 | **Backend:** lo que ya existe de los Sprints 1 y 2, y lo que hay que corregir de eso | Archivo de verificación, `docs/funcionalidades/`, `docs/domain/` y `backend/prisma/schema.prisma` | `docs/sprint-3/VERIFICACION_SPRINTS_1_2.md` |
-| **Frontend:** cómo se ve cada pantalla, textos, orden de campos, botones, estados vacíos, modales, flujo de navegación | **Prototipo v2** (export de Claude Design). Las pantallas del Sprint 5 se **actualizan antes** con `docs/sprint-5/PROMPT_PROTOTIPO_SPRINT_5.md` (contrato S5 §8.1) | `docs/prototipo/v2/` |
+| **Frontend:** cómo se ve cada pantalla, textos, orden de campos, botones, estados vacíos, modales, flujo de navegación | **Prototipo v2** (export de Claude Design, con las pantallas del Sprint 5 ya actualizadas y los cambios a mano del 11/11 y el 12/11; ver su `LEEME.md` y el contrato S5 §8.1) | `docs/prototipo/v2/` |
 | **Frontend:** qué endpoint llamar, qué campos llegan, qué `code` puede devolver y qué hacer con cada uno | **Contrato de API del Sprint 5** | `docs/sprint-5/API_CONTRACT_SPRINT_5.md` |
 | **Las dos capas:** qué hay que hacer en cada historia, criterios de aceptación y quién la hace | Historias del sprint | `docs/sprint-5/HISTORIAS_SPRINT_5.md` |
 | **Backend:** qué documentos de `docs/` actualizar cuando se mergea BASE-5 | Lista de BASE-5 | `docs/seguimiento/actualizacion-docs-base5.md` |
@@ -93,9 +93,8 @@ datos que el contrato no tenga.
   Cajero. El prototipo calcula en la pantalla porque no tiene backend. La aplicación real se los pide al backend.
 - **El código del prototipo.** No es React (usa `dc-import`, `sc-if`, plantillas `{{ }}`). Se reproduce con
   los componentes del proyecto; no se copia.
-- **Las pantallas del Sprint 5 del prototipo sin actualizar:** son de la primera versión (numeración vieja,
-  objetivo en texto libre, "En curso", estadísticas fijas). Hasta que se reexporten con
-  `PROMPT_PROTOTIPO_SPRINT_5.md`, manda el contrato S5 §8.1.
+- **Lo que el prototipo simula y no es diseño:** los botones "Simular…", los números de ejemplo de las
+  estadísticas y de los destinatarios, y los envíos que quedan "Enviada" al instante (contrato S5 §8.1).
 - **La lógica vieja de canjes de `pagina-principal.html`** (estado "Pendiente", 30 minutos, reintegros). Las
   pantallas de canjes son los componentes `Recompensas`, `GestionCanjes`, `CanjePorCodigo`, `CanjeAccion` y
   `ClienteCanjes` (contrato del Sprint 4, §8.1 #5).
@@ -216,9 +215,9 @@ Al final de cada paso, revisá que no te desviaste del contrato. No hace falta m
    - `@nestjs/schedule` (procesos automáticos; ya está instalada);
    - `resend` (correos, US-14 y US-47 a US-50; S5-18);
    - `pdfkit` (reporte PDF, US-55; S5-18);
-   - `cloudinary` (fotos y logo; S5-24).
+   - `cloudinary` (fotos; S5-24). El logo **no se configura** (S5-35).
 
-   Aun así, avisá cuando la agregues. Los gráficos de estadísticas van con CSS, **sin librería** (S5-27).
+   Aun así, avisá cuando la agregues. Los gráficos de estadísticas (barras y tortas) van con CSS, **sin librería** (S5-27, S5-46).
 6. **No cambies configuración compartida** sin preguntar: `tsconfig`, ESLint, Vite, Jest, Docker,
    `.env.example` y `package.json` (salvo las dependencias autorizadas y lo que tu historia pide en el
    contrato, como las variables nuevas de §4).
@@ -272,26 +271,30 @@ Sprint 5; **S4**, el del Sprint 4; sin marca, el del Sprint 3.
 
 **Notificaciones (Sprint 5)**
 - **Canal:** solo correo, con Resend (S5-10). Cuatro tipos: vencimiento de puntos, cumpleaños, promoción y
-  misión.
+  misión. Los mensajes automáticos son tres: **promoción no tiene plantilla ni interruptor** (S5-37).
 - **Siempre después del commit:** un correo nunca deshace un consumo ni un reclamo.
-- **Se registran todas** (enviadas, fallidas u omitidas), **una sola vez por motivo**. Sin reintento y **sin
-  auditoría**: quedan en el historial (S5-28).
+- **Se registran todas** (enviadas, fallidas u omitidas), **una sola vez por motivo**. Sin reintento
+  **automático** y **sin auditoría**: quedan en el historial (S5-28). Un correo que falló se puede **reenviar a
+  mano una vez** (`POST /notificaciones/:id/reenviar`, S5-38).
 - **Vencimiento de puntos:** aviso **7 días antes**, una vez por lote (S5-17). El proceso diario corre a las
   09:00.
 - **En desarrollo y en los e2e no se mandan correos** (`NOTIFICATIONS_EMAIL_ENABLED=false`).
 
 **Promociones, beneficios y estadísticas (Sprint 5)**
-- **Promociones:** **solo informativas**; no cambian los puntos (S5-16).
+- **Promociones:** **solo informativas**; no cambian los puntos (S5-16). **No se guardan** (S5-36): se escriben
+  desde cero en Notificaciones y se envían **ahora o programadas**, a **todos los clientes activos o a los de un
+  nivel** (S5-39). Solo se guarda el envío (`promotion_sends`); los programados salen con un proceso cada minuto.
 - **Beneficio de cada nivel:** **texto informativo**; no cambia los puntos (S5-26).
-- **Cliente frecuente:** al menos N consumos `REGISTERED` en el período; N se configura en Configuración del
+- **Cliente frecuente:** al menos N consumos `REGISTERED` en el mes; N se configura en Configuración del
   programa (por defecto **3**) (S5-22). Activo = no dado de baja. Franjas de 4 horas.
-- **Estadísticas:** las calcula el backend; la pantalla dibuja tablas y barras con CSS (S5-27).
+- **Estadísticas:** **por mes** (`month=YYYY-MM`, S5-42); las calcula el backend; la pantalla dibuja barras y
+  tortas con CSS (S5-27, S5-46). El PDF lleva solo las secciones elegidas (S5-49).
 - **`GET /movimientos-de-puntos` se elimina** (S5-13). No hay aviso de canje rechazado (S5-14).
 
 **Fotos (Sprint 5)**
 - **Cloudinary** (S5-12). JPG, PNG o WebP, hasta 2 MB, validadas **por contenido** en el backend; si no,
   `400 INVALID_IMAGE`.
-- Recompensas y logo: URL pública. **Foto de perfil del Cliente:** solo con **URL firmada** (1 hora); la ven el
+- Recompensas: URL pública. **Foto de perfil del Cliente:** solo con **URL firmada** (1 hora); la ven el
   Cliente, el Cajero y el Administrador (S5-23). Sin foto, la imagen genérica.
 - **En los e2e y en desarrollo sin cuenta**, adaptador falso (`IMAGES_STORAGE_ENABLED=false`).
 
