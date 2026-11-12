@@ -10,6 +10,18 @@
 > 12/11 contra el contrato v3**, que no tiene puntos abiertos. Si el contrato cambia, corregir esta lista.
 >
 > **No se cambia nada de las fuentes de verdad** (contratos, historias, prototipo).
+>
+> **Estado al 12/11/2026 (rama de BASE-5).** BASE-5 ya está hecha y se aplicó de esta lista **lo que ahora es
+> verdad en el código**: §1 (modelo de datos, con las restricciones reales), §2 (migraciones; la del arrastre
+> quedó como `sprint4_arrastre_points_movements_integrity`), §3.1 y §3.2 (los módulos como **esqueletos**, sus
+> dependencias y las reglas de `architecture.spec.ts`), §4 (limpieza de los e2e con los helpers de solo
+> inserción y variables de imágenes y correo), §5 (solo las variables y scripts que existen), `INVALID_IMAGE` de
+> §6, §7 (puntos de regalo y el consumo de 0 puntos) y `estado-actual.md` y `deuda-tecnica.md` de §9.
+> **Queda para cada historia**, cuando existan sus endpoints, pantallas y procesos, para no documentar como
+> existente algo que todavía no existe: §3.3 (los tres procesos nuevos), `roles-y-permisos.md`, los demás
+> códigos de `errores-y-codigos.md`, `transacciones-y-eventos.md`, las secciones de misiones y notificaciones
+> de `programa-de-puntos.md`, `estructura-frontend.md`, `glosario.md`, `vision-general.md` y `README.md`.
+> Lo del arrastre (trigger de `points_movements`) ya no es una duda de §4.1: se resolvió con los helpers.
 
 ---
 

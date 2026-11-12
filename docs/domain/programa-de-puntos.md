@@ -40,7 +40,9 @@ configuración no guarda `updatedBy`: el actor queda en la auditoría.
 - El consumo guarda un **snapshot** de la configuración usada. Nunca se edita: si está mal, se anula y se
   registra de nuevo.
 - La vista previa (`GET /consumos/preview`) la calcula el backend. La pantalla no hace cuentas.
-- Un consumo que da 0 puntos (monto menor que la base) hoy inserta un movimiento por 0 (D-07, abierta).
+- Un consumo que da 0 puntos (monto menor que la base, y sin bonificación) se **registra igual**, pero **no
+  deja movimiento** de puntos: el contrato pide `points <> 0` en los movimientos. Anularlo tampoco deja
+  movimiento (D-07, opción a, decisión tomada a pedido de Montse el 12/11; falta llevarla al contrato).
 
 **Anulación (US-22):**
 
@@ -72,9 +74,19 @@ configuración no guarda `updatedBy`: el actor queda en la auditoría.
 El lote vence **entero** (`remaining = 0`, S3-07), se registra un movimiento `EXPIRATION` a nombre de
 "Sistema" y se audita `POINTS_EXPIRED`. No toca `lifetimePoints`.
 
-**Movimientos:** son solo inserción, con signo y saldo resultante. Tipos: `CONSUMPTION_CREDIT`,
-`VOID_REVERSAL`, `MANUAL_ADJUSTMENT`, `EXPIRATION` y `REDEMPTION` (con `redemptionCode`, "Canje:
-{recompensa}"). No existe ningún tipo de reintegro.
+**Puntos de regalo (Sprint 5, BASE-5):** `PointsService.acreditarBonificacion` acredita `MISSION_REWARD`
+(recompensa de una misión) y `BIRTHDAY_BONUS` (regalo de cumpleaños). Funciona como una acreditación: cancela
+primero la deuda y, con lo que sobra, crea un lote con la vigencia vigente (sin consumo). Siempre lo hace el
+**Sistema** (el Cliente que reclama una misión nunca es actor). A diferencia de un consumo, **no suma a
+`lifetimePoints`**: el nivel sale solo de los consumos (S5-9), aunque el regalo cruce un umbral. Un
+`MISSION_REWARD` lleva siempre su asignación (`customer_mission_id`) y una misión se cobra una sola vez.
+Todavía no hay endpoint ni proceso que lo llame: lo usan US-31, US-32 y US-48.
+
+**Movimientos:** son solo inserción, con signo y saldo resultante (la base rechaza `UPDATE`, `DELETE` y
+`TRUNCATE`, y un movimiento de 0 puntos). Tipos: `CONSUMPTION_CREDIT`, `VOID_REVERSAL`, `MANUAL_ADJUSTMENT`,
+`EXPIRATION` y `REDEMPTION` (con `redemptionCode`, "Canje: {recompensa}"), y, desde el Sprint 5,
+`MISSION_REWARD` y `BIRTHDAY_BONUS`. No existe ningún tipo de reintegro. La descripción del movimiento de
+misión ("Recompensa de misión: {misión}") la agrega US-31; la de cumpleaños es "Regalo de cumpleaños".
 
 ## 4. Recompensas (módulo `rewards`)
 

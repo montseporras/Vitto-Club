@@ -40,6 +40,17 @@ export type AcreditarInput = {
   performedBy: PerformedBy;
 };
 
+// BASE-5 (contrato S5 §2.7 y §8.4, CA-B5.5). Lo usan US-31 y US-32 (MISSION_REWARD, al reclamar) y
+// US-48 (BIRTHDAY_BONUS). Siempre lo hace el Sistema: el Cliente que reclama una misión nunca es actor.
+export type AcreditarBonificacionInput = {
+  customerId: number;
+  type: 'MISSION_REWARD' | 'BIRTHDAY_BONUS';
+  // Puntos de regalo, enteros y positivos
+  points: number;
+  // Obligatorio en MISSION_REWARD y solo ahí (CHECK points_movements_mission_check)
+  customerMissionId?: number;
+};
+
 export type RevertirInput = {
   customerId: number;
   consumptionId: number;
@@ -186,6 +197,66 @@ export class PointsService {
         lifetimePointsAfter: newLifetimePoints,
         levelBefore,
         levelAfter,
+      };
+    });
+  }
+
+  // CA-B5.5: acredita puntos de regalo (MISSION_REWARD o BIRTHDAY_BONUS). Igual que acreditar():
+  // cancela primero la deuda y lo que sobra crea un lote con la vigencia vigente. A diferencia de un
+  // consumo, NO suma a lifetimePoints: el nivel sale solo de los consumos (S5-9, §2.7). El lote no
+  // pertenece a ningún consumo. El movimiento queda a nombre del Sistema.
+  async acreditarBonificacion(input: AcreditarBonificacionInput): Promise<BalanceMutationResult> {
+    if (!Number.isInteger(input.points) || input.points <= 0) {
+      throw new Error(`Gift points must be a positive integer (got ${input.points})`);
+    }
+    if ((input.type === 'MISSION_REWARD') !== (input.customerMissionId !== undefined)) {
+      throw new Error('customerMissionId is required for MISSION_REWARD and only for it');
+    }
+
+    return await this.transactionRunner.run(async () => {
+      const config = await this.requireActiveConfiguration();
+      const row = await this.pointsRepository.lockOrCreateBalance(input.customerId);
+
+      const { newDebt, remainingToCredit } = this.cancelDebtFirst(row.debt, input.points);
+
+      let lotId: number | null = null;
+      if (remainingToCredit > 0) {
+        const accreditedAt = new Date();
+        const lot = PointsLot.create({
+          customerId: input.customerId,
+          consumptionId: null,
+          initialPoints: remainingToCredit,
+          accreditedAt,
+          expiresAt: addMonthsUTC(accreditedAt, config.pointsExpirationMonths),
+        });
+        const created = await this.pointsRepository.createLot(lot);
+        lotId = created.getId();
+      }
+
+      const newBalance = row.balance + input.points;
+      await this.pointsRepository.updateBalance(input.customerId, {
+        balance: newBalance,
+        debt: newDebt,
+        lifetimePoints: row.lifetimePoints,
+      });
+
+      await this.pointsRepository.insertMovement({
+        customerId: input.customerId,
+        type: input.type,
+        points: input.points,
+        balanceAfter: newBalance,
+        consumptionId: null,
+        lotId,
+        customerMissionId: input.customerMissionId ?? null,
+        performedByAccountId: null,
+        performedByName: SYSTEM_PERFORMER_NAME,
+      });
+
+      return {
+        balanceBefore: row.balance,
+        balanceAfter: newBalance,
+        lifetimePointsBefore: row.lifetimePoints,
+        lifetimePointsAfter: row.lifetimePoints,
       };
     });
   }

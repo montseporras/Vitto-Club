@@ -146,6 +146,7 @@ export class PointsPrismaRepository implements PointsRepository {
         consumptionId: data.consumptionId,
         lotId: data.lotId,
         redemptionId: data.redemptionId ?? null,
+        customerMissionId: data.customerMissionId ?? null,
         reason: data.reason ?? null,
         performedByAccountId: data.performedByAccountId,
         performedByName: data.performedByName,

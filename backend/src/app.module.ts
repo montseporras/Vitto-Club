@@ -17,6 +17,10 @@ import { ConsumptionsModule } from './consumptions/consumptions.module.js';
 import { AuditModule } from './audit/audit.module.js';
 import { RewardsModule } from './rewards/rewards.module.js';
 import { RedemptionsModule } from './redemptions/redemptions.module.js';
+import { ImagesModule } from './images/images.module.js';
+import { MissionsModule } from './missions/missions.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
+import { StatisticsModule } from './statistics/statistics.module.js';
 
 @Module({
   imports: [
@@ -49,6 +53,11 @@ import { RedemptionsModule } from './redemptions/redemptions.module.js';
     AuditModule,
     RewardsModule,
     RedemptionsModule,
+    // Sprint 5 (BASE-5): esqueletos de los módulos nuevos y el módulo técnico de imágenes
+    ImagesModule,
+    MissionsModule,
+    NotificationsModule,
+    StatisticsModule,
   ],
 })
 export class AppModule {}

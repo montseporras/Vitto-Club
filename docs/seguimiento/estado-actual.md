@@ -16,10 +16,14 @@
 | `accounts` | 2 y 3 | Usuarios de empleados (con reactivación), registro de clientes, cuenta del cliente cargado en caja, cambio de contraseña propio, límite de intentos |
 | `auth` | 2 | Login, renovación, cierre de sesión, guards globales |
 | `consumptions` | 3 | Vista previa, registro, anulación y consultas. Audita `CONSUMPTION_REGISTERED` y `CONSUMPTION_VOIDED` |
-| `points` | 3 y 4 | Lotes, movimientos, saldo, nivel, ajustes, vencimiento diario (US-25) y `canjear` (BASE-4) |
+| `points` | 3, 4 y 5 | Lotes, movimientos, saldo, nivel, ajustes, vencimiento diario (US-25), `canjear` (BASE-4) y `acreditarBonificacion` (BASE-5: puntos de regalo que no suman al nivel). `GET /movimientos-de-puntos` se eliminó (S5-13) |
 | `audit` | 3 | `AuditService` y `GET /auditoria`, `GET /auditoria/actores` |
 | `rewards` | 4 | US-34 a US-39: crear, editar, activar/desactivar, eliminar, disponibilidad automática y proceso diario de vencidas |
 | `redemptions` | 4 | US-40 a US-45: confirmar, usar, rechazar, cancelar, vencer (al leer y cada 5 minutos) y consultar; catálogo del Cliente |
+| `images` | 5 (BASE-5) | Módulo técnico sin dominio: puerto `ImageStorage` con adaptador de Cloudinary y adaptador falso, validación por contenido y URL firmada. Todavía nadie lo usa (lo usarán US-34 y FOTO-PERFIL) |
+| `notifications` | 5 (BASE-5) | **Esqueleto:** repositorios sin operaciones y el puerto `EmailSender` (Resend o log). Sin endpoints ni procesos todavía (US-14, US-15 y US-47 a US-50) |
+| `missions` | 5 (BASE-5) | **Esqueleto:** repositorios sin operaciones. Sin endpoints ni procesos todavía (US-28 a US-33) |
+| `statistics` | 5 (BASE-5) | **Esqueleto:** repositorio sin operaciones. Sin endpoints todavía (US-51 a US-55) |
 | `shared`, `prisma`, `health` | — | Eventos, seguridad, hora de Argentina; transacción ambiente; health check |
 
 ### Frontend
@@ -46,10 +50,10 @@ Encontrado al revisar el código. **No se corrigió nada**: es código de otras 
 
 | # | Qué falta | Dónde |
 |---|---|---|
-| A-02 | Trigger de solo inserción en `points_movements`. Los comentarios de `schema.prisma` dicen que existe, pero ninguna migración lo crea | Migración nueva |
-| A-03 | Los `CHECK` de la §3.12 del contrato S3 (montos, puntos, anulación, lotes, deuda, niveles). Tampoco existen | Migración nueva |
+| A-02 | ✅ **Resuelto el 12/11 (ARRASTRE-S4):** `points_movements` es solo inserción (migración `sprint4_arrastre_points_movements_integrity`) | — |
+| A-03 | **Resuelto a medias el 12/11 (ARRASTRE-S4):** `points_movements` tiene `points <> 0` y "motivo obligatorio en `MANUAL_ADJUSTMENT`". **Siguen sin existir** los `CHECK` de las otras tablas de la §3.12 (montos y puntos de `consumptions`, anulación, lotes, deuda y acumulados de `customer_points`, niveles) | Migración nueva |
 | A-09 / B5 | `employees.phone`: la columna es nullable, pero el repositorio sigue guardando `''` y las filas viejas no se migraron | `backend/src/employees/infrastructure/employees.repository.ts:7` |
-| B7 | CORS fijo en `http://localhost:5173`, sin variable de entorno | `backend/src/main.ts:19` |
+| B7 | ✅ **Resuelto el 12/11 (ARRASTRE-S4):** el CORS sale de `CORS_ORIGIN` (varios orígenes separados por coma; por defecto `http://localhost:5173`) | — |
 | A-13 | Las 13 notas `documentation-updates-*.md` siguen dentro del código. Su contenido ya está en [decisiones de implementación](./decisiones-de-implementacion.md) | `backend/src/*/`, `frontend/src/features/*/` |
 | A-10 | Las tablas de asignaciones de `HISTORIAS_SPRINT_3.md` §0 y `HISTORIAS_SPRINT_4.md` §0 dicen "Sin empezar" casi en todo | Fuentes de verdad (las actualiza el equipo) |
 | A-07 | Ficha del cliente para el **Cajero** (US-19, contrato S3 §3.4.1). El router no tiene ninguna ruta de ficha en `/caja`; solo existe la del Administrador (`/admin/clientes/:id`). Confirmar si con los ajustes de navegación del 25/10 sigue haciendo falta | `frontend/src/app/router/paths.ts` |
@@ -67,9 +71,9 @@ el documento) y **NAV** (menú "Recompensas", pantalla vieja de Movimientos de p
 
 | Qué pide el contrato | Qué hay en `develop` | Dónde |
 |---|---|---|
-| Al confirmar, bloquear la recompensa (anotado por US-35) | `RedemptionConfirmationService` la lee sin bloqueo | Ítem 7 de [verificaciones pendientes](./verificaciones-pendientes-recompensas.md) |
-| Test: usar un canje rechazado por la desactivación → `409` "Rechazado" | No existe | Ítem 4 de [verificaciones pendientes](./verificaciones-pendientes-recompensas.md) |
-| Scripts `rewards:expire` y `redemptions:expire`; variables `REWARDS_EXPIRATION_CRON_ENABLED` y `REDEMPTIONS_EXPIRATION_CRON_ENABLED` en `.env.example`; las dos apagadas en `test/setup-e2e-env.ts` | No se agregaron (US-37 y US-44 los dejaron anotados para no tocar configuración compartida) | `backend/package.json`, `backend/.env.example`, `backend/test/setup-e2e-env.ts` |
+| Al confirmar, bloquear la recompensa (anotado por US-35) | ✅ Resuelto el 12/11 (ARRASTRE-S4): `RedemptionConfirmationService` usa `lockForUpdate`, con un e2e de concurrencia | — |
+| Test: usar un canje rechazado por la desactivación → `409` "Rechazado" | ✅ Resuelto el 12/11 (ARRASTRE-S4): está en `redemptions-use.e2e-spec.ts` | — |
+| Scripts `rewards:expire` y `redemptions:expire`; variables de sus crons en `.env.example`; apagadas en `test/setup-e2e-env.ts` | ✅ Resuelto el 12/11 (ARRASTRE-S4) | — |
 
 ### Otros
 

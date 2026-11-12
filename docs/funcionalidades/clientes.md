@@ -30,7 +30,7 @@ endpoints existen, qué se puede enviar, qué devuelve la API y qué reglas hay 
 |---|---|
 | **URL base** | `http://localhost:3000/api` (el puerto sale de `PORT` en `backend/.env`) |
 | **Formato** | JSON. En `POST` y `PATCH` enviar `Content-Type: application/json` |
-| **CORS** | Solo acepta el origen `http://localhost:5173` (Vite), con credenciales |
+| **CORS** | Acepta los orígenes de la variable `CORS_ORIGIN` (separados por coma); sin la variable, solo `http://localhost:5173` (Vite). Con credenciales |
 | **Autenticación** | **Obligatoria**: `Authorization: Bearer <accessToken>`. Pueden usar este módulo el **Administrador** y el **Cajero**; el Cliente recibe 403. Sin token, 401. Ver `docs/funcionalidades/autenticacion.md` |
 
 **Todas las rutas de este documento cuelgan de `/api`.** Ejemplo: `GET http://localhost:3000/api/customers`.
@@ -359,6 +359,6 @@ export function fieldErrors(e: ApiError): Record<string, string> {
 - El alta, la edición y la baja se auditan (`CUSTOMER_CREATED`, `CUSTOMER_UPDATED`,
   `CUSTOMER_DEACTIVATED`; contrato S3 §3.9.3).
 - **Sin borrado físico:** solo baja lógica.
-- **CORS** solo permite `http://localhost:5173`. Para otro origen (por ejemplo, un deploy) hay que cambiarlo en el backend.
+- **CORS** permite los orígenes de `CORS_ORIGIN` (por defecto, solo `http://localhost:5173`). Para un deploy, se agrega el origen del frontend en esa variable, sin tocar el código.
 - **Sin documentación interactiva** (Swagger): este documento es la referencia.
 - El `limit` máximo del listado es 100.

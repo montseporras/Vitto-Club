@@ -26,11 +26,13 @@ Protecciones:
   de la base no contiene `test` (`test/e2e-database.ts`).
 - Corren en serie (`--runInBand`) porque comparten la base. Cada spec limpia en un `beforeEach` las tablas
   que usa, respetando el orden de claves foráneas.
-- `test/setup-e2e-env.ts` fija `DATABASE_URL` en la base de tests, `BCRYPT_COST` en 4 y
-  `POINTS_EXPIRATION_CRON_ENABLED=false`. Los crons de recompensas y canjes (US-37 y US-44) **todavía no**
-  se apagan ahí: solo los apagan `rewards-expiration.e2e-spec.ts` y `redemptions-expiration.e2e-spec.ts`
-  al principio del archivo. En las demás suites esos dos procesos corren una vez al iniciar la app de cada
-  spec, antes de que el spec cargue sus datos (ver [SETUP](../SETUP.md#25-procesos-automáticos)).
+- `test/setup-e2e-env.ts` fija `DATABASE_URL` en la base de tests, `BCRYPT_COST` en 4 y deja apagados los tres
+  crons que existen: `POINTS_EXPIRATION_CRON_ENABLED`, `REWARDS_EXPIRATION_CRON_ENABLED` y
+  `REDEMPTIONS_EXPIRATION_CRON_ENABLED` en `false` (ARRASTRE-S4). Los tests que los prueban llaman al
+  servicio directamente. Desde BASE-5 fija también `IMAGES_STORAGE_ENABLED=false` y
+  `NOTIFICATIONS_EMAIL_ENABLED=false`: los e2e usan los adaptadores falsos de `ImageStorage` y de
+  `EmailSender` y **nunca** llaman a Cloudinary ni a Resend. Los crons nuevos del Sprint 5 (misiones,
+  notificaciones y promociones programadas) van a sumar su variable acá cuando los agregue cada historia.
 
 ### Orden de limpieza
 
@@ -38,7 +40,11 @@ Las claves foráneas son `onDelete: Restrict`, así que se borra de las hojas a 
 los canjes apuntan a clientes, cuentas y recompensas, y los movimientos apuntan a canjes:
 
 ```ts
-await prisma.pointsMovement.deleteMany(); // apunta a lotes, consumos y canjes
+await deleteNotifications(prisma);        // Sprint 5: solo si el spec crea notificaciones (apunta a clientes y envíos)
+await prisma.promotionSend.deleteMany();  // Sprint 5: apunta a empleados
+await deletePointsMovements(prisma);      // apunta a lotes, consumos, canjes y misiones de clientes
+await prisma.customerMission.deleteMany(); // Sprint 5: apunta a misiones y clientes
+await prisma.mission.deleteMany();
 await prisma.pointsLot.deleteMany();
 await prisma.customerPoints.deleteMany();
 await prisma.redemption.deleteMany();     // apunta a clientes, cuentas y recompensas
@@ -50,14 +56,23 @@ await prisma.employee.deleteMany();
 await prisma.customer.deleteMany();
 ```
 
+Un spec solo borra lo que su historia usa. Las líneas de misiones, notificaciones y envíos aparecen solo en
+los specs que crean esas filas (`base5-schema` y `points-bonus`); los demás siguen con la lista del Sprint 4,
+porque esas tablas están vacías.
+
 Si una suite deja un canje sin borrar, la siguiente que borre clientes o cuentas falla por la clave
 foránea, aunque el problema no sea suyo. `fix/BASE-4-descripcion-canje-back` agregó el borrado de canjes y
 recompensas a las 20 suites que existían.
 
-`points_movements` se puede borrar porque el trigger de solo inserción todavía no existe (pendiente A-02
-del Sprint 3). Cuando se agregue, la limpieza de los e2e va a tener que cambiar. `audit_logs` sí tiene el
-trigger y no se puede vaciar: los specs que la consultan guardan el último id antes de cada caso y leen
-solo las filas con id mayor (`where: { id: { gt: lastAuditId } }`).
+**Tablas de solo inserción.** `points_movements` (desde ARRASTRE-S4) y `notifications` (desde BASE-5) tienen un
+trigger que rechaza `DELETE`, así que un `deleteMany()` directo falla. Los e2e las vacían con dos helpers de
+`backend/test/`: `delete-points-movements.ts` y `delete-notifications.ts`. Cada uno apaga el trigger
+**solo dentro de una transacción**, borra y lo vuelve a prender; si algo falla, la transacción se deshace y el
+trigger queda prendido. Es solo para tests: la aplicación nunca borra esas filas. Los specs
+`points-movements-integrity` y `base5-schema` comprueban que, después del helper, el trigger sigue prendido.
+
+`audit_logs` también tiene el trigger y **no** se vacía con un helper: los specs que la consultan guardan el
+último id antes de cada caso y leen solo las filas con id mayor (`where: { id: { gt: lastAuditId } }`).
 
 ## Por qué los e2e usan base real
 
@@ -81,10 +96,13 @@ Postgres real, que una escritura no confirmada no se ve desde otra conexión.
 | Configuración | `loyalty`, `loyalty-levels` |
 | Consumos (US-21, US-22, US-23) | `consumptions`, `consumptions-query` |
 | Puntos (US-19, US-24, US-25, US-26) | `customer-points`, `points-adjustments`, `points-expiration`, `points-movements` |
+| Integridad de `points_movements` (ARRASTRE-S4: solo inserción y `CHECK`) | `points-movements-integrity` |
 | Auditoría (US-56, US-57) | `audit`, `audit-query` |
 | Transacciones | `transactions` |
 | Modelo del Sprint 4 (BASE-4: `CHECK`, índices, enums) | `base4-schema` |
 | `PointsService.canjear` (FIFO, `REDEMPTION`, bloqueo) | `points-redemption` |
+| Modelo del Sprint 5 (BASE-5: `CHECK`, índices, trigger de `notifications`, valores por defecto) | `base5-schema` |
+| `PointsService.acreditarBonificacion` (`MISSION_REWARD`, `BIRTHDAY_BONUS`; no toca `lifetime_points`) | `points-bonus` |
 | Recompensas (US-34 a US-39) | `rewards-create`, `rewards-edit`, `rewards-status`, `rewards-delete`, `rewards-expiration`, `rewards-catalog` |
 | Canjes (US-40 a US-45) | `redemptions-confirm`, `redemptions-by-code`, `redemptions-use`, `redemptions-reject-cancel`, `redemptions-expiration`, `redemptions-query` |
 
