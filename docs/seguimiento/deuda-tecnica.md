@@ -45,11 +45,11 @@ está en [estado actual](./estado-actual.md#lo-que-falta-o-no-coincide-con-los-c
 | Idioma de los mensajes de error | Todo lo del Sprint 3 en adelante está en castellano. Quedan en inglés mensajes del Sprint 2 ("At least one field must be provided", "Customer with ID … is already inactive", los de `loyalty/domain`) | Pendiente (D-11) |
 | Bloque `"prisma": { "seed": … }` duplicado en `backend/package.json` (el seed se configura en `prisma.config.ts`) | Sigue estando | Vigente |
 | Probar transacciones contra Neon | Solo se probó contra Postgres local | Pendiente |
-| CORS fijo en `http://localhost:5173` (`backend/src/main.ts:19`) | Pasarlo a variable de entorno para el deploy | Pendiente (B7) |
+| CORS fijo en `http://localhost:5173` | ✅ Resuelto el 12/11 (ARRASTRE-S4): el origen sale de la variable `CORS_ORIGIN` (por defecto `http://localhost:5173`) | ✅ Resuelto (B7) |
 | `loyalty` sin `updatedBy` | El actor queda en la auditoría (módulo Configuración) | ✅ Resuelto por US-56 |
 | Anular un consumo con el lote ya vencido convierte todo en deuda (doble pérdida) | `points.service.ts`, `points-lot.ts` | Pendiente de decisión (D-06) |
-| Un consumo que da 0 puntos inserta un movimiento por 0 | Choca con el `CHECK points <> 0` del contrato S3 cuando se agregue | Pendiente de decisión (D-07) |
-| Comentarios de `schema.prisma` que dicen que hay `CHECK` y un trigger en `points_movements` que no existen | Ver [estado actual](./estado-actual.md) (A-02, A-03) | Pendiente |
+| Un consumo que da 0 puntos | ✅ Resuelto el 12/11: se registra sin dejar movimiento, también al anularlo (opción a, decisión tomada a pedido de Montse; falta llevarla al contrato) | ✅ Resuelto (D-07) |
+| Comentarios de `schema.prisma` que mencionan `CHECK` de la §3.12 | El trigger de solo inserción y los `CHECK` `points <> 0` y "motivo en `MANUAL_ADJUSTMENT`" de `points_movements` existen desde ARRASTRE-S4. **Siguen sin existir** los `CHECK` de las otras tablas (A-03) | Pendiente (A-03, parcial) |
 | Evento `customer.document-changed` y su listener en `accounts` | Quedaron sin emisor tras D-03 (nadie edita el documento). Se dejaron a propósito: `accounts` está fuera del alcance del Sprint 4. Tampoco se usa `forbiddenField` (`customers/domain/errors/forbidden-field.error.ts`) | Pendiente |
 
 ## Infraestructura y proceso

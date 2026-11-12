@@ -64,7 +64,20 @@ Abrí `backend/.env` y completá **estas** (el resto ya trae valores que sirven)
 **El `.env` no se commitea nunca** (tiene secretos y ya está en `.gitignore`). Tampoco lo pegues en chats ni PRs.
 
 Las otras variables (`DATABASE_URL`, `PORT`, `BCRYPT_COST`, `JWT_ACCESS_TTL_SECONDS` y las
-`SESSION_*`) ya tienen un valor correcto en el `.env.example`. Las `SESSION_*` están en segundos;
+`SESSION_*`) ya tienen un valor correcto en el `.env.example`.
+
+Del Sprint 4 y del Sprint 5 se suman estas, que **ya traen un valor que sirve para desarrollo**:
+
+| Variable | Para qué | Valor en desarrollo |
+|---|---|---|
+| `CORS_ORIGIN` | Orígenes del frontend que la API acepta, separados por coma | `http://localhost:5173` (también es el valor por defecto si no está) |
+| `NOTIFICATIONS_EMAIL_ENABLED` | Con `true` los correos salen con Resend; con `false` (o sin la variable) no se manda nada: el envío queda en el log | `false` |
+| `RESEND_API_KEY`, `NOTIFICATIONS_FROM` | La clave de Resend y el remitente. Obligatorias solo con `NOTIFICATIONS_EMAIL_ENABLED=true`; si faltan, el backend no arranca y dice cuál | vacías |
+| `IMAGES_STORAGE_ENABLED` | Con `true` las fotos se guardan en Cloudinary; con `false` (o sin la variable) un adaptador falso valida el archivo pero no sube nada | `false` |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | La cuenta de Cloudinary. Obligatorias solo con `IMAGES_STORAGE_ENABLED=true` | vacías |
+
+**Nunca** escribas claves reales en `.env.example` ni en el código: van solo en tu `backend/.env`, que no se
+commitea. Las `SESSION_*` están en segundos;
 para una demo conviene bajarlas (por ejemplo `JWT_ACCESS_TTL_SECONDS=60`) y ver cómo se
 renueva la sesión.
 
@@ -120,15 +133,16 @@ está levantado. No tienen endpoint. Cada uno se puede apagar con su variable y 
 | Proceso | Cuándo corre | Variable (opcional) | A demanda |
 |---|---|---|---|
 | Vencimiento de puntos (US-25) | Todos los días a las 00:05, hora de Argentina | `POINTS_EXPIRATION_CRON_ENABLED` | `npm run points:expire` |
-| Recompensas vencidas (US-37) | Todos los días a las 00:05, hora de Argentina, y una vez al iniciar | `REWARDS_EXPIRATION_CRON_ENABLED` | `npx nest build && node dist/expire-rewards` |
-| Canjes vencidos (US-44) | Cada 5 minutos y una vez al iniciar | `REDEMPTIONS_EXPIRATION_CRON_ENABLED` | `npx nest build && node dist/expire-redemptions` |
+| Recompensas vencidas (US-37) | Todos los días a las 00:05, hora de Argentina, y una vez al iniciar | `REWARDS_EXPIRATION_CRON_ENABLED` | `npm run rewards:expire` |
+| Canjes vencidos (US-44) | Cada 5 minutos y una vez al iniciar | `REDEMPTIONS_EXPIRATION_CRON_ENABLED` | `npm run redemptions:expire` |
 
-- **Sin la variable, el proceso queda prendido.** Con `false` se apaga. En los e2e van en `false`.
-- `backend/.env.example` hoy trae solo `POINTS_EXPIRATION_CRON_ENABLED=true`. Las otras dos variables
-  funcionan igual aunque no estén ahí.
-- Los scripts `rewards:expire` y `redemptions:expire` todavía no están en `backend/package.json`: por eso
-  se corren con el comando largo. Los dos comandos también corren el proceso de inicio, así que corren dos
-  veces, sin efecto (son idempotentes).
+- **Sin la variable, el proceso queda prendido.** Con `false` se apaga. En los e2e van en `false`
+  (`test/setup-e2e-env.ts`).
+- Las tres variables están en `backend/.env.example` (ARRASTRE-S4).
+- Los scripts `rewards:expire` y `redemptions:expire` compilan y corren el proceso a demanda. Los dos también
+  corren el proceso de inicio, así que corren dos veces, sin efecto (son idempotentes).
+- El Sprint 5 suma tres procesos más (misiones, notificaciones y promociones programadas) que **todavía no
+  existen**: los agregan US-32, US-47 a US-50 y US-15, cada uno con su variable y su script.
 - **Ojo en local:** si dejás el backend levantado a las 00:05, el proceso vence de verdad los lotes y las
   recompensas vencidas de tu base de desarrollo, con su movimiento y su auditoría. Si no querés eso, poné
   las variables en `false` en tu `backend/.env`.
@@ -249,7 +263,7 @@ llevar `test`: si no, los e2e se niegan a correr (para no borrar datos de desarr
 |---|---|---|
 | El front dice "No se pudo iniciar sesión" y el proxy muestra `socket hang up` o 502 | El backend no está corriendo, o **otro programa ocupa el puerto 3000** | Mirá la terminal del backend. Si dice `EADDRINUSE`, ver la fila siguiente |
 | `EADDRINUSE: address already in use :::3000` (o el front se va al 5174) | Otro proceso o contenedor (por ejemplo de otro proyecto) usa el puerto | Ver quién lo usa: `docker ps` y `Get-NetTCPConnection -LocalPort 3000 -State Listen`. Frená el contenedor ajeno con `docker stop <nombre>` (apaga, no borra datos) |
-| El front arrancó en `5174` | El `5173` está ocupado | Liberá el 5173 y reiniciá el front. El CORS del backend solo acepta `localhost:5173` |
+| El front arrancó en `5174` | El `5173` está ocupado | Liberá el 5173 y reiniciá el front. Por defecto el CORS del backend solo acepta `localhost:5173`; si necesitás otro origen, agregalo en `CORS_ORIGIN` (separados por coma) y reiniciá el backend |
 | `"vite" no se reconoce como un comando` | Falta instalar | `npm install` dentro de `frontend` |
 | Backend: `Can't reach database server` (P1001) | Docker apagado o la base no está levantada | Abrí Docker Desktop y `docker compose up -d db` |
 | Backend: error por `JWT_SECRET` | Falta o es muy corto | 32 caracteres o más en `backend/.env` |
@@ -261,6 +275,9 @@ llevar `test`: si no, los e2e se niegan a correr (para no borrar datos de desarr
 | Errores de tipos de Prisma (`Property 'auditLog' does not exist`) | El cliente de Prisma quedó generado con un schema viejo | `npx prisma generate` en `backend` (no toca la base) |
 | `migrate deploy` corta con "points_movements tiene filas REDEMPTION sin canje" | Movimientos `REDEMPTION` de seeds viejos (migración de BASE-4) | Borrarlos en la base de desarrollo y volver a migrar, o empezar la base de cero |
 | `npm run test:e2e` falla con "Missing environment variable DATABASE_URL_TEST" | Falta la variable en `backend/.env` | Copiarla de `.env.example` |
+| `migrate deploy` corta con "points_movements tiene ajustes manuales sin motivo" | Un movimiento `MANUAL_ADJUSTMENT` con `reason` vacío (migración de ARRASTRE-S4) | Corregirlo o borrarlo en la base de desarrollo y volver a migrar. Los movimientos con 0 puntos no cortan: la migración los borra y avisa cuántos |
+| El backend no arranca: "IMAGES_STORAGE_ENABLED=true pero faltan variables de Cloudinary" (o "NOTIFICATIONS_EMAIL_ENABLED=true pero faltan variables de Resend") | Prendiste Cloudinary o el correo sin cargar sus credenciales | Cargalas en `backend/.env` o dejá la variable en `false` |
+| **Cuidado:** `NOTIFICATIONS_EMAIL_ENABLED=true` o `IMAGES_STORAGE_ENABLED=true` en tu `.env` local | Con `true` el backend usa los servicios de verdad | Manda correos reales a los clientes de tu base y sube las fotos a la cuenta real de Cloudinary. En desarrollo dejalas en `false` |
 
 ### Empezar la base de cero
 

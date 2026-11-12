@@ -30,10 +30,14 @@ puertos y adaptadores.
 | `accounts` | 2 | Cuentas y contraseñas (`/usuarios`, `/auth/register`, `/mi-cuenta/password`) |
 | `auth` | 2 | Login, renovación y cierre de sesión; guards globales |
 | `consumptions` | 3 | Consumos: vista previa, registro, anulación y consultas (`/consumos`, `/customers/:id/consumos`, `/customers/me/consumos`) |
-| `points` | 3 | Lotes, movimientos, saldo, nivel, ajustes, vencimiento diario y `canjear` (`/customers/:id/movimientos`, `/customers/me/movimientos`, `/movimientos-de-puntos`) |
+| `points` | 3 | Lotes, movimientos, saldo, nivel, ajustes, vencimiento diario, `canjear` y `acreditarBonificacion` (puntos de regalo, Sprint 5) (`/customers/:id/movimientos`, `/customers/me/movimientos`). `GET /movimientos-de-puntos` se eliminó en el Sprint 5 (S5-13) |
 | `audit` | 3 | Registro y consulta de la auditoría (`/auditoria`) |
 | `rewards` | 4 | Catálogo de recompensas, estados, disponibilidad y proceso diario de vencidas (`/recompensas`) |
 | `redemptions` | 4 | Canjes: confirmar, usar, rechazar, cancelar, vencer y consultar (`/canjes`, `/customers/:id/canjes`, `/customers/me/canjes`), y el catálogo del Cliente (`/customers/me/recompensas`) |
+| `missions` | 5 | **Esqueleto (BASE-5):** solo los repositorios de `missions` y `customer_missions`, sin operaciones. Misiones, asignación, avance, reclamo y proceso de fin de mes los agregan US-28 a US-33 (`/misiones`, `/customers/me/misiones`, `/customers/:id/misiones`) |
+| `notifications` | 5 | **Esqueleto (BASE-5):** los repositorios de notificaciones, plantillas y envíos de promociones, sin operaciones, y el puerto `EmailSender` (Resend o log). Plantillas, promociones, envío, registro, reenvío y procesos los agregan US-14, US-15 y US-47 a US-50 (`/configuracion/mensajes`, `/promociones/*`, `/notificaciones`) |
+| `statistics` | 5 | **Esqueleto (BASE-5):** solo el repositorio, sin operaciones. Solo lectura. Estadísticas y PDF los agregan US-51 a US-55 (`/estadisticas/*`) |
+| `images` | 5 | Módulo técnico (sin dominio), como `prisma`: puerto `ImageStorage` con adaptador de Cloudinary y adaptador falso, validación por contenido y URL firmadas. Lo usarán `rewards` (US-34) y `customers` (FOTO-PERFIL) |
 | `prisma`, `health`, `shared` | — | Transversales, sin dominio (regla 4) |
 
 ### Dependencias entre módulos
@@ -54,6 +58,16 @@ employees    ──> audit
 audit        ──> (ninguno)
 ```
 
+Sprint 5 (BASE-5). Hoy `missions`, `notifications`, `statistics` e `images` no importan ningún módulo de
+negocio. Las dependencias previstas, que agregan las historias, van en un solo sentido:
+
+```text
+consumptions  ──> missions ──> points     (avance de misiones, US-30; points no importa missions)
+notifications ──> points                  (lotes por vencer y regalo de cumpleaños); customers se lee por Prisma
+rewards, customers ──> images
+statistics    ──> (ninguno de negocio: lee por Prisma)
+```
+
 - `audit` no importa ningún módulo de negocio: por eso cualquiera lo puede importar sin armar un ciclo.
 - `points` no importa `consumptions`, `customers`, `rewards` ni `redemptions`. Cuando necesita el nombre o
   el documento de un cliente (para la auditoría del vencimiento), los lee de la tabla `customers` en su
@@ -67,7 +81,15 @@ audit        ──> (ninguno)
 - `consumptions` y `redemptions` importan `employees` solo para el nombre del empleado del token.
 - `backend/src/architecture.spec.ts` verifica las reglas del Sprint 4 (CA-B4.7 y CA-B4.8): `points` no
   importa `rewards` ni `redemptions`, `rewards` no importa `redemptions`, y no existe ningún método de
-  reintegro.
+  reintegro. Desde BASE-5 verifica también (CA-B5.8): `missions` no importa `consumptions` (recibe
+  `{ customerId, consumptionId, amount, createdAt }`), `points` no importa `missions` ni `notifications`,
+  `statistics` e `images` no importan ningún módulo de negocio, y los SDK de Cloudinary y de Resend solo se
+  importan desde `images` y desde `notifications`.
+- `missions` va a publicar `mission.completed` y `notifications` lo va a atender **después del commit**: un
+  correo nunca deshace un consumo ni un reclamo (US-30 y US-50).
+- **Servicios externos detrás de un puerto.** Cloudinary solo a través de `ImageStorage` y Resend solo a
+  través de `EmailSender`, cada uno con un adaptador real y uno falso (`IMAGES_STORAGE_ENABLED` y
+  `NOTIFICATIONS_EMAIL_ENABLED`; solo se prenden con `true`). Los tests y los e2e nunca los llaman.
 
 Si una historia necesita romper esa dirección, se frena y se pregunta.
 
@@ -190,7 +212,9 @@ canjes rechazó `redemptions` (`{ rejectedRedemptions }`). El detalle está en
 en `AppModule`): vencimiento de puntos (`points`, 00:05), recompensas vencidas
 (`rewards`, 00:05 y al iniciar) y canjes vencidos (`redemptions`, cada 5
 minutos y al iniciar). Cada uno se apaga con su variable de entorno y se corre
-a demanda con un script de `backend/src/expire-*.ts`. Ver [SETUP](../SETUP.md).
+a demanda con un script de `backend/src/expire-*.ts`. Ver [SETUP](../SETUP.md). El Sprint 5 suma otros tres
+(misiones, día 1 a las 00:10 y al iniciar; notificaciones, 09:00; y promociones programadas, cada minuto), que
+**todavía no existen**: los agregan US-32, US-47 a US-50 y US-15 con el mismo patrón.
 
 ### Lo único que los módulos comparten: `src/shared/`
 

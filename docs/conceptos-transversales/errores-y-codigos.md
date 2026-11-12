@@ -38,6 +38,11 @@ Los textos exactos de cada caso están en los contratos: `docs/sprint-3/API_CONT
 | 409 | `REWARD_NOT_AVAILABLE` | Confirmar o usar un canje con la recompensa no disponible | Sprint 4 |
 | 409 | `REDEMPTION_NOT_CONFIRMED` | Usar, rechazar o cancelar un canje que ya no está Confirmado. 'El canje ya está en estado "{Estado}".' (Cliente: "El canje ya no se puede cancelar.") | Sprint 4 |
 | 409 | `REDEMPTION_EXPIRED` | Usar, rechazar o cancelar un canje vencido. "El canje venció. El cliente tiene que pedirlo de nuevo." (Cliente: "El canje ya venció.") | Sprint 4 |
+| 400 | `INVALID_IMAGE` | Subir una imagen que no es JPG, PNG o WebP **por su contenido** (un PDF renombrado a `.jpg` se rechaza), o que pesa más de 2 MB. "Usá una imagen JPG, PNG o WebP de hasta 2 MB." Se valida antes de subir a Cloudinary. Es un `HttpException` con `code`: `InvalidImageException` en `images/application/` | Sprint 5 (BASE-5) |
+
+> Los demás códigos del Sprint 5 (`MISSION_NAME_IN_USE`, `MISSION_NOT_CLAIMABLE`, `NOTIFICATION_DISABLED`,
+> `NOTIFICATION_NOT_RESENDABLE` y `PROMOTION_SEND_NOT_CANCELLABLE`) se documentan acá cuando los agregue la
+> historia que los lanza. Hoy el único que existe en el código es `INVALID_IMAGE`.
 
 ### Errores sin `code`
 

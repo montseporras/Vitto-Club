@@ -4,9 +4,10 @@ Fuente: `backend/prisma/schema.prisma` y las migraciones de `backend/prisma/migr
 resume lo que hay ahí; **ante cualquier diferencia, mandan el schema y las migraciones**. Motor:
 PostgreSQL 16 (Docker en local; Neon en producción).
 
-Actualizado el 09/11/2026 con lo que está en `develop` al cierre del Sprint 4 (Sprints 1 a 4). Los
-contratos que definen cada parte son `docs/sprint-3/API_CONTRACT_SPRINT_3.md` §3.12 y §3.9.6, y
-`docs/sprint-4/API_CONTRACT_SPRINT_4.md` §3.15.
+Actualizado el 12/11/2026 con lo que está en `develop` al cierre del Sprint 4 (Sprints 1 a 4), el arrastre
+del Sprint 4 (ARRASTRE-S4) y la base del Sprint 5 (BASE-5). Los contratos que definen cada parte son
+`docs/sprint-3/API_CONTRACT_SPRINT_3.md` §3.12 y §3.9.6, `docs/sprint-4/API_CONTRACT_SPRINT_4.md` §3.15 y
+`docs/sprint-5/API_CONTRACT_SPRINT_5.md` §3.15.
 
 ## Entidades
 
@@ -24,7 +25,7 @@ contratos que definen cada parte son `docs/sprint-3/API_CONTRACT_SPRINT_3.md` §
 
 | Modelo | Tabla | Qué guarda |
 |---|---|---|
-| `LoyaltyProgramConfiguration` | `loyalty_program_configurations` | Versión inmutable de toda la configuración: equivalencia, vigencia, bonificación por primer consumo y umbrales de niveles (`silver_min_points`, por defecto 300; `gold_min_points`, por defecto 800). Una sola versión activa |
+| `LoyaltyProgramConfiguration` | `loyalty_program_configurations` | Versión inmutable de toda la configuración: equivalencia, vigencia, bonificación por primer consumo y umbrales de niveles (`silver_min_points`, por defecto 300; `gold_min_points`, por defecto 800). Una sola versión activa. **Sprint 5 (BASE-5):** suma el beneficio de cada nivel (`bronze_benefit`, `silver_benefit` y `gold_benefit`, texto informativo que no cambia los puntos) y `frequent_min_consumptions` (mínimo de consumos de un cliente frecuente, por defecto 3) |
 | `LoyaltyPointsConfiguration` | `loyalty_points_configuration` | **Legado.** Se importó como versión 1 de la configuración; la app no la lee |
 | `LoyaltyPointsValidityConfiguration` | `loyalty_points_validity_configuration` | **Legado**, ídem |
 | `FirstConsumptionBonusConfiguration` | `first_consumption_bonus_configuration` | **Legado**, ídem |
@@ -42,8 +43,26 @@ contratos que definen cada parte son `docs/sprint-3/API_CONTRACT_SPRINT_3.md` §
 
 | Modelo | Tabla | Qué guarda |
 |---|---|---|
-| `Reward` | `rewards` | Recompensa del catálogo: nombre, descripción, puntos, stock (`null` = sin límite), vencimiento (`DATE`, `null` = no vence), estado, motivo de deshabilitación, canjes usados (`used_count`) y baja lógica (`deleted_at`). Sin foto: la foto es del Sprint 5 |
+| `Reward` | `rewards` | Recompensa del catálogo: nombre, descripción, puntos, stock (`null` = sin límite), vencimiento (`DATE`, `null` = no vence), estado, motivo de deshabilitación, canjes usados (`used_count`) y baja lógica (`deleted_at`). Sprint 5 (BASE-5): `photo_public_id` y `photo_url` (la foto vive en Cloudinary; ver [Sprint 5](#misiones-notificaciones-e-imágenes-sprint-5-base-5)) |
 | `Redemption` | `redemptions` | Canje: código de 6 caracteres, cliente, recompensa, **snapshot** del nombre y los puntos de la recompensa al confirmar, origen (app o caja), quién lo confirmó y quién lo resolvió, motivo de rechazo y saldos antes y después (solo si se usó) |
+
+### Misiones, notificaciones e imágenes (Sprint 5, BASE-5)
+
+Las tablas y columnas existen desde BASE-5 (migración `sprint5_base5_missions_notifications`). Las pantallas
+y los endpoints que las usan los agrega cada historia del Sprint 5.
+
+| Modelo | Tabla | Qué guarda |
+|---|---|---|
+| `Mission` | `missions` | Misión mensual: nombre, descripción, tipo de objetivo, objetivo, condición (días y franja horaria), recompensa en puntos (`null` = sin recompensa), mes de inicio y de fin, estado y baja lógica (`deleted_at`) |
+| `CustomerMission` | `customer_missions` | La misión de un cliente en un mes: **snapshot** del objetivo, la condición y la recompensa, progreso, estado, fechas de completada, reclamada y vencida, quién la reclamó (`CUSTOMER` o `SYSTEM`) y motivo del vencimiento |
+| `NotificationTemplate` | `notification_templates` | Un mensaje por tipo **automático** (vencimiento de puntos, cumpleaños y misiones): activo, asunto y cuerpo. Promociones no tiene plantilla |
+| `Notification` | `notifications` | Cada notificación: tipo, canal, destinatario, cliente, asunto, mensaje, estado, error, fecha, el envío de promoción (si es una) y el original (si es un reenvío). Solo inserción |
+| `PromotionSend` | `promotion_sends` | Cada envío de promoción: asunto, mensaje, nivel (o todos), fecha programada, estado (`SCHEDULED`, `SENT`, `CANCELLED`), destinatarios y quién lo cargó. **No hay tabla de promociones** (S5-36) |
+| `NotificationSettings` | `notification_settings` | Fila única (`id = 1`): puntos de regalo por cumpleaños. **Sin logo** (S5-35) |
+
+Las imágenes **no se guardan en la base**: viven en Cloudinary. `rewards` y `customers` guardan solo
+`photo_public_id` y `photo_url`; la URL solo se guarda para las públicas (recompensas), y la foto de perfil de
+un cliente se entrega con una URL firmada que se genera en cada respuesta.
 
 ### Auditoría (Sprint 3, US-56)
 
@@ -62,14 +81,21 @@ contratos que definen cada parte son `docs/sprint-3/API_CONTRACT_SPRINT_3.md` §
 | `FirstConsumptionBonusType` | `PERCENTAGE`, `FIXED_AMOUNT` | Antes `FirstPurchaseBonusType` (renombrado el 20/10) |
 | `ConsumptionStatus` | `REGISTERED`, `VOIDED` | `VOIDED` es final |
 | `PointsLotStatus` | `ACTIVE`, `CONSUMED`, `EXPIRED`, `VOIDED` | `VOIDED` = se anuló su consumo (agregado el 20/10) |
-| `PointsMovementType` | `CONSUMPTION_CREDIT`, `VOID_REVERSAL`, `MANUAL_ADJUSTMENT`, `EXPIRATION`, `REDEMPTION` | No existe ningún tipo de reintegro (decisión S4-1) |
+| `PointsMovementType` | `CONSUMPTION_CREDIT`, `VOID_REVERSAL`, `MANUAL_ADJUSTMENT`, `EXPIRATION`, `REDEMPTION`, `MISSION_REWARD`, `BIRTHDAY_BONUS` | No existe ningún tipo de reintegro (decisión S4-1). `MISSION_REWARD` y `BIRTHDAY_BONUS` (Sprint 5) son puntos de regalo: crean un lote y **no suman a `lifetime_points`** |
+| `MissionStatus` | `ACTIVE`, `DELETED` | `DELETED` es final (el botón dice "Eliminar") |
+| `MissionObjectiveType` | `CONSUMPTION_COUNT`, `CONSUMPTION_AMOUNT` | Qué mide la misión: cantidad de consumos o monto acumulado |
+| `CustomerMissionStatus` | `IN_PROGRESS`, `COMPLETED`, `CLAIMED`, `EXPIRED` | `COMPLETED` es final si la misión no tiene recompensa (S5-4) |
+| `NotificationType` | `POINTS_EXPIRING`, `BIRTHDAY`, `PROMOTION`, `MISSION` | `PROMOTION` no tiene plantilla ni interruptor (S5-37) |
+| `NotificationChannel` | `EMAIL` | El único canal (S5-10) |
+| `NotificationStatus` | `SENT`, `FAILED`, `SKIPPED` | `SKIPPED`: el tipo estaba desactivado o el envío de correos está apagado en el entorno |
+| `PromotionSendStatus` | `SCHEDULED`, `SENT`, `CANCELLED` | |
 | `RewardStatus` | `ACTIVE`, `DISABLED`, `INACTIVE`, `DELETED` | `DISABLED` lo pone solo el Sistema; `DELETED` es final (el botón dice "Eliminar") |
 | `RewardDisabledReason` | `OUT_OF_STOCK`, `EXPIRED` | Solo con `status = DISABLED` |
 | `RedemptionStatus` | `CONFIRMED`, `USED`, `REJECTED`, `CANCELLED`, `EXPIRED` | Nace `CONFIRMED`; los otros cuatro son finales. **No existe "Pendiente"** |
 | `RedemptionOrigin` | `APP`, `COUNTER` | |
 | `AuditActorType` | `EMPLOYEE`, `SYSTEM` | |
 | `AuditModule` | `EMPLOYEES`, `CUSTOMERS`, `CONSUMPTIONS`, `POINTS`, `REDEMPTIONS`, `REWARDS`, `MISSIONS`, `CONFIGURATION` | `MISSIONS` es del Sprint 5 |
-| `AuditAction` | 37 acciones | Lista completa, con su texto y su sprint: contrato del Sprint 3 §3.9.2 y contrato del Sprint 4 §3.14. Las de `MISSIONS`, `LOGO_AND_MESSAGES_UPDATED` y `PROMOTIONS_UPDATED` ya existen en la base pero son del Sprint 5 |
+| `AuditAction` | 39 acciones | Lista completa, con su texto y su sprint: contrato del Sprint 3 §3.9.2, del Sprint 4 §3.14 y del Sprint 5 §2.8. Las de `MISSIONS`, `LOGO_AND_MESSAGES_UPDATED` y `PROMOTIONS_UPDATED` existen en la base desde el Sprint 3 y se usan en el Sprint 5 (`PROMOTIONS_UPDATED` no se usa: las promociones ya no se guardan, S5-36). BASE-5 suma `BIRTHDAY_BONUS_GRANTED` (módulo `POINTS`, actor Sistema) y `FREQUENT_CUSTOMERS_UPDATED` (módulo `CONFIGURATION`) |
 
 El nivel (`BRONZE`, `SILVER`, `GOLD`) **no es un enum de la base**: se calcula con `lifetime_points` y los
 umbrales de la configuración vigente (`points/domain/level.ts`). La primera migración del Sprint 3 creó
@@ -94,6 +120,13 @@ LoyaltyProgramConfiguration (version) 1 ── 0..N Consumption
 Account       1 ── 0..N Consumption (registró / anuló)
 Account       1 ── 0..N PointsMovement (lo hizo; null = Sistema)
 Account       1 ── 0..N Redemption (confirmó en la caja / resolvió)
+Mission         1 ── 0..N CustomerMission
+Customer        1 ── 0..N CustomerMission
+CustomerMission 1 ── 0..1 PointsMovement (MISSION_REWARD, solo si se reclamó)
+Customer        1 ── 0..N Notification
+PromotionSend   1 ── 0..N Notification (PROMOTION)
+Notification    1 ── 0..1 Notification (reenvío)
+Employee        1 ── 0..N PromotionSend
 ```
 
 Todas las claves foráneas usan `onDelete: Restrict`. `audit_logs` no tiene claves foráneas: guarda copias.
@@ -121,13 +154,17 @@ migración que se indica.
 |---|---|---|
 | Solo inserción | `audit_logs` | Triggers `audit_logs_immutable` y `audit_logs_no_truncate` (migración `sprint3_us57_audit_triggers`): rechazan `UPDATE`, `DELETE` y `TRUNCATE` |
 | Un lote por consumo | `points_lots.consumption_id` | `UNIQUE` |
+| Solo inserción | `points_movements` | Triggers `points_movements_immutable` y `points_movements_no_truncate` (migración `sprint4_arrastre_points_movements_integrity`, ARRASTRE-S4): rechazan `UPDATE`, `DELETE` y `TRUNCATE`. Los e2e vacían la tabla con `test/delete-points-movements.ts` |
+| Un movimiento nunca vale 0 | `points_movements` | `points_movements_points_check`: `points <> 0`. Un consumo que da 0 puntos se registra **sin** movimiento (decisión D-07, opción a) |
+| Ajuste manual con motivo | `points_movements` | `points_movements_manual_adjustment_reason_check`: `MANUAL_ADJUSTMENT` siempre lleva `reason` |
 
-> **Pendiente del Sprint 3 (no está en la base).** El contrato del Sprint 3 (§3.12) pide también el trigger
-> de solo inserción en `points_movements` y varios `CHECK` (`amount > 0`, `points >= 0`, los tres campos
-> de anulación juntos, `initial_points > 0`, `0 <= remaining <= initial`, `points <> 0`, `reason`
-> obligatorio en `MANUAL_ADJUSTMENT`, `debt >= 0`, `lifetime_points >= 0`, `silver_min_points > 0`,
-> `gold > silver`). **Ninguno existe**, aunque los comentarios de `schema.prisma` los mencionan. Es el
-> ítem A-02 y A-03 de `docs/sprint-4/CIERRE_SPRINT_3.md`. Hoy esas reglas las cumple solo el código.
+> **Pendiente del Sprint 3 (no está en la base).** De los `CHECK` de la §3.12 del contrato del Sprint 3,
+> ARRASTRE-S4 agregó solo los dos de `points_movements` (`points <> 0` y `reason` en `MANUAL_ADJUSTMENT`).
+> **Siguen sin existir** los de las demás tablas: `amount > 0`, `points >= 0` y `bonus_points >= 0` en
+> `consumptions`, los tres campos de anulación juntos, `initial_points > 0` y `0 <= remaining <= initial` en
+> `points_lots`, `debt >= 0` y `lifetime_points >= 0` en `customer_points`, `silver_min_points > 0` y
+> `gold > silver`, aunque los comentarios de `schema.prisma` los mencionan. Es lo que queda del ítem A-03 de
+> `docs/sprint-4/CIERRE_SPRINT_3.md`. Hoy esas reglas las cumple solo el código.
 
 ### Sprint 4 (migración `sprint4_base4_rewards_redemptions`)
 
@@ -146,6 +183,34 @@ migración que se indica.
 | Puntos positivos | `redemptions` | `redemptions_points_check`: `points > 0` |
 | Movimiento de canje con su canje | `points_movements` | `points_movements_redemption_check`: `(type = 'REDEMPTION') = (redemption_id IS NOT NULL)` |
 
+### Sprint 5 (migración `sprint5_base5_missions_notifications`)
+
+`backend/test/base5-schema.e2e-spec.ts` verifica que existan y que la base rechace lo que corresponde.
+
+| Restricción | Dónde | Detalle |
+|---|---|---|
+| Nombre único entre las no dadas de baja | `missions` | `missions_active_name_key`: `lower(trim(name)) WHERE status <> 'DELETED'`. Una dada de baja libera el nombre |
+| Objetivo positivo, y entero si cuenta consumos | `missions` | `missions_target_check` (`target > 0`) y `missions_target_whole_count_check` (entero si `CONSUMPTION_COUNT`) |
+| Días y franja horaria | `missions` | `missions_days_of_week_check` (solo valores 1 a 7) y `missions_time_range_check` (las dos horas o ninguna, y desde < hasta) |
+| Recompensa | `missions` | `missions_reward_points_check`: `NULL` o 1 a 100.000 |
+| Meses | `missions` | `missions_end_month_check`: `end_month` nulo o `>= start_month` |
+| Baja lógica coherente | `missions` | `missions_deleted_at_check`: `(status = 'DELETED') = (deleted_at IS NOT NULL)` |
+| Una asignación por mes | `customer_missions` | `UNIQUE (mission_id, customer_id, period)` |
+| Progreso | `customer_missions` | `customer_missions_progress_check`: `0 <= progress <= target` |
+| Fechas coherentes con el estado | `customer_missions` | `…_completed_at_check` (con valor en `COMPLETED` y `CLAIMED`), `…_claimed_at_check` y `…_claimed_by_check` (con valor solo en `CLAIMED`; `claimed_by` es `CUSTOMER` o `SYSTEM`), `…_expired_at_check` y `…_expiration_reason_check` (con valor solo en `EXPIRED`) |
+| Recompensa de misión con su asignación | `points_movements` | `points_movements_mission_check`: `(type = 'MISSION_REWARD') = (customer_mission_id IS NOT NULL)`, y `UNIQUE (customer_mission_id)`: una misión reclamada tiene a lo sumo un movimiento de recompensa |
+| Plantillas solo de los tipos automáticos | `notification_templates` | `notification_templates_type_check`: `type <> 'PROMOTION'` |
+| Fila única de configuración | `notification_settings` | `…_singleton_check` (`id = 1`) y `…_birthday_bonus_points_check` (0 a 10.000; 0 = no regala) |
+| Mínimo de cliente frecuente | `loyalty_program_configurations` | `…_frequent_min_check`: 1 a 100 |
+| Error solo si falló | `notifications` | `notifications_error_check`: `(status = 'FAILED') = (error IS NOT NULL)` |
+| Promoción con su envío | `notifications` | `notifications_promotion_send_check`: `(type = 'PROMOTION') = (promotion_send_id IS NOT NULL)` |
+| No se repite | `notifications` | `UNIQUE (type, customer_id, dedupe_key)`: el mismo tipo al mismo cliente por el mismo motivo se manda una sola vez |
+| Un solo reenvío | `notifications` | `UNIQUE (resent_from_id)`. Que el original esté `FAILED` lo valida el servicio |
+| Solo inserción | `notifications` | Triggers `notifications_immutable` y `notifications_no_truncate`: rechazan `UPDATE`, `DELETE` y `TRUNCATE`. Los e2e la vacían con `test/delete-notifications.ts` |
+| Nivel válido | `promotion_sends` | `promotion_sends_level_check`: `BRONZE`, `SILVER`, `GOLD` o `NULL` (= todos los clientes activos) |
+| Estado y fechas coherentes | `promotion_sends` | `…_scheduled_check` (`SCHEDULED` con `scheduled_at` y sin `sent_at`), `…_sent_check` (`SENT` con `sent_at`) y `…_cancelled_check` (`cancelled_at` si y solo si `CANCELLED`) |
+| Proceso de programados | `promotion_sends` | Índice `(status, scheduled_at)` |
+
 ## Invariante de los puntos
 
 `customer_points.balance = Σ remaining_points de los lotes ACTIVE − debt`. Toda operación que mueve puntos
@@ -154,7 +219,9 @@ bloquea primero la fila de `customer_points` del cliente (`SELECT … FOR UPDATE
 (sección 8).
 
 - `lifetime_points` suma los `CONSUMPTION_CREDIT` (con la bonificación) y resta los `VOID_REVERSAL`. Los
-  ajustes, los vencimientos y los canjes **no** lo cambian: el nivel no baja por eso.
+  ajustes, los vencimientos y los canjes **no** lo cambian: el nivel no baja por eso. Tampoco lo cambian los
+  puntos de regalo (`MISSION_REWARD` y `BIRTHDAY_BONUS`, Sprint 5): crean un lote y cancelan primero la deuda,
+  pero el nivel sale solo de los consumos (S5-9). Los acredita `PointsService.acreditarBonificacion`.
 - Un lote vencido queda `EXPIRED` con `remaining_points = 0` (vence entero, decisión S3-07).
 - Un lote que llega a 0 por gasto pasa a `CONSUMED`; el de un consumo anulado, a `VOIDED`.
 - Anular un consumo cuyos puntos ya se gastaron genera **deuda** y puede dejar el saldo negativo.
@@ -175,6 +242,9 @@ Se guardan para que un cambio posterior no altere lo ya registrado (RF-014).
 | `points_movements` | `performed_by_name`: el nombre del empleado o "Sistema" |
 | `redemptions` | `reward_name` y `points` de la recompensa **al confirmar**: al usar el canje se descuentan esos puntos aunque la recompensa haya cambiado (S4-14). `confirmed_by_name` y `resolved_by_name`: el empleado en ese momento o "Sistema" |
 | `audit_logs` | `performed_by`, el cliente afectado (nombre y documento) y los `details` ya formateados |
+| `customer_missions` | `objective_type`, `target`, `days_of_week`, `time_from`, `time_to` y `reward_points` de la misión **al asignarla**: editar la misión rige desde el mes siguiente y no cambia las ya asignadas (S5-20) |
+| `notifications` | `recipient` (el email en ese momento) y `subject` y `body` ya con las variables reemplazadas (el reenvío usa el mismo texto) |
+| `promotion_sends` | `subject` y `body` con `{nombre}` **sin** reemplazar; cada correo lo reemplaza al salir |
 
 ## Copias sincronizadas por eventos
 
