@@ -9,13 +9,24 @@
 > - lo que los contratos de los Sprints 3 y 4 dejaron anotado para el Sprint 5 (§3.9.2 del S3 y §3.3 y §10 del
 >   S4);
 > - las decisiones de Deni del 09/11/2026 ([8.3](#83-decisiones-del-sprint-5));
-> - los cambios del prototipo v2 del 11/11 y el 12/11/2026, a pedido de Deni (S5-34 a S5-50,
+> - los cambios del prototipo v2 del 11/11 y el 12/11/2026, a pedido de Deni (S5-34 a S5-58,
 >   `docs/prototipo/v2/LEEME.md`);
 > - el estado de `develop` al cierre del Sprint 4 (`docs/sprint-5/CIERRE_SPRINT_4.md`).
 >
 > **Historias:** US-14, US-15, US-28 a US-33, US-34 (imagen), US-47 a US-55, más los ítems que pasan al
 > Sprint 5 porque no quedaron hechos antes (decisión S5-6): **FOTO-PERFIL**, **NIV-BEN** (beneficios de los
 > niveles), **CTA-CLI** (cuentas de clientes, RF-08), **CI** (integración continua) y el **ARRASTRE-S4**.
+>
+> **Versión 3 (12/11/2026, tarde).** Suma los cambios del prototipo que pidió Deni después de la v2 (S5-51 a
+> S5-58):
+> - **Estadísticas** rediseñadas: pestañas a lo ancho con un total cada una; Clientes sin gráficos y con la
+>   **conversión de los clientes nuevos**; Consumos con los dos gráficos lado a lado; Puntos con la **variación
+>   contra el mes anterior** y "De los {n} acreditados…"; Programa en otra disposición. Cambia `last6Months` y
+>   `GET /estadisticas/puntos` suma `previousMonth` ([3.9](#39-estadísticas-y-reporte-pdf-us-51-a-us-55));
+> - las **pantallas del Administrador** usan el mismo recuadro, título y tabla que Auditoría, llegan hasta abajo
+>   de la pantalla y su **paginado entra en la pantalla** (Recompensas, Canjes, Misiones, Consumos y Auditoría).
+>   Lo que toca pantallas de sprints anteriores está en `docs/sprint-5/AJUSTES_PANTALLAS_SPRINTS_ANTERIORES.md`
+>   ([3.13](#313-cambios-en-pantallas-y-endpoints-existentes)).
 >
 > **Versión 2 (12/11/2026).** Sobre la v1 del 09/11 (decisiones S5-12 a S5-33), incorpora los cambios del
 > prototipo v2 del 11/11 y el 12/11 (S5-34 a S5-50). Los más grandes:
@@ -27,8 +38,8 @@
 > - las estadísticas se piden **por mes**, con gráficos de torta y barras, y el PDF se arma **con las secciones
 >   elegidas** ([3.9](#39-estadísticas-y-reporte-pdf-us-51-a-us-55)).
 >
-> **Todo está decidido (✅)**: lo único que queda abierto es documentación fuera del repo
-> ([10](#10-pendientes)).
+> **Todo está decidido (✅)** salvo **S5-52** (con qué se compara el mes en curso), que se tomó con la propuesta
+> y falta que Deni la confirme. El resto de lo abierto es documentación fuera del repo ([10](#10-pendientes)).
 >
 > **Como es el último sprint**, las secciones [4](#4-información-general),
 > [5](#5-convenciones-de-respuestas-y-códigos-de-error) y [6](#6-códigos-http) están **completas**: valen para
@@ -124,9 +135,9 @@ Todas las rutas cuelgan de `/api`. **A** = Administrador, **C** = Cajero, **Cl**
 | 20 | `GET` | `/notificaciones` | A | Historial de notificaciones | US-47 a US-50 |
 | 21 | `POST` | `/notificaciones/:id/reenviar` | A | Reenviar un correo que falló | US-47 a US-50 |
 | 22 | `GET`/`PUT` | `/loyalty/configuration/frequent-customers` | A | Mínimo de consumos de un "cliente frecuente" | US-51 |
-| 23 | `GET` | `/estadisticas/clientes` | A | Clientes activos, frecuentes, nuevos y los últimos 6 meses | US-51 |
+| 23 | `GET` | `/estadisticas/clientes` | A | Clientes activos, frecuentes, nuevos y la conversión de los nuevos de los últimos 6 meses | US-51 |
 | 24 | `GET` | `/estadisticas/consumos` | A | Consumos del mes por día de la semana y franja horaria | US-52 |
-| 25 | `GET` | `/estadisticas/puntos` | A | Puntos acreditados por origen, canjeados, vencidos y anulados | US-53 |
+| 25 | `GET` | `/estadisticas/puntos` | A | Puntos acreditados por origen, canjeados, vencidos y anulados, del mes y del anterior | US-53 |
 | 26 | `GET` | `/estadisticas/programa` | A | Niveles, subidas de nivel, misiones asignadas y recompensas más canjeadas | US-54 |
 | 27 | `GET` | `/estadisticas/reporte.pdf` | A | Exportar el reporte del mes en PDF, con las secciones elegidas | US-55 |
 | 28 | `GET` | `/customers/:id/cuenta` | A | Cuenta de acceso del cliente (RF-08) | CTA-CLI |
@@ -298,7 +309,7 @@ por consumos" (RF-028 y Glosario del Plan de Proyecto, S5-9).
 | `q` | Parte del nombre, sin mayúsculas ni tildes (máx. 80) |
 | `phase` | `RUNNING` · `UPCOMING` · `FINISHED` · sin valor = todas las no dadas de baja |
 | `order` | `RECENT` (por defecto) · `OLDEST`: por `createdAt` descendente o ascendente (S5-45). Otro valor → `400` |
-| `page` / `limit` | 1 / 10, máximo 100 |
+| `page` / `limit` | 1 / 10, máximo 100. La pantalla manda en `limit` las filas que entran en su alto (S5-57) |
 
 Respuesta `{ items: Mission[], total, page, limit }`.
 
@@ -308,8 +319,8 @@ Finalizadas) · **Orden** (Más recientes · Más antiguas). Columnas: Nombre ·
 consumos", "$ 20.000 en consumos", más "los domingos de 09:00 a 13:00" si tiene condición) · Recompensa ("50
 pts" o "Sin recompensa") · Vigencia ("Noviembre 2026 – Diciembre 2026" o "Desde noviembre 2026") · Completadas
 este mes · Estado (badge) · chevron (›). **La fila no tiene botones: un clic abre el detalle de la misión**
-([3.1.6](#316-get-apimisionesid--detalle)). Botón "+ Crear misión mensual". Paginado de a 10: "Mostrando 1–10
-de N". Vacío: "No hay misiones para los filtros seleccionados."
+([3.1.6](#316-get-apimisionesid--detalle)). Botón "+ Crear misión mensual". Paginado que **entra en la pantalla** (S5-57): "Mostrando 1–{n}
+de N", con Anterior y Siguiente siempre a la vista. Vacío: "No hay misiones para los filtros seleccionados."
 
 #### 3.1.3 `POST /api/misiones` — crear (US-28)
 
@@ -838,15 +849,17 @@ El mes actual se puede elegir: trae lo que va del mes.
 #### 3.9.1 `GET /api/estadisticas/clientes` (US-51, RF-054)
 
 ```json
-{ "active": 184, "new": 23, "frequent": 70, "frequentMinConsumptions": 3, "last6Months": [{ "month": "2026-06", "new": 30, "withConsumptions": 169 }] }
+{ "active": 184, "new": 23, "frequent": 70, "frequentMinConsumptions": 3, "last6Months": [{ "month": "2026-06", "new": 23, "newFrequent": 4 }] }
 ```
 
 - **Activos:** clientes no dados de baja al final del mes (o hoy, si es el mes actual).
 - **Nuevos:** dados de alta en el mes.
 - **Frecuentes:** con **al menos `frequentMinConsumptions`** consumos `REGISTERED` en el mes. El mínimo lo
   configura el Administrador (S5-22, [3.9.6](#396-mínimo-de-un-cliente-frecuente)).
-- **`last6Months`:** los 6 meses que terminan en el mes elegido (incluido), en orden: clientes nuevos y
-  clientes con al menos un consumo `REGISTERED` en cada mes.
+- **`last6Months`:** los 6 meses que terminan en el mes elegido (incluido), en orden. Por mes: `new` (clientes
+  dados de alta en ese mes) y **`newFrequent`** (de esos nuevos, los que tienen **al menos
+  `frequentMinConsumptions`** consumos `REGISTERED` **en ese mismo mes**). Es la **conversión de clientes
+  nuevos** (S5-53). Sale `withConsumptions` (ya no tiene gráfico).
 
 #### 3.9.2 `GET /api/estadisticas/consumos` (US-52, RF-055)
 
@@ -866,9 +879,22 @@ tenga 0.
 
 #### 3.9.3 `GET /api/estadisticas/puntos` (US-53, RF-056)
 
-`{ awarded, bonus, missionRewards, birthdayBonus, redeemed, expired, voided }`, sumando los movimientos del mes
-por tipo (valores absolutos): consumos (`EARNED`), bonificación por primer consumo, misiones, cumpleaños,
-canjes usados, vencimientos y anulaciones. **Los ajustes no se muestran** (S5-42): no vienen en la respuesta.
+```json
+{
+  "awarded": 119665, "bonus": 690, "missionRewards": 4020, "birthdayBonus": 500,
+  "redeemed": 45473, "expired": 7180, "voided": 2393,
+  "previousMonth": { "awarded": 110310, "bonus": 660, "missionRewards": 3720, "birthdayBonus": 500, "redeemed": 40457, "expired": 7410, "voided": 2816 }
+}
+```
+
+- Suma los movimientos del mes por tipo (valores absolutos): consumos (`EARNED`), bonificación por primer
+  consumo, misiones, cumpleaños, canjes usados, vencimientos y anulaciones. **Los ajustes no se muestran**
+  (S5-42): no vienen en la respuesta.
+- **`previousMonth`** (S5-51): los mismos siete totales del **mes anterior**, para la variación de las
+  tarjetas. En un **mes cerrado** es el mes anterior completo. En el **mes en curso** son los **mismos días**
+  del mes anterior (del 1 al día de hoy; si el mes anterior es más corto, hasta su último día), para no comparar
+  medio mes contra uno entero (S5-52, **a confirmar**). Si el mes anterior es anterior a enero del año pasado,
+  igual se calcula.
 
 #### 3.9.4 `GET /api/estadisticas/programa` (US-54, RF-057)
 
@@ -901,7 +927,8 @@ canjes usados, vencimientos y anulaciones. **Los ajustes no se muestran** (S5-42
 - Responde `application/pdf` con `Content-Disposition: attachment;
   filename="vitto-club-reporte-{YYYY-MM-01}-{YYYY-MM-último día}.pdf"`. Contenido: logo fijo, título "Reporte
   Vitto Club", el mes, la fecha de generación y **solo las secciones elegidas**, en el orden Clientes ·
-  Consumos · Puntos · Programa, con tablas. Se arma con **PDFKit** (dependencia `pdfkit`, autorizada; S5-11).
+  Consumos · Puntos · Programa, con tablas y los mismos datos que la pantalla (conversión de los nuevos de los 6
+  meses en Clientes; variación contra el mes anterior en Puntos; tasa de efectividad en Programa). Se arma con **PDFKit** (dependencia `pdfkit`, autorizada; S5-11).
   El frontend lo baja con `shared/api/download.ts`.
 
 #### 3.9.6 Mínimo de un cliente frecuente
@@ -916,34 +943,46 @@ canjes usados, vencimientos y anulaciones. **Los ajustes no se muestran** (S5-42
 
 #### 3.9.7 Pantalla
 
-Administración → **Estadísticas y reportes**. Título y "Elegí el mes y el año para ver los números del
-programa.". Arriba a la derecha: selectores **Mes** (enero a diciembre; los meses futuros del año actual,
-deshabilitados) y **Año** (el actual y el anterior), por defecto el mes actual, y el botón **"Exportar reporte
-PDF"**. Pestañas **Clientes · Consumos · Puntos · Programa** y "Período: {Mes año}" (más "(mes en curso)" si es
-el actual). Carga: "Cargando…". Error: "No se pudieron cargar las estadísticas.".
+Administración → **Estadísticas y reportes**. Usa el recuadro y el título comunes de las pantallas del
+Administrador ([3.13](#313-cambios-en-pantallas-y-endpoints-existentes), S5-56) y **todo entra en la pantalla,
+sin bajar** (S5-51): si hace falta, se achica lo de arriba.
 
-**Gráficos** (S5-27, S5-46): todos con **CSS**, sin librería: barras con `div` y tortas con
-`conic-gradient`. Paleta pastel de la gama del naranja con dos tonos de apoyo, en este orden: durazno
-`#f0945e`, turquesa `#2aa0b8`, mostaza `#d6a23a`, lavanda `#b07ad0` y terracota `#c4604f` (validada para que se
-distinga con daltonismo; como el contraste es bajo, **todos los valores van escritos** junto al gráfico).
-Todos los números de la pantalla usan la misma letra (la del texto, en negrita y con cifras del mismo ancho).
-Pasar el mouse por una barra o una fila muestra el detalle.
+- **Arriba:** título "Estadísticas y reportes" y, al lado, la etiqueta "Período: {Mes año}" (más "(mes en
+  curso)" si es el actual); debajo, "Elegí el mes y el año para ver los números del programa.". A la derecha:
+  selectores **Mes** (enero a diciembre; los meses futuros del año actual, deshabilitados) y **Año** (el actual
+  y el anterior), por defecto el mes actual, y el botón **"Exportar reporte PDF"**.
+- **Pestañas** (S5-51): **Clientes · Consumos · Puntos · Programa**, a lo ancho de la pantalla, separadas por
+  una línea fina, cada una con su ícono y **un total**: clientes activos, consumos del mes, "+{puntos
+  acreditados}" y misiones asignadas. Al pasar el mouse se marcan; la elegida va en marrón. Por los totales, la
+  pantalla pide **los cuatro endpoints** al cambiar el mes.
+- Carga: "Cargando…". Error: "No se pudieron cargar las estadísticas.".
+
+**Gráficos** (S5-27, S5-54): todos con **CSS**, sin librería: barras con `div` y tortas con `conic-gradient`.
+Paleta de la marca (S5-54, reemplaza la de S5-46): marrón `#a9532b`, marrón oscuro `#4a2414`, rojizo
+`#8b3f22`, turquesa `#1b7f8c` (claro `#a3d2da`), mostaza `#d4ae3a`, coral `#e07a5f`, durazno `#ffa47e` (claro
+`#f5c2a8`) y topo `#8a7468`. **Todos los valores van escritos** junto al gráfico. Todos los números de la
+pantalla usan la misma letra (la del texto, en negrita y con cifras del mismo ancho). Pasar el mouse por una
+barra o una fila muestra el detalle.
 
 | Pestaña | Qué muestra |
 |---|---|
-| **Clientes** | Tarjetas Clientes activos · Clientes nuevos · Frecuentes. Torta "Clientes activos": Frecuentes (al menos {n} consumos) y Resto de los activos, con cantidad y %. Columnas "Últimos 6 meses": Con consumos y Nuevos por mes (`last6Months`) |
-| **Consumos** | Tarjetas Consumos y Monto total ("Sin los consumos anulados"). Columnas "Por día de la semana" (Lun … Dom, con la cantidad arriba y el monto abajo; el día más fuerte resaltado y "Día más fuerte: {día}") y "Por franja horaria" (igual, con "Franja más fuerte: {franja}") |
-| **Puntos** | Tarjetas Acreditados (`awarded + bonus + missionRewards + birthdayBonus`) · Canjeados · Vencidos · Anulados. Torta "De dónde salen los puntos" (Consumos, Bonificación por primer consumo, Misiones, Cumpleaños, con cantidad y %; en el centro el total y "pts acreditados") y "Los puntos de misiones y de cumpleaños no cuentan para el nivel.". Barras "Qué pasó con los puntos": Acreditados, Canjeados, Vencidos, Anulados, y "Usados del total acreditado" = canjeados ÷ acreditados, en % |
-| **Programa** | Torta "Misiones asignadas" por estado, con cantidad y %: **En progreso solo si es el mes actual** (S5-50), Completada ("Falta que el cliente la reclame o la misión no tiene recompensa."), Reclamada ("Se acreditaron los puntos.") y Vencida. Torta "Clientes por nivel" (Bronce, Plata, Oro) y debajo **"Subieron de nivel en el mes: {%}"** = `levelUps` ÷ activos, con la barra y "{n} clientes pasaron a un nivel más alto, a cualquiera." (S5-47). Barras "Recompensas más canjeadas" con la cantidad y el **%** sobre `redemptionsUsed` (S5-48) |
+| **Clientes** | **Sin gráficos** (S5-51). Tres tarjetas, con el título arriba y una etiqueta debajo del número (S5-55): **Clientes activos** · "Base vigente" · "No dados de baja al cierre del mes"; **Clientes nuevos** · "Adquisición" · "Dados de alta en {Mes año}"; **Frecuentes** · "Fidelidad" · etiqueta "≥ {n} consumos en el mes (mínimo configurable)". Debajo, la tarjeta **"Conversión de clientes nuevos · {Mes año}"** con la etiqueta "≥ {n} consumos" y "Período analizado:" con los 6 meses de `last6Months` para elegir ("Jun 26" … "Nov 26"; por defecto el elegido arriba). Muestra **"{%} llegaron a {n} consumos o más"** (`newFrequent ÷ new`, con un decimal) y "{newFrequent} clientes frecuentes de {new} clientes nuevos". Al pie, en gris: "Clientes dados de alta en el mes que llegaron al mínimo de frecuente en ese mismo mes. El mínimo se cambia en Configuración → Puntos." |
+| **Consumos** | Tarjetas **Consumos** ("Registrados en el mes") y **Monto total** ("Sin los consumos anulados"). Debajo, **lado a lado** (S5-51): columnas "Por día de la semana" (Lun … Dom, con la cantidad arriba y el monto abajo; el día más fuerte en marrón y "Día más fuerte: {día}") y "Por franja horaria" (igual, en turquesa, con "Franja más fuerte: {franja}") |
+| **Puntos** | Cuatro tarjetas: **Acreditados** (`awarded + bonus + missionRewards + birthdayBonus`; "Consumos, bonificación, misiones y cumpleaños"), **Canjeados** ("{%} de lo acreditado"), **Vencidos** ("Lotes que vencieron en el mes") y **Anulados** ("Restados al anular consumos"). Cada una con la **variación contra el mes anterior** (S5-51): "▲ {x,x} % vs. {mes}." o "▼ …", con un decimal; si el mes anterior dio 0: "Sin datos de {mes}.". Debajo, lado a lado: **"De dónde salen los puntos"** (barra de Consumos con "Origen principal", cantidad y %; "Puntos extra (bonificación, misiones y cumpleaños)" con su total y %, y una barra por cada uno —Misiones y Cumpleaños con "No suma nivel"—; al pie "Las barras de los extras se comparan entre sí, no contra el total." y "Corte: {dd/mm/aaaa}") y **"De los {acreditados} acreditados…"** con la etiqueta "Distribución neta": columnas **Saldo neto** (acreditados − canjeados − vencidos − anulados, con signo), Canjeados, Vencidos y Anulados, cada una con su % de lo acreditado, y al pie "Los puntos que sumaron al saldo en {mes} quedan en circulación: son los que el café todavía puede tener que honrar." |
+| **Programa** | Arriba, lado a lado: **"Clientes por nivel"** (torta Bronce, Plata, Oro con cantidad y %; debajo "Subieron de nivel en el mes: {%}" = `levelUps` ÷ activos, con la barra y "{n} clientes pasaron a un nivel más alto, a cualquiera.", S5-47) y **"Misiones asignadas"** (torta por estado con cantidad, % y su explicación: **En progreso solo si es el mes actual** (S5-50), Completada ("Falta que el cliente la reclame o la misión no tiene recompensa."), Reclamada ("Se acreditaron los puntos.") y Vencida ("No llegó al objetivo antes de fin de mes."); al pie "Tasa de efectividad: {%} de las misiones se completaron" = (`completed + claimed`) ÷ `assigned` y "Corte: {dd/mm/aaaa}"). Abajo, a lo ancho: **"Recompensas más canjeadas"** con la etiqueta "{redemptionsUsed} canjes usados": puesto, nombre, barra, cantidad y **%** sobre `redemptionsUsed` (S5-48) |
 
-Las sumas y porcentajes de esta tabla son **las únicas cuentas** que hace la pantalla con estos datos.
+**"Corte"** es el último día del mes elegido o, en el mes en curso, la fecha de hoy.
+
+**Las únicas cuentas que hace la pantalla** con estos datos: el total de acreditados, los porcentajes de cada
+tabla (cantidad ÷ total), la variación contra el mes anterior ((mes − anterior) ÷ anterior), el saldo neto, el
+total de "Puntos extra", la conversión (`newFrequent ÷ new`), la tasa de efectividad y "Subieron de nivel".
 
 **Modal "Exportar reporte PDF"** (S5-49): "Elegí las secciones que van en el reporte de {Mes año}."; una casilla
-por sección, todas marcadas al abrir: **Clientes** ("Activos, nuevos, frecuentes y últimos 6 meses") ·
-**Consumos** ("Por día de la semana y por franja horaria") · **Puntos** ("Origen de los puntos y qué pasó con
-ellos") · **Programa** ("Misiones, clientes por nivel y recompensas"). Botón **"Deseleccionar todo"**, que pasa a
-**"Seleccionar todo"** cuando falta alguna. Sin ninguna marcada: "Elegí al menos una sección." y "Descargar PDF"
-deshabilitado. Botones Cancelar · Descargar PDF.
+por sección, todas marcadas al abrir: **Clientes** ("Activos, nuevos, frecuentes y conversión de los nuevos") ·
+**Consumos** ("Por día de la semana y por franja horaria") · **Puntos** ("Variación contra el mes anterior,
+origen y destino de los puntos") · **Programa** ("Clientes por nivel, misiones y recompensas"). Botón
+**"Deseleccionar todo"**, que pasa a **"Seleccionar todo"** cuando falta alguna. Sin ninguna marcada: "Elegí al
+menos una sección." y "Descargar PDF" deshabilitado. Botones Cancelar · Descargar PDF.
 
 ---
 
@@ -1018,6 +1057,12 @@ nuevas.
 | Recompensas | Foto real en el listado, el catálogo, el mostrador y los canjes |
 | Movimientos (todas las vistas) | Tipos `MISSION_REWARD` y `BIRTHDAY_BONUS` |
 | `GET /movimientos-de-puntos` | Se elimina (S5-13) |
+| **Todas las pantallas del Administrador** (S5-56) | Mismo **recuadro**, **título** y **tabla** que Auditoría: recuadro blanco con borde `#f0d9c4`, radio 18 px y 22 px de margen interno; título de 20 px, en negrita y marrón `#5a2a14`; encabezado de tabla de 13 px y filas de 14 px. El recuadro llega **hasta abajo de la pantalla**, con el mismo espacio abajo que arriba. Recompensas, Canjes, Misiones, Clientes, Estadísticas, Auditoría y Consumos |
+| **Listados con paginado** (S5-57) | Recompensas, Canjes, Misiones, Consumos y Auditoría: la cantidad de filas por página es **la que entra en el alto de la pantalla** (mínimo 3), y "Mostrando…", Anterior y Siguiente quedan **siempre a la vista**, abajo del recuadro. La pantalla manda esa cantidad en `limit`; el backend no cambia. Se recalcula al cambiar el tamaño de la ventana |
+
+Lo que de esta tabla cambia pantallas de **sprints anteriores** (Clientes, Auditoría, Consumos, Recompensas y
+Canjes) está detallado, con lo que reemplaza de los contratos y las historias del Sprint 3 y del Sprint 4, en
+`docs/sprint-5/AJUSTES_PANTALLAS_SPRINTS_ANTERIORES.md`.
 
 ---
 
@@ -1204,7 +1249,7 @@ Vale para **todo el sistema** (Sprints 1 a 5).
 | **Fechas de salida** | ISO 8601 en UTC. Fechas sin hora en `YYYY-MM-DD`. Horas sin fecha en `HH:mm`. La pantalla muestra `dd/mm/aaaa hh:mm` en hora de Argentina |
 | **Montos** | Número JSON con hasta 2 decimales. Sin código de moneda |
 | **Puntos** | Siempre enteros. Con signo en los movimientos |
-| **Paginación** | `page` (≥ 1, por defecto 1) y `limit` (1–100; por defecto 20, o el que diga cada endpoint). Respuesta `{ items, total, page, limit }` |
+| **Paginación** | `page` (≥ 1, por defecto 1) y `limit` (1–100; por defecto 20, o el que diga cada endpoint). Respuesta `{ items, total, page, limit }`. Las pantallas del Administrador mandan en `limit` las filas que entran en su alto (S5-57) |
 | **Orden de las rutas** | `/customers/me/…` antes que `/customers/:id/…`; las palabras fijas (`/recompensas/disponibles`) antes que `/:id` |
 | **Transacciones** | Todo lo que escribe va en la transacción ambiente (`PrismaTransactionRunner`), con la auditoría y los eventos de dominio. Los correos, las subidas a Cloudinary y los PDF van **fuera** |
 | **Bloqueos** | `customer_points` en todo lo que mueve puntos. Al usar un canje: recompensa → canje → saldo. Al confirmar un canje: la recompensa. Al reclamar una misión: asignación → saldo |
@@ -1365,6 +1410,10 @@ cliente no tiene cuenta.", "La recompensa no tiene foto.", "No tenés foto de pe
 | 16 | `GET /recompensas` | Orden por `updatedAt` | Parámetro `order` (Más recientes / Más antiguas, por fecha de alta) |
 | 17 | Mis canjes del Cliente | Fecha: Día específico o Rango | "Elegir fechas" con calendario |
 | 18 | Encabezado del Administrador | Botón "Volver" | Sin "Volver" |
+| 19 | Pantallas del Administrador | Cada una con su recuadro y su título (24 px o 20 px) | Recuadro, título y tabla de Auditoría, hasta abajo de la pantalla (S5-56) |
+| 20 | Paginado de Recompensas, Canjes, Misiones, Consumos y Auditoría | Fijo (8 o 10) y "Siguiente" debajo de la tabla, a veces fuera de la pantalla | Las filas que entran en la pantalla; "Siguiente" siempre a la vista (S5-57) |
+| 21 | `GET /estadisticas/clientes` | `last6Months` con `withConsumptions` | `last6Months` con `newFrequent` (S5-53) |
+| 22 | `GET /estadisticas/puntos` | Solo el mes | + `previousMonth` (S5-51, S5-52) |
 
 ---
 
@@ -1384,6 +1433,8 @@ flujo. Lo que el prototipo hace y **no** es parte del diseño ni de este contrat
 | 4 | El orden "Más recientes" usa el orden de alta de los datos de ejemplo | `order=RECENT` por `createdAt` |
 | 5 | "Exportar reporte PDF" muestra un toast de descarga | Baja el archivo de [3.9.5](#395-get-apiestadisticasreportepdf-us-55-rf-058) |
 | 6 | `ConfigPromociones.html` ya no existe y la tarjeta de promociones del Inicio del Cliente se sacó | Igual: no hay catálogo de promociones (S5-36) |
+| 7 | La variación del mes en curso se compara contra el mes anterior **completo**, y la conversión de los nuevos sale de una cuenta de ejemplo | Mes en curso: contra los **mismos días** del anterior (S5-52); la conversión la calcula el backend (`newFrequent`) |
+| 8 | La "Nota del prototipo" de cada pantalla está en el menú lateral, plegada, y "Simular fin de mes" está ahí (S5-58) | No es parte del diseño: la app no tiene esa nota |
 
 ### 8.2 Reglas de negocio que el backend tiene que garantizar (no solo la pantalla)
 
@@ -1402,8 +1453,9 @@ flujo. Lo que el prototipo hace y **no** es parte del diseño ni de este contrat
 - **Imágenes:** se validan por contenido y tamaño en el backend antes de subirlas; las fotos de perfil solo se
   entregan con URL firmada.
 - **Promociones y beneficios:** son informativos: no cambian el cálculo de puntos.
-- **Estadísticas:** por mes; los totales por estado de las misiones, las subidas de nivel y el total de canjes
-  usados salen del backend.
+- **Estadísticas:** por mes; los totales por estado de las misiones, las subidas de nivel, el total de canjes
+  usados, la conversión de los nuevos (`newFrequent`) y los totales del mes anterior (`previousMonth`) salen
+  del backend.
 - **Auditoría y movimientos inalterables**, como en los sprints anteriores; el Cliente nunca es actor.
 
 ### 8.3 Decisiones del Sprint 5
@@ -1455,11 +1507,19 @@ flujo. Lo que el prototipo hace y **no** es parte del diseño ni de este contrat
 | S5-43 | Horario de una misión | Botón "Quitar horario" para borrarlo | Deni, 12/11 |
 | S5-44 | Ayuda del tipo de objetivo | Un **?** que muestra la explicación al pasar el mouse (no un botón que despliega texto) | Deni, 12/11 |
 | S5-45 | Orden de misiones y recompensas | Más recientes (por defecto) o Más antiguas, por fecha de alta | Deni, 12/11 |
-| S5-46 | Gráficos de las estadísticas | Más gráficos (tortas y barras), paleta pastel de la gama del naranja con turquesa y lavanda de apoyo, todos los números con la misma letra | Deni, 11/11 y 12/11 |
+| S5-46 | Gráficos de las estadísticas | Más gráficos (tortas y barras), paleta pastel de la gama del naranja con turquesa y lavanda de apoyo (**reemplazada por S5-54**), todos los números con la misma letra | Deni, 11/11 y 12/11 |
 | S5-47 | Subidas de nivel | Estadísticas → Programa muestra el % de clientes que **subieron de nivel** en el mes, a cualquier nivel | Deni, 12/11 |
 | S5-48 | Recompensas más canjeadas | Con el **%** sobre el total de canjes usados del mes | Deni, 12/11 |
 | S5-49 | Reporte PDF | Un modal elige las **secciones** (Clientes, Consumos, Puntos, Programa) con "Seleccionar todo" / "Deseleccionar todo" | Deni, 12/11 |
 | S5-50 | Torta de misiones | Sin la aclaración "a fin de mes se reclama sola"; "En progreso" **solo en el mes en curso** | Deni, 12/11 |
+| S5-51 | Pantalla de Estadísticas | Pestañas a lo ancho con un total cada una; **Clientes sin gráficos** y con la conversión de los nuevos; Consumos con los dos gráficos **lado a lado**; Puntos con la **variación contra el mes anterior** en cada tarjeta, "De dónde salen los puntos" en barras y "De los {n} acreditados…" con el saldo neto; Programa con niveles y misiones arriba y recompensas abajo, más la tasa de efectividad. Todo entra en la pantalla | Deni, 12/11 |
+| S5-52 | Variación del mes en curso | Contra los **mismos días** del mes anterior (no contra el mes entero) | Propuesta de Claude, 12/11: **a confirmar por Deni** |
+| S5-53 | Conversión de clientes nuevos | De los dados de alta en el mes, los que llegaron al **mínimo de frecuente** (por defecto 3) en ese mismo mes. Se ve para los 6 meses de `last6Months` | Deni, 12/11 |
+| S5-54 | Paleta de las estadísticas | La de la marca (marrón, marrón oscuro, rojizo, turquesa, mostaza, coral, durazno y topo). **Reemplaza la paleta pastel de S5-46**; la letra no cambia | Deni, 12/11 |
+| S5-55 | Tarjetas de Clientes | Arriba "Clientes activos", "Clientes nuevos" y "Frecuentes"; debajo del número, "Base vigente", "Adquisición" y "Fidelidad" | Deni, 12/11 |
+| S5-56 | Pantallas del Administrador | Todas con el **recuadro, el título, la letra y la tabla de Auditoría**, y el recuadro **hasta abajo de la pantalla** con el mismo espacio arriba y abajo | Deni, 12/11 |
+| S5-57 | Paginado | Recompensas, Canjes, Misiones, Consumos y Auditoría muestran **las filas que entran en la pantalla**, con "Siguiente" siempre a la vista (sin bajar) | Deni, 12/11 |
+| S5-58 | Notas del prototipo | Salen de abajo de cada pantalla y van al **menú lateral**, plegadas (solo prototipo) | Deni, 12/11 |
 
 ### 8.4 Implementación sugerida
 
@@ -1499,8 +1559,9 @@ flujo. Lo que el prototipo hace y **no** es parte del diseño ni de este contrat
     vencidos una sola vez; cancelar un programado y uno ya enviado (`409`); `{nombre}` reemplazado.
   - Misiones: `order`; `GET /misiones/:id/completadas` con Completadas y Reclamadas, mes inválido (`400`).
   - Estadísticas: cada métrica con datos conocidos de un mes; mínimo de frecuente configurable; mes que falta,
-    futuro y muy viejo; `levelUps`; totales de misiones por estado; `redemptionsUsed`; PDF con una y con todas
-    las secciones, y sin secciones (`400`).
+    futuro y muy viejo; `levelUps`; totales de misiones por estado; `redemptionsUsed`; `newFrequent` (un nuevo
+    con 3 consumos en su mes cuenta; uno con 3 consumos repartidos en dos meses, no); `previousMonth` de un mes
+    cerrado y del mes en curso (mismos días); PDF con una y con todas las secciones, y sin secciones (`400`).
   - Beneficios: guardar, versión nueva, auditoría, `benefit` en el saldo.
   - Cuenta del cliente: con cuenta, sin cuenta, permisos.
   - `GET /movimientos-de-puntos` → `404` después de eliminarlo.
@@ -1534,12 +1595,14 @@ flujo. Lo que el prototipo hace y **no** es parte del diseño ni de este contrat
 | — | CTA-CLI: cuentas de los clientes (S5-3) | RF-08 | `GET /customers/:id/cuenta` | Clientes → Ver más |
 | — | CI: integración continua (S5-30) | — | — | `.github/workflows/ci.yml` |
 | — | ARRASTRE-S4 | — | Ver `CIERRE_SPRINT_4.md` §4 | — |
+| — | Ajustes de pantallas del Administrador (S5-56, S5-57) | — | Ninguno (`limit` ya existe) | Ver `AJUSTES_PANTALLAS_SPRINTS_ANTERIORES.md` |
 
 ---
 
 ## 10. Pendientes
 
-**Nada de esta lista bloquea el código.** Son cambios en los documentos del producto, fuera del repo.
+**Nada de esta lista bloquea el código.** Son cambios en los documentos del producto, fuera del repo, salvo
+PD-28, que solo cambia cómo se calcula `previousMonth` en el mes en curso.
 
 | # | Pendiente | Dónde |
 |---|---|---|
@@ -1551,4 +1614,5 @@ flujo. Lo que el prototipo hace y **no** es parte del diseño ni de este contrat
 | PD-24 | Glosario: Misión mensual, Reclamo automático, Notificación, Promoción, Beneficio del nivel, Cliente frecuente | Plan de Proyecto §8 |
 | PD-25 | RF-012 pide configurar el logo: queda fijo (S5-35). Ajustar el RF o dejarlo anotado como fuera de alcance | Plan de Proyecto, Seguimiento |
 | PD-26 | RF-013 / US-15: las promociones no se guardan; se escriben y se envían (ahora o programadas, a todos o a un nivel) (S5-36, S5-39) | Plan de Proyecto, Seguimiento, Definición del Producto |
-| PD-27 | Reenvío manual de correos fallidos (S5-38) y estadísticas por mes con subidas de nivel (S5-42, S5-47) | Seguimiento (Story Map, US-47 a US-55) |
+| PD-27 | Reenvío manual de correos fallidos (S5-38) y estadísticas por mes con subidas de nivel (S5-42, S5-47), conversión de los nuevos y variación contra el mes anterior (S5-51, S5-53) | Seguimiento (Story Map, US-47 a US-55) |
+| PD-28 | **Confirmar S5-52**: ¿el mes en curso se compara contra los mismos días del mes anterior (propuesta) o contra el mes anterior completo? | Este contrato (§3.9.3) y `HISTORIAS_SPRINT_5.md` (CA-53.1) |

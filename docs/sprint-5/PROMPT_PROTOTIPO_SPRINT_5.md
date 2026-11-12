@@ -1,7 +1,7 @@
 # Prompt — Prototipo Sprint 5: Misiones, Notificaciones, Estadísticas y Fotos (Vitto Club)
 
 > **Estado (12/11/2026): ya se aplicó.** El prototipo v2 (`docs/prototipo/v2/`) tiene las pantallas del Sprint 5
-> y además los cambios hechos a mano el 11/11 y el 12/11 a pedido de Deni (contrato v2, S5-34 a S5-50). **Si
+> y además los cambios hechos a mano el 11/11 y el 12/11 a pedido de Deni (contrato v3, S5-34 a S5-58). **Si
 > alguna vez se vuelve a usar este prompt** (por ejemplo, para reexportar desde Claude Design), la **sección 8**
 > pisa lo que digan las secciones 1 a 7.
 >
@@ -263,7 +263,7 @@ los mensajes automáticos" y "Modificó las promociones".
 
 ## 8. Cambios del 11/11 y el 12/11 (pisan las secciones anteriores)
 
-Contrato v2, §8.3 (S5-34 a S5-50). El detalle de cada pantalla está en el contrato.
+Contrato v3, §8.3 (S5-34 a S5-58). El detalle de cada pantalla está en el contrato.
 
 **Misiones** (§3.1)
 - Filtro **Orden**: Más recientes (por defecto) · Más antiguas.
@@ -293,19 +293,31 @@ Contrato v2, §8.3 (S5-34 a S5-50). El detalle de cada pantalla está en el cont
 
 **Cliente → Mis canjes:** "Día específico" y "Rango" pasan a "Elegir fechas" con el calendario de Consumos.
 
-**Estadísticas y reportes** (§3.9)
-- Selectores **Mes** y **Año** (sin fechas de inicio y fin).
-- Paleta pastel de la gama del naranja con turquesa y lavanda: `#f0945e`, `#2aa0b8`, `#d6a23a`, `#b07ad0`,
-  `#c4604f`. Todos los números con la misma letra. Gráficos con CSS (barras y tortas con `conic-gradient`).
-- **Clientes:** tarjetas, torta de frecuentes y columnas de los últimos 6 meses.
-- **Consumos:** solo por día de la semana y por franja horaria (columnas con cantidad y monto); sin Día /
-  Semana / Mes.
-- **Puntos:** tarjetas, torta "De dónde salen los puntos" (total legible en el centro) y barras "Qué pasó con
-  los puntos"; sin ajustes ni tabla por mes.
-- **Programa:** torta de misiones asignadas (En progreso solo en el mes actual; sin "a fin de mes se reclama
-  sola"), torta de niveles con "Subieron de nivel en el mes: {%}" y barras de recompensas con su %.
+**Estadísticas y reportes** (§3.9.7, S5-51 a S5-55). Todo entra en la pantalla sin bajar.
+- Arriba, compacto: título con la etiqueta "Período: {Mes año}", selectores **Mes** y **Año** y "Exportar reporte
+  PDF".
+- **Pestañas** Clientes · Consumos · Puntos · Programa a lo ancho, separadas por una línea fina, con ícono y un
+  total cada una (activos, consumos, "+{acreditados}", misiones asignadas); se marcan al pasar el mouse.
+- Paleta de la marca: `#a9532b`, `#4a2414`, `#8b3f22`, `#1b7f8c` (`#a3d2da`), `#d4ae3a`, `#e07a5f`,
+  `#ffa47e` (`#f5c2a8`), `#8a7468`. La letra no cambia; todos los números con la misma letra. Gráficos con CSS.
+- **Clientes:** sin gráficos. Tarjetas Clientes activos (Base vigente) · Clientes nuevos (Adquisición) ·
+  Frecuentes (Fidelidad, con "≥ {n} consumos en el mes (mínimo configurable)"), y "Conversión de clientes nuevos
+  · {Mes año}" con los 6 meses para elegir, "{%} llegaron a {n} consumos o más" y la aclaración en gris al pie.
+- **Consumos:** tarjetas y los dos gráficos de columnas **lado a lado** (por día de la semana y por franja).
+- **Puntos:** cuatro tarjetas con "▲/▼ {x,x} % vs. {mes}."; "De dónde salen los puntos" (Consumos y Puntos
+  extra en barras, "No suma nivel") y "De los {n} acreditados…" (Saldo neto, Canjeados, Vencidos, Anulados).
+- **Programa:** niveles y misiones arriba (con "Subieron de nivel", "Tasa de efectividad" y "Corte"),
+  recompensas más canjeadas abajo a lo ancho.
 - "Exportar reporte PDF" abre un **modal de secciones** (Clientes, Consumos, Puntos, Programa) con "Seleccionar
   todo" / "Deseleccionar todo".
+
+**Todas las pantallas del Administrador** (S5-56 a S5-58)
+- Mismo recuadro, título (20 px, negrita, `#5a2a14`), letra y tabla que **Auditoría**; el recuadro llega hasta
+  abajo de la pantalla, con el mismo espacio abajo que arriba.
+- Recompensas, Canjes, Misiones, Consumos y Auditoría: **las filas por página que entran en la pantalla**, con
+  "Siguiente" siempre a la vista.
+- La "Nota del prototipo" va **en el menú lateral**, plegada (con "Simular fin de mes" en Misiones), no abajo de
+  la pantalla.
 
 **Auditoría:** módulo Misiones habilitado; "Regaló puntos de cumpleaños" y "Modificó cliente frecuente"; **sin**
 "Modificó las promociones".

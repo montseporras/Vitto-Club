@@ -11,6 +11,13 @@
 > actualizado a mano el 11/11 y el 12/11; ver su `LEEME.md`). Si un criterio de acá choca con el contrato,
 > **manda el contrato**. Hay que avisar para corregir este archivo.
 >
+> **Versión 3 (12/11/2026, tarde).** Alineada con el contrato v3 (S5-51 a S5-58): Estadísticas rediseñadas
+> (pestañas con totales, conversión de los clientes nuevos, variación contra el mes anterior, gráficos lado a
+> lado), pantallas del Administrador con el formato de Auditoría y paginado que entra en la pantalla. Cambian
+> CA-28.1, CA-51.1, CA-51.4, CA-52.4, CA-53.1, CA-53.2, CA-54.5, CA-55.2 y CA-55.3, y el ARRASTRE-S4 suma los
+> ajustes a pantallas de sprints anteriores (`AJUSTES_PANTALLAS_SPRINTS_ANTERIORES.md`). **Falta que Deni
+> confirme S5-52** (contrato §10, PD-28).
+>
 > **Versión 2 (12/11/2026).** Alineada con el contrato v2: suma los cambios del prototipo del 11/11 y el 12/11
 > (contrato §8.3, S5-34 a S5-50): promociones que no se guardan (se envían ahora o programadas, a todos o a un
 > nivel), sin logo configurable, reenvío de correos fallidos, detalle de la misión con quiénes la completaron,
@@ -128,14 +135,15 @@ FRONTEND
 | Envío de promociones (ahora y programados) y el proceso de programados | **US-15** | US-49 |
 | Tarjeta de misión con barra de progreso (frontend) | **US-33** | US-31 |
 | Selector de imagen con vista previa (frontend) | **US-34** | FOTO-PERFIL |
-| Selector de mes y año, y los gráficos de torta y barras con CSS (frontend) | **US-51** | US-52 a US-55 |
+| Selector de mes y año, pestañas con el total de cada sección, y los gráficos de torta y barras con CSS (frontend) | **US-51** | US-52 a US-55 |
+| Recuadro de pantalla del Administrador (`vc-pg`: hasta abajo, título y tabla de Auditoría) y paginado que entra en la pantalla (frontend) | **ARRASTRE-S4** (ajustes del 12/11) | US-28 (Misiones), US-34 (Recompensas), US-51 (Estadísticas) |
 | Filtro de fechas con calendario de inicio y fin (frontend, ya existe en Consumos) | — | US-14 (historial), Mis canjes |
 
 ---
 
 ## 2. Pendientes que hay que decidir
 
-**Todas decididas por Deni el 09/11/2026**, con los cambios del 11/11 y el 12/11 (S5-34 a S5-50). El detalle está
+**Todas decididas por Deni el 09/11/2026**, con los cambios del 11/11 y el 12/11 (S5-34 a S5-58), salvo PD-28. El detalle está
 en el contrato §8.3. Solo queda documentación fuera del repo (contrato §10).
 
 | # | Pendiente | Afecta | Decisión |
@@ -145,7 +153,7 @@ en el contrato §8.3. Solo queda documentación fuera del repo (contrato §10).
 | PD-6 | ¿Aviso de canje rechazado? | — | **No** (S5-14) |
 | PD-7 | Qué mide una misión | BASE-5, US-28, US-30 | **Cantidad de consumos o monto**, con días y horario opcionales (S5-15) |
 | PD-8 | ¿La promoción cambia los puntos? | BASE-5, US-15, US-49 | **No: solo informativa** (S5-16). Además, **no se guarda**: solo el envío (S5-36) |
-| PD-9 | Definiciones de las estadísticas | US-51, US-52 | **Mínimo de frecuente configurable** en Configuración del programa (por defecto 3); franjas de 4 h; activo = no dado de baja (S5-22). **Por mes** (S5-42) |
+| PD-9 | Definiciones de las estadísticas | US-51, US-52 | **Mínimo de frecuente configurable** en Configuración del programa (por defecto 3); franjas de 4 h; activo = no dado de baja (S5-22). **Por mes** (S5-42). Conversión de los nuevos con el mismo mínimo (S5-53) |
 | PD-10 | Anticipación del aviso de vencimiento | US-47 | **7 días**, una vez por lote (S5-17) |
 | PD-11 | Dependencias `resend` y `pdfkit` | US-47 a US-50, US-55 | **Autorizadas** (S5-18) |
 | PD-12 | Foto de perfil: acceso y quién la ve | FOTO-PERFIL | **Cliente, Cajero y Administrador**, con URL firmada (S5-23) |
@@ -155,11 +163,12 @@ en el contrato §8.3. Solo queda documentación fuera del repo (contrato §10).
 | PD-16 | ¿Reintentar correos fallidos? | US-14 | **No automáticamente**; sí a mano, una vez, con "Reenviar" (S5-28, S5-38) |
 | PD-17 | ¿Auditar envíos? | US-47 a US-50 | **No** (S5-28) |
 | PD-18 | Puntos por cumpleaños | US-48 | **Sí, configurable, por defecto 100** (S5-25) |
-| PD-19 | Gráficos | US-51 a US-54 (frontend) | **Barras y tortas con CSS**, paleta pastel del contrato §3.9.7 (S5-27, S5-46) |
+| PD-19 | Gráficos | US-51 a US-54 (frontend) | **Barras y tortas con CSS**, paleta de la marca del contrato §3.9.7 (S5-27, S5-54) |
 | PD-20 | ¿El beneficio del nivel cambia los puntos? | NIV-BEN | **No: texto informativo** (S5-26) |
 | PD-21 | ¿Resetear la contraseña de un cliente? | CTA-CLI | **No: solo verla** (S5-29) |
 | PD-22 | Actualizar Plan, Seguimiento y Definición del Producto | Solo documentación | Pendiente (contrato §10) |
 | PD-23 | Vitest y GitHub Actions | CI | **Se saca Vitest del Seguimiento; se hace el CI** (S5-30) |
+| PD-28 | ¿Con qué se compara el mes en curso en Estadísticas → Puntos? | US-53 | **Propuesta:** contra los mismos días del mes anterior (S5-52). **A confirmar por Deni** |
 
 ---
 
@@ -187,6 +196,12 @@ BASE-5:
 sprints anteriores: tarjetas de Configuración → Puntos más compactas; sin botón "Volver" en el encabezado del
 Administrador (y todos los modales con cruz); en Cliente → Mis canjes, "Día específico" y "Rango" pasan a
 "Elegir fechas" con el calendario de Consumos (S5-40). Contrato §3.13.
+
+**Ajustes de pantalla del 12/11 (S5-56 y S5-57, solo frontend):** todas las pantallas del Administrador con el
+recuadro, el título, la letra y la tabla de Auditoría, hasta abajo de la pantalla; y en Recompensas, Canjes,
+Misiones, Consumos y Auditoría, las filas por página que entran en la pantalla, con "Siguiente" siempre a la
+vista. El detalle, con lo que reemplaza de los contratos y las historias del Sprint 3 y el Sprint 4, está en
+`docs/sprint-5/AJUSTES_PANTALLAS_SPRINTS_ANTERIORES.md` (criterios CA-AJ.1 a CA-AJ.6).
 
 | Fila de `CIERRE_SPRINT_4.md` | Responsable | Rama | Estado |
 |---|---|---|---|
@@ -334,7 +349,7 @@ cancelado, dos corridas), cancelar, permisos.
 
 - **CA-28.1 [B+F] Listado** de §3.1.2: columnas, objetivo armado en texto, "Sin recompensa", vigencia,
   completadas este mes, estado; filtro, búsqueda y **Orden** (Más recientes por defecto · Más antiguas,
-  `order`, S5-45); paginado de a 10; vacío. La fila no tiene botones: abre el **detalle** (US-29).
+  `order`, S5-45); paginado que entra en la pantalla, con "Siguiente" siempre a la vista (S5-57); vacío. La fila no tiene botones: abre el **detalle** (US-29).
 - **CA-28.2 [B+F] Crear con recompensa.** Dado "Vení 3 veces", `CONSUMPTION_COUNT`, objetivo 3, 50 pts, desde
   el mes actual, cuando se guarda: `201`, `ACTIVE`, auditoría `MISSION_CREATED` y toast "Misión guardada.".
 - **CA-28.3 [B+F] Sin recompensa.** Con la casilla "Sin recompensa", `rewardPoints: null` y el listado dice "Sin
@@ -615,40 +630,50 @@ cancelado, dos corridas), cancelar, permisos.
 **Criterios de aceptación**
 
 - **CA-51.1 [B]** Activos, nuevos y frecuentes **del mes** con datos conocidos (por ejemplo, con mínimo 3:
-  clientes con 3, 2 y 4 consumos → 2 frecuentes) y `last6Months` (los 6 meses que terminan en el elegido).
+  clientes con 3, 2 y 4 consumos → 2 frecuentes) y `last6Months` (los 6 meses que terminan en el elegido) con
+  `new` y **`newFrequent`**: un cliente nuevo con 3 consumos en su mes de alta cuenta; uno con 2 en ese mes y 1
+  en el siguiente, no (S5-53).
 - **CA-51.2 [B+F] Mínimo configurable** (S5-22): `GET`/`PUT /loyalty/configuration/frequent-customers` (entero
   1–100, por defecto 3), en una versión nueva de la configuración, auditado con `FREQUENT_CUSTOMERS_UPDATED`;
   tarjeta "Clientes frecuentes" en Configuración → Puntos.
 - **CA-51.3 [B]** `month` obligatorio (`YYYY-MM`, hora de Argentina): falta, formato inválido, futuro y anterior
   a enero del año pasado → `400` con los mensajes del contrato §3.9 (S5-42).
-- **CA-51.4 [F]** Pantalla "Estadísticas y reportes" habilitada; selectores **Mes** y **Año** (por defecto el mes
-  actual; meses futuros deshabilitados); pestaña Clientes con las tarjetas, la torta de frecuentes y las
-  columnas de los últimos 6 meses, con la paleta y la letra de los números del contrato §3.9.7.
+- **CA-51.4 [F]** Pantalla "Estadísticas y reportes" habilitada (contrato §3.9.7, S5-51): selectores **Mes** y
+  **Año** (por defecto el mes actual; meses futuros deshabilitados); pestañas a lo ancho con su total
+  (activos, consumos, "+{acreditados}", misiones asignadas), marcadas al pasar el mouse; pestaña Clientes **sin
+  gráficos**: las tres tarjetas (Clientes activos · Base vigente, Clientes nuevos · Adquisición, Frecuentes ·
+  Fidelidad, S5-55) y la tarjeta "Conversión de clientes nuevos" con los 6 meses para elegir y "{%} llegaron a
+  {n} consumos o más". Todo entra en la pantalla, con la paleta y la letra de los números del contrato.
 - **CA-51.5 [B]** Cajero y Cliente: `403`.
 
 ### US-52 — Estadísticas de consumos por período
 
 **RF-055 · Contrato §3.9.2.** CA-52.1 [B] totales del mes (sin `groupBy` ni "por período", S5-42) · CA-52.2 [B]
 por día de la semana (los 7) y por las cinco franjas horarias del contrato (S5-22), en hora de Argentina ·
-CA-52.3 [B] solo `REGISTERED` · CA-52.4 [F] pestaña Consumos: tarjetas Consumos y Monto total, y columnas por
-día y por franja con cantidad y monto, resaltando el más fuerte · CA-52.5 [B] permisos.
+CA-52.3 [B] solo `REGISTERED` · CA-52.4 [F] pestaña Consumos: tarjetas Consumos y Monto total, y los dos
+gráficos de columnas **lado a lado** (por día y por franja, con cantidad y monto, resaltando el más fuerte,
+S5-51) · CA-52.5 [B] permisos.
 
 ### US-53 — Estadísticas de puntos
 
 **RF-056 · Contrato §3.9.3.** CA-53.1 [B] consumos, bonificación, recompensas de misión, regalos de cumpleaños,
-canjeados, vencidos y anulaciones del mes, con datos conocidos; **sin ajustes ni `byMonth`** (S5-42) · CA-53.2
-[F] pestaña Puntos: tarjetas, torta "De dónde salen los puntos" (con el total legible en el centro) y barras
-"Qué pasó con los puntos" con "Usados del total acreditado"; sin la tabla por mes · CA-53.3 [B] permisos ·
-CA-53.4 [B] `GET /movimientos-de-puntos` ya no existe (`404`, S5-13; lo saca el ARRASTRE-S4).
+canjeados, vencidos y anulaciones del mes, con datos conocidos, y los mismos siete del mes anterior en
+`previousMonth` (en el mes en curso, los mismos días del anterior: S5-52, a confirmar); **sin ajustes ni
+`byMonth`** (S5-42) · CA-53.2 [F] pestaña Puntos (S5-51): cuatro tarjetas con la variación "▲/▼ {x,x} % vs.
+{mes}." (o "Sin datos de {mes}."), "De dónde salen los puntos" en barras (Consumos y "Puntos extra" con Misiones,
+Bonificación y Cumpleaños; "No suma nivel" en Misiones y Cumpleaños) y "De los {n} acreditados…" con Saldo
+neto, Canjeados, Vencidos y Anulados y su % · CA-53.3 [B] permisos · CA-53.4 [B] `GET /movimientos-de-puntos` ya
+no existe (`404`, S5-13; lo saca el ARRASTRE-S4).
 
 ### US-54 — Estadísticas de niveles, misiones y recompensas
 
 **RF-057 · Contrato §3.9.4.** CA-54.1 [B] distribución por nivel actual · CA-54.2 [B] `levelUps`: clientes que
 subieron de nivel en el mes (S5-47) · CA-54.3 [B] misiones del mes por estado (`inProgress`, `completed` sin
 reclamar, `claimed`, `expired`) · CA-54.4 [B] las 10 recompensas más canjeadas (canjes `USED`) y
-`redemptionsUsed` · CA-54.5 [F] pestaña Programa: torta de misiones (**En progreso solo en el mes actual**, sin
-"a fin de mes se reclama sola", S5-50), torta de niveles con "Subieron de nivel en el mes: {%}" y barras de
-recompensas con su % (S5-48) · CA-54.6 [B] permisos.
+`redemptionsUsed` · CA-54.5 [F] pestaña Programa (S5-51): arriba, lado a lado, la torta de niveles con "Subieron
+de nivel en el mes: {%}" y la torta de misiones (**En progreso solo en el mes actual**, sin "a fin de mes se
+reclama sola", S5-50) con "Tasa de efectividad: {%}" y "Corte: {fecha}"; abajo, a lo ancho, las recompensas
+más canjeadas con su % (S5-48) y "{n} canjes usados" · CA-54.6 [B] permisos.
 
 ### US-55 — Exportar reportes generados
 
@@ -664,8 +689,10 @@ recompensas con su % (S5-48) · CA-54.6 [B] permisos.
 - **CA-55.1 [B]** `GET /estadisticas/reporte.pdf?month&sections` responde `application/pdf` con el nombre del
   contrato.
 - **CA-55.2 [B]** El PDF trae el logo fijo, el mes, la fecha de generación y **solo las secciones pedidas**, en
-  el orden del contrato. Sin secciones → `400` "Elegí al menos una sección.".
-- **CA-55.3 [F]** "Exportar reporte PDF" abre el modal de secciones (S5-49): todas marcadas al abrir,
+  el orden del contrato, con los mismos datos que la pantalla (conversión de los nuevos, variación contra el mes
+  anterior, tasa de efectividad). Sin secciones → `400` "Elegí al menos una sección.".
+- **CA-55.3 [F]** "Exportar reporte PDF" abre el modal de secciones (S5-49), con las descripciones del contrato
+  §3.9.7: todas marcadas al abrir,
   "Deseleccionar todo" / "Seleccionar todo", "Descargar PDF" deshabilitado sin ninguna; descarga con
   `shared/api/download.ts`.
 - **CA-55.4 [B]** Mismas validaciones de mes y permisos que US-51.
