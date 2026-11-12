@@ -38,7 +38,7 @@ export function ProgramStatusSection() {
                 value: (
                   <span
                     className={cn(
-                      'font-bold',
+                      'font-number font-normal lining-nums tabular-nums text-lg',
                       points.data.balance < 0 ? 'text-red-700' : 'text-accent-700',
                     )}
                   >

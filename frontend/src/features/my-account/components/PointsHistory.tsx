@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Alert } from '@/shared/components/ui/Alert'
 import { Badge } from '@/shared/components/ui/Badge'
-import { Button } from '@/shared/components/ui/Button'
+import { Icon } from '@/shared/components/ui/Icon'
+import { ICONS } from '@/shared/components/ui/icons'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { isoToArgentinaDateTime } from '@/shared/lib/dates'
 import { useMyPointsMovements } from '@/features/points-movements'
@@ -39,6 +40,9 @@ const signedPoints = (points: number) =>
 
 const CUSTOMER_HISTORY_LIMIT = 20
 
+const ARROW_BUTTON =
+  'grid size-9 cursor-pointer place-items-center rounded-full border border-orange-200 bg-white text-accent-800 transition-colors hover:bg-accent-50 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700'
+
 export function PointsHistory() {
   const [page, setPage] = useState(1)
   const result = useMyPointsMovements(page, CUSTOMER_HISTORY_LIMIT)
@@ -69,21 +73,22 @@ export function PointsHistory() {
 
       {data && !result.isError && data.items.length > 0 && (
         <>
-          <ul className="grid gap-3">
+          <ul className="grid gap-2">
             {data.items.map((movement) => (
               <li
                 key={movement.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-orange-200 bg-white p-4"
+                // Sin salto de línea: los puntos quedan siempre a la derecha, aunque el texto sea largo
+                className="flex items-start justify-between gap-3 rounded-xl border border-orange-200 bg-white px-3 py-2.5"
               >
-                <div className="min-w-0">
-                  <p className="text-sm text-muted-foreground">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] text-muted-foreground">
                     {isoToArgentinaDateTime(movement.createdAt)}
                   </p>
-                  <p className="mt-1">{customerMovementText(movement)}</p>
+                  <p className="mt-0.5 text-[13px] leading-snug">{customerMovementText(movement)}</p>
                 </div>
-                <div className="flex shrink-0 flex-col items-end gap-2">
+                <div className="flex shrink-0 flex-col items-end gap-1 text-right">
                   <span
-                    className={`font-semibold ${
+                    className={`font-number font-normal lining-nums tabular-nums whitespace-nowrap text-sm ${
                       movement.points > 0
                         ? 'text-green-700'
                         : movement.points < 0
@@ -94,37 +99,34 @@ export function PointsHistory() {
                     {signedPoints(movement.points)} pts
                   </span>
                   {movement.lot && (
-                    <Badge>{LOT_STATUS_LABELS[movement.lot.status]}</Badge>
+                    <Badge className="text-[10px]">{LOT_STATUS_LABELS[movement.lot.status]}</Badge>
                   )}
                 </div>
               </li>
             ))}
           </ul>
 
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <StatusText>
-              Mostrando {(page - 1) * data.limit + 1}–
-              {Math.min(page * data.limit, data.total)} de {data.total}
-            </StatusText>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={page <= 1 || result.isFetching}
-                onClick={() => setPage((current) => current - 1)}
-              >
-                Anterior
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={page >= totalPages || result.isFetching}
-                onClick={() => setPage((current) => current + 1)}
-              >
-                Siguiente
-              </Button>
-            </div>
-          </div>
+          {/* Solo flechas: atrás a la izquierda y adelante a la derecha */}
+          <nav aria-label="Paginación" className="mt-3 flex items-center justify-between">
+            <button
+              type="button"
+              aria-label="Página anterior"
+              disabled={page <= 1 || result.isFetching}
+              onClick={() => setPage((current) => current - 1)}
+              className={ARROW_BUTTON}
+            >
+              <Icon d={ICONS.chevronRight} className="size-4 rotate-180" />
+            </button>
+            <button
+              type="button"
+              aria-label="Página siguiente"
+              disabled={page >= totalPages || result.isFetching}
+              onClick={() => setPage((current) => current + 1)}
+              className={ARROW_BUTTON}
+            >
+              <Icon d={ICONS.chevronRight} className="size-4" />
+            </button>
+          </nav>
         </>
       )}
     </section>

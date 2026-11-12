@@ -10,15 +10,16 @@ import {
 } from '@/features/redemptions'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
-import { DateInput } from '@/shared/components/ui/DateInput'
+import { DateRangePicker } from '@/shared/components/ui/DateRangePicker'
+import { FilterSelect } from '@/shared/components/ui/FilterSelect'
 import { Label } from '@/shared/components/ui/Label'
-import { Select } from '@/shared/components/ui/Select'
-import { addDaysToIso, displayDateToIso, todayIsoInTimeZone } from '@/shared/lib/dates'
+import { addDaysToIso, todayIsoInTimeZone } from '@/shared/lib/dates'
 import { MyRedemptionItem } from './MyRedemptionItem'
 
 const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires'
 
-type DateOption = 'any' | 'today' | 'last7' | 'month' | 'day' | 'range'
+// "Elegir fechas" reemplaza a "Día específico" y "Rango": un solo día filtra ese día; dos, el rango
+type DateOption = 'any' | 'today' | 'last7' | 'month' | 'custom'
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todos' },
@@ -36,11 +37,8 @@ const DATE_OPTIONS = [
   { value: 'today', label: 'Hoy' },
   { value: 'last7', label: 'Últimos 7 días' },
   { value: 'month', label: 'Este mes' },
-  { value: 'day', label: 'Día específico' },
-  { value: 'range', label: 'Rango' },
+  { value: 'custom', label: 'Elegir fechas' },
 ]
-
-const RANGE_ERROR = 'La fecha "hasta" no puede ser anterior a "desde".'
 
 type MyRedemptionsProps = {
   /** Abre el diálogo "Cancelar canje" (US-43). */
@@ -51,29 +49,23 @@ export function MyRedemptions({ onCancel }: MyRedemptionsProps) {
   const [status, setStatus] = useState<RedemptionStatusGroup | ''>('')
   const [order, setOrder] = useState<'desc' | 'asc'>('desc')
   const [dateOption, setDateOption] = useState<DateOption>('any')
+  // Fechas elegidas en el calendario ('YYYY-MM-DD')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
 
   // Los atajos se arman con la fecha de hoy en hora de Argentina (§3.12.1)
   const today = todayIsoInTimeZone(ARGENTINA_TIME_ZONE)
-  const fromIso = displayDateToIso(from)
-  const toIso = displayDateToIso(to)
-  const invertedRange =
-    dateOption === 'range' && fromIso !== null && toIso !== null && toIso < fromIso
 
   let dates: Pick<MyRedemptionFilters, 'fromDate' | 'toDate'> = {}
   if (dateOption === 'today') dates = { fromDate: today, toDate: today }
   else if (dateOption === 'last7') dates = { fromDate: addDaysToIso(today, -6), toDate: today }
   else if (dateOption === 'month') dates = { fromDate: `${today.slice(0, 8)}01`, toDate: today }
-  else if (dateOption === 'day' && fromIso) dates = { fromDate: fromIso, toDate: fromIso }
-  else if (dateOption === 'range') {
-    dates = { ...(fromIso ? { fromDate: fromIso } : {}), ...(toIso ? { toDate: toIso } : {}) }
-  }
+  else if (dateOption === 'custom' && from) dates = { fromDate: from, toDate: to || from }
 
   const filters: MyRedemptionFilters = { ...(status ? { status } : {}), ...dates, order }
   const hasFilters = status !== '' || Object.keys(dates).length > 0
-  const result = useMyRedemptions(filters, !invertedRange)
-  const items = invertedRange ? [] : result.data?.items
+  const result = useMyRedemptions(filters)
+  const items = result.data?.items
   const now = useExpiryRefetch(items, result.refetch)
 
   const changeDateOption = (value: DateOption) => {
@@ -87,55 +79,50 @@ export function MyRedemptions({ onCancel }: MyRedemptionsProps) {
       <div className="grid grid-cols-2 gap-2">
         <div>
           <Label htmlFor="my-redemptions-status">Estado</Label>
-          <Select
+          <FilterSelect
             id="my-redemptions-status"
             value={status}
             options={STATUS_OPTIONS}
-            onChange={(event) => setStatus(event.target.value as RedemptionStatusGroup | '')}
+            onChange={(value) => setStatus(value as RedemptionStatusGroup | '')}
           />
         </div>
         <div>
           <Label htmlFor="my-redemptions-order">Orden</Label>
-          <Select
+          <FilterSelect
             id="my-redemptions-order"
             value={order}
             options={ORDER_OPTIONS}
-            onChange={(event) => setOrder(event.target.value as 'desc' | 'asc')}
+            onChange={(value) => setOrder(value as 'desc' | 'asc')}
           />
         </div>
         <div className="col-span-2">
           <Label htmlFor="my-redemptions-date">Fecha</Label>
-          <Select
+          <FilterSelect
             id="my-redemptions-date"
             value={dateOption}
             options={DATE_OPTIONS}
-            onChange={(event) => changeDateOption(event.target.value as DateOption)}
+            onChange={(value) => changeDateOption(value as DateOption)}
           />
         </div>
-        {dateOption === 'day' && (
+        {dateOption === 'custom' && (
           <div className="col-span-2">
-            <DateInput aria-label="Día" value={from} onChange={(event) => setFrom(event.target.value)} />
+            <DateRangePicker
+              id="my-redemptions-date-range"
+              label="Fechas"
+              fromDate={from}
+              toDate={to}
+              onApply={(fromDate, toDate) => {
+                setFrom(fromDate)
+                setTo(toDate)
+              }}
+            />
           </div>
-        )}
-        {dateOption === 'range' && (
-          <>
-            <DateInput aria-label="Desde" value={from} onChange={(event) => setFrom(event.target.value)} />
-            <DateInput aria-label="Hasta" value={to} onChange={(event) => setTo(event.target.value)} />
-          </>
         )}
       </div>
 
-      {invertedRange && (
-        <p role="alert" className="text-xs text-accent-800">
-          {RANGE_ERROR}
-        </p>
-      )}
+      {result.isPending && <StatusText className="py-6 text-center">Cargando…</StatusText>}
 
-      {!invertedRange && result.isPending && (
-        <StatusText className="py-6 text-center">Cargando…</StatusText>
-      )}
-
-      {!invertedRange && result.isError && (
+      {result.isError && (
         <Alert variant="error">
           <AlertMessages messages={result.error.messages} />
         </Alert>
@@ -154,7 +141,7 @@ export function MyRedemptions({ onCancel }: MyRedemptionsProps) {
         </ul>
       )}
 
-      {!invertedRange && items?.length === 0 && (
+      {items?.length === 0 && (
         <StatusText className="rounded-xl border border-dashed border-orange-200 px-3 py-5 text-center">
           {hasFilters ? 'No hay canjes para los filtros elegidos.' : 'Todavía no tenés canjes.'}
         </StatusText>

@@ -47,7 +47,7 @@ export function CatalogRewardCard({ reward, balance, onRedeem }: CatalogRewardCa
             {reward.description}
           </p>
         )}
-        <p className="text-sm font-bold text-accent-800">{formatInteger(reward.points)} pts</p>
+        <p className="font-number font-normal lining-nums tabular-nums text-base text-accent-800">{formatInteger(reward.points)} pts</p>
         <div>
           <RewardExpiryTag reward={reward} />
         </div>

@@ -27,7 +27,7 @@ export function NextExpirations({ expirations }: NextExpirationsProps) {
               key={expiration.expiresAt}
               className="flex items-center justify-between gap-3 rounded-xl border-2 border-accent-200 bg-surface px-3.5 py-3 text-sm"
             >
-              <strong>{formatPoints(expiration.points)} pts</strong>
+              <strong className="font-number font-normal lining-nums tabular-nums text-base">{formatPoints(expiration.points)} pts</strong>
               {/* expiresAt ya viene como día en hora de Argentina: solo se reordena */}
               <span className="text-neutral-600">
                 vencen el {isoToDisplayDate(expiration.expiresAt)}

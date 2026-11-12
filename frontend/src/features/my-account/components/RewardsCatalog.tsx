@@ -61,7 +61,7 @@ export function RewardsCatalog({ onViewMyRedemptions }: RewardsCatalogProps) {
         Tenés{' '}
         <strong
           className={cn(
-            'font-heading text-xl font-normal',
+            'font-number font-normal lining-nums tabular-nums text-xl',
             negative ? pointsToneStyles.negative : 'text-accent-800',
           )}
         >

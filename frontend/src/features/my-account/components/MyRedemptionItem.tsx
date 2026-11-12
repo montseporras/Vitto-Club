@@ -58,7 +58,9 @@ export function MyRedemptionItem({ redemption, now, onCancel }: MyRedemptionItem
         <RedemptionStatusBadge status={redemption.status} />
       </div>
       <p className="text-xs text-muted-foreground">
-        {isoToDisplayDateTime(redemption.createdAt)} · {formatInteger(redemption.reward.points)} pts
+        <span className="font-number font-normal lining-nums tabular-nums text-sm">
+          {isoToDisplayDateTime(redemption.createdAt)} · {formatInteger(redemption.reward.points)} pts
+        </span>
       </p>
 
       {open && (

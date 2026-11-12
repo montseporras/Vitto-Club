@@ -33,7 +33,7 @@ export function PointsSummary({ points }: PointsSummaryProps) {
         <p className="text-sm text-neutral-600">Puntos disponibles para canjear</p>
         <p
           className={cn(
-            'font-heading text-3xl leading-tight tabular-nums',
+            'font-number font-normal lining-nums tabular-nums text-3xl leading-tight',
             balance < 0 ? 'text-[#b3261e]' : 'text-accent-700',
           )}
         >
