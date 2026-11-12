@@ -22,6 +22,8 @@ export const formActionsStyles = {
   root: 'mt-8 -mx-5 flex flex-col-reverse items-stretch gap-3 border-t border-accent-100 bg-bg px-5 py-5 sm:-mx-8 sm:flex-row sm:items-center sm:justify-end sm:px-8',
   rootWithMessage: 'sm:justify-between',
   message: 'text-sm text-neutral-600',
+  // Dentro de una tarjeta compacta (prototipo: .vc-pts): botonera pegada al borde de la tarjeta
+  compact: 'mt-3.5 -mb-4 -mx-5 rounded-b-2xl px-5 py-2.5 sm:-mx-5 sm:px-5',
 }
 
 /** Control segmentado (radios con forma de botones). */

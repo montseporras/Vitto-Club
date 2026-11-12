@@ -1,21 +1,44 @@
+import { createContext, useContext } from 'react'
 import type { ComponentProps } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { tableStyles } from '@/styles/ui'
 
-export function Table({ className, ...props }: ComponentProps<'table'>) {
+// 'admin' es el formato de las pantallas del menú de Administración (ajustes S5-56); la
+// tabla común no cambia.
+type TableVariant = 'default' | 'admin'
+
+const TableVariantContext = createContext<TableVariant>('default')
+
+type TableProps = ComponentProps<'table'> & { variant?: TableVariant }
+
+export function Table({ variant = 'default', className, ...props }: TableProps) {
   return (
-    <div className={tableStyles.wrapper}>
-      <table className={cn(tableStyles.table, className)} {...props} />
-    </div>
+    <TableVariantContext.Provider value={variant}>
+      <div className={variant === 'admin' ? tableStyles.admin.wrapper : tableStyles.wrapper}>
+        <table className={cn(tableStyles.table, className)} {...props} />
+      </div>
+    </TableVariantContext.Provider>
   )
 }
 
 export function TableHead({ className, ...props }: ComponentProps<'thead'>) {
-  return <thead className={cn(tableStyles.head, className)} {...props} />
+  const variant = useContext(TableVariantContext)
+  return (
+    <thead
+      className={cn(variant === 'admin' ? tableStyles.admin.head : tableStyles.head, className)}
+      {...props}
+    />
+  )
 }
 
 export function TableHeaderCell({ className, ...props }: ComponentProps<'th'>) {
-  return <th className={cn(tableStyles.headCell, className)} {...props} />
+  const variant = useContext(TableVariantContext)
+  return (
+    <th
+      className={cn(variant === 'admin' ? tableStyles.admin.headCell : tableStyles.headCell, className)}
+      {...props}
+    />
+  )
 }
 
 type TableRowProps = ComponentProps<'tr'> & {
@@ -26,12 +49,15 @@ type TableRowProps = ComponentProps<'tr'> & {
 }
 
 export function TableRow({ className, interactive, highlight, ...props }: TableRowProps) {
+  const variant = useContext(TableVariantContext)
   return (
     <tr
       className={cn(
-        tableStyles.row,
-        interactive && tableStyles.rowInteractive,
-        highlight && !interactive && tableStyles.rowHighlight,
+        variant === 'admin' ? tableStyles.admin.row : tableStyles.row,
+        interactive && (variant === 'admin' ? tableStyles.admin.rowHover : tableStyles.rowInteractive),
+        highlight &&
+          !interactive &&
+          (variant === 'admin' ? tableStyles.admin.rowHover : tableStyles.rowHighlight),
         className,
       )}
       {...props}
@@ -40,5 +66,11 @@ export function TableRow({ className, interactive, highlight, ...props }: TableR
 }
 
 export function TableCell({ className, ...props }: ComponentProps<'td'>) {
-  return <td className={cn(tableStyles.cell, className)} {...props} />
+  const variant = useContext(TableVariantContext)
+  return (
+    <td
+      className={cn(variant === 'admin' ? tableStyles.admin.cell : tableStyles.cell, className)}
+      {...props}
+    />
+  )
 }

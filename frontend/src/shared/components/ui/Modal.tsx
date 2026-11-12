@@ -13,6 +13,10 @@ type ModalProps = {
   label?: string
   /** Si se pasa, muestra el botón "Cerrar" en el encabezado. */
   onClose?: () => void
+  /** 'light': encabezado en naranja pastel (detalle y anulación de un consumo). */
+  tone?: 'default' | 'light'
+  /** Clases extra del título (ej. la fuente de los números). */
+  titleClassName?: string
   children: ReactNode
   className?: string
   bodyClassName?: string
@@ -25,6 +29,8 @@ export function Modal({
   description,
   label,
   onClose,
+  tone = 'default',
+  titleClassName,
   children,
   className,
   bodyClassName,
@@ -37,10 +43,17 @@ export function Modal({
       aria-label={label ?? title}
     >
       <div className={cn(modalStyles.panel, className)}>
-        <header className={modalStyles.header}>
+        <header
+          className={cn(modalStyles.header, tone === 'light' && 'bg-accent-200 text-accent-900')}
+        >
           <div className="min-w-0">
             {eyebrow && <p className={modalStyles.eyebrow}>{eyebrow}</p>}
-            <h3 className={eyebrow ? modalStyles.titleWithEyebrow : modalStyles.title}>
+            <h3
+              className={cn(
+                eyebrow ? modalStyles.titleWithEyebrow : modalStyles.title,
+                titleClassName,
+              )}
+            >
               {title}
             </h3>
             {description && (
@@ -48,7 +61,14 @@ export function Modal({
             )}
           </div>
           {onClose && (
-            <button type="button" onClick={onClose} className={modalStyles.close}>
+            <button
+              type="button"
+              onClick={onClose}
+              className={cn(
+                modalStyles.close,
+                tone === 'light' && 'bg-accent-900/10 text-accent-900 hover:bg-accent-900/20',
+              )}
+            >
               Cerrar
               <Icon d={ICONS.close} className="size-4" />
             </button>

@@ -44,6 +44,8 @@
   /* Playfair Display para títulos y Lora para texto, según el manual */
   --font-sans: 'Lora', Georgia, serif;
   --font-heading: 'Playfair Display', Georgia, serif;
+  /* Números destacados (saldo, totales): DM Serif Display, como en el prototipo */
+  --font-number: 'DM Serif Display', Georgia, serif;
 
   --radius: 10px;
 }
