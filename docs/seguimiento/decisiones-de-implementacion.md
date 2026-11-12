@@ -177,7 +177,17 @@ que **no** está ahí.
 
 ### 2.5 US-39 — Catálogo (frontend, Deni)
 
-- La pestaña Canjes abre en "Catálogo"; `?vista=mis` abre "Mis canjes".
+- ~~La pestaña Canjes abre en "Catálogo"; `?vista=mis` abre "Mis canjes".~~ Cambió el 12/11/2026, a pedido
+  de Denise: la pestaña Canjes abre en "Mis canjes" (a la izquierda) y "Catálogo" va a la derecha; el
+  Catálogo se abre con `?vista=catalogo`.
+- Inicio del Cliente, a pedido de Denise (12/11/2026): la tarjeta "Recompensas" se reemplazó por las primeras
+  5 recompensas del catálogo (con "Canjear") y, al final, el botón "Ver catálogo completo", que abre Canjes en
+  Catálogo. El botón se ve siempre; sin recompensas dice "No hay recompensas disponibles por ahora.". **Hay
+  que llevarlo al contrato S4 §3.5 y a CA-39.6.**
+- Historial del Cliente, a pedido de Denise (12/11/2026): un solo título "Historial" y un selector
+  "Consumos / Puntos" que muestra una lista por vez, en vez de las dos una debajo de la otra. Abre en
+  Consumos y no recuerda la opción. Los subtítulos "Historial de consumos" y "Historial de puntos" quedan
+  ocultos (solo para lectores de pantalla). **Hay que llevarlo al contrato S3 §3.10.2.**
 - "Te faltan {n} pts" solo cuando lo único que falta es saldo.
 - El aviso de saldo negativo va solo en el Catálogo (el prototipo lo pone arriba de las dos vistas).
 - El tooltip del botón deshabilitado va en un `span` (los navegadores no muestran el `title` de un botón
