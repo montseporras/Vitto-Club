@@ -64,7 +64,7 @@ export function ConfirmConsumptionModal({
   const error = failure ? consumptionError(failure) : null
 
   return (
-    <Modal title="Registrar consumo" onClose={create.isPending ? undefined : onCancel}>
+    <Modal title="Registrar consumo" onClose={create.isPending ? undefined : onCancel} className="max-w-3xl">
       {preview.isPending && <StatusText>Cargando…</StatusText>}
 
       {data && (

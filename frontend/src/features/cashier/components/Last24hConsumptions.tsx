@@ -49,6 +49,7 @@ export function Last24hConsumptions({
         variant="secondary"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
+        className="w-full max-w-md justify-start"
       >
         <Icon d={open ? ICONS.chevronDown : ICONS.chevronRight} />
         {open
@@ -57,7 +58,7 @@ export function Last24hConsumptions({
       </Button>
 
       {open && (
-        <div className="mt-3 rounded-2xl border border-accent-200 p-4">
+        <div className="mt-4 rounded-2xl border border-accent-200 p-4">
           <p className="mb-3 text-xs text-neutral-600">{note}</p>
 
           {consumptions.isPending && <StatusText>Cargando…</StatusText>}

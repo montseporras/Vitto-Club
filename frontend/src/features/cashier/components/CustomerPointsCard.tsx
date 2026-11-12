@@ -18,15 +18,15 @@ type CustomerPointsCardProps = {
 /** Tarjeta del cliente encontrado: nombre, nivel, documento y saldo (US-46, CA-46.2). */
 export function CustomerPointsCard({ customer, points }: CustomerPointsCardProps) {
   return (
-    <Card className="flex flex-wrap items-center justify-between gap-4">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-3">
-          <CardTitle>
+    <Card className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-6 sm:py-5">
+      <div className="flex flex-col gap-0.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <CardTitle className="text-lg">
             {customer.firstName} {customer.lastName}
           </CardTitle>
           <Badge variant="accent">Nivel {LEVELS[points.level.current]}</Badge>
         </div>
-        <p className="text-neutral-700">
+        <p className="text-sm text-neutral-700">
           {DOCUMENT_TYPES[customer.documentType].label} {customer.documentNumber}
         </p>
       </div>
@@ -36,7 +36,7 @@ export function CustomerPointsCard({ customer, points }: CustomerPointsCardProps
         {/* Saldo negativo: en rojo y con el signo "−" (no solo el color) */}
         <p
           className={cn(
-            'font-heading text-2xl tabular-nums',
+            'font-number text-[22px] font-normal lining-nums tabular-nums',
             points.negativeBalance ? pointsToneStyles.negative : 'text-accent-800',
           )}
         >

@@ -1,7 +1,6 @@
 import { Link } from 'react-router'
 import { DOCUMENT_TYPES } from '@/domain/documents'
 import { LEVELS } from '@/domain/levels'
-import { FormActions } from '@/shared/components/forms/FormActions'
 import { Alert } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { DataList } from '@/shared/components/ui/DataList'
@@ -54,8 +53,8 @@ export function ConsumptionRegistered({
   ]
 
   return (
-    <section aria-labelledby="consumption-registered-title" className="mt-7">
-      <h3 id="consumption-registered-title" className="text-xl font-bold text-ink">
+    <section aria-labelledby="consumption-registered-title" className="mt-2">
+      <h3 id="consumption-registered-title" className="text-lg font-bold text-ink">
         Consumo registrado
       </h3>
 
@@ -65,23 +64,23 @@ export function ConsumptionRegistered({
         </Alert>
       )}
 
-      <DataList items={rows} className="mt-4" />
+      <DataList items={rows} className="mt-4 gap-y-4 pt-4 text-sm" />
 
-      <FormActions>
-        <Button type="button" variant="secondary" size="lg" onClick={onRegisterAnother}>
+      <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-accent-100 pt-5">
+        <Button type="button" variant="secondary" onClick={onRegisterAnother}>
           Registrar otro consumo
         </Button>
         {canViewDetail && (
-          // Detalle del consumo (US-23). Relativo a /caja/cliente: un feature no importa de app/
+          // Detalle del consumo (US-23), en el modal de Consumos. Relativo a /caja/cliente: un feature no importa de app/
           <Link
-            to={`../../admin/consumos/${consumption.code}`}
+            to={`../../admin/consumos?detalle=${consumption.code}`}
             relative="path"
-            className={buttonVariants({ size: 'lg' })}
+            className={buttonVariants()}
           >
             Ver detalle
           </Link>
         )}
-      </FormActions>
+      </div>
     </section>
   )
 }

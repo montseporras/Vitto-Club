@@ -123,7 +123,7 @@ export function AdjustPointsModal({ customer, onClose }: AdjustPointsModalProps)
       aria-modal="true"
       aria-labelledby="adjust-points-title"
     >
-      <div className={cn(modalStyles.panel, 'relative max-w-120 overflow-y-auto p-6 sm:p-8')}>
+      <div className={cn(modalStyles.panel, 'relative max-w-3xl overflow-y-auto p-6 sm:p-8')}>
         <button
           type="button"
           onClick={onClose}

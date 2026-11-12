@@ -12,8 +12,13 @@ import { Button } from '@/shared/components/ui/Button'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
 import { Input } from '@/shared/components/ui/Input'
-import { Page, PageCard } from '@/shared/components/ui/Page'
-import { dividedSectionStyles, formSectionTitleStyles } from '@/styles/ui'
+import { Page } from '@/shared/components/ui/Page'
+import {
+  formSectionTitleStyles,
+  pageCardBodyStyles,
+  pageCardPlainTitleStyles,
+  pageCardStyles,
+} from '@/styles/ui'
 import {
   useCustomerByDocument,
   useCustomerPoints,
@@ -132,19 +137,23 @@ export function IdentifyCustomerPage({
 
   return (
     <Page className="max-w-6xl">
-      <PageCard title="Buscar cliente" variant="plain">
-        {/* Solo con los datos de un cliente a la vista */}
-        {showingCustomer && (
-          <div className="mb-5">
-            <Button type="button" variant="secondary" onClick={searchAnother}>
-              <Icon d={ICONS.search} />
-              Buscar otro cliente
-            </Button>
-          </div>
-        )}
-        <div className={formSectionTitleStyles.root}>
-          <h3 className={formSectionTitleStyles.title}>Cliente</h3>
-        </div>
+      <div className={pageCardStyles}>
+        <div className={pageCardBodyStyles}>
+          {/* "Buscar otro cliente" va arriba a la izquierda, solo con los datos de un cliente a la vista */}
+          {showingCustomer && (
+            <div className="mb-5">
+              <Button type="button" variant="secondary" onClick={searchAnother}>
+                <Icon d={ICONS.search} />
+                Buscar otro cliente
+              </Button>
+            </div>
+          )}
+          <h2 className={pageCardPlainTitleStyles}>Buscar cliente</h2>
+
+          <div className="mt-6">
+            <div className={formSectionTitleStyles.root}>
+              <h3 className={formSectionTitleStyles.title}>Cliente</h3>
+            </div>
         <form
           noValidate
           role="search"
@@ -191,7 +200,7 @@ export function IdentifyCustomerPage({
         </form>
 
         {search && (
-          <div className={dividedSectionStyles} aria-live="polite">
+          <div className="mt-7 border-t border-accent-100 pt-7" aria-live="polite">
             {loading && <StatusText>Buscando cliente…</StatusText>}
 
             {!loading && notFound && (
@@ -227,7 +236,7 @@ export function IdentifyCustomerPage({
             )}
 
             {!loading && customer && points.data && session.user && (
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-6">
                 <CustomerPointsCard customer={customer} points={points.data} />
                 {registered ? (
                   <ConsumptionRegistered
@@ -275,7 +284,9 @@ export function IdentifyCustomerPage({
             )}
           </div>
         )}
-      </PageCard>
+          </div>
+        </div>
+      </div>
     </Page>
   )
 }

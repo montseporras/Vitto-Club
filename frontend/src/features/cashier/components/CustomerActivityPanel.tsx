@@ -69,13 +69,14 @@ export function CustomerActivityPanel({
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((value) => !value)}
+        className="w-full max-w-md justify-start"
       >
         <Icon d={open ? ICONS.chevronDown : ICONS.chevronRight} className="size-4" />
         {toggleText}
       </Button>
 
       {open && (
-        <div id={panelId} className="mt-4 grid gap-5 sm:grid-cols-3">
+        <div id={panelId} className="mt-4 grid gap-6 sm:grid-cols-3">
           <section>
             <h4 className={cn(dataListTermStyles, 'mb-1.5')}>Canjes para usar ahora</h4>
             <RedemptionsToUse

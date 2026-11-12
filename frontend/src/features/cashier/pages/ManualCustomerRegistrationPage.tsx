@@ -10,7 +10,7 @@ export function ManualCustomerRegistrationPage() {
   const navigate = useNavigate()
 
   return (
-    <Page>
+    <Page className="max-w-6xl">
       <CustomerRegistrationForm
         initialDocument={searched}
         // "Cancelar" vuelve a Buscar cliente, como el prototipo. Relativo a /caja/alta-cliente

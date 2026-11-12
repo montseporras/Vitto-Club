@@ -68,7 +68,7 @@ export function ManageRedemptionPage() {
   const inputError = emptyError ? EMPTY_CODE_MESSAGE : notFound ? NOT_FOUND_MESSAGE : undefined
 
   return (
-    <Page className="max-w-4xl">
+    <Page className="max-w-6xl">
       <PageCard title="Canjes" variant="plain">
         <p className="-mt-4 font-heading text-base font-bold text-accent-700">Por código</p>
         <p className="mb-5 mt-3 text-sm text-neutral-600">

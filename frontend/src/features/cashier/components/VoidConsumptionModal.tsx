@@ -80,7 +80,7 @@ export function VoidConsumptionModal({
 
   if (voided) {
     return (
-      <Modal title="Consumo anulado" onClose={onClose} className="max-w-lg">
+      <Modal title="Consumo anulado" onClose={onClose} tone="light" titleClassName="font-number font-normal lining-nums tabular-nums" className="max-w-3xl">
         <Alert variant="success" className="mb-5">
           <p>
             Consumo {code} anulado. Se revirtieron{' '}
@@ -115,7 +115,7 @@ export function VoidConsumptionModal({
   const negative = resulting !== undefined && resulting < 0
 
   return (
-    <Modal title={`Anular consumo ${code}`} onClose={onClose} className="max-w-lg">
+    <Modal title={`Anular consumo ${code}`} onClose={onClose} tone="light" titleClassName="font-number font-normal lining-nums tabular-nums" className="max-w-3xl">
       <form noValidate onSubmit={handleSubmit(onSubmit)}>
         <p className="text-sm text-accent-800">
           Los consumos no se pueden editar. Si el monto es incorrecto, anulalo y
@@ -125,7 +125,7 @@ export function VoidConsumptionModal({
         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 rounded-2xl border border-accent-200 bg-accent-50/60 p-4 text-sm">
           <div>
             <dt className="text-xs font-bold text-accent-800">Código</dt>
-            <dd>{code}</dd>
+            <dd className="font-number font-normal lining-nums tabular-nums text-base">{code}</dd>
           </div>
           <div>
             <dt className="text-xs font-bold text-accent-800">Cliente</dt>
@@ -137,21 +137,21 @@ export function VoidConsumptionModal({
           </div>
           <div>
             <dt className="text-xs font-bold text-accent-800">Monto</dt>
-            <dd>{formatMoney(consumption.amount)}</dd>
+            <dd className="font-number font-normal lining-nums tabular-nums text-base">{formatMoney(consumption.amount)}</dd>
           </div>
           <div>
             <dt className="text-xs font-bold text-accent-800">
               Puntos a revertir
             </dt>
-            <dd>−{formatInteger(totalPoints)} pts</dd>
+            <dd className="font-number font-normal lining-nums tabular-nums text-base">−{formatInteger(totalPoints)} pts</dd>
           </div>
           <div className="col-span-2 border-t border-accent-200 pt-2">
             {points.isPending && 'Cargando saldo…'}
             {points.isError && 'No se pudo obtener el saldo del cliente.'}
             {balance !== undefined && resulting !== undefined && (
               <>
-                Saldo: {formatInteger(balance)} pts →{' '}
-                <strong className={cn(negative && 'text-accent-700')}>
+                Saldo: <span className="font-number font-normal lining-nums tabular-nums text-base">{formatInteger(balance)} pts</span> →{' '}
+                <strong className={cn('font-number font-normal lining-nums tabular-nums text-base', negative && 'text-accent-700')}>
                   {formatInteger(resulting)} pts
                 </strong>
               </>
