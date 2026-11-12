@@ -4,6 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { AuthService } from '../src/auth/application/auth.service.js';
 import { ACCOUNT_DEACTIVATED } from '../src/shared/events/domain-events.js';
 import { Session } from '../src/auth/domain/session.js';
@@ -63,7 +64,7 @@ describe('Sesiones de auth (e2e)', () => {
   beforeEach(async () => {
     // Las suites de consumos, puntos y canjes dejan filas que apuntan a cuentas, clientes y a la
     // configuración (onDelete Restrict): se borran antes, en el orden de las claves foráneas
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     await prisma.redemption.deleteMany();
     await prisma.reward.deleteMany();
     await prisma.pointsLot.deleteMany();

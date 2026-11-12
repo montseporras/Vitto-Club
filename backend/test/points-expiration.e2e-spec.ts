@@ -4,6 +4,7 @@ import { AppModule } from '../src/app.module.js';
 import { AuditService } from '../src/audit/application/audit.service.js';
 import { PointsExpirationService } from '../src/points/application/points-expiration.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 
 // Cubre US-25 (§3.6.3 y la auditoría POINTS_EXPIRED de §3.9.3) contra Postgres real. El proceso
 // no tiene endpoint: se llama directo a PointsExpirationService, igual que el cron y el comando.
@@ -55,7 +56,7 @@ describe('Vencimiento automático de puntos (e2e)', () => {
   });
 
   async function cleanDatabase() {
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     // Sprint 4: los canjes apuntan a clientes, cuentas y recompensas (onDelete Restrict)
     await prisma.redemption.deleteMany();
     await prisma.reward.deleteMany();

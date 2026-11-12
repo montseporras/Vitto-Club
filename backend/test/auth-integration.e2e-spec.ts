@@ -6,6 +6,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { CUSTOMER_EMAIL_CHANGED } from '../src/shared/events/domain-events.js';
 
 const ANA = { email: 'ana@test.com', password: 'clave-de-ana' };
@@ -80,7 +81,7 @@ describe('Autenticación de punta a punta (e2e)', () => {
   beforeEach(async () => {
     // Las suites de consumos, puntos y canjes dejan filas que apuntan a cuentas, clientes y a la
     // configuración (onDelete Restrict): se borran antes, en el orden de las claves foráneas
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     await prisma.redemption.deleteMany();
     await prisma.reward.deleteMany();
     await prisma.pointsLot.deleteMany();

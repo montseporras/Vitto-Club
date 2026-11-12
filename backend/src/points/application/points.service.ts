@@ -161,16 +161,20 @@ export class PointsService {
         lifetimePoints: newLifetimePoints,
       });
 
-      await this.pointsRepository.insertMovement({
-        customerId: input.customerId,
-        type: 'CONSUMPTION_CREDIT',
-        points: input.points,
-        balanceAfter: newBalance,
-        consumptionId: input.consumptionId,
-        lotId,
-        performedByAccountId: input.performedBy.accountId,
-        performedByName: input.performedBy.name,
-      });
+      // D-07 (opción a, decisión tomada a pedido de Montse): un consumo que da 0 puntos se registra
+      // igual, pero no deja movimiento. El contrato S3 §3.12 pide `points <> 0` en los movimientos.
+      if (input.points !== 0) {
+        await this.pointsRepository.insertMovement({
+          customerId: input.customerId,
+          type: 'CONSUMPTION_CREDIT',
+          points: input.points,
+          balanceAfter: newBalance,
+          consumptionId: input.consumptionId,
+          lotId,
+          performedByAccountId: input.performedBy.accountId,
+          performedByName: input.performedBy.name,
+        });
+      }
 
       const levelBefore = calculateLevel(row.lifetimePoints, config.silverMinPoints, config.goldMinPoints).current;
       const levelAfter = calculateLevel(newLifetimePoints, config.silverMinPoints, config.goldMinPoints).current;
@@ -213,16 +217,19 @@ export class PointsService {
         lifetimePoints: newLifetimePoints,
       });
 
-      await this.pointsRepository.insertMovement({
-        customerId: input.customerId,
-        type: 'VOID_REVERSAL',
-        points: -input.totalPoints,
-        balanceAfter: newBalance,
-        consumptionId: input.consumptionId,
-        lotId: lot ? lot.getId() : null,
-        performedByAccountId: input.performedBy.accountId,
-        performedByName: input.performedBy.name,
-      });
+      // D-07 (opción a): anular un consumo de 0 puntos tampoco deja movimiento (no hay nada que revertir)
+      if (input.totalPoints !== 0) {
+        await this.pointsRepository.insertMovement({
+          customerId: input.customerId,
+          type: 'VOID_REVERSAL',
+          points: -input.totalPoints,
+          balanceAfter: newBalance,
+          consumptionId: input.consumptionId,
+          lotId: lot ? lot.getId() : null,
+          performedByAccountId: input.performedBy.accountId,
+          performedByName: input.performedBy.name,
+        });
+      }
 
       return {
         balanceBefore: row.balance,

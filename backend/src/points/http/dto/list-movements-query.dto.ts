@@ -1,9 +1,9 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
 import { POINTS_MOVEMENT_TYPES } from '../../domain/points-movement.js';
 import type { PointsMovementType } from '../../domain/points-movement.js';
 
-// Paginación y tipo: comunes a los tres listados (§3.6.1, §3.6.2, §3.10.2)
+// Paginación y tipo: comunes a los dos listados (§3.6.1, §3.10.2)
 class MovementsPageQueryDto {
   @IsOptional()
   @IsIn(POINTS_MOVEMENT_TYPES)
@@ -33,26 +33,4 @@ export class ListCustomerMovementsQueryDto extends MovementsPageQueryDto {
   @IsOptional()
   @IsIn(['true', 'false'])
   last24h?: 'true' | 'false';
-}
-
-// GET /movimientos-de-puntos (§3.6.2). El formato de las fechas lo valida el dominio.
-export class ListPointsMovementsQueryDto extends MovementsPageQueryDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(80)
-  q?: string;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  customerId?: number;
-
-  @IsOptional()
-  @IsString()
-  fromDate?: string;
-
-  @IsOptional()
-  @IsString()
-  toDate?: string;
 }

@@ -237,9 +237,30 @@ describe('PointsService', () => {
       expect(lot).not.toBeNull();
       expect(lot?.getConsumptionId()).toBe(141);
     });
+
+    it('D-07: un consumo de 0 puntos no deja movimiento ni lote, y el saldo queda igual', async () => {
+      repository.seedBalance({ customerId: 101, balance: 120, debt: 0, lifetimePoints: 120 });
+
+      const result = await service.acreditar({ customerId: 101, points: 0, consumptionId: 142, performedBy });
+
+      expect(result).toMatchObject({ balanceBefore: 120, balanceAfter: 120, levelBefore: 'BRONZE', levelAfter: 'BRONZE' });
+      expect(repository.movements).toEqual([]);
+      expect(await repository.findActiveLotsByCustomerId(101)).toHaveLength(0);
+      expect(await repository.findBalance(101)).toMatchObject({ balance: 120, debt: 0, lifetimePoints: 120 });
+    });
   });
 
   describe('revertir (CA-BASE.4)', () => {
+    it('D-07: anular un consumo de 0 puntos no deja movimiento y el saldo queda igual', async () => {
+      repository.seedBalance({ customerId: 101, balance: 120, debt: 0, lifetimePoints: 120 });
+
+      const result = await service.revertir({ customerId: 101, consumptionId: 142, totalPoints: 0, performedBy });
+
+      expect(result).toEqual({ balanceBefore: 120, balanceAfter: 120, lifetimePointsBefore: 120, lifetimePointsAfter: 120 });
+      expect(repository.movements).toEqual([]);
+      expect(await repository.findBalance(101)).toMatchObject({ balance: 120, debt: 0, lifetimePoints: 120 });
+    });
+
     it('revertir con el lote entero: no genera deuda', async () => {
       repository.seedBalance({ customerId: 101, balance: 500, debt: 0, lifetimePoints: 500 });
       repository.seedLot({

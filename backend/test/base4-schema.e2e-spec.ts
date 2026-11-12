@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 
 // BASE-4 (CA-B4.1, CA-B4.2 y CA-B4.3, contrato S4 §3.15). Los CHECK y el índice parcial del nombre
 // están escritos a mano en la migración: este test confirma que existen en la base y que
@@ -50,7 +51,7 @@ describe('Modelo de recompensas y canjes (e2e, BASE-4)', () => {
 
   // Las demás suites borran clientes y cuentas sin saber de canjes (onDelete Restrict)
   async function cleanDatabase() {
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     await prisma.pointsLot.deleteMany();
     await prisma.customerPoints.deleteMany();
     await prisma.redemption.deleteMany();
@@ -115,10 +116,12 @@ describe('Modelo de recompensas y canjes (e2e, BASE-4)', () => {
     return result[0].id;
   }
 
+  // Lleva un motivo siempre: desde ARRASTRE-S4 (A4-05) un MANUAL_ADJUSTMENT sin motivo lo rechaza
+  // su propio CHECK, y estos tests tienen que fallar solo por points_movements_redemption_check.
   async function insertMovement(type: string, redemptionId: number | null) {
     await prisma.$executeRawUnsafe(
-      `INSERT INTO points_movements (customer_id, type, points, balance_after, redemption_id, performed_by_name)
-       VALUES (${customerId}, '${type}'::"PointsMovementType", -100, 0, ${redemptionId ?? 'NULL'}, 'Bruno Pérez')`,
+      `INSERT INTO points_movements (customer_id, type, points, balance_after, redemption_id, reason, performed_by_name)
+       VALUES (${customerId}, '${type}'::"PointsMovementType", -100, 0, ${redemptionId ?? 'NULL'}, 'Movimiento de prueba', 'Bruno Pérez')`,
     );
   }
 

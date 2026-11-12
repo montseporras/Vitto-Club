@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { PointsService } from '../src/points/application/points.service.js';
 import { PointsMovementsService } from '../src/points/application/points-movements.service.js';
 import { InsufficientBalanceError } from '../src/points/domain/errors/insufficient-balance.error.js';
@@ -87,7 +88,7 @@ describe('PointsService.canjear (e2e, BASE-4)', () => {
   });
 
   async function cleanDatabase() {
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     await prisma.pointsLot.deleteMany();
     await prisma.customerPoints.deleteMany();
     await prisma.redemption.deleteMany();

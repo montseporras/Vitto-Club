@@ -5,6 +5,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 
 const ADMIN = { email: 'admin@test.com', password: 'clave-del-admin' };
 const CASHIER = { email: 'cajero@test.com', password: 'clave-del-cajero' };
@@ -57,7 +58,7 @@ describe('Autorregistro de clientes (e2e)', () => {
   const cleanDatabase = async () => {
     // Las suites de consumos, puntos y canjes dejan filas que apuntan a cuentas, clientes y a la
     // configuración (onDelete Restrict): se borran antes, en el orden de las claves foráneas
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     await prisma.redemption.deleteMany();
     await prisma.reward.deleteMany();
     await prisma.pointsLot.deleteMany();

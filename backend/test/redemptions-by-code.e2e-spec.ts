@@ -7,6 +7,7 @@ import { AppModule } from '../src/app.module.js';
 import { AccessTokenIssuer } from '../src/auth/domain/port/access-token-issuer.js';
 import type { AuthRole } from '../src/auth/domain/auth-role.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { REDEMPTION_DURATION_MS } from '../src/redemptions/domain/redemption.js';
 
 // US-44: el barrido no corre durante los e2e (ver la nota en test/redemptions-expiration.e2e-spec.ts)
@@ -64,7 +65,7 @@ describe('Canjes por código (e2e, US-41)', () => {
   });
 
   async function cleanDatabase() {
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     await prisma.pointsLot.deleteMany();
     await prisma.customerPoints.deleteMany();
     await prisma.redemption.deleteMany();

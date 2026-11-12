@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module.js';
+import { parseCorsOrigins } from './shared/security/cors-origins.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -15,8 +16,8 @@ async function bootstrap() {
     }),
   );
 
-  // El frontend de Vite corre en 5173
-  app.enableCors({ origin: ['http://localhost:5173'], credentials: true });
+  // Orígenes del frontend: variable CORS_ORIGIN; sin ella, el de Vite (5173)
+  app.enableCors({ origin: parseCorsOrigins(process.env.CORS_ORIGIN), credentials: true });
 
   await app.listen(process.env.PORT ?? 3000);
 }
