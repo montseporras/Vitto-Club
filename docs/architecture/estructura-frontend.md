@@ -258,9 +258,9 @@ Las rutas salen de `src/app/router/paths.ts` (09/11/2026). "Página" es el compo
 
 | Ruta | Pantalla | Página |
 |---|---|---|
-| `/mi-cuenta` | Inicio — saldo, nivel, próximos vencimientos, "Tenés un canje para usar" y tarjeta "Recompensas" | `my-account/CustomerHomePage` |
-| `/mi-cuenta/historial` | Historial de consumos y de movimientos de puntos | `consumptions/CustomerHistoryPage` |
-| `/mi-cuenta/canjes` | Canjes: "Catálogo" y "Mis canjes" (`?vista=mis`) | `my-account/MyRedemptionsPage` |
+| `/mi-cuenta` | Inicio — saldo, nivel, próximos vencimientos, "Tenés un canje para usar", las primeras 5 recompensas y "Ver catálogo completo" | `my-account/CustomerHomePage` |
+| `/mi-cuenta/historial` | Historial: un solo título y el selector "Consumos / Puntos", una lista por vez (abre en Consumos) | `my-account/MyHistoryPage` |
+| `/mi-cuenta/canjes` | Canjes: "Mis canjes" (por defecto) y "Catálogo" (`?vista=catalogo`) | `my-account/MyRedemptionsPage` |
 | `/mi-cuenta/perfil` | Mi perfil — teléfono, correo (pide la contraseña actual), fecha de nacimiento, contraseña, cerrar sesión | `my-account/MyProfilePage` |
 | — | Misiones: tab deshabilitada con "Próx." (Sprint 5). No tiene ruta | — |
 

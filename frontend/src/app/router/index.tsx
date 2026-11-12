@@ -53,23 +53,12 @@ export const router = createBrowserRouter([
           }
         },
       },
-      // Historial: consumos (US-23) y puntos (US-26), una sección debajo de la otra, como el
-      // prototipo (clienteTab === 'historial')
+      // Historial: consumos (US-23) y puntos (US-26), uno por vez con el control "Consumos / Puntos"
       {
         path: PATHS.customer.history,
         lazy: async () => {
-          const [{ CustomerHistoryPage }, { PointsHistory }] = await Promise.all([
-            import('@/features/consumptions'),
-            import('@/features/my-account'),
-          ])
-          return {
-            element: (
-              <div className="mx-auto grid w-full max-w-xl gap-8">
-                <CustomerHistoryPage />
-                <PointsHistory />
-              </div>
-            ),
-          }
+          const { MyHistoryPage } = await import('@/features/my-account')
+          return { Component: MyHistoryPage }
         },
       },
       {

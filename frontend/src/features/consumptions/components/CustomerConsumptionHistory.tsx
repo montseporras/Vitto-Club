@@ -30,10 +30,7 @@ export function CustomerConsumptionHistory() {
 
   return (
     <section aria-labelledby="consumption-history-title" className="grid gap-3">
-      <h2
-        id="consumption-history-title"
-        className="border-b border-accent-200 pb-1.5 text-sm font-bold uppercase tracking-[0.08em]"
-      >
+      <h2 id="consumption-history-title" className="sr-only">
         Historial de consumos
       </h2>
 

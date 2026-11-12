@@ -14,8 +14,9 @@ falta cambiarlos.
 |---|---|---|
 | Catálogo: saldo, aviso de saldo negativo, filtros, tarjetas, vacío y pie | `components/RewardsCatalog.tsx` | "Canjear" abre `ConfirmRedemptionFlow` (US-40) con la recompensa y el `balance` del catálogo |
 | Tarjeta de recompensa | `components/CatalogRewardCard.tsx` | Imagen genérica, nombre, descripción (2 líneas), "{n} pts", etiqueta de vencimiento (`RewardExpiryTag`, de US-40) y Canjear |
-| Pestaña Canjes con "Catálogo / Mis canjes" | `pages/MyRedemptionsPage.tsx` | Abre en Catálogo. Con `?vista=mis` abre Mis canjes. "Ver mis canjes" de "¡Canje confirmado!" cambia de vista |
-| Inicio: "Tenés un canje para usar" y "Recompensas" | `components/RedemptionToUseCard.tsx`, `components/RewardsCard.tsx` | `RewardsCard` reemplaza a `RewardsComingSoonCard` (US-19), que se borró. El router le pasa a `CustomerHomePage` la ruta de Canjes, porque un feature no puede importar rutas de `app/` |
+| Pestaña Canjes con "Mis canjes / Catálogo" | `pages/MyRedemptionsPage.tsx` | **Cambió el 12/11 (pedido de Denise):** abre en Mis canjes, que va a la izquierda; con `?vista=catalogo` abre el Catálogo. "Ver mis canjes" de "¡Canje confirmado!" cambia de vista |
+| Inicio: "Tenés un canje para usar" y recompensas | `components/RedemptionToUseCard.tsx`, `components/RewardsPreview.tsx` | **Cambió el 12/11 (pedido de Denise):** `RewardsPreview` reemplazó a `RewardsCard` (se borró) y muestra las primeras 5 recompensas con "Canjear" y el botón "Ver catálogo completo". Antes `RewardsCard` había reemplazado a `RewardsComingSoonCard` (US-19). El router le pasa a `CustomerHomePage` la ruta de Canjes, porque un feature no puede importar rutas de `app/` |
+| Historial del Cliente | `pages/MyHistoryPage.tsx` | **Pedido de Denise (12/11):** un solo título y el selector "Consumos / Puntos", una lista por vez. No es de US-39: se anota acá porque vive en el mismo feature |
 | `GET /customers/me/recompensas` | `features/rewards/api/`, hook `useMyCatalog(filter)` | La clave cuelga de `['rewards']`: si al confirmar llega `REWARD_NOT_AVAILABLE`, US-40 ya invalida esa clave y el catálogo se refresca solo (CA-40.3) |
 | Tipos | `features/rewards/types/reward.ts` | `CatalogFilter`, `CatalogReward` y `CustomerCatalog` |
 | Mocks | `mocks/handlers/rewards.handlers.ts` | Los tres filtros con su orden, Inactivas y dadas de baja afuera, la Activa vencida sin procesar llega como Vencida, y 403 para Cajero y Administrador. El saldo sale del mismo lugar que `GET /customers/me/puntos` (`myBalanceOf`, en `my-account.handlers.ts`) |
@@ -38,13 +39,20 @@ Lo tiene que decidir el equipo y llevarlo al contrato.
 | §3.5.1, tooltip | El `title` va en el botón deshabilitado | Va en un `span` alrededor del botón, como el prototipo: varios navegadores no muestran el `title` de un botón deshabilitado |
 | §3.5.1, Inicio | "Tenés un canje para usar" pide `GET /customers/me/canjes?status=CONFIRMED`. No dice el orden | Por aclaración de Tomas, se pide con `order=desc` para mostrar primero el más reciente. Si la consulta falla o carga, la tarjeta no aparece y el resto del Inicio sigue igual |
 | §3.5.1, filtros | Los botones no tienen estilo definido | Como el prototipo: el elegido en naranja oscuro (y con `aria-pressed`) |
-| §3.5.1, Catálogo / Mis canjes | El contrato no nombra el control. El prototipo tiene "Catálogo · Mis canjes" arriba de la pestaña | Se siguió el prototipo y la vista queda en la URL (`?vista=mis`) para que "Ver código" del Inicio abra Mis canjes |
+| §3.5.1, Catálogo / Mis canjes | El contrato no nombra el control. El prototipo tiene "Catálogo · Mis canjes" arriba de la pestaña | Se siguió el prototipo y la vista queda en la URL. Desde el 12/11 la vista por defecto es Mis canjes (así "Ver código" del Inicio abre Mis canjes sin parámetro) y `?vista=catalogo` abre el Catálogo |
 
 ## 3. Decisiones de US-39 a pedido de Deni, para llevar al contrato
 
 Deni pidió resolver sin preguntar. Estas son las decisiones:
 
-- La pestaña Canjes abre en Catálogo, y `?vista=mis` abre Mis canjes.
+- ~~La pestaña Canjes abre en Catálogo, y `?vista=mis` abre Mis canjes.~~ Desde el 12/11, a pedido de Denise,
+  abre en Mis canjes y `?vista=catalogo` abre el Catálogo.
+- 12/11, a pedido de Denise: en el Inicio, la tarjeta "Recompensas" pasó a ser las primeras 5 recompensas con
+  "Canjear" y un botón "Ver catálogo completo" que se ve siempre (CA-39.6 y §3.5 del contrato dicen otra
+  cosa: hay que actualizarlos). Sin recompensas dice "No hay recompensas disponibles por ahora.".
+- 12/11, a pedido de Denise: el Historial del Cliente tiene un solo título y el selector "Consumos / Puntos"
+  (abre en Consumos, no recuerda la opción); los subtítulos viejos quedan ocultos para lectores de pantalla
+  (§3.10.2 del contrato del Sprint 3 los pide visibles).
 - "Te faltan {n} pts" solo cuando lo único que falta es saldo (ver §2).
 - El aviso de saldo negativo va solo en la vista Catálogo (ver §2).
 - Por aclaración de Tomas, la tarjeta de Inicio muestra primero el canje Confirmado más reciente (`order=desc`).
