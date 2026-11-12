@@ -72,13 +72,87 @@ describe('Arquitectura del Sprint 4 (BASE-4)', () => {
         .split(/\r?\n/)
         .map((line) => line.replace(/\/\/.*$/, '').trim())
         .filter(Boolean);
+      // Sprint 5 (BASE-5, contrato S5 §2.7): los dos únicos tipos nuevos son los puntos de regalo; siguen
+      // sin existir tipos de reintegro
       expect(values).toEqual([
         'CONSUMPTION_CREDIT',
         'VOID_REVERSAL',
         'MANUAL_ADJUSTMENT',
         'EXPIRATION',
         'REDEMPTION',
+        'MISSION_REWARD',
+        'BIRTHDAY_BONUS',
       ]);
+    });
+  });
+});
+
+describe('Arquitectura del Sprint 5 (BASE-5)', () => {
+  // CA-B5.8 y contrato S5 §8.4: las dependencias van en un solo sentido, sin ciclos
+  describe('módulos sin ciclos (CA-B5.8)', () => {
+    it('missions no importa consumptions: recibe { customerId, consumptionId, amount, createdAt }', () => {
+      expect(forbiddenImports('missions', ['consumptions'])).toEqual([]);
+    });
+
+    it('points no importa missions ni notifications', () => {
+      expect(forbiddenImports('points', ['missions', 'notifications'])).toEqual([]);
+    });
+
+    it('statistics no importa ningún módulo de negocio: lee las tablas por Prisma', () => {
+      expect(
+        forbiddenImports('statistics', [
+          'accounts',
+          'audit',
+          'auth',
+          'consumptions',
+          'customers',
+          'employees',
+          'loyalty',
+          'missions',
+          'notifications',
+          'points',
+          'redemptions',
+          'rewards',
+        ]),
+      ).toEqual([]);
+    });
+
+    it('rewards y customers pueden usar images, pero images no importa ningún módulo de negocio', () => {
+      expect(
+        forbiddenImports('images', [
+          'accounts',
+          'audit',
+          'auth',
+          'consumptions',
+          'customers',
+          'employees',
+          'loyalty',
+          'missions',
+          'notifications',
+          'points',
+          'redemptions',
+          'rewards',
+          'statistics',
+        ]),
+      ).toEqual([]);
+    });
+  });
+
+  // Contrato S5 §3.5.1 y §3.8.3: Cloudinary y Resend solo a través de su puerto
+  describe('servicios externos detrás de un puerto', () => {
+    const importsOutside = (sdk: string, allowedModule: string) =>
+      readdirSync(SRC, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && entry.name !== allowedModule)
+        .flatMap((entry) => sourceFiles(join(SRC, entry.name)))
+        .filter((file) => importsOf(file).some((path) => path === sdk || path.startsWith(`${sdk}/`)))
+        .map((file) => relative(SRC, file));
+
+    it('el SDK de Cloudinary solo se importa desde images', () => {
+      expect(importsOutside('cloudinary', 'images')).toEqual([]);
+    });
+
+    it('el SDK de Resend solo se importa desde notifications', () => {
+      expect(importsOutside('resend', 'notifications')).toEqual([]);
     });
   });
 });

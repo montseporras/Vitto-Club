@@ -250,6 +250,94 @@ describe('PointsService', () => {
     });
   });
 
+  describe('acreditarBonificacion (CA-B5.5, contrato S5 §2.7)', () => {
+    it('MISSION_REWARD sin deuda: crea un lote con la vigencia vigente, deja el movimiento a nombre del Sistema y NO toca los acumulados', async () => {
+      repository.seedBalance({ customerId: 101, balance: 40, debt: 0, lifetimePoints: 250 });
+      const before = new Date();
+
+      const result = await service.acreditarBonificacion({
+        customerId: 101,
+        type: 'MISSION_REWARD',
+        points: 100,
+        customerMissionId: 9,
+      });
+
+      expect(result).toEqual({
+        balanceBefore: 40,
+        balanceAfter: 140,
+        lifetimePointsBefore: 250,
+        lifetimePointsAfter: 250,
+      });
+      // lifetimePoints igual: el nivel no cambia (S5-9)
+      expect(await repository.findBalance(101)).toMatchObject({ balance: 140, debt: 0, lifetimePoints: 250 });
+      const lots = await repository.findActiveLotsByCustomerId(101);
+      expect(lots).toHaveLength(1);
+      expect(lots[0].getInitialPoints()).toBe(100);
+      expect(lots[0].getConsumptionId()).toBeNull();
+      const expectedExpiresAt = new Date(lots[0].getAccreditedAt().getTime());
+      expectedExpiresAt.setUTCMonth(expectedExpiresAt.getUTCMonth() + 12);
+      expect(lots[0].getAccreditedAt().getTime()).toBeGreaterThanOrEqual(before.getTime());
+      expect(lots[0].getExpiresAt()).toEqual(expectedExpiresAt);
+      expect(repository.movements).toEqual([
+        {
+          customerId: 101,
+          type: 'MISSION_REWARD',
+          points: 100,
+          balanceAfter: 140,
+          consumptionId: null,
+          lotId: lots[0].getId(),
+          customerMissionId: 9,
+          performedByAccountId: null,
+          performedByName: 'Sistema',
+        },
+      ]);
+    });
+
+    it('BIRTHDAY_BONUS con deuda menor que el regalo: cancela primero la deuda y el lote es por el resto', async () => {
+      repository.seedBalance({ customerId: 101, balance: -30, debt: 30, lifetimePoints: 500 });
+
+      const result = await service.acreditarBonificacion({ customerId: 101, type: 'BIRTHDAY_BONUS', points: 100 });
+
+      expect(result.balanceAfter).toBe(70); // -30 + 100
+      expect(await repository.findBalance(101)).toMatchObject({ balance: 70, debt: 0, lifetimePoints: 500 });
+      const lots = await repository.findActiveLotsByCustomerId(101);
+      expect(lots[0].getInitialPoints()).toBe(70); // 100 - 30 de deuda
+      expect(repository.movements[0]).toMatchObject({
+        type: 'BIRTHDAY_BONUS',
+        points: 100,
+        balanceAfter: 70,
+        customerMissionId: null,
+        performedByAccountId: null,
+        performedByName: 'Sistema',
+      });
+    });
+
+    it('con deuda mayor que el regalo: no crea lote, solo reduce la deuda, y el movimiento queda sin lote', async () => {
+      repository.seedBalance({ customerId: 101, balance: -300, debt: 300, lifetimePoints: 900 });
+
+      const result = await service.acreditarBonificacion({ customerId: 101, type: 'BIRTHDAY_BONUS', points: 100 });
+
+      expect(result.balanceAfter).toBe(-200);
+      expect(await repository.findBalance(101)).toMatchObject({ balance: -200, debt: 200, lifetimePoints: 900 });
+      expect(await repository.findActiveLotsByCustomerId(101)).toHaveLength(0);
+      expect(repository.movements[0].lotId).toBeNull();
+    });
+
+    it.each([
+      ['0 puntos', { type: 'BIRTHDAY_BONUS' as const, points: 0 }],
+      ['puntos negativos', { type: 'BIRTHDAY_BONUS' as const, points: -5 }],
+      ['puntos con decimales', { type: 'BIRTHDAY_BONUS' as const, points: 10.5 }],
+      ['MISSION_REWARD sin la asignación', { type: 'MISSION_REWARD' as const, points: 100 }],
+      ['BIRTHDAY_BONUS con una asignación', { type: 'BIRTHDAY_BONUS' as const, points: 100, customerMissionId: 9 }],
+    ])('rechaza %s y no escribe nada', async (_name, input) => {
+      await expect(service.acreditarBonificacion({ customerId: 101, ...input })).rejects.toThrow();
+
+      expect(repository.movements).toEqual([]);
+      expect(await repository.findBalance(101)).toBeNull();
+      expect(await repository.findActiveLotsByCustomerId(101)).toHaveLength(0);
+    });
+  });
+
   describe('revertir (CA-BASE.4)', () => {
     it('D-07: anular un consumo de 0 puntos no deja movimiento y el saldo queda igual', async () => {
       repository.seedBalance({ customerId: 101, balance: 120, debt: 0, lifetimePoints: 120 });

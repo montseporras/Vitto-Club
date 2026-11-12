@@ -69,10 +69,17 @@ describe('assertValidAuditEntry()', () => {
 });
 
 describe('AUDIT_ACTIONS_BY_MODULE', () => {
-  it('tiene los 8 módulos y los 37 códigos del contrato (§3.9.2)', () => {
+  // 37 del contrato del Sprint 3 (§3.9.2) + BIRTHDAY_BONUS_GRANTED y FREQUENT_CUSTOMERS_UPDATED del Sprint 5
+  // (contrato S5 §2.8, BASE-5)
+  it('tiene los 8 módulos y los 39 códigos del contrato (§3.9.2 y contrato S5 §2.8)', () => {
     expect(Object.keys(AUDIT_ACTIONS_BY_MODULE)).toHaveLength(8);
     const total = Object.values(AUDIT_ACTIONS_BY_MODULE).reduce((sum, actions) => sum + actions.length, 0);
-    expect(total).toBe(37);
+    expect(total).toBe(39);
+  });
+
+  it('Sprint 5: el regalo de cumpleaños es del módulo Puntos y el mínimo de cliente frecuente, de Configuración', () => {
+    expect(AUDIT_ACTIONS_BY_MODULE.POINTS).toContain('BIRTHDAY_BONUS_GRANTED');
+    expect(AUDIT_ACTIONS_BY_MODULE.CONFIGURATION).toContain('FREQUENT_CUSTOMERS_UPDATED');
   });
 
   it('Empleados incluye la reactivación de la cuenta de usuario', () => {

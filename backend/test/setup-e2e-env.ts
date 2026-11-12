@@ -16,3 +16,9 @@ process.env.POINTS_EXPIRATION_CRON_ENABLED = 'false';
 // corrían al iniciar la app de cada spec; los tests que los prueban llaman al servicio directamente.
 process.env.REWARDS_EXPIRATION_CRON_ENABLED = 'false';
 process.env.REDEMPTIONS_EXPIRATION_CRON_ENABLED = 'false';
+
+// BASE-5 (contrato S5 §3.5.1 y §3.8.3): los e2e nunca llaman a Cloudinary ni a Resend. Con estas dos en
+// false se usan los adaptadores falsos (el de imágenes valida el archivo pero no sube nada; el de correo
+// solo deja el envío en el log). Mismo motivo: ConfigModule no pisa lo ya definido.
+process.env.IMAGES_STORAGE_ENABLED = 'false';
+process.env.NOTIFICATIONS_EMAIL_ENABLED = 'false';

@@ -11,13 +11,22 @@ export type CustomerPointsBalance = {
 
 export type InsertMovementData = {
   customerId: number;
-  type: 'CONSUMPTION_CREDIT' | 'VOID_REVERSAL' | 'MANUAL_ADJUSTMENT' | 'EXPIRATION' | 'REDEMPTION';
+  type:
+    | 'CONSUMPTION_CREDIT'
+    | 'VOID_REVERSAL'
+    | 'MANUAL_ADJUSTMENT'
+    | 'EXPIRATION'
+    | 'REDEMPTION'
+    | 'MISSION_REWARD'
+    | 'BIRTHDAY_BONUS';
   points: number;
   balanceAfter: number;
   consumptionId: number | null;
   lotId: number | null;
   // BASE-4: obligatorio en REDEMPTION y solo ahí (CHECK points_movements_redemption_check)
   redemptionId?: number | null;
+  // BASE-5: obligatorio en MISSION_REWARD y solo ahí (CHECK points_movements_mission_check)
+  customerMissionId?: number | null;
   reason?: string | null;
   // null = Sistema (procesos automáticos, como el vencimiento de US-25)
   performedByAccountId: number | null;

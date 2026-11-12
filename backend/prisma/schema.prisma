@@ -57,6 +57,9 @@ enum PointsMovementType {
   MANUAL_ADJUSTMENT
   EXPIRATION
   REDEMPTION // Sprint 4
+  // Sprint 5 (contrato S5 §2.7): gift points. They create a lot but never add to lifetime_points
+  MISSION_REWARD
+  BIRTHDAY_BONUS
 }
 
 // Sprint 4 (contrato S4 §2.1). DISABLED only by the System; DELETED is final ("Dada de baja")
@@ -86,6 +89,53 @@ enum RedemptionStatus {
 enum RedemptionOrigin {
   APP
   COUNTER
+}
+
+// Sprint 5 (BASE-5, contrato S5 §2.2). The mission of the catalog. DELETED is final ("Eliminar")
+enum MissionStatus {
+  ACTIVE
+  DELETED
+}
+
+// Sprint 5 (§2.3, S5-15). What a mission measures
+enum MissionObjectiveType {
+  CONSUMPTION_COUNT
+  CONSUMPTION_AMOUNT
+}
+
+// Sprint 5 (§2.1, "Misión mensual" state machine). COMPLETED is final if the mission has no reward (S5-4)
+enum CustomerMissionStatus {
+  IN_PROGRESS
+  COMPLETED
+  CLAIMED
+  EXPIRED
+}
+
+// Sprint 5 (§2.4, RF-050 to RF-053). PROMOTION is not an automatic message: no template, no switch
+enum NotificationType {
+  POINTS_EXPIRING
+  BIRTHDAY
+  PROMOTION
+  MISSION
+}
+
+// Sprint 5 (§2.5). The only channel (S5-10)
+enum NotificationChannel {
+  EMAIL
+}
+
+// Sprint 5 (§2.6). SKIPPED: the type was switched off, or sending is off in the environment
+enum NotificationStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
+// Sprint 5 (§2.6.1, S5-36). A promotion is not stored, only each send
+enum PromotionSendStatus {
+  SCHEDULED
+  SENT
+  CANCELLED
 }
 
 enum AuditActorType {
@@ -149,7 +199,10 @@ enum AuditAction {
   FIRST_CONSUMPTION_BONUS_UPDATED
   LEVELS_UPDATED
   LOGO_AND_MESSAGES_UPDATED // Sprint 5
-  PROMOTIONS_UPDATED // Sprint 5
+  PROMOTIONS_UPDATED // Sprint 5 (not used: promotions are no longer stored, S5-36)
+  FREQUENT_CUSTOMERS_UPDATED // Sprint 5, module CONFIGURATION
+  // POINTS (Sprint 5)
+  BIRTHDAY_BONUS_GRANTED
 }
 
 // =====================================================================
@@ -173,6 +226,9 @@ model Employee {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   account Account?
+
+  // Sprint 5: promotions this employee sent or scheduled
+  promotionSends PromotionSend[]
 
   // Email must not repeat among ACTIVE employees: a deactivated employee frees it.
   @@unique([email], map: "employees_active_email_key", where: { isActive: true })
@@ -201,6 +257,11 @@ model Customer {
   isActive      Boolean   @default(true) @map("is_active")
   deactivatedAt DateTime? @map("deactivated_at")
 
+  // Sprint 5 (FOTO-PERFIL, contrato S5 §3.5.3): profile photo in Cloudinary. Delivery is
+  // authenticated, so photo_url stays null and a signed URL is built from photo_public_id on each response
+  photoPublicId String? @map("photo_public_id") @db.VarChar(255)
+  photoUrl      String? @map("photo_url") @db.VarChar(500)
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -211,6 +272,8 @@ model Customer {
   pointsLots      PointsLot[]
   pointsMovements PointsMovement[]
   redemptions     Redemption[]
+  missions        CustomerMission[]
+  notifications   Notification[]
 
   // Document and email must not repeat among ACTIVE customers (PO decision, 2026-10-08): a
   // deactivated customer lost their points and can sign up again as a new customer.
@@ -351,6 +414,13 @@ model LoyaltyProgramConfiguration {
   // CHECK: silver > 0 and gold > silver (written by hand in the migration)
   silverMinPoints        Int                     @default(300) @map("silver_min_points")
   goldMinPoints          Int                     @default(800) @map("gold_min_points")
+  // Sprint 5 (NIV-BEN, S5-26): informative text of each level; it does not change points
+  bronzeBenefit          String?                 @map("bronze_benefit") @db.VarChar(255)
+  silverBenefit          String?                 @map("silver_benefit") @db.VarChar(255)
+  goldBenefit            String?                 @map("gold_benefit") @db.VarChar(255)
+  // Sprint 5 (S5-22): a "frequent customer" has at least this many REGISTERED consumptions in the
+  // month. CHECK 1-100 (written by hand in the migration)
+  frequentMinConsumptions Int                    @default(3) @map("frequent_min_consumptions")
   isActive               Boolean                 @default(true) @map("is_active")
   validFrom              DateTime                @default(now()) @map("valid_from")
   validTo                DateTime?               @map("valid_to")
@@ -471,6 +541,9 @@ model PointsMovement {
   lotId         Int? @map("lot_id")
   // Sprint 4: required for REDEMPTION and only for it (CHECK points_movements_redemption_check)
   redemptionId  Int? @map("redemption_id")
+  // Sprint 5: required for MISSION_REWARD and only for it (CHECK points_movements_mission_check).
+  // UNIQUE: a claimed mission has at most one reward movement
+  customerMissionId Int? @unique @map("customer_mission_id")
 
   type         PointsMovementType
   // Signed, never 0 (CHECK). Sign depends on the type
@@ -492,6 +565,7 @@ model PointsMovement {
   lot         PointsLot?   @relation(fields: [lotId], references: [id], onDelete: Restrict)
   redemption  Redemption?  @relation(fields: [redemptionId], references: [id], onDelete: Restrict)
   performedBy Account?     @relation("PointsMovementPerformedBy", fields: [performedByAccountId], references: [id], onDelete: Restrict)
+  customerMission CustomerMission? @relation(fields: [customerMissionId], references: [id], onDelete: Restrict)
 
   @@index([customerId, createdAt])
   @@index([createdAt])
@@ -525,6 +599,9 @@ model Reward {
   disabledReason RewardDisabledReason? @map("disabled_reason")
   // USED redemptions ("Más canjeadas")
   usedCount      Int                   @default(0) @map("used_count")
+  // Sprint 5 (US-34, contrato S5 §3.5.2): photo in Cloudinary, public delivery (photo_url is its secure_url)
+  photoPublicId  String?               @map("photo_public_id") @db.VarChar(255)
+  photoUrl       String?               @map("photo_url") @db.VarChar(500)
   createdAt      DateTime              @default(now()) @map("created_at")
   updatedAt      DateTime              @updatedAt @map("updated_at")
   deletedAt      DateTime?             @map("deleted_at")
@@ -589,6 +666,181 @@ model Redemption {
   @@index([rewardId, status])
   @@index([createdAt])
   @@map("redemptions")
+}
+
+// =====================================================================
+// MISSIONS, NOTIFICATIONS AND PROMOTION SENDS (Sprint 5, BASE-5, contrato S5 §3.15)
+// =====================================================================
+
+/// Monthly mission of the catalog. CHECK constraints and the partial unique index on the name are
+/// written by hand in the migration 20261112130000_sprint5_base5_missions_notifications (Prisma cannot
+/// model them):
+/// - target > 0, and a whole number when objective_type = CONSUMPTION_COUNT
+/// - days_of_week only with values 1 to 7
+/// - time_from and time_to both or none, and time_from < time_to
+/// - reward_points NULL or 1 to 100000
+/// - end_month >= start_month
+/// - deleted_at set if and only if status = DELETED
+/// - UNIQUE (lower(trim(name))) WHERE status <> 'DELETED' ("missions_active_name_key")
+model Mission {
+  id            Int                  @id @default(autoincrement())
+  name          String               @db.VarChar(80)
+  description   String?              @db.VarChar(255)
+  objectiveType MissionObjectiveType @map("objective_type")
+  target        Decimal              @db.Decimal(12, 2)
+  // 1 = Monday ... 7 = Sunday. null (or empty) = every day. Argentina time
+  daysOfWeek    Int[]                @map("days_of_week") @db.SmallInt
+  // Time range of the day, Argentina time. Both or none
+  timeFrom      DateTime?            @map("time_from") @db.Time()
+  timeTo        DateTime?            @map("time_to") @db.Time()
+  // null = no reward (the mission ends COMPLETED, S5-4)
+  rewardPoints  Int?                 @map("reward_points")
+  // First day of the month it starts to apply, and of the last month (null = repeats every month)
+  startMonth    DateTime             @map("start_month") @db.Date
+  endMonth      DateTime?            @map("end_month") @db.Date
+  // Changes that apply from pending_changes.appliesFrom (S5-20: an edit rules from next month)
+  pendingChanges Json?               @map("pending_changes")
+  status        MissionStatus        @default(ACTIVE)
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+  deletedAt     DateTime?            @map("deleted_at")
+
+  customerMissions CustomerMission[]
+
+  @@map("missions")
+}
+
+/// The mission of one customer in one month. Objective, condition and reward are a SNAPSHOT of the
+/// mission when it was assigned (S5-20). CHECK constraints written by hand in the same migration:
+/// - 0 <= progress <= target
+/// - the dates, claimed_by and expiration_reason agree with the status:
+///   IN_PROGRESS: none of them; COMPLETED: completed_at; CLAIMED: completed_at, claimed_at and claimed_by;
+///   EXPIRED: expired_at and expiration_reason
+/// - claimed_by is CUSTOMER or SYSTEM
+model CustomerMission {
+  id         Int       @id @default(autoincrement())
+  missionId  Int       @map("mission_id")
+  customerId Int       @map("customer_id")
+  // First day of the month
+  period     DateTime  @db.Date
+
+  // Snapshot of the mission at assignment
+  objectiveType MissionObjectiveType @map("objective_type")
+  target        Decimal              @db.Decimal(12, 2)
+  daysOfWeek    Int[]                @map("days_of_week") @db.SmallInt
+  timeFrom      DateTime?            @map("time_from") @db.Time()
+  timeTo        DateTime?            @map("time_to") @db.Time()
+  rewardPoints  Int?                 @map("reward_points")
+
+  progress Decimal               @default(0) @db.Decimal(12, 2)
+  status   CustomerMissionStatus @default(IN_PROGRESS)
+
+  completedAt      DateTime? @map("completed_at")
+  claimedAt        DateTime? @map("claimed_at")
+  expiredAt        DateTime? @map("expired_at")
+  // CUSTOMER or SYSTEM (the customer is never an actor in the audit, but the claim records who did it)
+  claimedBy        String?   @map("claimed_by") @db.VarChar(10)
+  // "Fin de mes" or "Misión dada de baja"
+  expirationReason String?   @map("expiration_reason") @db.VarChar(100)
+
+  mission  Mission  @relation(fields: [missionId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  // Present only when the reward was claimed (MISSION_REWARD)
+  pointsMovement PointsMovement?
+
+  // A mission is assigned once per customer and month
+  @@unique([missionId, customerId, period])
+  // End-of-month process (US-32)
+  @@index([status, period])
+  @@index([customerId, period])
+  @@map("customer_missions")
+}
+
+/// Message of an AUTOMATIC notification (one row per type: POINTS_EXPIRING, BIRTHDAY and MISSION).
+/// PROMOTION has no template (S5-37). CHECK type <> 'PROMOTION' written by hand in the migration.
+model NotificationTemplate {
+  type      NotificationType @id
+  active    Boolean          @default(true)
+  subject   String           @db.VarChar(120)
+  body      String           @db.VarChar(1000)
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  @@map("notification_templates")
+}
+
+/// Single row (id = 1): notification settings. No logo columns (S5-35). CHECK id = 1 and
+/// birthday_bonus_points between 0 and 10000 (0 = no gift) written by hand in the migration.
+model NotificationSettings {
+  id                  Int      @id @default(1)
+  birthdayBonusPoints Int      @default(100) @map("birthday_bonus_points")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_settings")
+}
+
+/// Every notification, sent, failed or skipped. Append-only (trigger rejects UPDATE, DELETE and
+/// TRUNCATE), like audit_logs. CHECK constraints written by hand in the migration:
+/// - (type = 'PROMOTION') = (promotion_send_id IS NOT NULL)
+/// - error is set if and only if status = FAILED
+/// A resent notification points to the one that failed (resent_from_id, UNIQUE: only one resend);
+/// that the original is FAILED is checked by the service.
+model Notification {
+  id              Int                 @id @default(autoincrement())
+  type            NotificationType
+  channel         NotificationChannel
+  // The email the message was sent to, at that moment
+  recipient       String              @db.VarChar(150)
+  customerId      Int                 @map("customer_id")
+  // Already with the variables replaced
+  subject         String              @db.VarChar(120)
+  body            String              @db.VarChar(1000)
+  status          NotificationStatus
+  error           String?             @db.VarChar(500)
+  // "lot:{id}", "birthday:{year}", "mission:{customer_mission_id}", "promotion-send:{id}",
+  // "resend:{id of the one that failed}"
+  dedupeKey       String              @map("dedupe_key") @db.VarChar(100)
+  promotionSendId Int?                @map("promotion_send_id")
+  resentFromId    Int?                @unique @map("resent_from_id")
+  createdAt       DateTime            @default(now()) @map("created_at")
+
+  customer      Customer       @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  promotionSend PromotionSend? @relation(fields: [promotionSendId], references: [id], onDelete: Restrict)
+  resentFrom    Notification?  @relation("NotificationResend", fields: [resentFromId], references: [id], onDelete: Restrict)
+  resends       Notification[] @relation("NotificationResend")
+
+  // The same type to the same customer for the same reason is sent only once
+  @@unique([type, customerId, dedupeKey])
+  @@map("notifications")
+}
+
+/// One send of a promotion (S5-36, S5-39). There is no table of promotions: only each send is
+/// stored. CHECK constraints written by hand in the migration:
+/// - level is BRONZE, SILVER or GOLD (null = every active customer)
+/// - SCHEDULED: scheduled_at and no sent_at; SENT: sent_at; CANCELLED: cancelled_at
+/// - cancelled_at only when status = CANCELLED
+model PromotionSend {
+  id                  Int                 @id @default(autoincrement())
+  // With {nombre} not replaced yet
+  subject             String              @db.VarChar(120)
+  body                String              @db.VarChar(1000)
+  level               String?             @db.VarChar(10)
+  // null = it went out right away
+  scheduledAt         DateTime?           @map("scheduled_at")
+  status              PromotionSendStatus
+  sentAt              DateTime?           @map("sent_at")
+  cancelledAt         DateTime?           @map("cancelled_at")
+  // Set when it goes out
+  recipients          Int?
+  createdByEmployeeId Int                 @map("created_by_employee_id")
+  createdAt           DateTime            @default(now()) @map("created_at")
+
+  createdBy     Employee       @relation(fields: [createdByEmployeeId], references: [id], onDelete: Restrict)
+  notifications Notification[]
+
+  // Process of scheduled sends (US-15)
+  @@index([status, scheduledAt])
+  @@map("promotion_sends")
 }
 
 // =====================================================================

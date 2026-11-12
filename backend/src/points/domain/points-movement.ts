@@ -3,13 +3,16 @@ import type { PointsLotStatus } from './points-lot.js';
 
 export type { PointsLotStatus };
 
-// §2.2 PointsMovementType y PointsLotStatus. REDEMPTION ya existe para el filtro (Sprint 4).
+// §2.2 PointsMovementType y PointsLotStatus. REDEMPTION ya existe para el filtro (Sprint 4);
+// MISSION_REWARD y BIRTHDAY_BONUS son del Sprint 5 (contrato S5 §2.7, BASE-5).
 export const POINTS_MOVEMENT_TYPES = [
   'CONSUMPTION_CREDIT',
   'VOID_REVERSAL',
   'MANUAL_ADJUSTMENT',
   'EXPIRATION',
   'REDEMPTION',
+  'MISSION_REWARD',
+  'BIRTHDAY_BONUS',
 ] as const;
 export type PointsMovementType = (typeof POINTS_MOVEMENT_TYPES)[number];
 
@@ -104,6 +107,14 @@ export function describeMovement(record: DescribableMovement): string {
         throw new Error(`Points movement ${record.id} of type REDEMPTION has no redemption`);
       }
       return `Canje: ${record.redemption.rewardName}`;
+    case 'MISSION_REWARD':
+      // Contrato S5 §2.7: "Recompensa de misión: {misión}". El nombre de la misión se lee con un join
+      // que arma US-31 junto con el reclamo; BASE-5 solo agrega el tipo. Hasta entonces no hay filas.
+      throw new Error(`Points movement ${record.id} of type MISSION_REWARD has no mission (US-31 completes it)`);
+    case 'BIRTHDAY_BONUS':
+      // Contrato S5 §2.7 (vista del personal). La del Cliente ("Te regalamos {n} pts por tu cumpleaños")
+      // la arma US-48.
+      return 'Regalo de cumpleaños';
   }
 }
 

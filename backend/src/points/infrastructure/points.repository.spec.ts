@@ -233,6 +233,8 @@ describe('PointsPrismaRepository', () => {
           lotId: 7,
           // BASE-4: sin canje, redemption_id va null
           redemptionId: null,
+          // BASE-5: sin misión, customer_mission_id va null
+          customerMissionId: null,
           reason: null,
           performedByAccountId: 12,
           performedByName: 'Ana Pereyra',
@@ -240,6 +242,29 @@ describe('PointsPrismaRepository', () => {
         select: { id: true, createdAt: true },
       });
       expect(inserted).toEqual({ id: 88, createdAt });
+    });
+
+    it('BASE-5: el movimiento MISSION_REWARD guarda su customer_mission_id', async () => {
+      const prisma = fakePrisma();
+      prisma.pointsMovement.create.mockResolvedValue({ id: 90, createdAt: new Date() });
+      const repo = new PointsPrismaRepository(fakeTransactionRunner(prisma));
+
+      await repo.insertMovement({
+        customerId: 101,
+        type: 'MISSION_REWARD',
+        points: 100,
+        balanceAfter: 140,
+        consumptionId: null,
+        lotId: 7,
+        customerMissionId: 9,
+        performedByAccountId: null,
+        performedByName: 'Sistema',
+      });
+
+      expect(prisma.pointsMovement.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ type: 'MISSION_REWARD', customerMissionId: 9, performedByAccountId: null }),
+        select: { id: true, createdAt: true },
+      });
     });
 
     it('BASE-4: el movimiento REDEMPTION guarda su redemption_id', async () => {
