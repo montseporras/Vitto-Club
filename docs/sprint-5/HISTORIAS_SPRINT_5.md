@@ -15,8 +15,12 @@
 > (pestañas con totales, conversión de los clientes nuevos, variación contra el mes anterior, gráficos lado a
 > lado), pantallas del Administrador con el formato de Auditoría y paginado que entra en la pantalla. Cambian
 > CA-28.1, CA-51.1, CA-51.4, CA-52.4, CA-53.1, CA-53.2, CA-54.5, CA-55.2 y CA-55.3, y el ARRASTRE-S4 suma los
-> ajustes a pantallas de sprints anteriores (`AJUSTES_PANTALLAS_SPRINTS_ANTERIORES.md`). **Falta que Deni
-> confirme S5-52** (contrato §10, PD-28).
+> ajustes a pantallas de sprints anteriores (`AJUSTES_PANTALLAS_SPRINTS_ANTERIORES.md`). **S5-52 ya está
+> confirmada** (Deni, 12/11: contra los mismos días del mes anterior).
+>
+> **Revisión del 12/11/2026 (noche).** Control de coherencia con el contrato, a pedido de Deni: CA-33.3 suma las
+> Completadas; los criterios de US-34 se renumeran (CA-34.13 a CA-34.16); BASE-5 es dueña de los dos adaptadores
+> de `EmailSender`; el arrastre nombra los tres procesos nuevos.
 >
 > **Versión 2 (12/11/2026).** Alineada con el contrato v2: suma los cambios del prototipo del 11/11 y el 12/11
 > (contrato §8.3, S5-34 a S5-50): promociones que no se guardan (se envían ahora o programadas, a todos o a un
@@ -39,7 +43,8 @@
 
 - Hacé solo la historia y la capa del pedido. Cumplí los `[B]` si sos backend, los `[F]` si sos frontend y los
   `[B+F]` en la parte que te toca.
-- **Todas las PD están decididas** (sección 2). Si encontrás algo que no está en el contrato ni en un RF,
+- **Todas las PD están decididas** (sección 2); PD-22 es solo documentación fuera del repo y no bloquea el
+  código. Si encontrás algo que no está en el contrato ni en un RF,
   preguntá: no lo dejes como "Próximamente".
 - **Las pantallas del Sprint 5 del prototipo ya están actualizadas** (contrato §8.1). Lo que el prototipo simula
   (botones "Simular…", números de ejemplo) no es parte del diseño.
@@ -128,7 +133,7 @@ FRONTEND
 | Módulos `missions`, `notifications`, `statistics` y el módulo técnico `images` (esqueleto, repositorios y tipos) | **BASE-5** | US-14 a US-55 |
 | `PointsService.acreditarBonificacion({ type, … })` (movimientos `MISSION_REWARD` y `BIRTHDAY_BONUS`, sin tocar `lifetimePoints`) | **BASE-5** | US-31, US-32, US-48 |
 | Puerto `ImageStorage` (Cloudinary y falso): validar por contenido, subir, borrar, URL firmadas | **BASE-5** | US-34, FOTO-PERFIL |
-| Puerto `EmailSender` y su adaptador que solo deja en el log | **BASE-5** | US-47 a US-50 |
+| Puerto `EmailSender` y sus dos adaptadores: Resend y el que solo deja el envío en el log (contrato §3.8.3) | **BASE-5** | US-14, US-15, US-47 a US-50 |
 | Asignación y avance de misiones (`registrarAvance` desde `POST /consumos`) | **US-30** | US-31, US-32, US-33 |
 | Reclamo (`reclamar(customerMission, por)`) | **US-31** | US-32 (automático), US-29 (al eliminar) |
 | Envío y registro de una notificación (`enviar(tipo, cliente, motivo, asunto, mensaje)`) y su reenvío | **US-14** | US-15, US-47 a US-50 |
@@ -143,8 +148,8 @@ FRONTEND
 
 ## 2. Pendientes que hay que decidir
 
-**Todas decididas por Deni el 09/11/2026**, con los cambios del 11/11 y el 12/11 (S5-34 a S5-58), salvo PD-28. El detalle está
-en el contrato §8.3. Solo queda documentación fuera del repo (contrato §10).
+**Todas decididas por Deni el 09/11/2026**, con los cambios del 11/11 y el 12/11 (S5-34 a S5-58), incluida
+PD-28. El detalle está en el contrato §8.3. Solo queda documentación fuera del repo (PD-22, contrato §10).
 
 | # | Pendiente | Afecta | Decisión |
 |---|---|---|---|
@@ -166,9 +171,9 @@ en el contrato §8.3. Solo queda documentación fuera del repo (contrato §10).
 | PD-19 | Gráficos | US-51 a US-54 (frontend) | **Barras y tortas con CSS**, paleta de la marca del contrato §3.9.7 (S5-27, S5-54) |
 | PD-20 | ¿El beneficio del nivel cambia los puntos? | NIV-BEN | **No: texto informativo** (S5-26) |
 | PD-21 | ¿Resetear la contraseña de un cliente? | CTA-CLI | **No: solo verla** (S5-29) |
-| PD-22 | Actualizar Plan, Seguimiento y Definición del Producto | Solo documentación | Pendiente (contrato §10) |
+| PD-22 | Actualizar Plan, Seguimiento y Definición del Producto | Solo documentación | **Decidido qué cambiar** (contrato §10); falta aplicarlo en esos documentos, fuera del repo. No bloquea el código |
 | PD-23 | Vitest y GitHub Actions | CI | **Se saca Vitest del Seguimiento; se hace el CI** (S5-30) |
-| PD-28 | ¿Con qué se compara el mes en curso en Estadísticas → Puntos? | US-53 | **Propuesta:** contra los mismos días del mes anterior (S5-52). **A confirmar por Deni** |
+| PD-28 | ¿Con qué se compara el mes en curso en Estadísticas → Puntos? | US-53 | **Contra los mismos días del mes anterior** (S5-52, confirmada por Deni el 12/11) |
 
 ---
 
@@ -188,7 +193,7 @@ BASE-5:
 |---|---|
 | Trigger de solo inserción y `CHECK` de `points_movements` (A-02, A-03 del S3) | BASE-5 agrega `MISSION_REWARD` y un `CHECK` a la misma tabla |
 | Bloquear la recompensa al confirmar un canje | Es un error de concurrencia del S4 |
-| Scripts y variables de los crons, apagados en `setup-e2e-env.ts` | BASE-5 suma dos procesos más con el mismo patrón |
+| Scripts y variables de los crons, apagados en `setup-e2e-env.ts` | El Sprint 5 suma tres procesos más con el mismo patrón (misiones, notificaciones y promociones programadas; contrato §4) |
 | Eliminar `GET /movimientos-de-puntos` (S5-13) | No tiene pantalla y US-53 lo reemplaza |
 | CORS por variable de entorno | Lo necesita el despliegue de la entrega |
 
@@ -241,8 +246,9 @@ vista. El detalle, con lo que reemplaza de los contratos y las historias del Spr
   renombrado a `.jpg` y uno de 2 MB + 1 byte con `INVALID_IMAGE`, **antes** de subir. Con
   `IMAGES_STORAGE_ENABLED=false` usa el adaptador falso (no llama a Cloudinary). Las fotos de perfil salen con
   URL firmada que vence a la hora.
-- **CA-B5.7 [B] Correo apagado.** Con `NOTIFICATIONS_EMAIL_ENABLED=false`, el adaptador no llama a ningún
-  proveedor y deja el envío en el log.
+- **CA-B5.7 [B] Correo.** El puerto `EmailSender` tiene sus dos adaptadores (contrato §3.8.3). Con
+  `NOTIFICATIONS_EMAIL_ENABLED=false` se usa el que no llama a ningún proveedor y deja el envío en el log; en
+  `true`, el de Resend (con `RESEND_API_KEY` y `NOTIFICATIONS_FROM`). Los tests nunca llaman a Resend.
 - **CA-B5.8 [B] Módulos sin ciclos.** `missions` no importa `consumptions`; `points` no importa `missions`;
   `statistics` no importa módulos de negocio. `architecture.spec.ts` lo verifica.
 
@@ -490,7 +496,8 @@ cancelado, dos corridas), cancelar, permisos.
 - **CA-33.1 [B+F] Mis misiones:** pestaña "Misiones" habilitada; tarjetas con nombre, descripción, barra
   "2 / 3 consumos" o "$ 12.000 / $ 20.000", recompensa, estado y "Termina el {día}"; vacío del contrato.
 - **CA-33.2 [B] Asignar al consultar** las en curso que todavía no tenía (S5-19). `GET /customers/:id/misiones` no asigna: muestra las que faltan con progreso 0.
-- **CA-33.3 [B+F] Meses anteriores** con `?period=`: Vencidas y Reclamadas.
+- **CA-33.3 [B+F] Meses anteriores** con `?period=`: las Vencidas, las Reclamadas y las Completadas (las que no
+  tenían recompensa) de ese mes (contrato §3.3.2).
 - **CA-33.4 [F] Inicio:** tarjeta "Misiones" con cuántas tiene en progreso.
 - **CA-33.5 [B+F] Personal:** `GET /customers/:id/misiones` en la ficha (pestaña "Misiones") y en el panel de
   Caja ("Misiones: {n} en progreso"), sin botón de reclamo.
@@ -521,10 +528,10 @@ cancelado, dos corridas), cancelar, permisos.
 - **CA-34.13 [B+F] Orden del listado** (S5-45, contrato §1 "Existentes que cambian"): `GET /recompensas` acepta
   `order` = `RECENT` (por defecto) · `OLDEST`, por fecha de alta; filtro "Orden" (Más recientes · Más antiguas) en
   Administración → Recompensas. Otro valor → `400`.
-- **CA-34.13 [B] Auditoría** `REWARD_UPDATED` con "Foto: Actualizada" o "Foto: Quitada".
-- **CA-34.14 [B] Dada de baja:** `404` al subir o quitar; su foto no se borra de Cloudinary (la usan los canjes
+- **CA-34.14 [B] Auditoría** `REWARD_UPDATED` con "Foto: Actualizada" o "Foto: Quitada".
+- **CA-34.15 [B] Dada de baja:** `404` al subir o quitar; su foto no se borra de Cloudinary (la usan los canjes
   viejos).
-- **CA-34.15 [B] Permisos:** Cajero y Cliente `403` en `PUT` y `DELETE`. Los e2e usan el adaptador falso.
+- **CA-34.16 [B] Permisos:** Cajero y Cliente `403` en `PUT` y `DELETE`. Los e2e usan el adaptador falso.
 
 > Los CA-34.1 a CA-34.8 son los del Sprint 4 (`HISTORIAS_SPRINT_4.md`); se numeran a continuación.
 
@@ -658,7 +665,7 @@ S5-51) · CA-52.5 [B] permisos.
 
 **RF-056 · Contrato §3.9.3.** CA-53.1 [B] consumos, bonificación, recompensas de misión, regalos de cumpleaños,
 canjeados, vencidos y anulaciones del mes, con datos conocidos, y los mismos siete del mes anterior en
-`previousMonth` (en el mes en curso, los mismos días del anterior: S5-52, a confirmar); **sin ajustes ni
+`previousMonth` (en el mes en curso, los mismos días del anterior: S5-52); **sin ajustes ni
 `byMonth`** (S5-42) · CA-53.2 [F] pestaña Puntos (S5-51): cuatro tarjetas con la variación "▲/▼ {x,x} % vs.
 {mes}." (o "Sin datos de {mes}."), "De dónde salen los puntos" en barras (Consumos y "Puntos extra" con Misiones,
 Bonificación y Cumpleaños; "No suma nivel" en Misiones y Cumpleaños) y "De los {n} acreditados…" con Saldo
@@ -703,7 +710,7 @@ más canjeadas con su % (S5-48) y "{n} canjes usados" · CA-54.6 [B] permisos.
 
 | | |
 |---|---|
-| **Qué es** | La foto del Cliente en Mi perfil. Estaba en el Sprint 4 (decisión #9 del S3), pasó al 5 (PD-2 del S4) y no tiene RF ni US (S5-1). Hay que sumarla a RF-065 / US-59 (contrato §10, PD-22) |
+| **Qué es** | La foto del Cliente en Mi perfil: una tarea más del Sprint 5 (S5-1). No tiene RF ni US propios: hay que sumarla a RF-065 / US-59 (contrato §10, PD-22) |
 | **Roles** | Cliente (carga); Cliente, Cajero y Administrador (ven) (S5-23) |
 | **Contrato** | §3.5.1, §3.5.3 |
 | **Depende de** | BASE-5 (Cloudinary, S5-12) |

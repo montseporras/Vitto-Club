@@ -12,7 +12,7 @@ sección 1 de `CLAUDE.md`). Estos archivos no se editan sin que lo decida el equ
 |---|---|---|---|
 | 3 | [API_CONTRACT_SPRINT_3](./sprint-3/API_CONTRACT_SPRINT_3.md) | [HISTORIAS_SPRINT_3](./sprint-3/HISTORIAS_SPRINT_3.md) | [VERIFICACION_SPRINTS_1_2](./sprint-3/VERIFICACION_SPRINTS_1_2.md) (lo que había de los Sprints 1 y 2 y qué corregir) y los `CAMBIOS_PROPUESTOS_AL_CONTRATO_*` de cada ítem |
 | 4 | [API_CONTRACT_SPRINT_4](./sprint-4/API_CONTRACT_SPRINT_4.md) | [HISTORIAS_SPRINT_4](./sprint-4/HISTORIAS_SPRINT_4.md) | [CIERRE_SPRINT_3](./sprint-4/CIERRE_SPRINT_3.md) (estado de `develop` y arrastre del Sprint 3) y los `PROMPT_*` del prototipo |
-| 5 (borrador v0) | [API_CONTRACT_SPRINT_5](./sprint-5/API_CONTRACT_SPRINT_5.md) | [HISTORIAS_SPRINT_5](./sprint-5/HISTORIAS_SPRINT_5.md) | [CIERRE_SPRINT_4](./sprint-5/CIERRE_SPRINT_4.md) (estado de `develop` y arrastre del Sprint 4) y [PROMPT_PROTOTIPO_SPRINT_5](./sprint-5/PROMPT_PROTOTIPO_SPRINT_5.md). Las propuestas 🟡 se aprueban en el Planning |
+| 5 (v3 del 12/11, todo decidido) | [API_CONTRACT_SPRINT_5](./sprint-5/API_CONTRACT_SPRINT_5.md) | [HISTORIAS_SPRINT_5](./sprint-5/HISTORIAS_SPRINT_5.md) | [CIERRE_SPRINT_4](./sprint-5/CIERRE_SPRINT_4.md) (estado de `develop` y arrastre del Sprint 4), [AJUSTES_PANTALLAS_SPRINTS_ANTERIORES](./sprint-5/AJUSTES_PANTALLAS_SPRINTS_ANTERIORES.md) (cambios a pantallas de los Sprints 3 y 4) y [PROMPT_PROTOTIPO_SPRINT_5](./sprint-5/PROMPT_PROTOTIPO_SPRINT_5.md) (ya aplicado) |
 
 Prototipo (fuente de verdad visual del frontend): [`prototipo/v2/`](./prototipo/v2/LEEME.md).
 

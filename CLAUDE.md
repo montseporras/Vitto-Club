@@ -62,7 +62,7 @@ datos que el contrato no tenga.
 
 | Qué necesitás saber | Fuente de verdad | Dónde está |
 |---|---|---|
-| **Backend:** endpoints, rutas, body, query params, respuestas, tipos, enums, validaciones, códigos HTTP, `code` de error, permisos por rol, reglas de negocio, auditoría, modelo de datos | **Contrato de API del Sprint 5** (v2 del 12/11, sin puntos abiertos) | `docs/sprint-5/API_CONTRACT_SPRINT_5.md` |
+| **Backend:** endpoints, rutas, body, query params, respuestas, tipos, enums, validaciones, códigos HTTP, `code` de error, permisos por rol, reglas de negocio, auditoría, modelo de datos | **Contrato de API del Sprint 5** (v3 del 12/11, sin puntos abiertos) y, para las pantallas de sprints anteriores que cambian, `docs/sprint-5/AJUSTES_PANTALLAS_SPRINTS_ANTERIORES.md` | `docs/sprint-5/API_CONTRACT_SPRINT_5.md` |
 | **Las dos capas:** lo que ya existe del Sprint 4 (recompensas y canjes) y lo que quedó pendiente de él | **Contrato de API del Sprint 4** y el cierre del Sprint 4 | `docs/sprint-4/API_CONTRACT_SPRINT_4.md` y `docs/sprint-5/CIERRE_SPRINT_4.md` |
 | **Las dos capas:** lo que ya existe del Sprint 3 (consumos, puntos, clientes, auditoría) y las convenciones que los contratos siguientes dan por sabidas ("igual que en el Sprint 3") | **Contrato de API del Sprint 3** y el cierre del Sprint 3 | `docs/sprint-3/API_CONTRACT_SPRINT_3.md` y `docs/sprint-4/CIERRE_SPRINT_3.md` |
 | **Backend:** lo que ya existe de los Sprints 1 y 2, y lo que hay que corregir de eso | Archivo de verificación, `docs/funcionalidades/`, `docs/domain/` y `backend/prisma/schema.prisma` | `docs/sprint-3/VERIFICACION_SPRINTS_1_2.md` |
@@ -77,7 +77,7 @@ datos que el contrato no tenga.
 
 | Choque | Qué manda |
 |---|---|
-| Contrato vs. prototipo, en **datos, reglas, permisos o mensajes de error** | **El contrato.** Las secciones 8.1 (diferencias del prototipo que el contrato corrige) y 8.3 (decisiones S5-1 a S5-33; en el Sprint 4, S4-1 a S4-20; en el Sprint 3, las del 17/10/2026) existen para eso |
+| Contrato vs. prototipo, en **datos, reglas, permisos o mensajes de error** | **El contrato.** Las secciones 8.1 (diferencias del prototipo que el contrato corrige) y 8.3 (decisiones S5-1 a S5-58; en el Sprint 4, S4-1 a S4-20; en el Sprint 3, las del 17/10/2026) existen para eso |
 | Contrato vs. prototipo, en un **texto de pantalla** | Si el contrato cita ese texto, **el contrato**: ya está corregido. Si no lo cita, **el prototipo** |
 | Contrato vs. prototipo, en **disposición, estilo o componentes** | **El prototipo.** El contrato no define cómo se ve |
 | Contrato del Sprint 5 vs. contrato de un sprint anterior | **El del Sprint 5**, en lo que cambia (§1 "Existentes que cambian" y "Existentes que se eliminan", y §7) |
@@ -200,6 +200,7 @@ Al final de cada paso, revisá que no te desviaste del contrato. No hace falta m
    - `docs/sprint-5/HISTORIAS_SPRINT_5.md`
    - `docs/sprint-5/CIERRE_SPRINT_4.md`
    - `docs/sprint-5/PROMPT_PROTOTIPO_SPRINT_5.md`
+   - `docs/sprint-5/AJUSTES_PANTALLAS_SPRINTS_ANTERIORES.md`
    - `docs/sprint-4/API_CONTRACT_SPRINT_4.md`
    - `docs/sprint-4/HISTORIAS_SPRINT_4.md`
    - `docs/sprint-4/CIERRE_SPRINT_3.md`
@@ -251,7 +252,7 @@ Sprint 5; **S4**, el del Sprint 4; sin marca, el del Sprint 3.
   (S5 §2.3, S5-15). Tienen mes de inicio y, opcionalmente, de fin; sin mes de fin se repiten todos los meses.
 - **Estados de la misión del cliente:** En progreso, Completada, Reclamada, Vencida (los del **cuadro** de la
   Definición del Producto §9, S5-8). **Completada es final si la misión no tiene recompensa** (S5-4). La misión
-  del catálogo: Activa o Eliminada.
+  del catálogo: Activa o Dada de baja (el botón dice "Eliminar").
 - **Asignación:** en el primer consumo o la primera consulta del mes (S5-19). Guarda un **snapshot** del
   objetivo, la condición y la recompensa: editar la misión rige **desde el mes siguiente** (S5-20).
 - **Avance:** sale del consumo, **en la misma transacción**; nunca pasa el objetivo; una Completada, Reclamada o
@@ -286,7 +287,8 @@ Sprint 5; **S4**, el del Sprint 4; sin marca, el del Sprint 3.
   nivel** (S5-39). Solo se guarda el envío (`promotion_sends`); los programados salen con un proceso cada minuto.
 - **Beneficio de cada nivel:** **texto informativo**; no cambia los puntos (S5-26).
 - **Cliente frecuente:** al menos N consumos `REGISTERED` en el mes; N se configura en Configuración del
-  programa (por defecto **3**) (S5-22). Activo = no dado de baja. Franjas de 4 horas.
+  programa (por defecto **3**) (S5-22). Activo = no dado de baja. Cinco franjas horarias: 00:00–08:00 y
+  cuatro de 4 horas (S5 §3.9.2).
 - **Estadísticas:** **por mes** (`month=YYYY-MM`, S5-42); las calcula el backend; la pantalla dibuja barras y
   tortas con CSS (S5-27, S5-46). El PDF lleva solo las secciones elegidas (S5-49).
 - **`GET /movimientos-de-puntos` se elimina** (S5-13). No hay aviso de canje rechazado (S5-14).

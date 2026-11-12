@@ -69,7 +69,7 @@ está en [estado actual](./estado-actual.md#lo-que-falta-o-no-coincide-con-los-c
 | Ítem | Detalle | Estado |
 |---|---|---|
 | Pantalla de administración de clientes | Hecha (CLI-ADM). `GET /customers/:id/status-history` sigue sin pantalla | Parcial (D-18) |
-| Tests automatizados | Vitest y Testing Library no están instalados | Pendiente de decisión (D-17) |
+| Tests automatizados | Vitest y Testing Library no están instalados | ✅ Decidido (D-17, S5-30): no se suman; el frontend se verifica con el recorrido manual con mocks y el CI corre lint y build |
 | `Modal` no se cierra con Escape | Cada modal agrega su propio listener (`useEscapeKey` en `redemptions`) | Pendiente |
 | Componentes sin uso de `features/cashier` (`CustomerSummary`, `EditCustomerForm`, `useUpdateCustomer`) | Se borraron el 09/11 (`fix/cerrar-sprint4`) | ✅ Resuelto |
 | Saldos de los mocks del Cliente y de Caja independientes | Solo afecta el recorrido con mocks | Vigente |

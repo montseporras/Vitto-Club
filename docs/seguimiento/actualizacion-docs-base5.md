@@ -6,8 +6,8 @@
 > rama de BASE-5 o apenas se mergee**. Es el equivalente de `actualizacion-docs-base4.md`, que quedó sin aplicar
 > durante todo el Sprint 4 y se aplicó recién el 09/11: **que no vuelva a pasar**.
 >
-> **Pedido por:** Deni, el 09/11/2026. Sale del contrato del Sprint 5 v1 (§2, §3.14, §3.15 y §8.4), que ya
-> no tiene puntos abiertos. Si el contrato cambia, corregir esta lista.
+> **Pedido por:** Deni, el 09/11/2026. Sale del contrato del Sprint 5 (§2, §3.14, §3.15 y §8.4); **revisada el
+> 12/11 contra el contrato v3**, que no tiene puntos abiertos. Si el contrato cambia, corregir esta lista.
 >
 > **No se cambia nada de las fuentes de verdad** (contratos, historias, prototipo).
 
@@ -19,16 +19,16 @@
 |---|---|---|
 | [`database/modelo-de-datos.md`](../database/modelo-de-datos.md) | Tablas, enums, relaciones, restricciones y snapshots de BASE-5 | Alta |
 | [`database/migraciones.md`](../database/migraciones.md) | Fila de `sprint5_base5_missions_notifications` y de la migración del arrastre (trigger y `CHECK`) | Alta |
-| [`architecture/arquitectura.md`](../architecture/arquitectura.md) | Módulos nuevos, sus dependencias y los procesos automáticos (cinco) | Alta |
+| [`architecture/arquitectura.md`](../architecture/arquitectura.md) | Módulos nuevos, sus dependencias y los procesos automáticos (seis); sacar `/movimientos-de-puntos` del módulo `points` | Alta |
 | [`testing/estrategia.md`](../testing/estrategia.md) | Orden de limpieza de los e2e y suites nuevas | Alta |
-| [`SETUP.md`](../SETUP.md) | Variables y comandos nuevos (misiones, notificaciones, correo, Cloudinary, CORS) y la integración continua | Alta |
-| [`conceptos-transversales/roles-y-permisos.md`](../conceptos-transversales/roles-y-permisos.md) | Filas nuevas de la matriz | Alta |
+| [`SETUP.md`](../SETUP.md) | Variables y comandos nuevos (misiones, notificaciones, promociones programadas, correo, Cloudinary, CORS) y la integración continua | Alta |
+| [`conceptos-transversales/roles-y-permisos.md`](../conceptos-transversales/roles-y-permisos.md) | Filas nuevas de la matriz; sacar `GET /movimientos-de-puntos` y los "Próx." de los menús | Alta |
 | [`conceptos-transversales/errores-y-codigos.md`](../conceptos-transversales/errores-y-codigos.md) | `code` nuevos y `FORBIDDEN_FIELD` fuera de uso | Alta |
 | [`conceptos-transversales/transacciones-y-eventos.md`](../conceptos-transversales/transacciones-y-eventos.md) | Evento `mission.completed` después del commit; bloqueos del reclamo | Media |
 | [`domain/programa-de-puntos.md`](../domain/programa-de-puntos.md) | Secciones de misiones, beneficios, clientes frecuentes, `MISSION_REWARD` y `BIRTHDAY_BONUS` | Media |
 | [`architecture/estructura-frontend.md`](../architecture/estructura-frontend.md) | Rutas y pantallas nuevas; features que dejan de estar vacías | Media |
 | [`seguimiento/estado-actual.md`](./estado-actual.md) | Módulos nuevos en "Qué existe" | Media |
-| [`glosario.md`](../glosario.md) | Misión, asignación, reclamo, notificación, promoción, beneficio | Baja |
+| [`glosario.md`](../glosario.md) | Misión, asignación, reclamo, notificación, promoción, beneficio, cliente frecuente; los seis crons; los tipos de movimiento nuevos | Baja |
 | [`vision-general.md`](../vision-general.md) y `README.md` | Fila del Sprint 5 | Baja |
 
 ---
@@ -69,6 +69,7 @@ CustomerMission 1 ── 0..1 PointsMovement (MISSION_REWARD)
 Customer        1 ── 0..N Notification
 PromotionSend   1 ── 0..N Notification
 Notification    1 ── 0..1 Notification (reenvío)
+Employee        1 ── 0..N PromotionSend
 ```
 
 ### 1.4 "Restricciones relevantes": nueva sección "Sprint 5"
@@ -76,7 +77,10 @@ Notification    1 ── 0..1 Notification (reenvío)
 Copiar de la migración la lista de `CHECK` e índices (nombre único parcial de misiones; `target > 0`;
 `reward_points` nulo o 1–100.000; horas juntas y ordenadas; `end_month >= start_month`; `0 <= progress <=
 target`; fechas coherentes con el estado; `UNIQUE (mission_id, customer_id, period)`; `UNIQUE (type,
-customer_id, dedupe_key)`; `points_movements_mission_check`; `frequent_min_consumptions` entre 1 y 100; `birthday_bonus_points` entre 0 y 10.000) y los triggers de solo
+customer_id, dedupe_key)`; `points_movements_mission_check`; `frequent_min_consumptions` entre 1 y 100; `birthday_bonus_points` entre 0 y 10.000; `days_of_week` con valores 1–7; `claimed_by` solo en
+`CLAIMED` y `expiration_reason` solo en `EXPIRED`; `notification_templates` sin tipo `PROMOTION`; `error` solo en
+`FAILED`; `promotion_send_id` solo en las `PROMOTION`; `UNIQUE (resent_from_id)`; estado y fechas coherentes y
+nivel válido en `promotion_sends`; índice `(status, scheduled_at)`) y los triggers de solo
 inserción de `notifications`. Y **sacar la nota** "Pendiente del Sprint 3" si el arrastre agregó el trigger y
 los `CHECK` de `points_movements`.
 
@@ -118,6 +122,7 @@ rewards, customers ──> images
 statistics ──> (ninguno de negocio: lee por Prisma)
 ```
 
+- En la fila de `points`, sacar `/movimientos-de-puntos` (se elimina, S5-13).
 - `missions` no importa `consumptions`; `points` no importa `missions`.
 - `missions` publica `mission.completed` y `notifications` lo atiende **después del commit**.
 - Actualizar `backend/src/architecture.spec.ts` con estas reglas.
@@ -162,7 +167,7 @@ Sumar a `setup-e2e-env.ts`: `MISSIONS_EXPIRATION_CRON_ENABLED=false`, `NOTIFICAT
 - §2.1 "Variables de entorno": `RESEND_API_KEY`, `NOTIFICATIONS_FROM`, `NOTIFICATIONS_EMAIL_ENABLED` (en
   `false` para desarrollo), `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`,
   `IMAGES_STORAGE_ENABLED` (en `false` sin cuenta: el adaptador falso devuelve una URL de prueba),
-  `MISSIONS_EXPIRATION_CRON_ENABLED`, `NOTIFICATIONS_CRON_ENABLED` y `CORS_ORIGIN` (por defecto
+  `MISSIONS_EXPIRATION_CRON_ENABLED`, `NOTIFICATIONS_CRON_ENABLED`, `PROMOTIONS_CRON_ENABLED` y `CORS_ORIGIN` (por defecto
   `http://localhost:5173`). **Nunca** escribir claves reales en el repo.
 - "Problemas frecuentes": qué pasa si se prende el correo en local (manda correos de verdad) o Cloudinary (sube
   imágenes a la cuenta real).
@@ -173,7 +178,9 @@ Sumar a `setup-e2e-env.ts`: `MISSIONS_EXPIRATION_CRON_ENABLED=false`, `NOTIFICAT
 
 ## 6. `conceptos-transversales/`
 
-- **`roles-y-permisos.md`:** las filas nuevas de la matriz del contrato S5 §4.
+- **`roles-y-permisos.md`:** las filas nuevas de la matriz del contrato S5 §4; sacar la fila de
+  `GET /movimientos-de-puntos` (S5-13) y, en "Qué ve cada rol", los "Próx." de Misiones, Estadísticas y
+  Notificaciones.
 - **`errores-y-codigos.md`:** `MISSION_NAME_IN_USE`, `MISSION_NOT_CLAIMABLE`, `INVALID_IMAGE`,
   `NOTIFICATION_DISABLED`, `NOTIFICATION_NOT_RESENDABLE`, `PROMOTION_SEND_NOT_CANCELLABLE` y los `404` nuevos (`PROMOTION_FINISHED` ya no existe). Marcar `FORBIDDEN_FIELD` como fuera de uso.
 - **`transacciones-y-eventos.md`:** el avance de misiones dentro de la transacción del consumo; el reclamo
@@ -203,5 +210,7 @@ niveles, los beneficios (texto informativo) y el umbral de clientes frecuentes.
 
 - "Qué existe": los módulos nuevos.
 - Glosario: Misión mensual, Asignación, Reclamo (manual y automático), Notificación, Promoción, Beneficio del
-  nivel.
+  nivel y Cliente frecuente. En "Cron", de tres a seis. En "Movimiento de puntos" y "Puntos acumulados", sumar la
+  recompensa de misión y el regalo de cumpleaños (no cambian el nivel).
+- `seguimiento/estado-puntos-y-consumos.md`: sacar `GET /movimientos-de-puntos` de US-26.
 - Visión general y README: la fila del Sprint 5.

@@ -22,7 +22,7 @@ primera tarea.
 | Pregunta | Fuente |
 |---|---|
 | ¿Cómo se ve? ¿Qué texto dice? ¿Qué campos tiene y en qué orden? ¿Qué pasa al apretar el botón? ¿Qué se muestra vacío? | **Prototipo v2**, en `docs/prototipo/v2/` |
-| ¿A qué endpoint llamo? ¿Qué campos mando y cuáles llegan? ¿Qué `code` puede volver y qué muestro? ¿Qué rol ve esto? | **Contrato del Sprint 5** (v1), en `docs/sprint-5/API_CONTRACT_SPRINT_5.md`. Para lo que ya existe, `docs/sprint-4/API_CONTRACT_SPRINT_4.md` (recompensas y canjes) y `docs/sprint-3/API_CONTRACT_SPRINT_3.md` |
+| ¿A qué endpoint llamo? ¿Qué campos mando y cuáles llegan? ¿Qué `code` puede volver y qué muestro? ¿Qué rol ve esto? | **Contrato del Sprint 5** (v3), en `docs/sprint-5/API_CONTRACT_SPRINT_5.md`, y `docs/sprint-5/AJUSTES_PANTALLAS_SPRINTS_ANTERIORES.md` para las pantallas de sprints anteriores que cambian. Para lo que ya existe, `docs/sprint-4/API_CONTRACT_SPRINT_4.md` (recompensas y canjes) y `docs/sprint-3/API_CONTRACT_SPRINT_3.md` |
 
 **Si no coinciden:**
 - Datos, reglas, permisos y mensajes de error → **el contrato**.
@@ -32,7 +32,7 @@ primera tarea.
 Cada contrato lista en su **§8.1** las diferencias del prototipo que corrige. Leela antes de cada pantalla.
 
 **Sprint 5.** Las pantallas del Sprint 5 del prototipo **ya están actualizadas**, con los cambios a mano del
-11/11 y el 12/11 (`docs/prototipo/v2/LEEME.md`; contrato v2, S5-34 a S5-50). Lo que el prototipo simula y no es
+11/11 y el 12/11 (`docs/prototipo/v2/LEEME.md`; contrato v3, S5-34 a S5-58). Lo que el prototipo simula y no es
 diseño está en el contrato S5 §8.1 (botones "Simular…", números de ejemplo, envíos que quedan "Enviada" al
 instante). La versión vieja (antes del 10/11) tenía, y **ya no vale**:
 - la misión con "Objetivo" en texto libre y "Período" en días, semanas o meses (en el contrato: tipo de objetivo
@@ -40,9 +40,10 @@ instante). La versión vieja (antes del 10/11) tenía, y **ya no vale**:
 - el estado "En curso" para la misión del cliente (en el contrato: "En progreso") y la misión "Inactiva" (en el
   contrato: se "Elimina");
 - el beneficio del nivel como "Observaciones" (en el contrato: "Beneficio");
-- estadísticas con cuatro números fijos (en el contrato: cuatro bloques con período y tablas);
+- estadísticas con cuatro números fijos (en el contrato: cuatro pestañas por mes, con tarjetas y gráficos con
+  CSS, §3.9.7);
 - sin cliente frecuente, foto de perfil ni cuenta del cliente (en el contrato: se agregan);
-- promociones guardadas en Configuración → Promociones y logo configurable (en el contrato v2: las promociones
+- promociones guardadas en Configuración → Promociones y logo configurable (en el contrato: las promociones
   se escriben y se envían desde Notificaciones sin guardarse, y el logo es fijo).
 
 Del Sprint 4 (5 diferencias), por ejemplo:

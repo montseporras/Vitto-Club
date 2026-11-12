@@ -38,8 +38,13 @@
 > - las estadísticas se piden **por mes**, con gráficos de torta y barras, y el PDF se arma **con las secciones
 >   elegidas** ([3.9](#39-estadísticas-y-reporte-pdf-us-51-a-us-55)).
 >
-> **Todo está decidido (✅)** salvo **S5-52** (con qué se compara el mes en curso), que se tomó con la propuesta
-> y falta que Deni la confirme. El resto de lo abierto es documentación fuera del repo ([10](#10-pendientes)).
+> **Todo está decidido (✅).** **S5-52** (con qué se compara el mes en curso) la confirmó Deni el 12/11: contra
+> los mismos días del mes anterior. Lo único abierto es documentación fuera del repo ([10](#10-pendientes)).
+>
+> **Revisión del 12/11/2026 (noche).** Control de coherencia a pedido de Deni, sin cambios de endpoints: S5-52
+> confirmada; `CustomerMission.id` puede venir en `null` para el personal ([3.3.1](#331-tipo-customermission));
+> las franjas horarias de S5-22 quedan escritas como en [3.9.2](#392-get-apiestadisticasconsumos-us-52-rf-055);
+> `GET /misiones/:id/completadas` es solo de US-29.
 >
 > **Como es el último sprint**, las secciones [4](#4-información-general),
 > [5](#5-convenciones-de-respuestas-y-códigos-de-error) y [6](#6-códigos-http) están **completas**: valen para
@@ -55,8 +60,8 @@
 - "UI" es el texto que muestra la pantalla. "API" es el valor que viaja en el JSON.
 - Las decisiones se citan como "decisión S5-N" y están en la [8.3](#83-decisiones-del-sprint-5). Las de los
   sprints anteriores siguen valiendo ("decisión #N" del S3, "S4-N" del S4).
-- **Numeración de historias:** la del Seguimiento v1.5 (US-56 registrar auditoría, US-57 consultar,
-  US-58 autorregistro, US-59 perfil).
+- **Numeración de historias:** la que rige desde el Seguimiento v1.5 y sigue en el v1.7 (US-56 registrar
+  auditoría, US-57 consultar, US-58 autorregistro, US-59 perfil).
 - **Máquinas de estado:** los nombres salen de la sección 9 de la Definición del Producto. Misión mensual por
   cliente: **En progreso, Completada, Reclamada, Vencida**.
 - **No queda nada "Próximamente":** es el último sprint (S5-33). Lo que no esté en este contrato ni en un RF
@@ -115,7 +120,7 @@ Todas las rutas cuelgan de `/api`. **A** = Administrador, **C** = Cajero, **Cl**
 |---|---|---|---|---|---|
 | 1 | `GET` | `/misiones` | A | Listado de misiones, con búsqueda, filtro y orden | US-28, US-29 |
 | 2 | `GET` | `/misiones/:id` | A | Detalle y datos para editar | US-29 |
-| 3 | `GET` | `/misiones/:id/completadas` | A | Clientes que la completaron en un mes (detalle de la misión) | US-29, US-33 |
+| 3 | `GET` | `/misiones/:id/completadas` | A | Clientes que la completaron en un mes (detalle de la misión) | US-29 |
 | 4 | `POST` | `/misiones` | A | Crear misión mensual | US-28 |
 | 5 | `PATCH` | `/misiones/:id` | A | Editar misión | US-29 |
 | 6 | `PATCH` | `/misiones/:id/eliminar` | A | Dar de baja (lógica) | US-29 |
@@ -468,7 +473,7 @@ se revierte: la recompensa ganada no se quita.
 
 | Campo | Tipo | Nulo | Descripción |
 |---|---|---|---|
-| `id` | number | No | Id de la asignación (no de la misión) |
+| `id` | number | Solo en [3.3.4](#334-get-apicustomersidmisiones-a-c) | Id de la asignación (no de la misión). En las rutas del Cliente nunca es `null`. En `GET /customers/:id/misiones` es `null` en las misiones en curso que el cliente todavía no tiene asignadas |
 | `mission` | `{ id, name, description }` | No | |
 | `period` | string | No | `YYYY-MM` |
 | `objectiveType`, `target`, `daysOfWeek`, `timeFrom`, `timeTo`, `rewardPoints` | | | **Snapshot** de la misión al asignarla |
@@ -893,7 +898,7 @@ tenga 0.
 - **`previousMonth`** (S5-51): los mismos siete totales del **mes anterior**, para la variación de las
   tarjetas. En un **mes cerrado** es el mes anterior completo. En el **mes en curso** son los **mismos días**
   del mes anterior (del 1 al día de hoy; si el mes anterior es más corto, hasta su último día), para no comparar
-  medio mes contra uno entero (S5-52, **a confirmar**). Si el mes anterior es anterior a enero del año pasado,
+  medio mes contra uno entero (S5-52). Si el mes anterior es anterior a enero del año pasado,
   igual se calcula.
 
 #### 3.9.4 `GET /api/estadisticas/programa` (US-54, RF-057)
@@ -1433,7 +1438,7 @@ flujo. Lo que el prototipo hace y **no** es parte del diseño ni de este contrat
 | 4 | El orden "Más recientes" usa el orden de alta de los datos de ejemplo | `order=RECENT` por `createdAt` |
 | 5 | "Exportar reporte PDF" muestra un toast de descarga | Baja el archivo de [3.9.5](#395-get-apiestadisticasreportepdf-us-55-rf-058) |
 | 6 | `ConfigPromociones.html` ya no existe y la tarjeta de promociones del Inicio del Cliente se sacó | Igual: no hay catálogo de promociones (S5-36) |
-| 7 | La variación del mes en curso se compara contra el mes anterior **completo**, y la conversión de los nuevos sale de una cuenta de ejemplo | Mes en curso: contra los **mismos días** del anterior (S5-52); la conversión la calcula el backend (`newFrequent`) |
+| 7 | La variación del mes en curso se compara contra el mes anterior **completo** (el prototipo no tiene días reales), y la conversión de los nuevos sale de una cuenta de ejemplo | Mes en curso: contra los **mismos días** del anterior (S5-52); la conversión la calcula el backend (`newFrequent`) |
 | 8 | La "Nota del prototipo" de cada pantalla está en el menú lateral, plegada, y "Simular fin de mes" está ahí (S5-58) | No es parte del diseño: la app no tiene esa nota |
 
 ### 8.2 Reglas de negocio que el backend tiene que garantizar (no solo la pantalla)
@@ -1462,7 +1467,7 @@ flujo. Lo que el prototipo hace y **no** es parte del diseño ni de este contrat
 
 | # | Tema | Decisión | Quién / cuándo |
 |---|---|---|---|
-| S5-1 | Foto de perfil del Cliente | **Entra en el Sprint 5** (no estaba en ningún sprint anterior). Hay que sumarla a RF-065 / US-59 en los documentos del producto | Deni, 09/11 |
+| S5-1 | Foto de perfil del Cliente | **Se hace en el Sprint 5** (ítem FOTO-PERFIL). Hay que sumarla a RF-065 / US-59 en los documentos del producto | Deni, 09/11 |
 | S5-2 | Beneficios de los niveles (RF-029) | **Entran en el Sprint 5**: no se hicieron en US-27 | Deni, 09/11 |
 | S5-3 | Cuentas de los clientes (RF-08) | El Administrador **tiene que poder verlas** | Deni, 09/11 |
 | S5-4 | Misión sin recompensa | **Completada es estado final** | Deni, 09/11 |
@@ -1483,7 +1488,7 @@ flujo. Lo que el prototipo hace y **no** es parte del diseño ni de este contrat
 | S5-19 | Asignación de misiones (PD-14) | En el primer consumo o consulta del mes; sin mes de fin, se repite todos los meses | Deni, 09/11 |
 | S5-20 | Editar o eliminar una misión con progreso (PD-15) | Editar: el objetivo y la recompensa rigen desde el mes siguiente. Eliminar: En progreso → Vencida; Completadas con recompensa → Reclamadas (Sistema) | Deni, 09/11 |
 | S5-21 | Anular un consumo y las misiones (PD-13) | Resta el avance solo en las del mismo mes que sigan En progreso | Deni, 09/11 |
-| S5-22 | Estadísticas (PD-9) | "Frecuente": el mínimo de consumos **se configura en Configuración del programa** (por defecto 3). Franjas de 4 horas. Activo = no dado de baja | Deni, 09/11 |
+| S5-22 | Estadísticas (PD-9) | "Frecuente": el mínimo de consumos **se configura en Configuración del programa** (por defecto 3). Cinco franjas horarias: 00:00–08:00 y cuatro de 4 horas hasta las 24:00 ([3.9.2](#392-get-apiestadisticasconsumos-us-52-rf-055)). Activo = no dado de baja | Deni, 09/11 |
 | S5-23 | Foto de perfil (PD-12) | La ven **el Cliente, el Cajero y el Administrador**. URL firmada de Cloudinary | Deni, 09/11 |
 | S5-24 | Dependencia `cloudinary` | **Autorizada** | Deni, 09/11 |
 | S5-25 | Cumpleaños (PD-18) | **Regala puntos**: configurable en Configuración → Notificaciones, por defecto 100 (0 = no regala) | Deni, 09/11 |
@@ -1513,7 +1518,7 @@ flujo. Lo que el prototipo hace y **no** es parte del diseño ni de este contrat
 | S5-49 | Reporte PDF | Un modal elige las **secciones** (Clientes, Consumos, Puntos, Programa) con "Seleccionar todo" / "Deseleccionar todo" | Deni, 12/11 |
 | S5-50 | Torta de misiones | Sin la aclaración "a fin de mes se reclama sola"; "En progreso" **solo en el mes en curso** | Deni, 12/11 |
 | S5-51 | Pantalla de Estadísticas | Pestañas a lo ancho con un total cada una; **Clientes sin gráficos** y con la conversión de los nuevos; Consumos con los dos gráficos **lado a lado**; Puntos con la **variación contra el mes anterior** en cada tarjeta, "De dónde salen los puntos" en barras y "De los {n} acreditados…" con el saldo neto; Programa con niveles y misiones arriba y recompensas abajo, más la tasa de efectividad. Todo entra en la pantalla | Deni, 12/11 |
-| S5-52 | Variación del mes en curso | Contra los **mismos días** del mes anterior (no contra el mes entero) | Propuesta de Claude, 12/11: **a confirmar por Deni** |
+| S5-52 | Variación del mes en curso | Contra los **mismos días** del mes anterior (no contra el mes entero) | Deni, 12/11 (confirmó la propuesta) |
 | S5-53 | Conversión de clientes nuevos | De los dados de alta en el mes, los que llegaron al **mínimo de frecuente** (por defecto 3) en ese mismo mes. Se ve para los 6 meses de `last6Months` | Deni, 12/11 |
 | S5-54 | Paleta de las estadísticas | La de la marca (marrón, marrón oscuro, rojizo, turquesa, mostaza, coral, durazno y topo). **Reemplaza la paleta pastel de S5-46**; la letra no cambia | Deni, 12/11 |
 | S5-55 | Tarjetas de Clientes | Arriba "Clientes activos", "Clientes nuevos" y "Frecuentes"; debajo del número, "Base vigente", "Adquisición" y "Fidelidad" | Deni, 12/11 |
@@ -1601,8 +1606,8 @@ flujo. Lo que el prototipo hace y **no** es parte del diseño ni de este contrat
 
 ## 10. Pendientes
 
-**Nada de esta lista bloquea el código.** Son cambios en los documentos del producto, fuera del repo, salvo
-PD-28, que solo cambia cómo se calcula `previousMonth` en el mes en curso.
+**Nada de esta lista bloquea el código.** Son cambios en los documentos del producto, fuera del repo. PD-28
+(S5-52) ya está decidida.
 
 | # | Pendiente | Dónde |
 |---|---|---|
@@ -1615,4 +1620,4 @@ PD-28, que solo cambia cómo se calcula `previousMonth` en el mes en curso.
 | PD-25 | RF-012 pide configurar el logo: queda fijo (S5-35). Ajustar el RF o dejarlo anotado como fuera de alcance | Plan de Proyecto, Seguimiento |
 | PD-26 | RF-013 / US-15: las promociones no se guardan; se escriben y se envían (ahora o programadas, a todos o a un nivel) (S5-36, S5-39) | Plan de Proyecto, Seguimiento, Definición del Producto |
 | PD-27 | Reenvío manual de correos fallidos (S5-38) y estadísticas por mes con subidas de nivel (S5-42, S5-47), conversión de los nuevos y variación contra el mes anterior (S5-51, S5-53) | Seguimiento (Story Map, US-47 a US-55) |
-| PD-28 | **Confirmar S5-52**: ¿el mes en curso se compara contra los mismos días del mes anterior (propuesta) o contra el mes anterior completo? | Este contrato (§3.9.3) y `HISTORIAS_SPRINT_5.md` (CA-53.1) |
+| PD-28 | ✅ **Decidida** (Deni, 12/11): el mes en curso se compara contra los **mismos días** del mes anterior (S5-52) | Este contrato (§3.9.3) y `HISTORIAS_SPRINT_5.md` (CA-53.1) |

@@ -53,7 +53,7 @@
 
 | Rama | Commits fuera de `develop` | Qué tienen |
 |---|---|---|
-| `origin/feature/US-34-crear-recompensa-back`, `US-35-…`, `US-36-…`, `US-38-…` | 1 cada una | Solo un commit de merge sin cambios: el contenido ya está en `develop`. **Se pueden borrar** |
+| `origin/feature/US-34-crear-recompensa-back`, `US-35-…`, `US-36-…`, `US-38-…` | 1 cada una | Solo un commit de merge sin cambios: el contenido ya está en `develop`. **Se borraron el 12/11** (A4-11) |
 | `origin/main` | — | `main` no recibe `develop` desde el 21/09 (D-35) |
 
 ---
@@ -170,7 +170,7 @@ equipo no está de acuerdo con alguna, se marca y se pide el cambio de código.
 | A4-08 | e2e saltado del autorregistro | §2 | Sacar el `it.skip` y confirmar que pasa |
 | A4-09 | Notas dentro del código | A-13 | Borrarlas (ya están en `docs/seguimiento/`) |
 | A4-10 | Tablas de asignaciones de las historias del S3 y el S4 | §1.2 | Completarlas |
-| A4-11 | Ramas sin cambios | §1.3 | Borrar `origin/feature/US-34-…`, `US-35-…`, `US-36-…`, `US-38-…` |
+| A4-11 | Ramas sin cambios | §1.3 | ✅ Hecho el 12/11 (Deni): se borraron `origin/feature/US-34-…`, `US-35-…`, `US-36-…`, `US-38-…` y las demás ramas ya mergeadas; quedan solo `develop` y `main` |
 | A4-12 | Evento `customer.document-changed` y `forbiddenField` sin uso | §2 B4 | Borrarlos o dejarlos documentados |
 | A4-13 | `Modal` con Escape | §2 F1 | En `shared/components/ui/Modal.tsx` (pieza compartida: pedir permiso) |
 | A4-14 | Comentario del generador | §2 F2 | Corregir "12" por "8" |

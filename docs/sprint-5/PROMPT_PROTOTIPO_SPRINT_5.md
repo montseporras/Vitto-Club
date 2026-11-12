@@ -320,4 +320,16 @@ Contrato v3, §8.3 (S5-34 a S5-58). El detalle de cada pantalla está en el cont
   la pantalla.
 
 **Auditoría:** módulo Misiones habilitado; "Regaló puntos de cumpleaños" y "Modificó cliente frecuente"; **sin**
-"Modificó las promociones".
+"Modificó las promociones". La acción de los mensajes se llama **"Modificó logo y mensajes"** (no "Modificó el
+logo y los mensajes automáticos").
+
+**Otros textos de las secciones 1 a 7 que ya no valen**
+- US-14 se llama **"Configurar mensajes automáticos"** (el logo queda fijo).
+- Los mensajes automáticos son **tres** (Vencimiento de puntos, Cumpleaños y Misiones): Promociones no tiene
+  plantilla ni interruptor, y no existen las variables `{promocion}` ni `{descripcion}`. No hay promociones de
+  ejemplo guardadas ni logo entre las fotos.
+- Misiones, debajo del título: **"Hacé clic en una misión para ver su detalle y quiénes la completaron."**; el
+  paginado es el que entra en la pantalla (no "de a 10").
+- Cliente → Misiones, "Meses anteriores": las Vencidas, las Reclamadas y las Completadas sin recompensa.
+- Estadísticas → Puntos, mes en curso: la variación se compara contra los **mismos días** del mes anterior
+  (S5-52); en el prototipo es un dato de ejemplo.

@@ -292,14 +292,14 @@ Son de producto o de contrato, o las dejó anotadas alguien para que decida el e
 | D-12 | Borrar `customer.reactivated` y `ACTIVATED` | Cierre S3 |
 | D-13 | Orden por apellido con tildes | Cierre S3 |
 | D-15 | Límite de intentos en memoria | Cierre S3 |
-| D-17 | Tests del frontend | Cierre S3 |
+| D-17 | ✅ Decidida (S5-30): se saca Vitest del Seguimiento y se hace el CI con GitHub Actions | Cierre S3 |
 | D-18 | `GET /customers/:id/status-history` sin pantalla | Cierre S3 |
 | D-19 | Límite de intentos de login, limpieza de sesiones, `npm audit`, verificación de email | Cierre S3 |
 | D-35 | Cuándo pasa `develop` a `main` | Cierre S3 |
 | D-37 | Reexportar el prototipo y subir el script | Cierre S3 |
 | D-38 | Diferencias del prototipo que el frontend mantuvo a propósito | Cierre S3 |
-| PD-3 | ¿Se mantiene `GET /movimientos-de-puntos` sin pantalla? | Contrato S4 |
-| PD-6 | ¿Se avisa al Cliente cuando se rechaza su canje? | Contrato S4 |
+| PD-3 | ✅ Decidida (S5-13): `GET /movimientos-de-puntos` se elimina en el Sprint 5 | Contrato S4 |
+| PD-6 | ✅ Decidida (S5-14): no hay aviso de canje rechazado; el Cliente lo ve en Mis canjes | Contrato S4 |
 | US-21 | ¿Se llevan al contrato el modal de confirmación, "Buscar otro cliente" y "Registrar otro consumo" con el mismo cliente? | US-21 front |
 | US-24 | ¿Se mueve `AdjustPointsModal` a `features/customers`? | US-24 front |
 | A-07 | ¿Sigue haciendo falta la ficha del cliente para el Cajero? | Cierre S3 |

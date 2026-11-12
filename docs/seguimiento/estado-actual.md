@@ -133,6 +133,11 @@ las opciones "Próx." de los menús. Para BASE-5 hacen falta, como mínimo: misi
 notificación enviada (tipo, canal, fecha y destinatario, como piden RF-050 a RF-053), la configuración de
 logo, mensajes y promociones, y dónde se guardan las fotos.
 
+> **Actualización del 12/11/2026.** Todo esto ya está decidido en el contrato del Sprint 5 **v3**
+> (`docs/sprint-5/API_CONTRACT_SPRINT_5.md` §8.3, S5-1 a S5-58): el logo **no se configura** (S5-35), las
+> promociones **no se guardan**, solo se envían (S5-36), las fotos van a Cloudinary (S5-12) y las estadísticas son
+> por mes (S5-42). En el código de `develop` el Sprint 5 sigue sin empezar.
+
 ### Lo que también entra al Sprint 5 (no está hecho y no figura en el Story Map)
 
 Decidido por Deni el 09/11/2026: todo lo que debía estar y no está hecho pasa al Sprint 5.
@@ -140,7 +145,7 @@ Decidido por Deni el 09/11/2026: todo lo que debía estar y no está hecho pasa 
 | # | Qué | Origen | Por qué no figura en el Story Map |
 |---|---|---|---|
 | 1 | **Foto de perfil del Cliente** | Decisión #9 del contrato S3 (la ponía en el Sprint 4) y PD-2 del contrato S4 (la pasa al Sprint 5) | No hay ningún RF ni US que la pida: RF-065 / US-59 no mencionan la foto. Hay que sumarla a RF-065 y a US-59 (o crear un RF y una US nuevos) |
-| 2 | **Beneficios de los niveles** (mostrarlos y guardarlos) | RF-029 del Plan de Proyecto; CP-US27-02 de la Definición del Producto ("Beneficios: Postre gratis") | Es parte de US-27 (Sprint 3), que figura como terminada. El contrato S3 §3.7 los dejó "pendientes de definir". Falta definir qué es un beneficio (texto libre por nivel u otra cosa) |
+| 2 | **Beneficios de los niveles** (mostrarlos y guardarlos) | RF-029 del Plan de Proyecto; CP-US27-02 de la Definición del Producto ("Beneficios: Postre gratis") | Es parte de US-27 (Sprint 3), que figura como terminada. El contrato S3 §3.7 los dejó "pendientes de definir". Decidido (S5-26): un texto informativo por nivel, que no cambia los puntos (NIV-BEN) |
 | 3 | **El Administrador ve también las cuentas de los clientes** | RF-08 ("cualquiera sea su rol") / US-08 | Es parte de US-08 (Sprint 2), que figura como terminada. Hoy `GET /usuarios` solo devuelve cuentas de empleados (`findAllEmployeeAccounts`) y la pantalla de Clientes no muestra el estado de la cuenta |
 | 4 | Bloquear la recompensa al confirmar un canje | Anotado por US-35 (ítem 7 de las verificaciones pendientes) | Arrastre de US-40 |
 | 5 | Test: usar un canje rechazado por la desactivación | Ítem 4 de las verificaciones pendientes | Arrastre de US-42 |
@@ -149,7 +154,7 @@ Decidido por Deni el 09/11/2026: todo lo que debía estar y no está hecho pasa 
 | 8 | CORS por variable de entorno y configuración de despliegue (Vercel, Render, Neon) | B7; Seguimiento §2.6 | Tecnología declarada sin historia |
 | 9 | Scripts `rewards:expire` y `redemptions:expire`, sus variables en `.env.example` y apagarlas en `test/setup-e2e-env.ts` | US-37 y US-44 | Configuración compartida que quedó sin aplicar |
 | 10 | Habilitar el e2e saltado de "volver a registrarse con el mismo email" | `customer-registration.e2e-spec.ts:235` | Arrastre de US-58 |
-| 11 | CI con GitHub Actions y tests del frontend (Vitest + Testing Library) | Seguimiento §2.6; D-17 | Tecnología declarada sin historia. La Definición del Producto §10.1 ya no lista Vitest: hay que unificar |
+| 11 | CI con GitHub Actions y tests del frontend (Vitest + Testing Library) | Seguimiento §2.6; D-17 | Tecnología declarada sin historia. Decidido (S5-30): se hace el CI y Vitest se saca del Seguimiento |
 | 12 | Sacar las notas `documentation-updates-*.md` del código | A-13 | Tarea de documentación |
 
 Los ítems 1, 2 y 3 cambian el alcance de historias ya cerradas: hay que reflejarlos en el Plan de Proyecto
@@ -168,8 +173,9 @@ Según el cuadro (no la imagen, que está desactualizada):
 | enProgreso | `vencer()` | Vencida | US-32 |
 | Completada | `reclamar()` | Reclamada | US-31 |
 
-Estados finales que declara: Reclamada y Vencida. **Choca con el propio cuadro** en dos casos, que hay que
-decidir antes de BASE-5:
+Estados finales que declara: Reclamada y Vencida. **Choca con el propio cuadro** en dos casos, **ya decididos
+por Deni el 09/11** (S5-4: Completada es final si la misión no tiene recompensa; S5-5: la Completada con
+recompensa sin reclamar se reclama sola a fin de mes):
 
 1. **Misión sin recompensa** (RF-031 la permite: "opcionalmente, una recompensa asociada"): llega a
    Completada y no tiene ninguna transición de salida, así que Completada también sería final.
@@ -179,9 +185,10 @@ decidir antes de BASE-5:
 
 ## Preguntas abiertas de otros documentos
 
-Las decisiones de producto que siguen abiertas (D-06, D-07, D-09 a D-13, D-15, D-17 a D-19, D-35, D-37,
-D-38 del cierre del Sprint 3, y PD-3 y PD-6 del contrato del Sprint 4) están juntas en
-[decisiones de implementación](./decisiones-de-implementacion.md#preguntas-abiertas).
+Las decisiones de producto que siguen abiertas (D-06 a D-13, D-15, D-18, D-19, D-35, D-37 y D-38 del cierre
+del Sprint 3) están juntas en
+[decisiones de implementación](./decisiones-de-implementacion.md#preguntas-abiertas). Ya se decidieron D-17
+(S5-30), PD-3 (S5-13) y PD-6 (S5-14).
 
 ## Historial
 
@@ -190,3 +197,4 @@ D-38 del cierre del Sprint 3, y PD-3 y PD-6 del contrato del Sprint 4) están ju
 | 2026-10-15 | Versión inicial, a partir de los documentos de traspaso del 5 y 6 de octubre (sin acceso al código) |
 | 2026-11-09 | Reescrito contra `develop` (Sprints 1 a 4). Las inconsistencias de documentación de la versión anterior se corrigieron en cada documento |
 | 2026-11-09 | Con `develop` en `f4c1171`: cruce con los documentos del producto, lo que pasa al Sprint 5 y la máquina de Misión |
+| 2026-11-12 | Alineado con el contrato del Sprint 5 v3: decisiones ya tomadas (S5-4, S5-5, S5-13, S5-14, S5-26, S5-30, S5-35, S5-36) |
