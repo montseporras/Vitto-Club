@@ -41,6 +41,8 @@ export type RewardListFilters = {
   q: string
   status: RewardListStatus | ''
   page: number
+  /** Filas por página: las que entran en la pantalla (1–100). */
+  limit?: number
 }
 
 /** Body de alta de una recompensa (§3.2.3). */

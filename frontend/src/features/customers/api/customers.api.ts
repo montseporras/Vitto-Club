@@ -9,7 +9,7 @@ import type {
   UpdateCustomerAdminBody,
 } from '../types/customers'
 
-/** Clientes por página (contrato §3.8.1). */
+/** Clientes por página si la pantalla no puede calcular cuántos entran (contrato §3.8.1). */
 export const CUSTOMERS_PAGE_SIZE = 20
 
 export async function listCustomers({
@@ -17,6 +17,7 @@ export async function listCustomers({
   documentNumber,
   level,
   page,
+  limit = CUSTOMERS_PAGE_SIZE,
 }: CustomerListFilters) {
   try {
     const res = await http.get<Paginated<CustomerListItem>>('/customers', {
@@ -28,7 +29,7 @@ export async function listCustomers({
         documentNumber: documentNumber || undefined,
         level: level || undefined,
         page,
-        limit: CUSTOMERS_PAGE_SIZE,
+        limit,
       },
     })
     return res.data

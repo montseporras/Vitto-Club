@@ -1,7 +1,7 @@
 import { Link, Outlet } from 'react-router'
 import { PATHS } from '@/app/router/paths'
 import { SessionActions, useSession } from '@/features/auth'
-import { AppFooter, AppHeader } from '@/shared/components/navigation/AppHeader'
+import { AppHeader } from '@/shared/components/navigation/AppHeader'
 import { SideNav, type SideNavItem } from '@/shared/components/navigation/SideNav'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
@@ -65,7 +65,6 @@ export function CashierLayout() {
         </main>
       </div>
 
-      <AppFooter />
     </div>
   )
 }

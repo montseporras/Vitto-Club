@@ -1,6 +1,5 @@
 import { DOCUMENT_TYPES } from '@/domain/documents'
 import { Badge } from '@/shared/components/ui/Badge'
-import { Button } from '@/shared/components/ui/Button'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
 import {
@@ -22,7 +21,6 @@ type AuditTableProps = {
   result: AuditResponse
   expandedId: number | null
   onToggle: (entry: AuditEntry) => void
-  onPageChange: (page: number) => void
 }
 
 function moduleLabel(module: AuditEntry['module']) {
@@ -76,25 +74,15 @@ function AuditDetails({ entry }: { entry: AuditEntry }) {
   )
 }
 
-export function AuditTable({
-  result,
-  expandedId,
-  onToggle,
-  onPageChange,
-}: AuditTableProps) {
-  const firstItem = result.items.length > 0 ? (result.page - 1) * result.limit + 1 : 0
-  const lastItem = Math.min(result.page * result.limit, result.total)
-  const pageCount = Math.max(1, Math.ceil(result.total / result.limit))
-
+export function AuditTable({ result, expandedId, onToggle }: AuditTableProps) {
   return (
     <>
       {result.items.length === 0 ? (
-        <p className="py-8 text-center text-sm text-stone-600">
+        <p className="text-[13px] text-[#8a6f5e]">
           No hay registros para los filtros seleccionados
         </p>
       ) : (
-        <>
-          <Table>
+          <Table variant="admin">
             <TableHead>
               <tr>
                 <TableHeaderCell aria-label="Detalle" className="w-10" />
@@ -118,31 +106,6 @@ export function AuditTable({
               })}
             </tbody>
           </Table>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-            <p aria-live="polite" className="text-sm text-stone-600">
-              Mostrando {firstItem}–{lastItem} de {result.total}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={result.page <= 1}
-                onClick={() => onPageChange(result.page - 1)}
-              >
-                Anterior
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={result.page >= pageCount}
-                onClick={() => onPageChange(result.page + 1)}
-              >
-                Siguiente
-              </Button>
-            </div>
-          </div>
-        </>
       )}
     </>
   )
@@ -198,7 +161,7 @@ function AuditEntryRows({
         <TableCell>{entry.description}</TableCell>
       </TableRow>
       {isExpanded && (
-        <tr>
+        <tr data-fit-ignore>
           <td colSpan={5} className="p-0">
             <AuditDetails entry={entry} />
           </td>

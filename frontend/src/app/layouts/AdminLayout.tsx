@@ -14,7 +14,7 @@ import { EmployeesPage } from '@/features/employees';
 // feature (su index.ts, archivo 10), nunca desde sus carpetas internas.
 import { PointsSettingsPage } from '@/features/points';
 import { StatusText } from '@/shared/components/feedback/StatusText';
-import { AppFooter, AppHeader } from '@/shared/components/navigation/AppHeader';
+import { AppHeader } from '@/shared/components/navigation/AppHeader';
 import { SideNav, type SideNavItem } from '@/shared/components/navigation/SideNav';
 import { Icon } from '@/shared/components/ui/Icon';
 import { ICONS } from '@/shared/components/ui/icons';
@@ -72,7 +72,7 @@ export function AdminLayout() {
 
   return (
     <div className="flex min-h-svh flex-col">
-      <AppHeader area="Administración">
+      <AppHeader area="Administración" showBack={false}>
         {/* El Administrador también opera el mostrador: acceso directo a lo que ve el Cajero */}
         <Link to={PATHS.cashier.root} className={appHeaderStyles.action}>
           <Icon d={ICONS.ticket} className="size-4" />
@@ -111,8 +111,6 @@ export function AdminLayout() {
           <Outlet />
         </main>
       </div>
-
-      <AppFooter />
 
       {settingsOpen && (
         <Modal

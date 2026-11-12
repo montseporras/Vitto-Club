@@ -102,7 +102,7 @@ export type AuditQueryParams = {
   date?: string
   operationCode?: string
   page: number
-  limit: 10
+  limit: number
 }
 
 export const AUDIT_MODULES: {

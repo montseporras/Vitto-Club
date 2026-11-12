@@ -47,10 +47,10 @@ export const useCustomerRedemptions = (customerId: number, enabled = true) =>
   })
 
 // Pantalla Canjes del Administrador (§3.12.3): una página con los filtros ya aplicados.
-export const useRedemptions = (filters: RedemptionFilters, page: number) =>
+export const useRedemptions = (filters: RedemptionFilters, page: number, limit: number) =>
   useQuery<Paginated<Redemption>, ApiError>({
-    queryKey: redemptionsKeys.list(filters, page),
-    queryFn: () => listRedemptions(filters, page),
+    queryKey: redemptionsKeys.list(filters, page, limit),
+    queryFn: () => listRedemptions(filters, page, limit),
     placeholderData: keepPreviousData,
   })
 

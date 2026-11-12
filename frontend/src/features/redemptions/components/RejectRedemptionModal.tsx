@@ -85,7 +85,7 @@ export function RejectRedemptionModal({ redemption, customer, onClose }: RejectR
   )
 
   return (
-    <Modal title={`Rechazar canje ${redemption.code}`} onClose={onClose}>
+    <Modal title={`Rechazar canje ${redemption.code}`} onClose={onClose} className="max-w-3xl">
       <form noValidate onSubmit={handleSubmit(onSubmit)}>
         <div className="rounded-2xl border border-orange-200 bg-orange-50/60 px-4 py-3 text-sm">
           <p>

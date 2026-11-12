@@ -148,18 +148,11 @@ export const router = createBrowserRouter([
         element: <Navigate to={PATHS.admin.customers} replace />,
       },
       {
-        // Sección Consumos: listado y detalle (US-23)
+        // Sección Consumos: listado y detalle en un modal (US-23)
         path: PATHS.admin.consumptions,
         lazy: async () => {
           const { ConsumptionsPage } = await import('@/features/consumptions')
           return { Component: ConsumptionsPage }
-        },
-      },
-      {
-        path: PATHS.admin.consumptionDetail,
-        lazy: async () => {
-          const { ConsumptionDetailPage } = await import('@/features/consumptions')
-          return { Component: ConsumptionDetailPage }
         },
       },
       {

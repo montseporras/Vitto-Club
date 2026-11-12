@@ -26,7 +26,6 @@ export const PATHS = {
     statistics: '/admin/estadisticas',
     audit: '/admin/auditoria',
     consumptions: '/admin/consumos',
-    consumptionDetail: '/admin/consumos/:code',
     // Rutas que salieron del menú el 25/10: solo redirigen (Sprint 4, CA-NAV.3)
     oldIdentifyCustomer: '/admin/buscar-cliente',
     oldPointsMovements: '/admin/movimientos',

@@ -17,6 +17,7 @@ import type {
   UpdateRewardResponse,
 } from '../types/reward'
 
+// Filas por página si la pantalla no puede calcular cuántas entran.
 export const REWARDS_PAGE_SIZE = 10
 
 /** Recompensas del Administrador (§3.2.1). */
@@ -24,6 +25,7 @@ export async function listAdminRewards({
   q,
   status,
   page,
+  limit = REWARDS_PAGE_SIZE,
 }: RewardListFilters): Promise<Paginated<AdminReward>> {
   try {
     const { data } = await http.get<Paginated<AdminReward>>('/recompensas', {
@@ -31,7 +33,7 @@ export async function listAdminRewards({
         q: q || undefined,
         status: status || undefined,
         page,
-        limit: REWARDS_PAGE_SIZE,
+        limit,
       },
     })
     return data

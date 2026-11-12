@@ -48,19 +48,20 @@ export function CustomerConsumptionHistory() {
             const isVoided = consumption.status === 'VOIDED';
             return (
               <li key={consumption.id}>
-                <Card className="p-3 text-sm">
+                <Card className="px-3 py-2.5 text-[13px] sm:px-3 sm:py-2.5">
                   <div className="flex items-start justify-between gap-3">
-                    <span>
+                    <span className="min-w-0 flex-1">
                       {formatDateTime(consumption.createdAt)}
                       <br />
-                      <span className="text-xs text-neutral-600">
+                      <span className="font-number font-normal lining-nums tabular-nums text-xs text-neutral-600">
                         {formatAmount(consumption.amount)}
                       </span>
                     </span>
-                    <span className="flex flex-col items-end gap-1 text-right">
+                    <span className="flex shrink-0 flex-col items-end gap-1 text-right">
                       {/* Un consumo anulado no suma: sus puntos se ven tachados y apagados */}
                       <span
                         className={cn(
+                          'font-number font-normal lining-nums tabular-nums whitespace-nowrap text-sm',
                           isVoided && 'text-neutral-500 line-through',
                         )}
                       >

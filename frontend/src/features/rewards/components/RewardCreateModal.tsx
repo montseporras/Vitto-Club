@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { FormField } from '@/shared/components/forms/FormField'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
@@ -10,6 +10,7 @@ import { Badge } from '@/shared/components/ui/Badge'
 import { Button } from '@/shared/components/ui/Button'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
+import { DatePicker } from '@/shared/components/ui/DatePicker'
 import { Input } from '@/shared/components/ui/Input'
 import { Textarea } from '@/shared/components/ui/Textarea'
 import { useToast } from '@/shared/components/feedback/useToast'
@@ -496,12 +497,22 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
               hideRequiredMark
               error={errors.expiresAt?.message}
             >
-              <Input
-                {...register('expiresAt')}
-                {...fieldProps('expiresAt')}
-                type="date"
-                min={today}
-                disabled={noExpiry}
+              {/* Calendario con el formato de Consumos; se abre hacia arriba porque el campo está al pie */}
+              <Controller
+                control={control}
+                name="expiresAt"
+                render={({ field }) => (
+                  <DatePicker
+                    id="reward-expiresAt"
+                    value={field.value}
+                    onChange={field.onChange}
+                    min={today}
+                    disabled={noExpiry}
+                    invalid={Boolean(errors.expiresAt)}
+                    aria-describedby={errors.expiresAt ? 'reward-expiresAt-error' : undefined}
+                    placement="top"
+                  />
+                )}
               />
               <label
                 htmlFor="reward-no-expiry"

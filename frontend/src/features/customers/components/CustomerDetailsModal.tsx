@@ -132,7 +132,7 @@ export function CustomerDetailsModal({
       aria-modal="true"
       aria-labelledby="customer-details-title"
     >
-      <div className={cn(modalStyles.panel, 'relative max-w-xl overflow-y-auto p-6 sm:p-8')}>
+      <div className={cn(modalStyles.panel, 'relative max-w-3xl overflow-y-auto p-6 sm:p-8')}>
         <button
           type="button"
           onClick={onClose}

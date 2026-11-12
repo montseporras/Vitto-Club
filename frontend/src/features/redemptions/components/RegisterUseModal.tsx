@@ -58,7 +58,7 @@ export function RegisterUseModal({
 
   if (result) {
     return (
-      <Modal title="Canje utilizado" onClose={onClose}>
+      <Modal title="Canje utilizado" onClose={onClose} className="max-w-3xl">
         <Alert variant="success">
           <strong>
             Canje {redemption.code} utilizado. Entregar: {redemption.reward.name}.
@@ -97,7 +97,7 @@ export function RegisterUseModal({
   const canReject = Boolean(error?.code && REJECTABLE_ERRORS.includes(error.code))
 
   return (
-    <Modal title={`Registrar uso del canje ${redemption.code}`} onClose={onClose}>
+    <Modal title={`Registrar uso del canje ${redemption.code}`} onClose={onClose} className="max-w-3xl">
       <DataList
         items={[
           { label: 'Código', value: redemption.code },

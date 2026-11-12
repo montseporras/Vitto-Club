@@ -63,7 +63,7 @@ export function CounterRedeemFlow({
 
   if (confirmed) {
     return (
-      <Modal title="Canje confirmado" onClose={keepForLater}>
+      <Modal title="Canje confirmado" onClose={keepForLater} className="max-w-3xl">
         <div className="rounded-2xl border border-orange-200 bg-orange-50/60 p-4 text-center">
           <p className="text-xs font-bold uppercase tracking-wide text-accent-800">
             Código del canje
@@ -89,7 +89,7 @@ export function CounterRedeemFlow({
   const validation = balanceError(balance, reward.points)
 
   return (
-    <Modal title="Canjear recompensa" onClose={onClose}>
+    <Modal title="Canjear recompensa" onClose={onClose} className="max-w-3xl">
       <RewardSummary
         name={reward.name}
         description={reward.description}

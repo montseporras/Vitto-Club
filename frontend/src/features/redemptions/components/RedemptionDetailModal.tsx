@@ -81,7 +81,7 @@ export function RedemptionDetailModal({
   const confirmed = redemption.status === 'CONFIRMED'
 
   return (
-    <Modal title={`Canje ${redemption.code}`} onClose={onClose}>
+    <Modal title={`Canje ${redemption.code}`} onClose={onClose} className="max-w-3xl">
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <RedemptionStatusBadge status={redemption.status} />
         {confirmed && (

@@ -1,22 +1,27 @@
 // Sección "Consumos" del Administrador (US-23, contrato §3.3.1 y prototipo Consumos): tarjetas
 // con los totales, filtros que se aplican con "Filtrar", tabla paginada y "Ver" al detalle.
-import { useState, type FormEvent } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router';
+import { useRef, useState, type FormEvent } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { DOCUMENT_TYPES } from '@/domain/documents';
 import { CONSUMPTION_STATUSES } from '@/domain/statuses';
 import { useAuditActors } from '@/features/audit';
-import { FormField } from '@/shared/components/forms/FormField';
 import { StatusText } from '@/shared/components/feedback/StatusText';
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Button } from '@/shared/components/ui/Button';
-import { Card } from '@/shared/components/ui/Card';
 import { DateRangePicker } from '@/shared/components/ui/DateRangePicker';
+import {
+  FilterActions,
+  FilterBar,
+  FilterCell,
+} from '@/shared/components/ui/FilterBar';
+import { filterControlClass } from '@/shared/components/ui/filter-styles';
+import { FilterSelect } from '@/shared/components/ui/FilterSelect';
 import { Icon } from '@/shared/components/ui/Icon';
 import { ICONS } from '@/shared/components/ui/icons';
-import { Input } from '@/shared/components/ui/Input';
-import { Page, PageCard } from '@/shared/components/ui/Page';
-import { Select } from '@/shared/components/ui/Select';
+import { AdminPanel } from '@/shared/components/ui/AdminPanel';
+import { Page } from '@/shared/components/ui/Page';
+import { RangePagination } from '@/shared/components/ui/Pagination';
 import {
   Table,
   TableCell,
@@ -24,10 +29,12 @@ import {
   TableHeaderCell,
   TableRow,
 } from '@/shared/components/ui/Table';
+import { useClampPage, useRowsThatFit } from '@/shared/hooks/useRowsThatFit';
 import { isoToDisplayDateTime } from '@/shared/lib/dates';
 import { formatInteger, formatMoney } from '@/shared/lib/numbers';
-import { buttonVariants } from '@/styles/ui';
+import { CONSUMPTIONS_PAGE_SIZE } from '../api/consumptions.api';
 import { useConsumptions } from '../api/consumptions.queries';
+import { ConsumptionDetailModal } from '../components/ConsumptionDetailModal';
 import type {
   ConsumptionFilters,
   ConsumptionStatus,
@@ -78,7 +85,23 @@ export function ConsumptionsPage() {
     initialCustomerId ? { customerId: initialCustomerId } : {},
   );
   const [page, setPage] = useState(1);
-  const result = useConsumptions(filters, page);
+  // Consumo abierto en el modal de detalle; "Ver detalle" de Caja llega con ?detalle=C-000141
+  const [openCode, setOpenCode] = useState<string | null>(searchParams.get('detalle'));
+  const navigate = useNavigate();
+  const closeDetail = () => {
+    setOpenCode(null);
+    if (searchParams.has('detalle')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('detalle');
+      setSearchParams(next, { replace: true });
+    }
+  };
+  // Filas por página: las que entran en la pantalla (ajustes S5-57)
+  const areaRef = useRef<HTMLDivElement>(null);
+  const pagerRef = useRef<HTMLElement>(null);
+  const limit = useRowsThatFit({ areaRef, pagerRef, initial: CONSUMPTIONS_PAGE_SIZE });
+  const result = useConsumptions(filters, page, limit);
+  useClampPage(page, setPage, result.data?.total, result.data?.limit);
   const actors = useAuditActors();
 
   const hasPendingFilters = JSON.stringify(draft) !== JSON.stringify(applied);
@@ -122,99 +145,104 @@ export function ConsumptionsPage() {
   ];
 
   const data = result.data;
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
-  const start = data?.total ? (page - 1) * data.limit + 1 : 0;
-  const end = data ? Math.min(page * data.limit, data.total) : 0;
 
   return (
-    <Page className="max-w-6xl">
-      <PageCard eyebrow="Administración" title="Consumos" variant="plain">
+    <Page className="max-w-none">
+      <AdminPanel title="Consumos">
         {data && !result.isError && (
           <>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
               {[
                 ['Consumos', formatInteger(data.totals.count)],
                 ['Monto total', formatMoney(data.totals.amountTotal)],
                 ['Puntos otorgados', formatInteger(data.totals.pointsTotal)],
               ].map(([label, value]) => (
-                <Card key={label}>
-                  <p className="text-sm font-semibold text-accent-800">{label}</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums">{value}</p>
-                </Card>
+                <div
+                  key={label}
+                  className="rounded-2xl border border-[#f6d0b1] bg-[rgba(253,243,234,0.6)] px-[18px] py-3.5"
+                >
+                  <p className="text-xs font-bold uppercase tracking-[0.025em] text-[#7e3e20]">
+                    {label}
+                  </p>
+                  <p className="mt-1 font-number text-2xl font-normal lining-nums tabular-nums text-[#2b1a10]">{value}</p>
+                </div>
               ))}
             </div>
-            <StatusText className="mt-2">
+            <p className="mt-1.5 text-xs text-[#7a6e63]">
               Monto total y puntos otorgados no incluyen consumos anulados.
-            </StatusText>
+            </p>
           </>
         )}
 
-        <form
-          onSubmit={applyFilters}
-          className="mt-6 grid gap-4 rounded-xl border border-orange-200 p-4 sm:grid-cols-2 xl:grid-cols-[minmax(13rem,1.2fr)_minmax(12rem,1.3fr)_minmax(9rem,1fr)_minmax(11rem,1fr)]"
-        >
-          <DateRangePicker
-            id="consumption-date-range"
+        <FilterBar onSubmit={applyFilters} className="mt-4" aria-label="Filtros de consumos">
+          <FilterCell
             label="Fechas"
-            fromDate={draft.fromDate}
-            toDate={draft.toDate}
-            onApply={(fromDate, toDate) =>
-              setDraft((current) => ({ ...current, fromDate, toDate }))
-            }
-          />
+            htmlFor="consumption-date-range"
+            flex="1.3 1 220px"
+            divider={false}
+          >
+            <DateRangePicker
+              id="consumption-date-range"
+              label="Fechas"
+              variant="bar"
+              fromDate={draft.fromDate}
+              toDate={draft.toDate}
+              onApply={(fromDate, toDate) =>
+                setDraft((current) => ({ ...current, fromDate, toDate }))
+              }
+            />
+          </FilterCell>
 
-          <FormField id="consumption-customer" label="Cliente (DNI o nombre)" hideRequiredMark>
-            <Input
+          <FilterCell label="Cliente (DNI o nombre)" htmlFor="consumption-customer" flex="1.3 1 200px">
+            <input
               id="consumption-customer"
               value={draft.q}
               maxLength={80}
               placeholder="Buscar"
+              className={filterControlClass}
               onChange={(event) => updateDraft('q', event.target.value)}
             />
-          </FormField>
+          </FilterCell>
 
-          <FormField id="consumption-status" label="Estado" hideRequiredMark>
-            <Select
+          <FilterCell label="Estado" htmlFor="consumption-status" flex="1 1 140px">
+            <FilterSelect
               id="consumption-status"
+              variant="bar"
               value={draft.status}
               options={STATUS_OPTIONS}
-              onChange={(event) =>
-                updateDraft('status', event.target.value as ConsumptionStatus | '')
-              }
+              onChange={(value) => updateDraft('status', value as ConsumptionStatus | '')}
             />
-          </FormField>
+          </FilterCell>
 
-          <FormField id="consumption-cashier" label="Cajero" hideRequiredMark>
-            <Select
+          <FilterCell label="Cajero" htmlFor="consumption-cashier" flex="1 1 160px">
+            <FilterSelect
               id="consumption-cashier"
+              variant="bar"
               value={draft.registeredBy}
               options={cashierOptions}
-              onChange={(event) => updateDraft('registeredBy', event.target.value)}
+              onChange={(value) => updateDraft('registeredBy', value)}
             />
-          </FormField>
+          </FilterCell>
 
-          <div className="flex items-center justify-end sm:col-span-2 xl:col-span-4">
-            {hasPendingFilters && (
-              <span className="mr-2 text-sm text-accent-700">Sin aplicar</span>
-            )}
-            <Button type="submit" size="md" disabled={result.isFetching}>
-              <Icon d={ICONS.filter} />
+          <FilterActions pending={hasPendingFilters}>
+            <Button type="submit" disabled={result.isFetching} className="h-9">
+              <Icon d={ICONS.filter} className="size-[15px]" />
               Filtrar
             </Button>
-          </div>
-        </form>
+          </FilterActions>
+        </FilterBar>
 
-        {result.isLoading && <StatusText className="mt-6">Cargando consumos…</StatusText>}
+        <div ref={areaRef} className="mt-5">
+        {result.isLoading && <StatusText>Cargando consumos…</StatusText>}
 
         {result.isError && (
-          <Alert variant="error" className="mt-6">
+          <Alert variant="error">
             <AlertMessages messages={result.error.messages} />
           </Alert>
         )}
 
         {data && !result.isError && data.items.length > 0 && (
-          <>
-            <Table className="mt-6">
+            <Table variant="admin">
               <TableHead>
                 <TableRow>
                   <TableHeaderCell>Código</TableHeaderCell>
@@ -258,51 +286,53 @@ export function ConsumptionsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {/* Relativo a /admin/consumos: un feature no importa de app/ */}
-                      <Link
-                        to={consumption.code}
-                        className={buttonVariants({ variant: 'secondary' })}
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setOpenCode(consumption.code)}
                       >
                         Ver
-                      </Link>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
               </tbody>
             </Table>
 
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <StatusText>
-                Mostrando {start}–{end} de {data.total}
-              </StatusText>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={page <= 1 || result.isFetching}
-                  onClick={() => setPage((current) => current - 1)}
-                >
-                  Anterior
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={page >= totalPages || result.isFetching}
-                  onClick={() => setPage((current) => current + 1)}
-                >
-                  Siguiente
-                </Button>
-              </div>
-            </div>
-          </>
         )}
 
         {data && !result.isError && data.items.length === 0 && (
-          <StatusText className="mt-6 text-center">
+          <StatusText className="mt-1 rounded-2xl border border-dashed border-[#f6d0b1] px-4 py-7 text-center text-base text-[#5c5249]">
             No hay consumos para los filtros seleccionados
           </StatusText>
         )}
-      </PageCard>
+        </div>
+
+        {data && !result.isError && data.items.length > 0 && (
+          <RangePagination
+            ref={pagerRef}
+            page={data.page}
+            total={data.total}
+            pageSize={data.limit}
+            onChange={setPage}
+            disabled={result.isFetching}
+          />
+        )}
+      </AdminPanel>
+
+      {openCode && (
+        <ConsumptionDetailModal
+          code={openCode}
+          onClose={closeDetail}
+          // Rutas relativas a /admin/consumos: un feature no importa de app/
+          onViewCustomer={(customerId) =>
+            navigate(`../clientes/${customerId}`, { relative: 'path' })
+          }
+          onRegisterNew={(customer) =>
+            navigate('../../caja/cliente', { relative: 'path', state: customer })
+          }
+        />
+      )}
     </Page>
   );
 }

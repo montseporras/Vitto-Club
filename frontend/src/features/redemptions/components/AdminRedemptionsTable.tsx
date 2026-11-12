@@ -26,7 +26,7 @@ type AdminRedemptionsTableProps = {
 
 export function AdminRedemptionsTable({ items, now, onOpen }: AdminRedemptionsTableProps) {
   return (
-    <Table className="mt-6">
+    <Table variant="admin">
       <TableHead>
         <TableRow>
           <TableHeaderCell>Código</TableHeaderCell>

@@ -1,14 +1,20 @@
 // Filtros de la pantalla Canjes del Administrador (US-45, CA-45.7). Se aplican con "Filtrar";
-// mientras tanto, la etiqueta dice "Sin aplicar".
+// mientras tanto, la etiqueta dice "Sin aplicar". Es una barra unida de dos filas, como en el
+// prototipo (GestionCanjes).
 import type { FormEvent } from 'react'
 import { DOCUMENT_TYPES, type DocumentType } from '@/domain/documents'
-import { FormField } from '@/shared/components/forms/FormField'
 import { Button } from '@/shared/components/ui/Button'
 import { DateRangePicker } from '@/shared/components/ui/DateRangePicker'
+import {
+  FilterActions,
+  FilterBar,
+  FilterCell,
+  FilterRowDivider,
+} from '@/shared/components/ui/FilterBar'
+import { filterControlClass } from '@/shared/components/ui/filter-styles'
+import { FilterSelect } from '@/shared/components/ui/FilterSelect'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
-import { Input } from '@/shared/components/ui/Input'
-import { Select } from '@/shared/components/ui/Select'
 import type { DraftRedemptionFilters } from '../lib/draft-filters'
 import { REDEMPTION_STATUSES, REDEMPTION_STATUS_VALUES } from '../lib/format'
 import type { RedemptionStatus } from '../types/redemption'
@@ -54,83 +60,94 @@ export function AdminRedemptionFilters({
   }
 
   return (
-    <form
-      onSubmit={submit}
-      className="mt-6 grid gap-4 rounded-xl border border-orange-200 p-4 sm:grid-cols-2 xl:grid-cols-4"
-    >
-      <FormField id="redemption-document-type" label="Tipo doc." hideRequiredMark>
-        <Select
+    <FilterBar onSubmit={submit} aria-label="Filtros de canjes">
+      <FilterCell
+        label="Tipo doc."
+        htmlFor="redemption-document-type"
+        flex="0.7 1 110px"
+        divider={false}
+      >
+        <FilterSelect
           id="redemption-document-type"
+          variant="bar"
           value={draft.documentType}
           options={DOCUMENT_TYPE_OPTIONS}
-          onChange={(event) => update('documentType', event.target.value as DocumentType)}
+          onChange={(value) => update('documentType', value as DocumentType)}
         />
-      </FormField>
+      </FilterCell>
 
-      <FormField id="redemption-document-number" label="N° de documento" hideRequiredMark>
-        <Input
+      <FilterCell label="N° de documento" htmlFor="redemption-document-number" flex="1 1 150px">
+        <input
           id="redemption-document-number"
           value={draft.documentNumber}
           maxLength={20}
           placeholder={draft.documentType === 'PASSPORT' ? 'AAB123456' : '38.456.123'}
+          className={filterControlClass}
           onChange={(event) => update('documentNumber', event.target.value)}
         />
-      </FormField>
+      </FilterCell>
 
-      <FormField id="redemption-code" label="Código" hideRequiredMark>
-        <Input
+      <FilterCell label="Código" htmlFor="redemption-code" flex="0.8 1 110px">
+        <input
           id="redemption-code"
           value={draft.code}
           maxLength={10}
           placeholder="K7MP2X"
-          className="uppercase"
+          className={`${filterControlClass} uppercase`}
           onChange={(event) => update('code', event.target.value.toUpperCase())}
         />
-      </FormField>
+      </FilterCell>
 
-      <FormField id="redemption-reward" label="Recompensa" hideRequiredMark>
-        <Input
+      <FilterCell label="Recompensa" htmlFor="redemption-reward" flex="1.2 1 170px">
+        <input
           id="redemption-reward"
           value={draft.rewardName}
           maxLength={80}
           placeholder="Nombre de la recompensa"
+          className={filterControlClass}
           onChange={(event) => update('rewardName', event.target.value)}
         />
-      </FormField>
+      </FilterCell>
 
-      <FormField id="redemption-status" label="Estado" hideRequiredMark>
-        <Select
+      <FilterRowDivider />
+
+      <FilterCell label="Estado" htmlFor="redemption-status" flex="0.9 1 140px" divider={false}>
+        <FilterSelect
           id="redemption-status"
+          variant="bar"
           value={draft.status}
           options={STATUS_OPTIONS}
-          onChange={(event) => update('status', event.target.value as RedemptionStatus | '')}
+          onChange={(value) => update('status', value as RedemptionStatus | '')}
         />
-      </FormField>
+      </FilterCell>
 
-      <DateRangePicker
-        id="redemption-date-range"
-        label="Fechas"
-        fromDate={draft.fromDate}
-        toDate={draft.toDate}
-        onApply={(fromDate, toDate) => onChange({ ...draft, fromDate, toDate })}
-      />
+      <FilterCell label="Fechas" htmlFor="redemption-date-range" flex="1.3 1 220px">
+        <DateRangePicker
+          id="redemption-date-range"
+          label="Fechas"
+          variant="bar"
+          fromDate={draft.fromDate}
+          toDate={draft.toDate}
+          onApply={(fromDate, toDate) => onChange({ ...draft, fromDate, toDate })}
+        />
+      </FilterCell>
 
-      <FormField id="redemption-order" label="Orden" hideRequiredMark>
-        <Select
+      <FilterCell label="Orden" htmlFor="redemption-order" flex="0.9 1 140px">
+        <FilterSelect
           id="redemption-order"
+          variant="bar"
           value={draft.order}
           options={ORDER_OPTIONS}
-          onChange={(event) => update('order', event.target.value as 'desc' | 'asc')}
+          onChange={(value) => update('order', value as 'desc' | 'asc')}
         />
-      </FormField>
+      </FilterCell>
 
-      <div className="flex items-end justify-end">
-        {hasPending && <span className="mr-2 pb-2 text-sm text-accent-700">Sin aplicar</span>}
-        <Button type="submit" size="md" disabled={busy}>
-          <Icon d={ICONS.filter} />
+      <FilterActions pending={hasPending}>
+        <Button type="submit" disabled={busy} className="h-9">
+          <Icon d={ICONS.filter} className="size-[15px]" />
           Filtrar
         </Button>
-      </div>
-    </form>
+      </FilterActions>
+    </FilterBar>
   )
 }

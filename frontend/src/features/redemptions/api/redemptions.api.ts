@@ -19,7 +19,8 @@ import type {
 // Mis canjes pide todo de una (§3.12.1: "La pantalla usa limit=100")
 export const MY_REDEMPTIONS_LIMIT = 100
 
-// Filas por página de la pantalla Canjes del Administrador (§3.12.3)
+// Filas por página de la pantalla Canjes del Administrador si no se puede calcular cuántas
+// entran en su alto (ajustes S5-57; antes §3.12.3: 10)
 export const REDEMPTIONS_PAGE_SIZE = 10
 
 // Mis canjes del Cliente (§3.12.1)
@@ -50,10 +51,11 @@ export async function getCustomerRedemptions(customerId: number): Promise<Redemp
 export async function listRedemptions(
   filters: RedemptionFilters,
   page: number,
+  limit: number = REDEMPTIONS_PAGE_SIZE,
 ): Promise<Paginated<Redemption>> {
   try {
     const { data } = await http.get<Paginated<Redemption>>('/canjes', {
-      params: { ...filters, page, limit: REDEMPTIONS_PAGE_SIZE },
+      params: { ...filters, page, limit },
     })
     return data
   } catch (error) {

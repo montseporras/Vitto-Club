@@ -1,19 +1,18 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES, type DocumentType } from '@/domain/documents'
 import { LEVELS, type Level } from '@/domain/levels'
 import { CUSTOMER_REGISTERED_MESSAGE } from '@/features/cashier'
 import { StatusText } from '@/shared/components/feedback/StatusText'
-import { FormField } from '@/shared/components/forms/FormField'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Button } from '@/shared/components/ui/Button'
-import { Icon } from '@/shared/components/ui/Icon'
-import { ICONS } from '@/shared/components/ui/icons'
-import { Input } from '@/shared/components/ui/Input'
-import { Page, PageCard } from '@/shared/components/ui/Page'
-import { Pagination } from '@/shared/components/ui/Pagination'
-import { Select } from '@/shared/components/ui/Select'
+import { LooseField } from '@/shared/components/ui/FilterBar'
+import { FilterSelect } from '@/shared/components/ui/FilterSelect'
+import { looseInputClass } from '@/shared/components/ui/filter-styles'
+import { AdminPanel } from '@/shared/components/ui/AdminPanel'
+import { Page } from '@/shared/components/ui/Page'
+import { RangePagination } from '@/shared/components/ui/Pagination'
 import {
   Table,
   TableCell,
@@ -22,6 +21,7 @@ import {
   TableRow,
 } from '@/shared/components/ui/Table'
 import { useDebounce } from '@/shared/hooks/useDebounce'
+import { useClampPage, useRowsThatFit } from '@/shared/hooks/useRowsThatFit'
 import { isoToDisplayDateOnly } from '@/shared/lib/dates'
 import { formatInteger } from '@/shared/lib/numbers'
 import { cn } from '@/shared/lib/utils'
@@ -57,12 +57,23 @@ export function CustomersPage() {
   const [page, setPage] = useState(1)
   // Se busca cuando se deja de escribir, para no pedir el listado en cada tecla
   const documentNumber = useDebounce(search.trim(), 300)
-  const customers = useCustomers({ documentType, documentNumber, level, page })
-
   const [selected, setSelected] = useState<CustomerListItem | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [registering, setRegistering] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+
+  // Filas por página: las que entran en la pantalla (ajustes S5-57). Debajo de la tabla quedan
+  // el botón "+ Registrar cliente" (24 + 42 px) y, si hay, el mensaje de éxito (16 + 18 px).
+  const areaRef = useRef<HTMLDivElement>(null)
+  const pagerRef = useRef<HTMLElement>(null)
+  const limit = useRowsThatFit({
+    areaRef,
+    pagerRef,
+    initial: CUSTOMERS_PAGE_SIZE,
+    extraBelow: 66 + (message ? 34 : 0),
+  })
+  const customers = useCustomers({ documentType, documentNumber, level, page, limit })
+  useClampPage(page, setPage, customers.data?.total, customers.data?.limit)
 
   const closeAll = (done?: string) => {
     setSelected(null)
@@ -71,29 +82,36 @@ export function CustomersPage() {
     setMessage(done ?? null)
   }
 
-  const totalPages = customers.data
-    ? Math.ceil(customers.data.total / CUSTOMERS_PAGE_SIZE)
-    : 0
-
   return (
-    <Page className="max-w-6xl">
-      <PageCard title="Clientes" variant="plain">
-        <div className="grid gap-4 sm:grid-cols-[11rem_1fr_16rem]">
-          <FormField id="customers-document-type" label="Tipo de documento" hideRequiredMark>
-            <Select
+    <Page className="max-w-none">
+      <AdminPanel title="Clientes">
+        {/* Campos sueltos con anchos máximos, como en el prototipo (Clientes) */}
+        <div className="mb-3 flex flex-wrap items-end gap-2">
+          <LooseField
+            label="Tipo de documento"
+            htmlFor="customers-document-type"
+            className="mb-2.5 max-w-[180px]"
+          >
+            <FilterSelect
               id="customers-document-type"
-              options={DOCUMENT_TYPE_OPTIONS}
+              variant="field"
               value={documentType}
-              onChange={(event) => {
-                setDocumentType(event.target.value as DocumentType)
-                setPage(1)
-              }}
+              options={DOCUMENT_TYPE_OPTIONS}
+              onChange={(value) => {
+  setDocumentType(value as DocumentType)
+  setPage(1)
+}}
             />
-          </FormField>
-          <FormField id="customers-search" label="Número de documento" hideRequiredMark>
-            <Input
+          </LooseField>
+          <LooseField
+            label="Número de documento"
+            htmlFor="customers-search"
+            className="mb-2.5 max-w-[240px]"
+          >
+            <input
               id="customers-search"
               type="search"
+              className={looseInputClass}
               placeholder={DOCUMENT_PLACEHOLDERS[documentType]}
               autoComplete="off"
               value={search}
@@ -102,21 +120,22 @@ export function CustomersPage() {
                 setPage(1)
               }}
             />
-          </FormField>
-          <FormField id="customers-level" label="Nivel" hideRequiredMark>
-            <Select
+          </LooseField>
+          <LooseField label="Nivel" htmlFor="customers-level" className="mb-2.5 max-w-[200px]">
+            <FilterSelect
               id="customers-level"
-              options={LEVEL_OPTIONS}
+              variant="field"
               value={level}
-              onChange={(event) => {
-                setLevel(event.target.value as Level | '')
-                setPage(1)
-              }}
+              options={LEVEL_OPTIONS}
+              onChange={(value) => {
+  setLevel(value as Level | '')
+  setPage(1)
+}}
             />
-          </FormField>
+          </LooseField>
         </div>
 
-        <div className="mt-6" aria-live="polite">
+        <div ref={areaRef} aria-live="polite">
           {customers.isPending && <StatusText>Cargando…</StatusText>}
 
           {customers.isError && (
@@ -127,12 +146,12 @@ export function CustomersPage() {
           )}
 
           {customers.data && customers.data.items.length === 0 && (
-            <StatusText>Sin resultados para esa búsqueda.</StatusText>
+            <p className="text-[13px] text-[#8a6f5e]">Sin resultados para esa búsqueda.</p>
           )}
 
           {customers.data && customers.data.items.length > 0 && (
             <>
-              <Table>
+              <Table variant="admin">
                 <TableHead>
                   <tr>
                     <TableHeaderCell>Apellido</TableHeaderCell>
@@ -191,36 +210,39 @@ export function CustomersPage() {
                 </tbody>
               </Table>
 
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                onChange={setPage}
-                disabled={customers.isFetching}
-              />
             </>
           )}
         </div>
 
         {message && (
-          <Alert variant="success" className="mt-5">
+          <p role="status" className="mt-4 text-[13px] text-[#7a3a1d]">
             {message}
-          </Alert>
+          </p>
         )}
 
         <div className="mt-6">
           <Button
             type="button"
-            size="lg"
+            className="h-[42px] px-5 text-[15px]"
             onClick={() => {
               setMessage(null)
               setRegistering(true)
             }}
           >
-            <Icon d={ICONS.plus} />
-            Registrar cliente
+            + Registrar cliente
           </Button>
         </div>
-      </PageCard>
+        {customers.data && customers.data.items.length > 0 && (
+          <RangePagination
+            ref={pagerRef}
+            page={customers.data.page}
+            total={customers.data.total}
+            pageSize={customers.data.limit}
+            onChange={setPage}
+            disabled={customers.isFetching}
+          />
+        )}
+      </AdminPanel>
 
       {selected && !deleting && (
         <CustomerDetailsModal

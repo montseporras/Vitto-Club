@@ -1,8 +1,9 @@
 import { DOCUMENT_TYPES } from '@/domain/documents'
 import { Button } from '@/shared/components/ui/Button'
 import { DateRangePicker } from '@/shared/components/ui/DateRangePicker'
-import { Input } from '@/shared/components/ui/Input'
-import { Select } from '@/shared/components/ui/Select'
+import { LooseField } from '@/shared/components/ui/FilterBar'
+import { FilterSelect } from '@/shared/components/ui/FilterSelect'
+import { looseInputClass } from '@/shared/components/ui/filter-styles'
 import { AUDIT_ACTIONS_BY_MODULE, AUDIT_MODULES } from '../types/audit'
 import type { AuditActor, AuditAction, AuditModule } from '../types/audit'
 
@@ -57,121 +58,101 @@ export function AuditFilters({
     { value: 'SYSTEM', label: 'Sistema' },
   ]
 
+  const moduleOptions = [
+    { value: '', label: 'Todos' },
+    ...AUDIT_MODULES.map((module) => ({
+      value: module.value,
+      label: module.label,
+      disabled: module.disabled,
+    })),
+  ]
+  const actionOptions = [
+    { value: '', label: 'Todas' },
+    ...actions.map((action) => ({ value: action.value, label: action.label })),
+  ]
+
+  // Campos sueltos en una grilla que se acomoda sola, como en el prototipo (Auditoria.html)
   return (
     <section
       aria-label="Filtros de auditoría"
-      className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
+      className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] items-end gap-2.5"
     >
-      <div>
-        <label className="mb-1.5 block text-base font-semibold" htmlFor="audit-actor">
-          Realizado por
-        </label>
-        <Select
+      <LooseField label="Realizado por" htmlFor="audit-actor">
+        <FilterSelect
           id="audit-actor"
-          options={actorOptions}
+          variant="field"
           value={filters.actor}
+          options={actorOptions}
           disabled={actorsLoading}
-          onChange={(event) => onChange({ actor: event.target.value })}
+          onChange={(value) => onChange({ actor: value })}
         />
-      </div>
+      </LooseField>
 
-      <div>
-        <label className="mb-1.5 block text-base font-semibold" htmlFor="audit-module">
-          Módulo
-        </label>
-        <Select
+      <LooseField label="Módulo" htmlFor="audit-module">
+        <FilterSelect
           id="audit-module"
-          options={[
-            { value: '', label: 'Todos' },
-            ...AUDIT_MODULES.map((module) => ({
-              value: module.value,
-              label: module.label,
-              disabled: module.disabled,
-            })),
-          ]}
+          variant="field"
           value={filters.module}
-          onChange={(event) =>
-            onChange({
-              module: event.target.value as AuditModule | '',
-              action: '',
-            })
-          }
+          options={moduleOptions}
+          onChange={(value) => onChange({ module: value as AuditModule | '', action: '' })}
         />
-      </div>
+      </LooseField>
 
-      <div>
-        <label className="mb-1.5 block text-base font-semibold" htmlFor="audit-action">
-          Acción
-        </label>
-        <Select
+      <LooseField label="Acción" htmlFor="audit-action">
+        <FilterSelect
           id="audit-action"
-          options={[
-            { value: '', label: 'Todas' },
-            ...actions.map((action) => ({
-              value: action.value,
-              label: action.label,
-            })),
-          ]}
+          variant="field"
           value={filters.action}
+          options={actionOptions}
           disabled={!filters.module}
-          onChange={(event) =>
-            onChange({ action: event.target.value as AuditAction | '' })
-          }
+          onChange={(value) => onChange({ action: value as AuditAction | '' })}
         />
-      </div>
+      </LooseField>
 
-      <div>
-        <label className="mb-1.5 block text-base font-semibold" htmlFor="audit-document-type">
-          Tipo doc.
-        </label>
-        <Select
+      <LooseField label="Tipo doc." htmlFor="audit-document-type">
+        <FilterSelect
           id="audit-document-type"
-          options={DOCUMENT_OPTIONS}
+          variant="field"
           value={filters.documentType}
-          onChange={(event) =>
-            onChange({ documentType: event.target.value as AuditFiltersState['documentType'] })
-          }
+          options={DOCUMENT_OPTIONS}
+          onChange={(value) => onChange({ documentType: value as AuditFiltersState['documentType'] })}
         />
-      </div>
+      </LooseField>
 
-      <div>
-        <label className="mb-1.5 block text-base font-semibold" htmlFor="audit-document-number">
-          N° doc. cliente
-        </label>
-        <Input
+      <LooseField label="N° doc. cliente" htmlFor="audit-document-number">
+        <input
           id="audit-document-number"
+          className={looseInputClass}
           placeholder="30111222"
           maxLength={20}
           value={filters.documentNumber}
           onChange={(event) => onChange({ documentNumber: event.target.value })}
         />
-      </div>
+      </LooseField>
 
-      <div>
-        <label className="mb-1.5 block text-base font-semibold" htmlFor="audit-date-preset">
-          Fecha
-        </label>
-        <Select
+      <LooseField label="Fecha" htmlFor="audit-date-preset">
+        <FilterSelect
           id="audit-date-preset"
-          options={DATE_OPTIONS}
+          variant="field"
           value={filters.datePreset}
-          onChange={(event) =>
-            onChange({ datePreset: event.target.value as AuditDatePreset })
-          }
+          options={DATE_OPTIONS}
+          onChange={(value) => onChange({ datePreset: value as AuditDatePreset })}
         />
-      </div>
+      </LooseField>
 
       {filters.datePreset === 'CUSTOM' && (
-        <DateRangePicker
-          id="audit-date-range"
-          label="Rango de fechas"
-          fromDate={filters.fromDate}
-          toDate={filters.toDate}
-          onApply={(fromDate, toDate) => onChange({ fromDate, toDate })}
-        />
+        <div className="col-span-2 min-w-0">
+          <DateRangePicker
+            id="audit-date-range"
+            label="Rango de fechas"
+            fromDate={filters.fromDate}
+            toDate={filters.toDate}
+            onApply={(fromDate, toDate) => onChange({ fromDate, toDate })}
+          />
+        </div>
       )}
 
-      <div className="sm:col-span-2 lg:col-span-3 xl:col-span-6">
+      <div className="flex items-end">
         <Button type="button" variant="secondary" onClick={onClear}>
           Limpiar filtros
         </Button>

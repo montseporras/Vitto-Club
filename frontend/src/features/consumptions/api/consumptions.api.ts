@@ -12,7 +12,8 @@ import type {
 // Consumos que se piden por vez; el "Ver más" de la pantalla trae la página siguiente.
 export const HISTORY_PAGE_SIZE = 20;
 
-// Filas por página del listado del Administrador (§3.3.1: "La pantalla usa 8").
+// Filas por página del listado del Administrador si la pantalla no puede calcular cuántas
+// entran en su alto (ajustes S5-57; antes §3.3.1: "La pantalla usa 8").
 export const CONSUMPTIONS_PAGE_SIZE = 8;
 
 // Una página del historial de consumos del cliente que inició sesión (US-23, §3.10.2).
@@ -31,10 +32,11 @@ export async function getMyConsumptions(
 export async function listConsumptions(
   filters: ConsumptionFilters,
   page: number,
+  limit: number = CONSUMPTIONS_PAGE_SIZE,
 ): Promise<ConsumptionsListResponse> {
   try {
     const { data } = await http.get<ConsumptionsListResponse>('/consumos', {
-      params: { ...filters, page, limit: CONSUMPTIONS_PAGE_SIZE },
+      params: { ...filters, page, limit },
     });
     return data;
   } catch (error) {

@@ -20,6 +20,8 @@ export type CustomerListFilters = {
   documentNumber: string
   level: Level | ''
   page: number
+  /** Filas por página: las que entran en la pantalla (1–100). */
+  limit?: number
 }
 
 /**

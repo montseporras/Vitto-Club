@@ -22,7 +22,7 @@ export function PointsSettingsPage() {
   const { data: bonus, isLoading, isError, refetch } = useFirstConsumptionBonus();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* RF-014. Guardar no recalcula los movimientos ya registrados. */}
       <StatusText>
         Los cambios se aplican a las operaciones futuras. Los movimientos ya
@@ -30,9 +30,9 @@ export function PointsSettingsPage() {
       </StatusText>
 
       {/* RF-09. Cada configuración de puntos tiene su propia Card. */}
-      <Card>
+      <Card compact>
         <CardTitle>Equivalencia de puntos</CardTitle>
-        <StatusText className="mt-1 mb-6">
+        <StatusText className="mt-0.5 mb-3 text-sm">
           Cantidad de puntos que suma el cliente según el monto de cada consumo.
         </StatusText>
 
@@ -61,9 +61,9 @@ export function PointsSettingsPage() {
         )}
       </Card>
 
-      <Card>
+      <Card compact>
         <CardTitle>Niveles</CardTitle>
-        <StatusText className="mt-1 mb-6">
+        <StatusText className="mt-0.5 mb-3 text-sm">
           El nivel del cliente se calcula según los puntos que acumuló por
           consumos a lo largo del tiempo.
         </StatusText>
@@ -91,9 +91,9 @@ export function PointsSettingsPage() {
       </Card>
 
       {/* RF-010. */}
-      <Card>
+      <Card compact>
         <CardTitle>Vigencia de los puntos</CardTitle>
-        <StatusText className="mt-1 mb-6">
+        <StatusText className="mt-0.5 mb-3 text-sm">
           Meses que los puntos permanecen disponibles desde que se acreditan.
         </StatusText>
 
@@ -120,9 +120,9 @@ export function PointsSettingsPage() {
       </Card>
 
       {/* RF-011. */}
-      <Card>
+      <Card compact>
         <CardTitle>Bonificación por primer consumo</CardTitle>
-        <StatusText className="mt-1 mb-6">
+        <StatusText className="mt-0.5 mb-3 text-sm">
           Puntos adicionales que recibe el cliente en su primer consumo
           registrada, además de los que le corresponden normalmente.
         </StatusText>

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import type { ApiError } from '@/shared/api/ApiError'
 import { listAuditActors, listAuditEntries } from './audit.api'
 import { auditKeys } from './audit.keys'
@@ -8,6 +8,7 @@ export const useAuditEntries = (params: AuditQueryParams) =>
   useQuery<AuditResponse, ApiError>({
     queryKey: auditKeys.entries(params),
     queryFn: () => listAuditEntries(params),
+    placeholderData: keepPreviousData,
     retry: (count, error) => error.status === undefined && count < 1,
   })
 

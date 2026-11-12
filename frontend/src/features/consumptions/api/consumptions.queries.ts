@@ -1,5 +1,5 @@
 // Este archivo ofrece los hooks para consultar consumos con carga, error y caché.
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import type { Consumption } from '@/features/cashier';
 import type { ApiError } from '@/shared/api/ApiError';
 import type {
@@ -27,10 +27,12 @@ export const useMyConsumptions = () =>
   });
 
 // Listado de Consumos del Administrador (US-23): una página con los filtros ya aplicados.
-export const useConsumptions = (filters: ConsumptionFilters, page: number) =>
+export const useConsumptions = (filters: ConsumptionFilters, page: number, limit: number) =>
   useQuery<ConsumptionsListResponse, ApiError>({
-    queryKey: consumptionsKeys.list(filters, page),
-    queryFn: () => listConsumptions(filters, page),
+    queryKey: consumptionsKeys.list(filters, page, limit),
+    queryFn: () => listConsumptions(filters, page, limit),
+    // Al cambiar la cantidad de filas, la tabla no desaparece mientras llega la nueva página
+    placeholderData: keepPreviousData,
   });
 
 // Detalle de un consumo (US-23). Un 400 o un 404 no se reintentan: no van a cambiar.
