@@ -11,3 +11,8 @@ process.env.BCRYPT_COST = '4';
 // US-25: el cron del vencimiento de puntos no corre durante los e2e; los tests llaman al proceso
 // directamente. Mismo motivo: ConfigModule no pisa lo ya definido.
 process.env.POINTS_EXPIRATION_CRON_ENABLED = 'false';
+
+// US-37 y US-44: lo mismo para el vencimiento de recompensas y el barrido de canjes. Sin esto
+// corrían al iniciar la app de cada spec; los tests que los prueban llaman al servicio directamente.
+process.env.REWARDS_EXPIRATION_CRON_ENABLED = 'false';
+process.env.REDEMPTIONS_EXPIRATION_CRON_ENABLED = 'false';

@@ -5,18 +5,15 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { AccessTokenIssuer } from '../src/auth/domain/port/access-token-issuer.js';
 import type { AuthRole } from '../src/auth/domain/auth-role.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
-// Día YYYY-MM-DD en hora de Argentina (UTC-3) de un instante
-function argentinaDay(date: Date): string {
-  return new Date(date.getTime() - 3 * HOUR_MS).toISOString().slice(0, 10);
-}
-
-// Cubre US-26 (§3.6.1, §3.6.2 y §3.10.2) contra Postgres real. Los créditos y la reversión se
+// Cubre US-26 (§3.6.1 y §3.10.2) contra Postgres real; el listado global de §3.6.2 se eliminó en
+// el Sprint 5 (S5-13). Los créditos y la reversión se
 // generan con los endpoints reales de US-21/US-22; los ajustes (US-24) y los vencimientos (US-25)
 // todavía no tienen código, así que esos movimientos se siembran directo en la base.
 describe('Movimientos de puntos (e2e)', () => {
@@ -78,7 +75,7 @@ describe('Movimientos de puntos (e2e)', () => {
   });
 
   async function cleanDatabase() {
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     // Sprint 4: los canjes apuntan a clientes, cuentas y recompensas (onDelete Restrict)
     await prisma.redemption.deleteMany();
     await prisma.reward.deleteMany();
@@ -426,115 +423,14 @@ describe('Movimientos de puntos (e2e)', () => {
     });
   });
 
-  describe('GET /api/movimientos-de-puntos (§3.6.2)', () => {
-    it('Administrador: movimientos de todos los clientes', async () => {
+  // S5-13 (contrato S5 §1 "Existentes que se eliminan"): la ruta ya no existe
+  describe('GET /api/movimientos-de-puntos (eliminado, S5-13)', () => {
+    it('responde 404 al Administrador', async () => {
       const s = await seedScenario();
 
-      const response = await request(app.getHttpServer())
-        .get('/api/movimientos-de-puntos?limit=10')
-        .set(staffHeaders('ADMIN', s.admin));
+      const response = await request(app.getHttpServer()).get('/api/movimientos-de-puntos').set(staffHeaders('ADMIN', s.admin));
 
-      expect(response.status).toBe(200);
-      expect(response.body).toMatchObject({ total: 6, page: 1, limit: 10 });
-      expect(response.body.items[0]).toHaveProperty('customer');
-      expect(response.body.items[0]).toHaveProperty('performedBy');
-    });
-
-    it('Cajero → 403 FORBIDDEN; Cliente → 403; sin token → 401', async () => {
-      const s = await seedScenario();
-
-      const asCashier = await request(app.getHttpServer()).get('/api/movimientos-de-puntos').set(staffHeaders('CASHIER', s.cashier));
-      const asCustomer = await request(app.getHttpServer()).get('/api/movimientos-de-puntos').set(customerHeaders(s.carolina.id));
-      const anonymous = await request(app.getHttpServer()).get('/api/movimientos-de-puntos');
-
-      expect(asCashier.status).toBe(403);
-      expect(asCashier.body.code).toBe('FORBIDDEN');
-      expect(asCustomer.status).toBe(403);
-      expect(anonymous.status).toBe(401);
-    });
-
-    it.each(['perez', 'PÉREZ', 'jose perez', 'Jos'])('q="%s" encuentra a José Pérez sin importar tildes ni mayúsculas', async (q) => {
-      const s = await seedScenario();
-
-      const response = await request(app.getHttpServer())
-        .get(`/api/movimientos-de-puntos?q=${encodeURIComponent(q)}`)
-        .set(staffHeaders('ADMIN', s.admin));
-
-      expect(response.status).toBe(200);
-      expect(response.body.total).toBe(1);
-      expect(response.body.items[0].customer.id).toBe(s.jose.id);
-    });
-
-    it('q con 3 dígitos o más busca en el documento (parcial)', async () => {
-      const s = await seedScenario();
-
-      const response = await request(app.getHttpServer())
-        .get('/api/movimientos-de-puntos?q=38.456')
-        .set(staffHeaders('ADMIN', s.admin));
-
-      expect(response.body.total).toBe(5);
-      expect(response.body.items.every((item: { customer: { id: number } }) => item.customer.id === s.carolina.id)).toBe(true);
-    });
-
-    it('q sin coincidencias → página vacía', async () => {
-      const s = await seedScenario();
-
-      const response = await request(app.getHttpServer())
-        .get('/api/movimientos-de-puntos?q=zzz')
-        .set(staffHeaders('ADMIN', s.admin));
-
-      expect(response.body).toEqual({ items: [], total: 0, page: 1, limit: 20 });
-    });
-
-    it('customerId y type', async () => {
-      const s = await seedScenario();
-
-      const response = await request(app.getHttpServer())
-        .get(`/api/movimientos-de-puntos?customerId=${s.carolina.id}&type=MANUAL_ADJUSTMENT`)
-        .set(staffHeaders('ADMIN', s.admin));
-
-      expect(response.body.total).toBe(1);
-      expect(response.body.items[0].id).toBe(s.adjustment.id);
-    });
-
-    it('fromDate y toDate: días completos en hora de Argentina', async () => {
-      const s = await seedScenario();
-      const day = argentinaDay(s.expiration.createdAt);
-
-      const response = await request(app.getHttpServer())
-        .get(`/api/movimientos-de-puntos?fromDate=${day}&toDate=${day}`)
-        .set(staffHeaders('ADMIN', s.admin));
-
-      expect(response.status).toBe(200);
-      expect(response.body.total).toBe(1);
-      expect(response.body.items[0].id).toBe(s.expiration.id);
-    });
-
-    it('rango invertido → 400 con details en fromDate', async () => {
-      const s = await seedScenario();
-
-      const response = await request(app.getHttpServer())
-        .get('/api/movimientos-de-puntos?fromDate=2026-10-17&toDate=2026-10-16')
-        .set(staffHeaders('ADMIN', s.admin));
-
-      expect(response.status).toBe(400);
-      expect(response.body.message).toBe('fromDate no puede ser posterior a toDate');
-      expect(response.body.details).toEqual([{ field: 'fromDate', message: 'fromDate no puede ser posterior a toDate' }]);
-    });
-
-    it('fecha inválida → 400; q de más de 80 → 400', async () => {
-      const s = await seedScenario();
-
-      const badDate = await request(app.getHttpServer())
-        .get('/api/movimientos-de-puntos?fromDate=2026-02-30')
-        .set(staffHeaders('ADMIN', s.admin));
-      const longQ = await request(app.getHttpServer())
-        .get(`/api/movimientos-de-puntos?q=${'a'.repeat(81)}`)
-        .set(staffHeaders('ADMIN', s.admin));
-
-      expect(badDate.status).toBe(400);
-      expect(badDate.body.message).toBe('fromDate no es una fecha válida (YYYY-MM-DD)');
-      expect(longQ.status).toBe(400);
+      expect(response.status).toBe(404);
     });
   });
 

@@ -7,6 +7,7 @@ import { AppModule } from '../src/app.module.js';
 import { AccessTokenIssuer } from '../src/auth/domain/port/access-token-issuer.js';
 import type { AuthRole } from '../src/auth/domain/auth-role.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { REDEMPTION_DURATION_MS } from '../src/redemptions/domain/redemption.js';
 import { toArgentinaDateString } from '../src/shared/time/argentina-date.js';
 
@@ -65,7 +66,7 @@ describe('Consultar canjes (e2e, US-45)', () => {
   });
 
   async function cleanDatabase() {
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     await prisma.pointsLot.deleteMany();
     await prisma.customerPoints.deleteMany();
     await prisma.redemption.deleteMany();

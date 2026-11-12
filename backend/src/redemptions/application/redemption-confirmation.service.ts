@@ -41,9 +41,11 @@ export class RedemptionConfirmationService {
         throw new ConflictException({ message: 'El cliente está dado de baja.', code: 'CUSTOMER_INACTIVE' });
       }
 
-      // Paso 3: la recompensa existe, no está dada de baja y está disponible. Lectura pura: no
-      // deshabilita nada acá (eso es de US-37, el proceso diario o cuando se usa un canje).
-      const reward = await this.rewardsService.findById(input.rewardId);
+      // Paso 3: la recompensa existe, no está dada de baja y está disponible. Se toma con
+      // FOR UPDATE (contrato S5 §4: "al confirmar un canje: la recompensa"): así no se cuela un
+      // canje mientras otra operación baja el stock o desactiva la recompensa. No deshabilita
+      // nada acá (eso es de US-37, el proceso diario o cuando se usa un canje).
+      const reward = await this.rewardsService.lockForUpdate(input.rewardId);
       if (!reward || reward.getStatus() === 'DELETED') {
         throw new NotFoundException('No existe la recompensa.');
       }

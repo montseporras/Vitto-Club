@@ -6,6 +6,7 @@ import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { AuditService } from '../src/audit/application/audit.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { AccessTokenIssuer } from '../src/auth/domain/port/access-token-issuer.js';
 import type { AuthRole } from '../src/auth/domain/auth-role.js';
 
@@ -55,7 +56,7 @@ describe('Confirmar canje (e2e, US-40)', () => {
   });
 
   async function cleanDatabase() {
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     await prisma.pointsLot.deleteMany();
     await prisma.customerPoints.deleteMany();
     await prisma.redemption.deleteMany();
@@ -345,6 +346,56 @@ describe('Confirmar canje (e2e, US-40)', () => {
         .send({ rewardId: reward.id });
 
       expect(response.status).toBe(201);
+    });
+
+    // Contrato S5 §4 (bloqueos): al confirmar un canje se bloquea la recompensa. Otra transacción
+    // toma la fila con FOR UPDATE y baja el stock sin hacer commit todavía: la confirmación tiene
+    // que esperar y, al leer la recompensa ya actualizada, responder REWARD_NOT_AVAILABLE. Sin el
+    // bloqueo leería el stock viejo y crearía el canje.
+    it('concurrencia: espera el bloqueo de la recompensa y la lee ya sin stock (409 REWARD_NOT_AVAILABLE)', async () => {
+      const customer = await seedCustomer({ documentNumber: '30111222', email: 'sofia@mail.com' });
+      const reward = await seedReward({ stock: 1 });
+
+      let release!: () => void;
+      const released = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      let markLocked!: () => void;
+      const locked = new Promise<void>((resolve) => {
+        markLocked = resolve;
+      });
+
+      const holder = prisma.$transaction(
+        async (tx) => {
+          await tx.$queryRaw`SELECT id FROM rewards WHERE id = ${reward.id} FOR UPDATE`;
+          markLocked();
+          await released;
+          await tx.reward.update({
+            where: { id: reward.id },
+            data: { stock: 0, status: 'DISABLED', disabledReason: 'OUT_OF_STOCK' },
+          });
+        },
+        { timeout: 20000 },
+      );
+
+      await locked;
+      const pending = request(app.getHttpServer())
+        .post('/api/customers/me/canjes')
+        .set(customerHeaders(customer.id))
+        .send({ rewardId: reward.id })
+        .then((res) => res);
+
+      // La confirmación sigue esperando mientras el bloqueo está tomado
+      const early = await Promise.race([pending, new Promise<'waiting'>((resolve) => setTimeout(() => resolve('waiting'), 500))]);
+      expect(early).toBe('waiting');
+
+      release();
+      await holder;
+      const response = await pending;
+
+      expect(response.status).toBe(409);
+      expect(response.body.code).toBe('REWARD_NOT_AVAILABLE');
+      expect(await prisma.redemption.count()).toBe(0);
     });
 
     it('roles: sin token 401; Administrador y Cajero 403 en la ruta del Cliente', async () => {

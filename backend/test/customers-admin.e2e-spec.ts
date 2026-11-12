@@ -5,6 +5,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 
 const ADMIN = { email: 'admin@test.com', password: 'clave-del-admin' };
 const CASHIER = { email: 'cajero@test.com', password: 'clave-del-cajero' };
@@ -83,7 +84,7 @@ describe('Clientes del Administrador (CLI-ADM, e2e)', () => {
 
   // En orden de claves foráneas. La auditoría es solo inserción: no se borra, se mira desde lastAuditId.
   const cleanDatabase = async () => {
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     // Sprint 4: los canjes apuntan a clientes, cuentas y recompensas (onDelete Restrict)
     await prisma.redemption.deleteMany();
     await prisma.reward.deleteMany();

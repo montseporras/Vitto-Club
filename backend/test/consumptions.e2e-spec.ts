@@ -5,6 +5,7 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { AccessTokenIssuer } from '../src/auth/domain/port/access-token-issuer.js';
 import type { AuthRole } from '../src/auth/domain/auth-role.js';
 
@@ -55,7 +56,7 @@ describe('Consumos y puntos (e2e)', () => {
   // Orden que respeta las FK: movimientos/lotes/saldo -> consumos -> sesiones -> cuentas ->
   // empleados/clientes -> configuración.
   beforeEach(async () => {
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     // Sprint 4: los canjes apuntan a clientes, cuentas y recompensas (onDelete Restrict)
     await prisma.redemption.deleteMany();
     await prisma.reward.deleteMany();
@@ -178,6 +179,37 @@ describe('Consumos y puntos (e2e)', () => {
       const balance = await prisma.customerPoints.findUnique({ where: { customerId: customer.id } });
       expect(balance?.balance).toBe(500);
       expect(balance?.lifetimePoints).toBe(500);
+    });
+
+    // D-07 (opción a, decisión tomada a pedido de Montse) + CHECK points <> 0 de points_movements
+    // (A4-05): un consumo que da 0 puntos se registra y se puede anular, sin dejar movimientos.
+    it('un consumo de 0 puntos se registra y se anula sin dejar movimientos', async () => {
+      await setConfig(); // $1.000 = 10 pts: $50 da 0 puntos
+      const { employee, account } = await seedEmployeeWithAccount({ email: 'cajero.cero@vitto.club', role: 'CASHIER' });
+      const customer = await seedCustomer({ email: 'cliente.cero@example.com', documentNumber: '38456099' });
+      const headers = authHeaders('CASHIER', account.id, employee.id);
+
+      const registered = await request(app.getHttpServer())
+        .post('/api/consumos')
+        .set(headers)
+        .send({ customerId: customer.id, amount: 50 });
+
+      expect(registered.status).toBe(201);
+      expect(registered.body.consumption.totalPoints).toBe(0);
+      expect(registered.body.balanceBefore).toBe(0);
+      expect(registered.body.balanceAfter).toBe(0);
+      expect(await prisma.pointsMovement.count({ where: { customerId: customer.id } })).toBe(0);
+      expect(await prisma.pointsLot.count({ where: { customerId: customer.id } })).toBe(0);
+
+      const voided = await request(app.getHttpServer())
+        .patch(`/api/consumos/${registered.body.consumption.code}/anular`)
+        .set(headers)
+        .send({ reason: 'cargado por error' });
+
+      expect(voided.status).toBe(200);
+      expect(voided.body.consumption.status).toBe('VOIDED');
+      expect(voided.body.balanceAfter).toBe(0);
+      expect(await prisma.pointsMovement.count({ where: { customerId: customer.id } })).toBe(0);
     });
 
     it('registra con bonificación PERCENTAGE en el primer consumo', async () => {

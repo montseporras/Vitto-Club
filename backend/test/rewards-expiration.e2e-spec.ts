@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../src/app.module.js';
 import { AuditService } from '../src/audit/application/audit.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { PrismaTransactionRunner } from '../src/prisma/prisma-transaction-runner.js';
 import { REDEMPTION_DURATION_MS } from '../src/redemptions/domain/redemption.js';
 import { RewardsAvailabilityService } from '../src/rewards/application/rewards-availability.service.js';
@@ -58,7 +59,7 @@ describe('Disponibilidad automática de recompensas (e2e, US-37)', () => {
   });
 
   async function cleanDatabase() {
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     await prisma.redemption.deleteMany();
     await prisma.reward.deleteMany();
     await prisma.session.deleteMany();

@@ -10,17 +10,17 @@ import { PointsPrismaRepository } from './infrastructure/points.repository.js';
 import { PointsMovementsPrismaRepository } from './infrastructure/points-movements.repository.js';
 import { PointsExpirationScheduler } from './infrastructure/points-expiration.scheduler.js';
 import { CustomerPointsMovementsController } from './http/customer-points-movements.controller.js';
-import { PointsMovementsController } from './http/points-movements.controller.js';
 import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
 
 // BASE (§8.4): el motor (PointsService) no tiene endpoint propio. Las que lo necesitan
 // (consumptions, US-24, US-19/US-46) lo importan y usan PointsService dentro de su propia
-// transacción ambiente. Los controllers de acá son solo las consultas de movimientos (US-26).
+// transacción ambiente. El controller de acá es solo la consulta de movimientos de un cliente (US-26;
+// el listado global se eliminó en el Sprint 5, S5-13).
 // US-25: el vencimiento automático (cron y comando) audita con AuditModule, que no importa a
 // ningún módulo de negocio, así que no se arma un ciclo.
 @Module({
   imports: [AuditModule],
-  controllers: [CustomerPointsMovementsController, PointsMovementsController],
+  controllers: [CustomerPointsMovementsController],
   providers: [
     PointsService,
     PointsMovementsService,

@@ -5,6 +5,7 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { AccessTokenIssuer } from '../src/auth/domain/port/access-token-issuer.js';
 import type { AuthRole } from '../src/auth/domain/auth-role.js';
 
@@ -53,7 +54,7 @@ describe('Registrar uso del canje (e2e, US-42)', () => {
   });
 
   async function cleanDatabase() {
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     await prisma.pointsLot.deleteMany();
     await prisma.customerPoints.deleteMany();
     await prisma.redemption.deleteMany();
@@ -350,6 +351,27 @@ describe('Registrar uso del canje (e2e, US-42)', () => {
     expect(response.status).toBe(409);
     expect(response.body.code).toBe('REDEMPTION_NOT_CONFIRMED');
     expect(response.body.message).toBe('El canje ya está en estado "Utilizado".');
+  });
+
+  it('rechazado (por ejemplo, al desactivar la recompensa): 409 REDEMPTION_NOT_CONFIRMED y no descuenta nada', async () => {
+    const { account, employee } = await seedEmployee('CASHIER', 'cajero7b@vitto.club');
+    const customer = await seedCustomer({ documentNumber: '30111237', email: 'sofia7b@mail.com', balance: 500 });
+    const reward = await seedReward({ points: 100, stock: 10 });
+    const redemption = await seedRedemption(customer.id, reward, account.id, {
+      status: 'REJECTED',
+      resolvedAt: new Date(),
+      rejectionReason: 'Recompensa desactivada',
+    });
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/canjes/${redemption.code}/usar`)
+      .set(staffHeaders('CASHIER', account.id, employee.id))
+      .send();
+
+    expect(response.status).toBe(409);
+    expect(response.body.code).toBe('REDEMPTION_NOT_CONFIRMED');
+    expect(response.body.message).toBe('El canje ya está en estado "Rechazado".');
+    expect((await prisma.reward.findUniqueOrThrow({ where: { id: reward.id } })).stock).toBe(10);
   });
 
   it('CA-42.8: descuenta los puntos del canje (snapshot), no el precio actual de la recompensa', async () => {

@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../src/app.module.js';
 import { AuditService } from '../src/audit/application/audit.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { PrismaTransactionRunner } from '../src/prisma/prisma-transaction-runner.js';
 import { RedemptionsExpirationService } from '../src/redemptions/application/redemptions-expiration.service.js';
 import { REDEMPTION_DURATION_MS } from '../src/redemptions/domain/redemption.js';
@@ -56,7 +57,7 @@ describe('Vencimiento automático de canjes (e2e, US-44)', () => {
   });
 
   async function cleanDatabase() {
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     await prisma.pointsLot.deleteMany();
     await prisma.customerPoints.deleteMany();
     await prisma.redemption.deleteMany();

@@ -18,6 +18,8 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "points:expire": "nest build && node dist/expire-points",
+    "rewards:expire": "nest build && node dist/expire-rewards",
+    "redemptions:expire": "nest build && node dist/expire-redemptions",
     "lint": "oxlint src/ test/",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",

@@ -5,6 +5,7 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { AccessTokenIssuer } from '../src/auth/domain/port/access-token-issuer.js';
 import type { AuthRole } from '../src/auth/domain/auth-role.js';
 import { AuditRepository } from '../src/audit/domain/port/audit.repository.js';
@@ -45,7 +46,7 @@ async function createApp(override?: (builder: ReturnType<typeof Test.createTesti
 }
 
 async function cleanDatabase(prisma: PrismaService) {
-  await prisma.pointsMovement.deleteMany();
+  await deletePointsMovements(prisma);
   // Sprint 4: los canjes apuntan a clientes, cuentas y recompensas (onDelete Restrict)
   await prisma.redemption.deleteMany();
   await prisma.reward.deleteMany();

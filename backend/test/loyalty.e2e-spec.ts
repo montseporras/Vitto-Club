@@ -5,6 +5,7 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { LoyaltyConfigurationRepository } from '../src/loyalty/domain/port/loyalty-configuration.repository.js';
 import { AccessTokenIssuer } from '../src/auth/domain/port/access-token-issuer.js';
 
@@ -55,7 +56,7 @@ describe('Loyalty configuration (e2e)', () => {
     // Actor de las operaciones auditadas (US-56): un empleado real con su cuenta
     // Las suites de consumos, puntos y canjes dejan filas que apuntan a cuentas, clientes y a la
     // configuración (onDelete Restrict): se borran antes, en el orden de las claves foráneas
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     await prisma.redemption.deleteMany();
     await prisma.reward.deleteMany();
     await prisma.pointsLot.deleteMany();

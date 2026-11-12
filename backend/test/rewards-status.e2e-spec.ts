@@ -6,6 +6,7 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { AuditService } from '../src/audit/application/audit.service.js';
 import type { AuditEntryInput } from '../src/audit/domain/audit-entry.js';
 import { AccessTokenIssuer } from '../src/auth/domain/port/access-token-issuer.js';
@@ -80,7 +81,7 @@ describe('Activar y desactivar recompensas (e2e)', () => {
   });
 
   async function cleanDatabase() {
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     await prisma.redemption.deleteMany();
     await prisma.reward.deleteMany();
     await prisma.pointsLot.deleteMany();

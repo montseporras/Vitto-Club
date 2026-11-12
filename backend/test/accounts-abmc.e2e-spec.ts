@@ -9,6 +9,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { PrismaModule } from '../src/prisma/prisma.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { deletePointsMovements } from './delete-points-movements.js';
 import { EmployeesModule } from '../src/employees/employees.module.js';
 import { AccountsModule } from '../src/accounts/accounts.module.js';
 import { AccountRepository } from '../src/accounts/domain/port/account.repository.js';
@@ -99,7 +100,7 @@ describe('ABMC empleados/cuentas — integración por eventos reales (e2e)', () 
   beforeEach(async () => {
     // Las suites de consumos, puntos y canjes dejan filas que apuntan a cuentas, clientes y a la
     // configuración (onDelete Restrict): se borran antes, en el orden de las claves foráneas
-    await prisma.pointsMovement.deleteMany();
+    await deletePointsMovements(prisma);
     await prisma.redemption.deleteMany();
     await prisma.reward.deleteMany();
     await prisma.pointsLot.deleteMany();

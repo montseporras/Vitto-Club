@@ -66,7 +66,7 @@ function setup(
 
   const reward = 'reward' in options ? options.reward : makeReward();
   const rewardsService = {
-    findById: jest.fn().mockResolvedValue(reward),
+    lockForUpdate: jest.fn().mockResolvedValue(reward),
     isAvailable: jest.fn((r: Reward) => r.getStatus() === 'ACTIVE' && (r.getStock() === null || r.getStock()! > 0)),
   } as unknown as RewardsService;
 
