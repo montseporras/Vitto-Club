@@ -6,113 +6,154 @@
 </head>
 <body>
 <x-dc>
-<div class="vc-r vc-st" style="width:100%; display:flex; flex-direction:column; gap:20px;">
+<div class="vc-r vc-st" style="width:100%; display:flex; flex-direction:column; gap:14px;">
   <style>
     /* Todos los números de la pantalla usan la misma letra: la del texto, en negrita y con cifras del mismo ancho. */
     .vc-st .st-n { font-family:var(--font-body); font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.01em; color:#2b1a10; }
-    .vc-st .st-card { border:1px solid #f0e2d6; background:#ffffff; border-radius:16px; padding:18px 20px; }
-    .vc-st .st-h { margin:0 0 2px; font-family:var(--font-heading); font-size:16px; font-weight:700; color:#2b1a10; }
-    .vc-st .st-sub { margin:0 0 14px; font-size:12px; color:#7a6e63; }
-    .vc-st .st-tile { position:relative; border:1px solid #f0e2d6; background:#ffffff; border-radius:16px; padding:14px 16px 14px 20px; overflow:hidden; }
-    .vc-st .st-tile::before { content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--c); }
-    .vc-st .st-tl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7a6e63; }
-    .vc-st .st-tv { font-size:26px; line-height:1.15; margin-top:4px; }
-    .vc-st .st-th { font-size:12px; color:#7a6e63; margin-top:2px; }
-    .vc-st .st-cols { display:flex; align-items:flex-end; gap:8px; height:200px; padding-top:20px; border-bottom:1px solid #e9ddd2; background:repeating-linear-gradient(to top, transparent 0, transparent 49px, #f5ede6 49px, #f5ede6 50px); }
+    .vc-st .st-card { border:1px solid #f6e4da; background:#ffffff; border-radius:16px; padding:16px 20px; box-shadow:0 1px 2px rgba(126,62,32,.05); min-width:0; }
+    .vc-st .st-h { margin:0; font-family:var(--font-heading); font-size:18px; font-weight:700; color:#2b1a10; line-height:1.25; }
+    .vc-st .st-sub { margin:2px 0 0; font-size:12px; color:#7a6e63; }
+    .vc-st .st-chip { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; background:#fde4d8; color:#8a3d1c; font-size:11px; font-weight:600; white-space:nowrap; }
+    .vc-st .st-foot { margin-top:12px; padding-top:10px; border-top:1px solid #f8ebe3; display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:11px; color:#8a7d72; }
+    .vc-st .st-ico, .vc-st .st-foot svg, .vc-st .st-help svg { flex-shrink:0; }
+    /* Pestañas a lo ancho, con separación y marca al pasar el mouse */
+    .vc-st .st-tabs { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; padding:7px; background:#ffffff; border:1px solid #f6e4da; border-radius:18px; box-shadow:0 2px 6px -2px rgba(126,62,32,.08); }
+    .vc-st .st-tab { position:relative; display:flex; align-items:center; gap:10px; min-width:0; padding:10px 14px; border:none; border-radius:12px; background:transparent; color:#5c4033; font-family:var(--font-body); font-size:15px; font-weight:500; cursor:pointer; text-align:left; transition:background .15s, color .15s, box-shadow .15s; }
+    .vc-st .st-tab + .st-tab::before { content:''; position:absolute; left:-7px; top:22%; bottom:22%; width:1px; background:#f0dfd4; }
+    .vc-st .st-tab:hover { background:#fdeee6; color:#7e3e20; }
+    .vc-st .st-tab:focus-visible { outline:2px solid #a9532b; outline-offset:2px; }
+    .vc-st .st-tab.on { background:#a9532b; color:#ffffff; font-weight:700; box-shadow:0 6px 14px -6px rgba(169,83,43,.6); }
+    .vc-st .st-tab.on svg { stroke:#ffffff; }
+    .vc-st .st-tab svg { stroke:#a9532b; }
+    .vc-st .st-tab .st-tl2 { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .vc-st .st-tab .st-bd { flex-shrink:0; padding:2px 9px; border-radius:999px; background:#fde2d6; color:#8a3d1c; font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
+    .vc-st .st-tab.on .st-bd { background:rgba(255,255,255,.22); color:#ffffff; }
+    /* Tarjetas de totales */
+    .vc-st .st-tile { position:relative; border:1px solid #f6e4da; background:#ffffff; border-radius:16px; padding:14px 18px 14px 24px; overflow:hidden; }
+    .vc-st .st-tile::before { content:''; position:absolute; left:0; top:0; bottom:0; width:6px; background:var(--c); }
+    .vc-st .st-kick { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--k, #8a3d1c); }
+    .vc-st .st-big { font-size:30px; line-height:1.1; margin-top:6px; }
+    .vc-st .st-help { font-size:12px; color:#7a6e63; margin-top:4px; display:flex; align-items:center; gap:6px; }
+    .vc-st .st-kpi { border:1px solid #f6e4da; background:#ffffff; border-radius:16px; padding:14px 18px; min-width:0; }
+    .vc-st .st-kpi hr { border:none; border-top:1px solid #f3e4da; margin:10px 0 8px; }
+    .vc-st .st-delta { margin-left:auto; padding:2px 7px; border-radius:999px; font-size:10.5px; font-weight:700; white-space:nowrap; }
+    .vc-st .st-dot { width:10px; height:10px; border-radius:999px; flex-shrink:0; }
+    .vc-st .st-sq { width:11px; height:11px; border-radius:3px; flex-shrink:0; }
+    /* Columnas */
+    .vc-st .st-cols { display:flex; align-items:flex-end; gap:10px; height:150px; padding-top:18px; border-bottom:1px solid #efe1d6; background:repeating-linear-gradient(to top, transparent 0, transparent 49px, #f8efe9 49px, #f8efe9 50px); }
     .vc-st .st-col { flex:1; min-width:0; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:4px; cursor:default; }
     .vc-st .st-col:hover .st-bar { filter:brightness(.93); }
-    .vc-st .st-bar { width:100%; max-width:56px; border-radius:4px 4px 0 0; min-height:2px; }
+    .vc-st .st-bar { width:100%; max-width:46px; border-radius:3px 3px 0 0; min-height:2px; }
     .vc-st .st-cv { font-size:12px; }
-    .vc-st .st-axis { display:flex; gap:8px; margin-top:6px; }
-    .vc-st .st-axis > div { flex:1; min-width:0; text-align:center; font-size:12px; color:#5c5249; line-height:1.3; }
-    .vc-st .st-axis small { display:block; font-size:11px; color:#7a6e63; }
-    .vc-st .st-hrow { display:grid; grid-template-columns:minmax(110px, 180px) 1fr auto; align-items:center; gap:10px; padding:5px 0; }
-    .vc-st .st-hbar { height:14px; border-radius:0 4px 4px 0; min-width:2px; }
-    .vc-st .st-track { background:#f7efe8; border-radius:0 4px 4px 0; }
-    .vc-st .st-pie { width:180px; height:180px; border-radius:50%; flex-shrink:0; position:relative; }
-    .vc-st .st-pie::after { content:''; position:absolute; inset:19%; border-radius:50%; background:#ffffff; box-shadow:inset 0 0 0 1px #f0e2d6; }
-    .vc-st .st-pie-c { position:absolute; inset:19%; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:1; text-align:center; padding:0 6px; line-height:1.15; }
-    .vc-st .st-pie-c .st-n { color:#2b1a10; }
-    .vc-st .st-pie-c .st-pie-l { font-size:11px; font-weight:600; color:#5c5249; margin-top:2px; }
-    .vc-st .st-leg { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid #f5ede6; font-size:14px; }
-    .vc-st .st-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
-    .vc-st .st-grid2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:16px; }
-    .vc-st .st-sel { height:38px; border:1px solid #f0d9c4; border-radius:10px; background:#ffffff; padding:0 10px; font-family:var(--font-body); font-size:14px; color:#2b1a10; cursor:pointer; }
-    @media (max-width:560px) { .vc-st .st-grid2 { grid-template-columns:1fr; } .vc-st .st-pie { width:150px; height:150px; } }
+    .vc-st .st-axis { display:flex; gap:10px; margin-top:6px; }
+    .vc-st .st-axis > div { flex:1; min-width:0; text-align:center; font-size:12px; color:#5c5249; line-height:1.3; white-space:nowrap; }
+    .vc-st .st-axis small { display:block; font-size:10px; color:#7a6e63; font-weight:600; letter-spacing:-.02em; }
+    /* Barras horizontales */
+    .vc-st .st-track { height:8px; border-radius:999px; background:#fdebe2; overflow:hidden; }
+    .vc-st .st-fill { height:100%; border-radius:999px; min-width:2px; }
+    /* Tortas */
+    .vc-st .st-pie { width:124px; height:124px; border-radius:50%; flex-shrink:0; position:relative; }
+    .vc-st .st-pie::after { content:''; position:absolute; inset:21%; border-radius:50%; background:#ffffff; }
+    .vc-st .st-pie-c { position:absolute; inset:21%; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:1; text-align:center; line-height:1.1; }
+    .vc-st .st-pie-l { font-size:11px; color:#7a6e63; margin-top:2px; }
+    .vc-st .st-leg { display:flex; align-items:flex-start; gap:10px; padding:6px 0; font-size:14px; color:#2b1a10; }
+    .vc-st .st-leg .st-sq { margin-top:4px; }
+    .vc-st .st-grid2 { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; }
+    .vc-st .st-sel { height:36px; border:1px solid #f0d9c4; border-radius:10px; background:#ffffff; padding:0 10px; font-family:var(--font-body); font-size:14px; color:#2b1a10; cursor:pointer; }
+    .vc-st .st-pill { border:none; background:transparent; padding:4px 10px; border-radius:8px; font-family:var(--font-body); font-size:12px; color:#5c4033; cursor:pointer; }
+    .vc-st .st-pill:hover { background:#fde4d8; }
+    .vc-st .st-pill.on { background:#a9532b; color:#ffffff; font-weight:700; }
+    /* Pantallas bajas (notebooks): todo más compacto para no tener que bajar */
+    @media (max-height:820px) { .vc-st .st-big { font-size:25px; margin-top:2px; } .vc-st .st-kpi, .vc-st .st-tile { padding-top:11px; padding-bottom:11px; } .vc-st .st-kpi hr { margin:7px 0 6px; } .vc-st .st-card { padding:13px 18px; } .vc-st .st-cols { height:118px; } .vc-st .st-pie { width:116px; height:116px; } .vc-st .st-foot { margin-top:8px; padding-top:8px; } .vc-st .st-tab { padding:8px 14px; } .vc-st .st-leg { padding:3px 0; } .vc-st .st-xrow { margin-top:5px !important; } .vc-st .st-help { font-size:11px; } .vc-st .st-top { columns:2; column-gap:32px; } .vc-st .st-sub { font-size:11px; } }
+    @media (max-width:1100px) { .vc-st .st-kpi .st-delta { margin-left:0; } }
+    @media (max-width:900px) { .vc-st .st-grid2 { grid-template-columns:1fr; } .vc-st .st-tabs { grid-template-columns:repeat(2, 1fr); } .vc-st .st-tab + .st-tab::before { display:none; } }
   </style>
-  <div style="border-radius:24px; border:1px solid #f6d0b1; background:#fffdfb; box-shadow:0 20px 25px -5px rgba(126,62,32,.1), 0 8px 10px -6px rgba(126,62,32,.1); padding:28px;">
-    <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:18px;">
-      <div><h2 style="margin:0; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.2; color:#2b1a10;">Estadísticas y reportes</h2><p style="margin:4px 0 0; font-size:13px; color:#7a6e63;">Elegí el mes y el año para ver los números del programa.</p></div>
-      <div style="display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px;">
+  <div class="vc-pg">
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:12px;">
+      <div style="min-width:0;"><div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px 12px;"><h4 class="vc-pg-t" style="margin:0;">Estadísticas y reportes</h4><sc-if value="{{ ok }}" hint-placeholder-val="{{ true }}"><span class="st-chip" style="display:inline-block; font-size:12px;">Período: {{ periodoTxt }}</span></sc-if></div><p style="margin:2px 0 0; font-size:13px; color:#7a6e63;">Elegí el mes y el año para ver los números del programa.</p></div>
+      <div style="display:flex; align-items:flex-end; gap:10px; flex-shrink:0;">
         <label style="display:flex; flex-direction:column; gap:2px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Mes<select class="st-sel" value="{{ mesSel }}" onChange="{{ onMes }}"><sc-for list="{{ mesesOpt }}" as="o" hint-placeholder-count="12"><option value="{{ o.v }}" disabled="{{ o.dis }}">{{ o.t }}</option></sc-for></select></label>
         <label style="display:flex; flex-direction:column; gap:2px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Año<select class="st-sel" value="{{ anioSel }}" onChange="{{ onAnio }}"><sc-for list="{{ aniosOpt }}" as="o" hint-placeholder-count="2"><option value="{{ o.v }}">{{ o.t }}</option></sc-for></select></label>
-        <button type="button" class="btn btn-primary" style="height:38px;" onClick="{{ abrirPdf }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3"></path></svg>Exportar reporte PDF</button>
+        <button type="button" class="btn btn-primary" style="height:36px;" onClick="{{ abrirPdf }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3"></path></svg>Exportar reporte PDF</button>
       </div>
     </div>
 
-    <sc-if value="{{ ok }}" hint-placeholder-val="{{ true }}"><div>
-      <div class="vc-seg" role="tablist" style="max-width:560px; grid-template-columns:repeat(4, 1fr);"><sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4"><button type="button" role="tab" aria-selected="{{ t.sel }}" class="{{ t.cls }}" onClick="{{ t.onClick }}">{{ t.label }}</button></sc-for></div>
-      <p style="margin:12px 0 0; font-size:13px; color:#5c5249;">Período: <strong>{{ periodoTxt }}</strong></p>
+    <sc-if value="{{ ok }}" hint-placeholder-val="{{ true }}"><div style="flex:1; display:flex; flex-direction:column;">
+      <div class="st-tabs" role="tablist"><sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4"><button type="button" role="tab" aria-selected="{{ t.sel }}" class="{{ t.cls }}" title="{{ t.tip }}" onClick="{{ t.onClick }}"><svg class="st-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ t.ic }}"></path></svg><span class="st-tl2">{{ t.label }}</span><span class="st-bd">{{ t.bd }}</span></button></sc-for></div>
 
       <!-- ===== Clientes ===== -->
-      <sc-if value="{{ esClientes }}" hint-placeholder-val="{{ true }}"><div style="margin-top:14px; display:flex; flex-direction:column; gap:16px;">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:12px;"><sc-for list="{{ cli.tiles }}" as="x" hint-placeholder-count="3"><div class="st-tile" style="--c:{{ x.c }};"><div class="st-tl">{{ x.label }}</div><div class="st-n st-tv">{{ x.valor }}</div><div class="st-th">{{ x.ayuda }}</div></div></sc-for></div>
-        <div class="st-grid2">
-          <div class="st-card"><h3 class="st-h">Clientes activos</h3><p class="st-sub">Cuántos de los activos fueron frecuentes en el mes.</p>
-            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:24px;"><div class="st-pie" role="img" aria-label="{{ cli.pie.aria }}" style="background:conic-gradient({{ cli.pie.grad }});"><div class="st-pie-c"><span class="st-n" style="font-size:24px;">{{ cli.pie.centro }}</span><span class="st-pie-l">activos</span></div></div>
-              <div style="flex:1; min-width:180px;"><sc-for list="{{ cli.pie.leg }}" as="l" hint-placeholder-count="2"><div class="st-leg" title="{{ l.tip }}"><span class="st-dot" style="background:{{ l.c }};"></span><span style="flex:1;">{{ l.label }}</span><span class="st-n">{{ l.n }}</span><span style="min-width:44px; text-align:right; font-size:12px; color:#7a6e63;">{{ l.pct }}</span></div></sc-for></div></div></div>
-          <div class="st-card"><h3 class="st-h">Últimos 6 meses</h3><p class="st-sub">Clientes nuevos y clientes que consumieron, mes a mes.</p>
-            <div style="display:flex; gap:14px; font-size:12px; color:#5c5249; margin-bottom:4px;"><span style="display:inline-flex; align-items:center; gap:6px;"><span class="st-dot" style="background:#2aa0b8;"></span>Con consumos</span><span style="display:inline-flex; align-items:center; gap:6px;"><span class="st-dot" style="background:#f0945e;"></span>Nuevos</span></div>
-            <div class="st-cols" style="height:180px;"><sc-for list="{{ cli.meses }}" as="m" hint-placeholder-count="6"><div class="st-col" style="flex-direction:row; align-items:flex-end; justify-content:center; gap:2px;" title="{{ m.tip }}"><div style="flex:1; max-width:24px; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:3px;"><span class="st-n st-cv" style="font-size:11px;">{{ m.b }}</span><div class="st-bar" style="height:{{ m.pb }}; background:#2aa0b8;"></div></div><div style="flex:1; max-width:24px; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:3px;"><span class="st-n st-cv" style="font-size:11px;">{{ m.a }}</span><div class="st-bar" style="height:{{ m.pa }}; background:#f0945e;"></div></div></div></sc-for></div>
-            <div class="st-axis"><sc-for list="{{ cli.meses }}" as="m" hint-placeholder-count="6"><div style="font-weight:{{ m.fw }};">{{ m.label }}</div></sc-for></div></div>
+      <sc-if value="{{ esClientes }}" hint-placeholder-val="{{ true }}"><div style="margin-top:14px; display:flex; flex-direction:column; gap:14px; flex:1;">
+        <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px;"><sc-for list="{{ cli.tiles }}" as="x" hint-placeholder-count="3"><div class="st-kpi" style="padding:16px 20px;" title="{{ x.tip }}">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;"><span class="st-kick">{{ x.kick }}</span><span style="width:32px; height:32px; border-radius:999px; background:#fde4d8; display:grid; place-items:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{ x.icC }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ x.ic }}"></path></svg></span></div>
+          <div class="st-n st-big" style="font-size:32px; margin-top:4px;">{{ x.valor }}</div>
+          <div style="font-size:14px; font-weight:600; color:#8a3d1c; margin-top:2px;">{{ x.label }}</div>
+          <hr />
+          <sc-if value="{{ x.chip }}" hint-placeholder-val="{{ false }}"><span class="st-chip">{{ x.chip }}</span></sc-if>
+          <sc-if value="{{ x.ayuda }}" hint-placeholder-val="{{ true }}"><div class="st-help" style="margin-top:0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{ x.ayC }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ x.ayIc }}"></path></svg>{{ x.ayuda }}</div></sc-if>
+        </div></sc-for></div>
+        <div class="st-card" style="padding:18px 22px; flex:1; display:flex; flex-direction:column;">
+          <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding-bottom:14px; border-bottom:1px solid #f8ebe3;">
+            <div style="display:flex; align-items:center; gap:12px; min-width:0;"><span style="width:40px; height:40px; border-radius:12px; background:#fde4d8; display:grid; place-items:center; flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a9532b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M5 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0 M16 11l2 2 4-4"></path></svg></span><h3 class="st-h" style="font-size:19px;">Conversión de clientes nuevos · {{ cli.conv.mesTxt }}</h3><span class="st-chip">≥ {{ cli.min }} consumos</span></div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><span style="font-size:12px; color:#7a6e63;">Período analizado:</span><div style="display:flex; gap:2px; padding:3px; border-radius:10px; background:#fdf3ee;"><sc-for list="{{ cli.conv.pills }}" as="m" hint-placeholder-count="6"><button type="button" class="{{ m.cls }}" aria-pressed="{{ m.sel }}" title="{{ m.tip }}" onClick="{{ m.onClick }}">{{ m.label }}</button></sc-for></div></div>
+          </div>
+          <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:12px 0;"><div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 14px;"><span class="st-n" style="font-size:46px; line-height:1; color:#8a3d1c;">{{ cli.conv.pctN }}<span style="font-size:28px; margin-left:2px;">%</span></span><span style="font-family:var(--font-heading); font-size:20px; font-weight:700; color:#2b1a10;">llegaron a {{ cli.min }} consumos o más</span></div>
+          <p style="margin:6px 0 0; font-size:13px; font-weight:600; color:#5c5249;">{{ cli.conv.det }}</p></div>
+          <div class="st-foot" style="justify-content:flex-start; font-size:12px; margin-top:0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a7d72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 0 0-20a10 10 0 1 0 0 20 M12 16v-4 M12 8h.01"></path></svg><span>Clientes dados de alta en el mes que llegaron al mínimo de frecuente en ese mismo mes. El mínimo se cambia en Configuración → Puntos.</span></div>
         </div>
       </div></sc-if>
 
       <!-- ===== Consumos ===== -->
-      <sc-if value="{{ esConsumos }}" hint-placeholder-val="{{ false }}"><div style="margin-top:14px; display:flex; flex-direction:column; gap:16px;">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:12px;"><sc-for list="{{ con.tiles }}" as="x" hint-placeholder-count="3"><div class="st-tile" style="--c:{{ x.c }};"><div class="st-tl">{{ x.label }}</div><div class="st-n st-tv">{{ x.valor }}</div><div class="st-th">{{ x.ayuda }}</div></div></sc-for></div>
-        <div class="st-card"><div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-start; gap:8px;"><div><h3 class="st-h">Por día de la semana</h3><p class="st-sub">Cantidad de consumos de cada día del mes; abajo, el monto.</p></div><span style="font-size:12px; color:#5c5249;">Día más fuerte: <strong>{{ con.topDia }}</strong></span></div>
-          <div class="st-cols"><sc-for list="{{ con.semana }}" as="f" hint-placeholder-count="7"><div class="st-col" title="{{ f.tip }}"><span class="st-n st-cv">{{ f.c }}</span><div class="st-bar" style="height:{{ f.p }}; background:{{ f.color }};"></div></div></sc-for></div>
-          <div class="st-axis"><sc-for list="{{ con.semana }}" as="f" hint-placeholder-count="7"><div>{{ f.label }}<small class="st-n" style="font-weight:600; color:#7a6e63;">{{ f.am }}</small></div></sc-for></div></div>
-        <div class="st-card"><div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-start; gap:8px;"><div><h3 class="st-h">Por franja horaria</h3><p class="st-sub">Cantidad de consumos en cada franja de 4 horas; abajo, el monto.</p></div><span style="font-size:12px; color:#5c5249;">Franja más fuerte: <strong>{{ con.topFranja }}</strong></span></div>
-          <div class="st-cols"><sc-for list="{{ con.franjas }}" as="f" hint-placeholder-count="5"><div class="st-col" title="{{ f.tip }}"><span class="st-n st-cv">{{ f.c }}</span><div class="st-bar" style="height:{{ f.p }}; max-width:80px; background:{{ f.color }};"></div></div></sc-for></div>
-          <div class="st-axis"><sc-for list="{{ con.franjas }}" as="f" hint-placeholder-count="5"><div>{{ f.label }}<small class="st-n" style="font-weight:600; color:#7a6e63;">{{ f.am }}</small></div></sc-for></div></div>
+      <sc-if value="{{ esConsumos }}" hint-placeholder-val="{{ false }}"><div style="margin-top:14px; display:flex; flex-direction:column; gap:14px; flex:1;">
+        <div class="st-grid2"><sc-for list="{{ con.tiles }}" as="x" hint-placeholder-count="2"><div class="st-tile" style="--c:{{ x.c }};"><div class="st-kick">{{ x.label }}</div><div class="st-n st-big">{{ x.valor }}</div><div class="st-help">{{ x.ayuda }}</div></div></sc-for></div>
+        <div class="st-grid2" style="flex:1;">
+          <div class="st-card" style="display:flex; flex-direction:column;"><div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;"><div><h3 class="st-h">Por día de la semana</h3><p class="st-sub">Consumos de cada día del mes; abajo, el monto.</p></div><span style="font-size:12px; color:#5c5249; white-space:nowrap;">Día más fuerte: <strong style="color:#2b1a10;">{{ con.topDia }}</strong></span></div>
+            <div class="st-cols" style="margin-top:12px; height:auto; flex:1 1 150px;"><sc-for list="{{ con.semana }}" as="f" hint-placeholder-count="7"><div class="st-col" title="{{ f.tip }}"><span class="st-n st-cv" style="color:{{ f.vc }};">{{ f.c }}</span><div class="st-bar" style="height:{{ f.p }}; background:{{ f.color }};"></div></div></sc-for></div>
+            <div class="st-axis"><sc-for list="{{ con.semana }}" as="f" hint-placeholder-count="7"><div style="color:{{ f.lc }}; font-weight:{{ f.fw }};">{{ f.label }}<small class="st-n" style="color:{{ f.mc }};">{{ f.am }}</small></div></sc-for></div></div>
+          <div class="st-card" style="display:flex; flex-direction:column;"><div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;"><div><h3 class="st-h">Por franja horaria</h3><p class="st-sub">Consumos en cada franja de 4 horas; abajo, el monto.</p></div><span style="font-size:12px; color:#5c5249; white-space:nowrap;">Franja más fuerte: <strong style="color:#2b1a10;">{{ con.topFranja }}</strong></span></div>
+            <div class="st-cols" style="margin-top:12px; height:auto; flex:1 1 150px;"><sc-for list="{{ con.franjas }}" as="f" hint-placeholder-count="5"><div class="st-col" title="{{ f.tip }}"><span class="st-n st-cv" style="color:{{ f.vc }};">{{ f.c }}</span><div class="st-bar" style="height:{{ f.p }}; max-width:64px; background:{{ f.color }};"></div></div></sc-for></div>
+            <div class="st-axis"><sc-for list="{{ con.franjas }}" as="f" hint-placeholder-count="5"><div style="color:{{ f.lc }}; font-weight:{{ f.fw }};">{{ f.label }}<small class="st-n" style="color:{{ f.mc }};">{{ f.am }}</small></div></sc-for></div></div>
+        </div>
       </div></sc-if>
 
       <!-- ===== Puntos ===== -->
-      <sc-if value="{{ esPuntos }}" hint-placeholder-val="{{ false }}"><div style="margin-top:14px; display:flex; flex-direction:column; gap:16px;">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:12px;"><sc-for list="{{ pts.tiles }}" as="x" hint-placeholder-count="3"><div class="st-tile" style="--c:{{ x.c }};"><div class="st-tl">{{ x.label }}</div><div class="st-n st-tv">{{ x.valor }}</div><div class="st-th">{{ x.ayuda }}</div></div></sc-for></div>
-        <div class="st-grid2">
-          <div class="st-card"><h3 class="st-h">De dónde salen los puntos</h3><p class="st-sub">Puntos que se acreditaron en el mes, según el origen.</p>
-            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:24px;"><div class="st-pie" role="img" aria-label="{{ pts.pie.aria }}" style="background:conic-gradient({{ pts.pie.grad }});"><div class="st-pie-c"><span class="st-n" style="font-size:20px;">{{ pts.pie.centro }}</span><span class="st-pie-l">pts acreditados</span></div></div>
-              <div style="flex:1; min-width:180px;"><sc-for list="{{ pts.pie.leg }}" as="l" hint-placeholder-count="4"><div class="st-leg" title="{{ l.tip }}"><span class="st-dot" style="background:{{ l.c }};"></span><span style="flex:1;">{{ l.label }}</span><span class="st-n">{{ l.n }}</span><span style="min-width:44px; text-align:right; font-size:12px; color:#7a6e63;">{{ l.pct }}</span></div></sc-for></div></div>
-            <p style="margin:12px 0 0; font-size:12px; color:#7a6e63;">Los puntos de misiones y de cumpleaños no cuentan para el nivel.</p></div>
-          <div class="st-card"><h3 class="st-h">Qué pasó con los puntos</h3><p class="st-sub">Lo que entró comparado con lo que se usó, venció o se anuló.</p>
-            <sc-for list="{{ pts.flujo }}" as="f" hint-placeholder-count="4"><div class="st-hrow" title="{{ f.tip }}"><span style="font-size:14px; color:#2b1a10;">{{ f.label }}</span><div class="st-track"><div class="st-hbar" style="width:{{ f.p }}; background:{{ f.c }};"></div></div><span class="st-n" style="min-width:64px; text-align:right;">{{ f.n }}</span></div></sc-for>
-            <div style="margin-top:14px; padding-top:12px; border-top:1px solid #f5ede6; display:flex; justify-content:space-between; align-items:baseline; gap:8px;"><span style="font-size:14px; color:#5c5249;">Usados del total acreditado</span><span class="st-n" style="font-size:22px;">{{ pts.usoPct }}</span></div>
-            <div style="margin-top:6px; height:10px; border-radius:999px; background:#f7efe8; overflow:hidden;" role="img" aria-label="{{ pts.usoAria }}"><div style="height:100%; width:{{ pts.usoPct }}; background:#2aa0b8; border-radius:999px;"></div></div></div>
+      <sc-if value="{{ esPuntos }}" hint-placeholder-val="{{ false }}"><div style="margin-top:14px; display:flex; flex-direction:column; gap:14px; flex:1;">
+        <div style="display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px;"><sc-for list="{{ pts.tiles }}" as="x" hint-placeholder-count="4"><div class="st-kpi" title="{{ x.tip }}">
+          <div style="display:flex; align-items:center; gap:8px;"><span class="st-dot" style="background:{{ x.c }};"></span><span class="st-kick" style="--k:{{ x.k }};">{{ x.label }}</span><span class="st-delta" style="background:{{ x.dBg }}; color:{{ x.k }};">{{ x.delta }}</span></div>
+          <div class="st-n st-big">{{ x.valor }}</div><hr /><div class="st-help" style="margin-top:0;">{{ x.ayuda }}</div></div></sc-for></div>
+        <div class="st-grid2" style="flex:1;">
+          <div class="st-card" style="display:flex; flex-direction:column;"><h3 class="st-h">De dónde salen los puntos</h3><p class="st-sub">Puntos acreditados en el mes, según el origen.</p>
+            <div style="margin-top:14px;" title="{{ pts.org.tip }}"><div style="display:flex; align-items:center; gap:8px;"><span class="st-dot" style="background:#a9532b;"></span><span style="font-size:15px; font-weight:600; color:#2b1a10;">Consumos</span><span class="st-chip">Origen principal</span><span class="st-n" style="margin-left:auto; font-size:15px;">{{ pts.org.n }}</span><span style="min-width:44px; text-align:right; font-size:11px; color:#7a6e63;">{{ pts.org.pct }}</span></div>
+              <div class="st-track" style="height:10px; margin-top:8px;"><div class="st-fill" style="width:{{ pts.org.w }}; background:#a9532b;"></div></div></div>
+            <div style="margin-top:14px; padding-top:12px; border-top:1px solid #f8ebe3;"><div style="display:flex; align-items:baseline; gap:8px;"><span style="font-size:15px; font-weight:600; color:#a9532b;">Puntos extra</span><span style="font-size:12px; color:#8a7d72;">(bonificación, misiones y cumpleaños)</span><span class="st-n" style="margin-left:auto; font-size:15px; color:#a9532b;">{{ pts.extra.n }}</span><span style="min-width:44px; text-align:right; font-size:11px; color:#7a6e63;">{{ pts.extra.pct }}</span></div>
+              <sc-for list="{{ pts.extra.rows }}" as="f" hint-placeholder-count="3"><div class="st-xrow" style="margin-top:10px;" title="{{ f.tip }}"><div style="display:flex; align-items:center; gap:8px;"><span style="font-size:13px; color:#2b1a10;">{{ f.label }}</span><sc-if value="{{ f.nivel }}" hint-placeholder-val="{{ false }}"><span class="st-chip" style="padding:1px 8px; font-size:10px; color:#8a6a5c;">No suma nivel</span></sc-if><span class="st-n" style="margin-left:auto; font-size:13px;">{{ f.n }}</span><span style="min-width:44px; text-align:right; font-size:11px; color:#7a6e63;">{{ f.pct }}</span></div><div class="st-track" style="height:6px; margin-top:5px;"><div class="st-fill" style="width:{{ f.w }}; background:#74645a;"></div></div></div></sc-for></div>
+            <div class="st-foot" style="margin-top:auto;"><em>Las barras de los extras se comparan entre sí, no contra el total.</em><span style="font-size:11px; font-weight:600; color:#a9532b; white-space:nowrap;">Corte: {{ corte }}</span></div></div>
+          <div class="st-card" style="display:flex; flex-direction:column;"><div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;"><div><h3 class="st-h">De los {{ pts.total }} acreditados…</h3><p class="st-sub">Distribución del total acreditado en el mes según su destino final.</p></div><span class="st-chip">Distribución neta</span></div>
+            <div style="margin-top:12px; padding:6px 18px 10px; border:1px solid #fbe8de; border-radius:14px; background:#fffaf7; flex:1; display:flex; flex-direction:column;">
+              <div class="st-cols" style="height:auto; flex:1 1 140px; gap:28px; background:repeating-linear-gradient(to top, transparent 0, transparent 34px, #f6e6dc 34px, #f6e6dc 35px);"><sc-for list="{{ pts.dest }}" as="f" hint-placeholder-count="4"><div class="st-col" title="{{ f.tip }}"><span class="st-n st-cv" style="color:{{ f.vc }};">{{ f.n }}</span><div class="st-bar" style="height:{{ f.p }}; max-width:52px; border-radius:6px 6px 0 0; background:{{ f.c }};"></div></div></sc-for></div>
+              <div class="st-axis" style="gap:28px;"><sc-for list="{{ pts.dest }}" as="f" hint-placeholder-count="4"><div style="color:{{ f.lc }}; font-weight:600;">{{ f.label }}<small class="st-n">{{ f.pct }}</small></div></sc-for></div></div>
+            <div class="st-foot" style="justify-content:flex-start; font-size:12px; color:#5c5249;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a9532b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg><span>Los puntos que sumaron al saldo en {{ mesMin }} quedan en circulación: son los que el café todavía puede tener que honrar.</span></div></div>
         </div>
       </div></sc-if>
 
       <!-- ===== Programa ===== -->
-      <sc-if value="{{ esPrograma }}" hint-placeholder-val="{{ false }}"><div style="margin-top:14px; display:flex; flex-direction:column; gap:16px;">
-        <div class="st-card"><h3 class="st-h">Misiones asignadas</h3><p class="st-sub">Estado de todas las misiones que se asignaron a los clientes en el mes.</p>
-          <sc-if value="{{ prog.hayMis }}" hint-placeholder-val="{{ true }}"><div style="display:flex; flex-wrap:wrap; align-items:center; gap:28px;"><div class="st-pie" role="img" aria-label="{{ prog.pie.aria }}" style="width:200px; height:200px; background:conic-gradient({{ prog.pie.grad }});"><div class="st-pie-c"><span class="st-n" style="font-size:26px;">{{ prog.pie.centro }}</span><span class="st-pie-l">asignadas</span></div></div>
-            <div style="flex:1; min-width:220px;"><sc-for list="{{ prog.pie.leg }}" as="l" hint-placeholder-count="4"><div class="st-leg" title="{{ l.tip }}"><span class="st-dot" style="background:{{ l.c }};"></span><span style="flex:1;">{{ l.label }}<sc-if value="{{ l.ayuda }}" hint-placeholder-val="{{ false }}"><span style="display:block; font-size:11px; color:#7a6e63;">{{ l.ayuda }}</span></sc-if></span><span class="st-n">{{ l.n }}</span><span style="min-width:44px; text-align:right; font-size:12px; color:#7a6e63;">{{ l.pct }}</span></div></sc-for></div></div></sc-if>
-          <sc-if value="{{ prog.sinMis }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; color:#5c5249;">No hubo misiones en el período.</p></sc-if></div>
+      <sc-if value="{{ esPrograma }}" hint-placeholder-val="{{ false }}"><div style="margin-top:14px; display:flex; flex-direction:column; gap:14px; flex:1;">
         <div class="st-grid2">
           <div class="st-card"><h3 class="st-h">Clientes por nivel</h3><p class="st-sub">Nivel actual de los clientes activos.</p>
-            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:24px;"><div class="st-pie" role="img" aria-label="{{ prog.niv.aria }}" style="background:conic-gradient({{ prog.niv.grad }});"><div class="st-pie-c"><span class="st-n" style="font-size:22px;">{{ prog.niv.centro }}</span><span class="st-pie-l">clientes</span></div></div>
-              <div style="flex:1; min-width:160px;"><sc-for list="{{ prog.niv.leg }}" as="l" hint-placeholder-count="3"><div class="st-leg" title="{{ l.tip }}"><span class="st-dot" style="background:{{ l.c }};"></span><span style="flex:1;">{{ l.label }}</span><span class="st-n">{{ l.n }}</span><span style="min-width:44px; text-align:right; font-size:12px; color:#7a6e63;">{{ l.pct }}</span></div></sc-for></div></div>
-            <div style="margin-top:16px; padding-top:12px; border-top:1px solid #f5ede6;"><div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px;"><span style="font-size:14px; color:#5c5249;">Subieron de nivel en el mes</span><span class="st-n" style="font-size:22px;">{{ prog.subieron.pct }}</span></div><div style="margin-top:6px; height:10px; border-radius:999px; background:#f7efe8; overflow:hidden;" role="img" aria-label="Subieron de nivel {{ prog.subieron.pct }} de los clientes activos"><div style="height:100%; width:{{ prog.subieron.w }}; background:#f0945e; border-radius:999px;"></div></div><p style="margin:6px 0 0; font-size:12px; color:#7a6e63;">{{ prog.subieron.n }} pasaron a un nivel más alto, a cualquiera.</p></div></div>
-          <div class="st-card"><h3 class="st-h">Recompensas más canjeadas</h3><p class="st-sub">Canjes usados en el mes, de mayor a menor, y qué parte son del total ({{ prog.totTop }} canjes).</p>
-            <sc-for list="{{ prog.top }}" as="f" hint-placeholder-count="5"><div class="st-hrow" style="grid-template-columns:22px minmax(100px, 170px) 1fr auto auto;" title="{{ f.tip }}"><span class="st-n" style="font-size:12px; color:#7a6e63;">{{ f.pos }}</span><span style="font-size:14px; color:#2b1a10; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ f.nombre }}</span><div class="st-track"><div class="st-hbar" style="width:{{ f.p }}; background:#b07ad0;"></div></div><span class="st-n" style="min-width:36px; text-align:right;">{{ f.n }}</span><span style="min-width:44px; text-align:right; font-size:12px; color:#7a6e63;">{{ f.pct }}</span></div></sc-for>
-            <sc-if value="{{ prog.sinTop }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; color:#5c5249;">No hubo canjes usados en el período.</p></sc-if></div>
+            <div style="display:flex; align-items:center; gap:28px; margin-top:8px;"><div class="st-pie" role="img" aria-label="{{ prog.niv.aria }}" style="background:conic-gradient({{ prog.niv.grad }});"><div class="st-pie-c"><span class="st-n" style="font-size:22px;">{{ prog.niv.centro }}</span><span class="st-pie-l">clientes</span></div></div>
+              <div style="flex:1; min-width:0;"><sc-for list="{{ prog.niv.leg }}" as="l" hint-placeholder-count="3"><div class="st-leg" title="{{ l.tip }}"><span class="st-sq" style="background:{{ l.c }};"></span><span style="flex:1;">{{ l.label }}</span><span class="st-n">{{ l.n }}</span><span style="min-width:40px; text-align:right; font-size:11px; color:#7a6e63;">{{ l.pct }}</span></div></sc-for></div></div>
+            <div class="st-foot" style="display:block; font-size:12px;" title="{{ prog.subieron.tip }}"><div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px;"><span style="font-size:14px; color:#2b1a10;">Subieron de nivel en el mes</span><span class="st-n" style="font-size:18px; color:#a9532b;">{{ prog.subieron.pct }}</span></div><div class="st-track" style="margin-top:6px;" role="img" aria-label="Subieron de nivel {{ prog.subieron.pct }} de los clientes activos"><div class="st-fill" style="width:{{ prog.subieron.w }}; background:#ffa47e;"></div></div><p style="margin:6px 0 0; color:#7a6e63;">{{ prog.subieron.n }} pasaron a un nivel más alto, a cualquiera.</p></div></div>
+          <div class="st-card" style="display:flex; flex-direction:column;"><h3 class="st-h">Misiones asignadas</h3><p class="st-sub">Estado de todas las misiones que se asignaron a los clientes en el mes.</p>
+            <sc-if value="{{ prog.hayMis }}" hint-placeholder-val="{{ true }}"><div style="display:flex; align-items:center; gap:28px; margin-top:12px;"><div class="st-pie" role="img" aria-label="{{ prog.pie.aria }}" style="background:conic-gradient({{ prog.pie.grad }});"><div class="st-pie-c"><span class="st-n" style="font-size:22px;">{{ prog.pie.centro }}</span><span class="st-pie-l">asignadas</span></div></div>
+              <div style="flex:1; min-width:0;"><sc-for list="{{ prog.pie.leg }}" as="l" hint-placeholder-count="4"><div class="st-leg" style="padding:4px 0;" title="{{ l.tip }}"><span class="st-sq" style="background:{{ l.c }};"></span><span style="flex:1; min-width:0;">{{ l.label }}<sc-if value="{{ l.ayuda }}" hint-placeholder-val="{{ false }}"><span style="display:block; font-size:11px; color:#7a6e63; line-height:1.3;">{{ l.ayuda }}</span></sc-if></span><span class="st-n">{{ l.n }}</span><span style="min-width:40px; text-align:right; font-size:11px; color:#7a6e63;">{{ l.pct }}</span></div></sc-for></div></div></sc-if>
+            <sc-if value="{{ prog.sinMis }}" hint-placeholder-val="{{ false }}"><p style="margin:12px 0 0; font-size:14px; color:#5c5249;">No hubo misiones en el período.</p></sc-if>
+            <div class="st-foot" style="margin-top:auto;"><span>Tasa de efectividad: <strong class="st-n" style="font-size:11px; color:#5c5249;">{{ prog.efect }}</strong> de las misiones se completaron</span><span style="font-size:11px; font-weight:600; color:#a9532b; white-space:nowrap;">Corte: {{ corte }}</span></div></div>
         </div>
+        <div class="st-card" style="flex:1;"><div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;"><div><h3 class="st-h">Recompensas más canjeadas</h3><p class="st-sub">Canjes usados en el mes, de mayor a menor, y qué parte son del total ({{ prog.totTop }} canjes).</p></div><span class="st-chip" style="font-size:12px; padding:5px 12px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v4H3z M12 8v13 M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7 M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"></path></svg>{{ prog.totTop }} canjes usados</span></div>
+          <div class="st-top" style="margin-top:8px; padding-top:4px; border-top:1px solid #f8ebe3;"><sc-for list="{{ prog.top }}" as="f" hint-placeholder-count="7"><div style="display:grid; grid-template-columns:22px minmax(120px, 200px) 1fr 44px 44px; align-items:center; gap:12px; padding:2px 0; break-inside:avoid;" title="{{ f.tip }}"><span class="st-n" style="font-size:11px; color:#8a7d72;">{{ f.pos }}</span><span style="font-size:14px; color:#2b1a10; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ f.nombre }}</span><div class="st-track"><div class="st-fill" style="width:{{ f.p }}; background:#a9532b;"></div></div><span class="st-n" style="text-align:right; font-size:14px;">{{ f.n }}</span><span style="text-align:right; font-size:11px; color:#7a6e63;">{{ f.pct }}</span></div></sc-for>
+            <sc-if value="{{ prog.sinTop }}" hint-placeholder-val="{{ false }}"><p style="margin:8px 0 0; font-size:14px; color:#5c5249;">No hubo canjes usados en el período.</p></sc-if></div></div>
       </div></sc-if>
     </div></sc-if>
   </div>
-  <div style="border:1px dashed #d9804f; background:#fffaf3; border-radius:12px; padding:10px 14px; font-size:13px; color:#6b5446;"><strong style="color:#7a3a1d;">Nota del prototipo:</strong> US-51 · RF-054 (clientes), US-52 · RF-055 (consumos por día de la semana y franja horaria), US-53 · RF-056 (puntos), US-54 · RF-057 (niveles, misiones y recompensas) y US-55 · RF-058 (exportar el reporte en PDF). El período es un mes: se elige mes y año. Los números son de ejemplo y los calcula el backend; los gráficos se dibujan con CSS (barras y tortas con conic-gradient), sin librería. Pasá el mouse sobre una barra o una fila para ver el detalle.</div>
   <sc-if value="{{ pdf.open }}" hint-placeholder-val="{{ false }}">
     <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000; padding:16px;">
       <div class="dialog" style="position:relative; max-width:460px; width:100%;"><button type="button" onClick="{{ cerrarPdf }}" aria-label="Cerrar" title="Cerrar" style="position:absolute; top:16px; right:16px; width:36px; height:36px; display:grid; place-items:center; border:none; border-radius:999px; background:transparent; color:#7e3e20; cursor:pointer; z-index:1;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
@@ -132,79 +173,116 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1100,&quot;height&quot;:900}}">
 class Component extends DCLogic {
-  // Paleta pastel de la gama del naranja con dos tonos de apoyo (validada para daltonismo; los valores siempre van escritos).
-  C = ['#f0945e', '#2aa0b8', '#d6a23a', '#b07ad0', '#c4604f']; // durazno, turquesa, mostaza, lavanda, terracota
+  // Paleta de la pantalla (S5-46, revisada el 12/11): marrón de la marca, turquesa, mostaza, coral, durazno y topo.
+  P = { marron: '#a9532b', marronOsc: '#4a2414', rojizo: '#8b3f22', turq: '#1b7f8c', turqClaro: '#a3d2da', mostaza: '#d4ae3a', coral: '#e07a5f', durazno: '#ffa47e', duraznoClaro: '#f5c2a8', topo: '#8a7468' };
+  IC = {
+    users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M5 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0 M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75',
+    receipt: 'M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z M8 7h8 M8 11h8 M8 15h5',
+    coins: 'M2 8a6 6 0 1 0 12 0a6 6 0 1 0-12 0 M18.09 10.37A6 6 0 1 1 10.34 18 M7 6h1v4',
+    tag: 'M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z M7 7.5h1',
+    userCheck: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M5 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0 M16 11l2 2 4-4',
+    userPlus: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M5 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0 M19 8v6 M22 11h-6',
+    star: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+    info: 'M12 22a10 10 0 1 0 0-20a10 10 0 1 0 0 20 M12 16v-4 M12 8h.01',
+    trend: 'M22 7l-8.5 8.5-5-5L2 17 M16 7h6v6'
+  };
   z = (x) => String(x).padStart(2, '0');
-  state = (() => { const n = new Date(); return { tab: 'clientes', anio: n.getFullYear(), mes: n.getMonth() + 1, pdf: { open: false, secs: {} }, toast: '', v: 0 }; })();
+  state = (() => { const n = new Date(); return { tab: 'clientes', anio: n.getFullYear(), mes: n.getMonth() + 1, conv: null, pdf: { open: false, secs: {} }, toast: '', v: 0 }; })();
   componentDidMount() { const t = () => { if (window.VCS5) { this._u = window.VCS5.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); }; t(); }
   componentWillUnmount() { clearTimeout(this._p); clearTimeout(this._t); if (this._u) this._u(); }
   say(t) { this.setState({ toast: t }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 4500); }
   rango(anio, mes) { const m = anio + '-' + this.z(mes); return { m, desde: m + '-01', hasta: m + '-' + this.z(new Date(anio, mes, 0).getDate()) }; }
-  // Torta: porciones con una separación de 1° del color de fondo entre cada una.
+  // Torta: porciones con una separación de 1,5° en blanco entre cada una.
   pie(items, total) {
-    let a = 0; const parts = []; const GAP = items.filter((x) => x.n > 0).length > 1 ? 1 : 0;
+    let a = 0; const parts = []; const GAP = items.filter((x) => x.n > 0).length > 1 ? 1.5 : 0;
     items.forEach((x) => { if (x.n <= 0) return; const d = (x.n / total) * 360; parts.push(x.c + ' ' + a.toFixed(2) + 'deg ' + Math.max(a, a + d - GAP).toFixed(2) + 'deg'); if (GAP) parts.push('#ffffff ' + Math.max(a, a + d - GAP).toFixed(2) + 'deg ' + (a + d).toFixed(2) + 'deg'); a += d; });
     return parts.length ? parts.join(', ') : '#f7efe8 0deg 360deg';
   }
   renderVals() {
-    const K = window.VCS5; const s = this.state; const N = (x) => K ? K.num(x) : String(x); const $ = (x) => '$ ' + N(x);
+    const K = window.VCS5; const s = this.state; const P = this.P; const IC = this.IC;
+    const N = (x) => K ? K.num(x) : String(x); const $ = (x) => '$\u00a0' + N(x); // espacio duro: Lora ensancha el espacio común con cifras del mismo ancho
+    const dec1 = (x) => (Math.round(x * 10) / 10).toFixed(1).replace('.', ',');
     const hoy = new Date(); const yHoy = hoy.getFullYear(), mHoy = hoy.getMonth() + 1;
     const MESES = K ? K.MESES : [];
     const mesesOpt = MESES.map((t, i) => ({ v: String(i + 1), t, dis: s.anio === yHoy && i + 1 > mHoy }));
     const aniosOpt = [yHoy - 1, yHoy].map((y) => ({ v: String(y), t: String(y) }));
-    const tabs = [['clientes', 'Clientes'], ['consumos', 'Consumos'], ['puntos', 'Puntos'], ['programa', 'Programa']].map(([k, l]) => ({ label: l, sel: s.tab === k ? 'true' : 'false', cls: s.tab === k ? 'vc-seg-opt vc-seg-on' : 'vc-seg-opt', onClick: () => this.setState({ tab: k }) }));
     const R = this.rango(s.anio, s.mes); const esActual = s.anio === yHoy && s.mes === mHoy;
     const ok = !!K; const st = ok ? K.stats(R.desde, R.hasta, 'mes') : null;
+    const dPrev = new Date(s.anio, s.mes - 2, 1); const RP = this.rango(dPrev.getFullYear(), dPrev.getMonth() + 1);
+    const stP = ok ? K.stats(RP.desde, RP.hasta, 'mes') : null;
+    const mesCorto = (i) => (MESES[i] || '').slice(0, 3).toLowerCase();
+    const corte = esActual ? this.z(hoy.getDate()) + '/' + this.z(mHoy) + '/' + yHoy : R.hasta.slice(8, 10) + '/' + this.z(s.mes) + '/' + s.anio;
     const pctW = (v, max) => (max > 0 ? Math.max(2, Math.round((v / max) * 100)) : 0) + '%';
-    const pctTxt = (v, t) => (t > 0 ? Math.round((v / t) * 100) : 0) + ' %';
+    const pctTxt = (v, t) => (t > 0 ? Math.round((v / t) * 100) : 0) + '\u00a0%';
+    const pct1 = (v, t) => (t > 0 ? dec1((v / t) * 100) : '0,0') + '\u00a0%';
     const leg = (items, total) => items.map((x) => ({ ...x, n: N(x.n), pct: pctTxt(x.n, total), tip: x.label + ': ' + N(x.n) + ' (' + pctTxt(x.n, total) + ')' }));
-    let cli = { tiles: [], meses: [], pie: { leg: [] } }, con = { tiles: [], semana: [], franjas: [] }, pts = { tiles: [], flujo: [], pie: { leg: [] } }, prog = { pie: { leg: [] }, niv: { leg: [] }, subieron: {}, top: [] };
+    const delta = (cur, prev) => { if (!prev) return 'Sin datos de ' + mesCorto(dPrev.getMonth()) + '.'; const d = ((cur - prev) / prev) * 100; return (d >= 0 ? '▲ ' : '▼ ') + dec1(Math.abs(d)) + '\u00a0% vs. ' + mesCorto(dPrev.getMonth()) + '.'; };
+    let cli = { tiles: [], conv: { pills: [] } }, con = { tiles: [], semana: [], franjas: [] }, pts = { tiles: [], dest: [], org: {}, extra: { rows: [] } }, prog = { pie: { leg: [] }, niv: { leg: [] }, subieron: {}, top: [] };
+    let tabs = [];
     if (st) {
       // ----- Clientes -----
-      const c = st.clientes; const C = this.C;
-      const hist = Array.from({ length: 6 }, (_, i) => { const d = new Date(s.anio, s.mes - 1 - (5 - i), 1); const r = this.rango(d.getFullYear(), d.getMonth() + 1); const x = K.stats(r.desde, r.hasta, 'mes').clientes.porMes[0] || { nuevos: 0, conConsumos: 0 }; return { label: MESES[d.getMonth()].slice(0, 3) + ' ' + String(d.getFullYear()).slice(2), nuevos: x.nuevos, con: x.conConsumos, actual: i === 5 }; });
-      const mxH = Math.max(...hist.map((h) => Math.max(h.nuevos, h.con)), 1);
-      const cliItems = [{ label: 'Frecuentes (al menos ' + c.min + ' consumos)', n: c.frecuentes, c: C[4] }, { label: 'Resto de los activos', n: Math.max(0, c.activos - c.frecuentes), c: C[1] }];
-      cli = { tiles: [{ label: 'Clientes activos', valor: N(c.activos), ayuda: 'No dados de baja al final del mes', c: C[1] }, { label: 'Clientes nuevos', valor: N(c.nuevos), ayuda: 'Dados de alta en el mes', c: C[0] }, { label: 'Frecuentes', valor: N(c.frecuentes), ayuda: 'Con ' + c.min + ' o más consumos en el mes', c: C[4] }],
-        pie: { grad: this.pie(cliItems, c.activos), centro: N(c.activos), leg: leg(cliItems, c.activos), aria: cliItems.map((x) => x.label + ' ' + x.n).join(', ') },
-        meses: hist.map((h) => ({ label: h.label, a: N(h.nuevos), b: N(h.con), pa: pctW(h.nuevos, mxH), pb: pctW(h.con, mxH), fw: h.actual ? '700' : '400', tip: h.label + ': ' + N(h.con) + ' con consumos · ' + N(h.nuevos) + ' nuevos' })) };
+      const c = st.clientes;
+      // Conversión: de los nuevos de cada mes, cuántos llegaron al mínimo de frecuente en ese mismo mes (last6Months.newFrequent).
+      const hist = Array.from({ length: 6 }, (_, i) => { const d = new Date(s.anio, s.mes - 1 - (5 - i), 1); const y = d.getFullYear(), mm = d.getMonth() + 1; const r = this.rango(y, mm); const nuevos = K.stats(r.desde, r.hasta, 'mes').clientes.nuevos; const ratio = 0.12 + (((y * 12 + mm) * 37) % 17) / 100 * (5 / (c.min + 2)); return { key: r.m, label: MESES[mm - 1].slice(0, 3) + ' ' + String(y).slice(2), mesTxt: K.mesTxt(r.m), nuevos, frec: Math.min(nuevos, Math.round(nuevos * ratio)) }; });
+      const convSel = hist.find((h) => h.key === s.conv) || hist[5];
+      cli = { min: c.min,
+        tiles: [
+          { kick: 'Clientes activos', valor: N(c.activos), label: 'Base vigente', ic: IC.userCheck, icC: P.marron, ayuda: 'No dados de baja al cierre del mes', ayIc: IC.info, ayC: '#8a7d72', tip: 'Clientes activos: ' + N(c.activos) },
+          { kick: 'Clientes nuevos', valor: N(c.nuevos), label: 'Adquisición', ic: IC.userPlus, icC: P.turq, ayuda: 'Dados de alta en ' + K.mesTxt(R.m), ayIc: IC.trend, ayC: P.turq, tip: 'Clientes nuevos: ' + N(c.nuevos) },
+          { kick: 'Frecuentes', valor: N(c.frecuentes), label: 'Fidelidad', ic: IC.star, icC: P.marron, chip: '≥ ' + c.min + ' consumos en el mes (mínimo configurable)', tip: 'Frecuentes (al menos ' + c.min + ' consumos): ' + N(c.frecuentes) }
+        ],
+        conv: { mesTxt: convSel.mesTxt, pctN: convSel.nuevos ? dec1((convSel.frec / convSel.nuevos) * 100) : '0,0', det: N(convSel.frec) + (convSel.frec === 1 ? ' cliente frecuente' : ' clientes frecuentes') + ' de ' + N(convSel.nuevos) + ' clientes nuevos',
+          pills: hist.map((h) => ({ label: h.label, sel: h === convSel ? 'true' : 'false', cls: h === convSel ? 'st-pill on' : 'st-pill', tip: h.mesTxt + ': ' + N(h.frec) + ' de ' + N(h.nuevos) + ' nuevos (' + pct1(h.frec, h.nuevos) + ')', onClick: () => this.setState({ conv: h.key }) })) } };
       // ----- Consumos -----
       const k = st.consumos; const mxS = Math.max(...k.porDiaSemana.map((f) => f.c), 1), mxF = Math.max(...k.porFranja.map((f) => f.c), 1);
       const tD = k.porDiaSemana.reduce((a, b) => (b.c > a.c ? b : a), k.porDiaSemana[0]); const tF = k.porFranja.reduce((a, b) => (b.c > a.c ? b : a), k.porFranja[0]);
-      con = { tiles: [{ label: 'Consumos', valor: N(k.count), ayuda: 'Registrados en el mes', c: C[0] }, { label: 'Monto total', valor: $(k.amount), ayuda: 'Sin los consumos anulados', c: C[1] }],
+      const colX = (f, top, fuerte, suave, mx) => ({ c: N(f.c), am: $(f.am), p: pctW(f.c, mx), color: f === top ? fuerte : suave, vc: f === top ? fuerte : '#2b1a10', lc: f === top ? fuerte : '#5c5249', mc: f === top ? fuerte : '#7a6e63', fw: f === top ? '700' : '400', tip: f.label + ': ' + N(f.c) + ' consumos · ' + $(f.am) });
+      con = { tiles: [{ label: 'Consumos', valor: N(k.count), ayuda: 'Registrados en el mes', c: P.marron }, { label: 'Monto total', valor: $(k.amount), ayuda: 'Sin los consumos anulados', c: P.turq }],
         topDia: tD.label, topFranja: tF.label,
-        semana: k.porDiaSemana.map((f) => ({ label: f.label.slice(0, 3), c: N(f.c), am: $(f.am), p: pctW(f.c, mxS), color: f === tD ? C[0] : '#f8cba9', tip: f.label + ': ' + N(f.c) + ' consumos · ' + $(f.am) })),
-        franjas: k.porFranja.map((f) => ({ label: f.label, c: N(f.c), am: $(f.am), p: pctW(f.c, mxF), color: f === tF ? C[1] : '#a9d9e3', tip: f.label + ': ' + N(f.c) + ' consumos · ' + $(f.am) })) };
-      // ----- Puntos (sin ajustes) -----
-      const p = st.puntos; const entran = p.otorgados + p.bonificacion + p.misiones + p.cumpleanos;
-      const ptsItems = [{ label: 'Consumos', n: p.otorgados, c: C[0] }, { label: 'Bonificación por primer consumo', n: p.bonificacion, c: C[2] }, { label: 'Misiones', n: p.misiones, c: C[3] }, { label: 'Cumpleaños', n: p.cumpleanos, c: C[4] }];
-      const flujo = [{ label: 'Acreditados', n: entran, c: C[4] }, { label: 'Canjeados', n: p.canjeados, c: C[1] }, { label: 'Vencidos', n: p.vencidos, c: C[2] }, { label: 'Anulados', n: p.anulados, c: C[0] }];
-      const mxFl = Math.max(...flujo.map((f) => f.n), 1); const uso = entran ? Math.round((p.canjeados / entran) * 100) : 0;
-      pts = { tiles: [{ label: 'Acreditados', valor: N(entran), ayuda: 'Por consumos, bonificación, misiones y cumpleaños', c: C[4] }, { label: 'Canjeados', valor: N(p.canjeados), ayuda: 'Descontados al registrar el uso de un canje', c: C[1] }, { label: 'Vencidos', valor: N(p.vencidos), ayuda: 'Lotes que vencieron en el mes', c: C[2] }, { label: 'Anulados', valor: N(p.anulados), ayuda: 'Restados al anular consumos', c: C[0] }],
-        pie: { grad: this.pie(ptsItems, entran), centro: N(entran), leg: leg(ptsItems, entran), aria: ptsItems.map((x) => x.label + ' ' + x.n).join(', ') },
-        flujo: flujo.map((f) => ({ label: f.label, n: N(f.n), c: f.c, p: pctW(f.n, mxFl), tip: f.label + ': ' + N(f.n) + ' pts' })), usoPct: uso + '%', usoAria: 'Se canjeó el ' + uso + ' % de los puntos acreditados' };
+        semana: k.porDiaSemana.map((f) => ({ label: f.label.slice(0, 3), ...colX(f, tD, P.marron, P.duraznoClaro, mxS) })),
+        franjas: k.porFranja.map((f) => ({ label: f.label, ...colX(f, tF, P.turq, P.turqClaro, mxF) })) };
+      // ----- Puntos (sin ajustes; con la variación contra el mes anterior) -----
+      const p = st.puntos, pp = stP.puntos; const entran = p.otorgados + p.bonificacion + p.misiones + p.cumpleanos; const entranP = pp.otorgados + pp.bonificacion + pp.misiones + pp.cumpleanos;
+      const extras = p.bonificacion + p.misiones + p.cumpleanos; const neto = entran - p.canjeados - p.vencidos - p.anulados;
+      const exRows = [{ label: 'Misiones', n: p.misiones, nivel: true }, { label: 'Bonificación por primer consumo', n: p.bonificacion, nivel: false }, { label: 'Cumpleaños', n: p.cumpleanos, nivel: true }].sort((a, b) => b.n - a.n);
+      const mxEx = Math.max(...exRows.map((x) => x.n), 1);
+      const dest = [{ label: 'Saldo neto', n: neto, c: P.marronOsc, lc: '#2b1a10', signo: true }, { label: 'Canjeados', n: p.canjeados, c: P.turq, lc: P.turq }, { label: 'Vencidos', n: p.vencidos, c: P.mostaza, lc: '#9a7a17' }, { label: 'Anulados', n: p.anulados, c: P.coral, lc: '#c0573c' }];
+      const mxD = Math.max(...dest.map((x) => Math.abs(x.n)), 1);
+      pts = { total: N(entran),
+        tiles: [
+          { label: 'Acreditados', valor: N(entran), ayuda: 'Consumos, bonificación, misiones y cumpleaños', c: P.marron, k: '#8a3d1c', dBg: '#f6e3da', delta: delta(entran, entranP), tip: 'Acreditados: ' + N(entran) + ' pts · ' + K.mesTxt(RP.m) + ': ' + N(entranP) + ' pts' },
+          { label: 'Canjeados', valor: N(p.canjeados), ayuda: pctTxt(p.canjeados, entran) + ' de lo acreditado', c: P.turq, k: P.turq, dBg: '#dff0f2', delta: delta(p.canjeados, pp.canjeados), tip: 'Canjeados: ' + N(p.canjeados) + ' pts · ' + K.mesTxt(RP.m) + ': ' + N(pp.canjeados) + ' pts' },
+          { label: 'Vencidos', valor: N(p.vencidos), ayuda: 'Lotes que vencieron en el mes', c: P.mostaza, k: '#9a7a17', dBg: '#f8f0d4', delta: delta(p.vencidos, pp.vencidos), tip: 'Vencidos: ' + N(p.vencidos) + ' pts · ' + K.mesTxt(RP.m) + ': ' + N(pp.vencidos) + ' pts' },
+          { label: 'Anulados', valor: N(p.anulados), ayuda: 'Restados al anular consumos', c: P.coral, k: '#c0573c', dBg: '#fbe3dc', delta: delta(p.anulados, pp.anulados), tip: 'Anulados: ' + N(p.anulados) + ' pts · ' + K.mesTxt(RP.m) + ': ' + N(pp.anulados) + ' pts' }
+        ],
+        org: { n: N(p.otorgados), pct: pct1(p.otorgados, entran), w: pctW(p.otorgados, entran), tip: 'Consumos: ' + N(p.otorgados) + ' pts (' + pct1(p.otorgados, entran) + ')' },
+        extra: { n: N(extras), pct: pct1(extras, entran), rows: exRows.map((x) => ({ ...x, n: N(x.n), pct: pct1(x.n, entran), w: pctW(x.n, mxEx), tip: x.label + ': ' + N(x.n) + ' pts (' + pct1(x.n, entran) + ' del total)' + (x.nivel ? '. No cuenta para el nivel.' : '') })) },
+        dest: dest.map((x) => ({ label: x.label, n: (x.signo && x.n > 0 ? '+' : '') + N(x.n), c: x.c, lc: x.lc, vc: x.signo ? '#2b1a10' : x.lc, p: pctW(Math.abs(x.n), mxD), pct: pct1(x.n, entran), tip: x.label + ': ' + N(x.n) + ' pts (' + pct1(x.n, entran) + ' de lo acreditado)' })) };
       // ----- Programa -----
       const g = st.programa; const tot = g.misiones.reduce((a, m) => ({ asig: a.asig + m.asignadas, comp: a.comp + m.completadas, recl: a.recl + m.reclamadas, venc: a.venc + m.vencidas }), { asig: 0, comp: 0, recl: 0, venc: 0 });
       // En el mes en curso, las que no se completaron siguen En progreso; en un mes cerrado ya vencieron.
       const enProg = esActual ? tot.venc : 0, venc = esActual ? 0 : tot.venc;
-      const misItems = [...(esActual ? [{ label: 'En progreso', n: enProg, c: C[1], ayuda: 'El mes todavía no terminó.' }] : []), { label: 'Completada', n: tot.comp - tot.recl, c: C[2], ayuda: 'Falta que el cliente la reclame o la misión no tiene recompensa.' }, { label: 'Reclamada', n: tot.recl, c: C[4], ayuda: 'Se acreditaron los puntos.' }, { label: 'Vencida', n: venc, c: C[0], ayuda: venc ? 'No llegó al objetivo antes de fin de mes.' : '' }];
-      const nivItems = g.niveles.map((x, i) => ({ label: x.label, n: x.n, c: [C[0], '#9aa5b1', C[2]][i] || C[3] })); const totN = nivItems.reduce((a, x) => a + x.n, 0);
+      const misItems = [...(esActual ? [{ label: 'En progreso', n: enProg, c: P.turq, ayuda: 'El mes todavía no terminó.' }] : []), { label: 'Completada', n: tot.comp - tot.recl, c: P.mostaza, ayuda: 'Falta que el cliente la reclame o la misión no tiene recompensa.' }, { label: 'Reclamada', n: tot.recl, c: P.rojizo, ayuda: 'Se acreditaron los puntos.' }, { label: 'Vencida', n: venc, c: P.durazno, ayuda: venc ? 'No llegó al objetivo antes de fin de mes.' : '' }];
+      const nivItems = g.niveles.map((x, i) => ({ label: x.label, n: x.n, c: [P.durazno, P.topo, P.mostaza][i] || P.turq })); const totN = nivItems.reduce((a, x) => a + x.n, 0);
       const mxT = Math.max(...g.top.map((f) => f.usados), 1); const totT = g.top.reduce((a, f) => a + f.usados, 0);
-      prog = { hayMis: tot.asig > 0, sinMis: tot.asig === 0,
+      prog = { hayMis: tot.asig > 0, sinMis: tot.asig === 0, efect: pctTxt(tot.comp, tot.asig),
         pie: { grad: this.pie(misItems, tot.asig), centro: N(tot.asig), leg: leg(misItems, tot.asig), aria: misItems.map((x) => x.label + ' ' + x.n).join(', ') },
         niv: { grad: this.pie(nivItems, totN), centro: N(totN), leg: leg(nivItems, totN), aria: nivItems.map((x) => x.label + ' ' + x.n).join(', ') },
-        subieron: { pct: pctTxt(g.subieron, totN), n: N(g.subieron) + (g.subieron === 1 ? ' cliente' : ' clientes'), w: pctW(g.subieron, totN) },
+        subieron: { pct: pctTxt(g.subieron, totN), n: N(g.subieron) + (g.subieron === 1 ? ' cliente' : ' clientes'), w: pctW(g.subieron, totN), tip: N(g.subieron) + ' de ' + N(totN) + ' clientes activos subieron de nivel' },
         top: g.top.map((f, i) => ({ pos: i + 1, nombre: f.nombre, n: N(f.usados), pct: pctTxt(f.usados, totT), p: pctW(f.usados, mxT), tip: f.nombre + ': ' + N(f.usados) + ' canjes usados (' + pctTxt(f.usados, totT) + ' de los ' + N(totT) + ' del mes)' })), totTop: N(totT), sinTop: g.top.length === 0 };
+      // ----- Pestañas, con un total de cada sección -----
+      tabs = [['clientes', 'Clientes', IC.users, N(c.activos), N(c.activos) + ' clientes activos'], ['consumos', 'Consumos', IC.receipt, N(k.count), N(k.count) + ' consumos en el mes'], ['puntos', 'Puntos', IC.coins, '+' + N(entran), N(entran) + ' puntos acreditados en el mes'], ['programa', 'Programa', IC.tag, N(tot.asig), N(tot.asig) + ' misiones asignadas en el mes']]
+        .map(([key, label, ic, bd, tip]) => ({ label, ic, bd, tip, sel: s.tab === key ? 'true' : 'false', cls: s.tab === key ? 'st-tab on' : 'st-tab', onClick: () => this.setState({ tab: key }) }));
     }
     return {
       mesSel: String(s.mes), anioSel: String(s.anio), mesesOpt, aniosOpt,
-      onMes: (e) => this.setState({ mes: Number(e.target.value) }),
-      onAnio: (e) => { const y = Number(e.target.value); this.setState((x) => ({ anio: y, mes: y === yHoy && x.mes > mHoy ? mHoy : x.mes })); },
-      periodoTxt: K ? K.mesTxt(R.m) + (esActual ? ' (mes en curso)' : '') : '',
+      onMes: (e) => this.setState({ mes: Number(e.target.value), conv: null }),
+      onAnio: (e) => { const y = Number(e.target.value); this.setState((x) => ({ anio: y, mes: y === yHoy && x.mes > mHoy ? mHoy : x.mes, conv: null })); },
+      periodoTxt: K ? K.mesTxt(R.m) + (esActual ? ' (mes en curso)' : '') : '', mesMin: K ? (MESES[s.mes - 1] || '').toLowerCase() : '', corte,
       ok, tabs, esClientes: s.tab === 'clientes', esConsumos: s.tab === 'consumos', esPuntos: s.tab === 'puntos', esPrograma: s.tab === 'programa',
       cli, con, pts, prog, toast: s.toast,
       abrirPdf: () => this.setState({ pdf: { open: true, secs: { clientes: true, consumos: true, puntos: true, programa: true } } }), cerrarPdf: () => this.setState({ pdf: { open: false, secs: {} } }),
-      pdf: (() => { const SEC = [['clientes', 'Clientes', 'Activos, nuevos, frecuentes y últimos 6 meses'], ['consumos', 'Consumos', 'Por día de la semana y por franja horaria'], ['puntos', 'Puntos', 'Origen de los puntos y qué pasó con ellos'], ['programa', 'Programa', 'Misiones, clientes por nivel y recompensas']];
+      pdf: (() => { const SEC = [['clientes', 'Clientes', 'Activos, nuevos, frecuentes y conversión de los nuevos'], ['consumos', 'Consumos', 'Por día de la semana y por franja horaria'], ['puntos', 'Puntos', 'Variación contra el mes anterior, origen y destino de los puntos'], ['programa', 'Programa', 'Clientes por nivel, misiones y recompensas']];
         const sel = s.pdf.secs || {}; const n = SEC.filter(([k]) => sel[k]).length; const todo = n === SEC.length;
         return { open: s.pdf.open, sinSel: n === 0, err: n === 0 ? 'Elegí al menos una sección.' : '', todoTxt: todo ? 'Deseleccionar todo' : 'Seleccionar todo',
           toggleTodo: () => this.setState((x) => ({ pdf: { ...x.pdf, secs: SEC.reduce((o, [k]) => ({ ...o, [k]: !todo }), {}) } })),

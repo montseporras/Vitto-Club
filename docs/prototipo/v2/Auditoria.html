@@ -12,7 +12,7 @@
   <script src="_ds/modernist-c11cfd55-1e38-4a0d-8147-f94cbaacf2f2/_ds_bundle.js"></script>
   <script src="./consumos-store.js"></script>
 </helmet>
-<div style="display:flex; flex-direction:column; gap:14px;">
+<div style="display:flex; flex-direction:column; gap:14px; flex:1;">
   <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; align-items:end;">
     <div class="field" style="margin:0; min-width:0;"><label>Realizado por</label><select class="input" value="{{ f.usuario }}" onChange="{{ on.usuario }}"><sc-for list="{{ usuarios }}" as="o" hint-placeholder-count="4"><option value="{{ o }}">{{ o }}</option></sc-for></select></div>
     <div class="field" style="margin:0; min-width:0;"><label>Módulo</label><select class="input" value="{{ f.modulo }}" onChange="{{ on.modulo }}"><sc-for list="{{ modulos }}" as="o" hint-placeholder-count="9"><option value="{{ o.v }}" disabled="{{ o.dis }}">{{ o.label }}</option></sc-for></select></div>
@@ -34,11 +34,11 @@
     <div style="display:flex; align-items:flex-end;"><button type="button" class="btn btn-secondary" onClick="{{ limpiar }}">Limpiar filtros</button></div>
   </div>
 
-  <sc-if value="{{ hay }}" hint-placeholder-val="{{ true }}"><div style="overflow-x:auto; max-width:100%;"><table class="table">
+  <sc-if value="{{ hay }}" hint-placeholder-val="{{ true }}"><div data-fit="aud" style="overflow-x:auto; max-width:100%;"><table class="table">
     <thead><tr><th style="width:28px;"></th><th>Fecha y hora</th><th>Realizado por</th><th>Módulo</th><th>Acción</th></tr></thead>
     <tbody>
       <sc-for list="{{ rows }}" as="a" hint-placeholder-count="6">
-        <tr class="vc-rowlink" title="Ver detalle" aria-expanded="{{ a.abierto }}" onClick="{{ a.toggle }}">
+        <tr data-fit-row="1" class="vc-rowlink" title="Ver detalle" aria-expanded="{{ a.abierto }}" onClick="{{ a.toggle }}">
           <td style="color:#7e3e20;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="transform:{{ a.rot }}; transition:transform .15s;"><path d="m9 18 6-6-6-6"></path></svg></td>
           <td style="white-space:nowrap;">{{ a.fecha }}</td>
           <td><span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7e3e20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="{{ a.icon }}"></path></svg>{{ a.usuario }}</span></td>
@@ -57,7 +57,7 @@
       </sc-for>
     </tbody>
   </table></div>
-  <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;"><span class="text-muted" style="font-size:13px;">{{ pg.info }}</span><div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary" disabled="{{ pg.prevDis }}" onClick="{{ pg.prev }}">Anterior</button><button type="button" class="btn btn-secondary" disabled="{{ pg.nextDis }}" onClick="{{ pg.next }}">Siguiente</button></div></div></sc-if>
+  <div class="vc-pg-pager" style="padding-top:0;"><span class="text-muted" style="font-size:13px;">{{ pg.info }}</span><div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary" disabled="{{ pg.prevDis }}" onClick="{{ pg.prev }}">Anterior</button><button type="button" class="btn btn-secondary" disabled="{{ pg.nextDis }}" onClick="{{ pg.next }}">Siguiente</button></div></div></sc-if>
   <sc-if value="{{ vacio }}" hint-placeholder-val="{{ false }}"><p class="text-muted" style="font-size:13px; margin:0;">No hay registros para los filtros seleccionados</p></sc-if>
 </div>
 </x-dc>
@@ -77,9 +77,23 @@ class Component extends DCLogic {
   };
   ICON_P = 'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8';
   ICON_S = 'M4 4h16v12H4z M8 20h8 M12 16v4 M8 8h.01 M12 8h4';
-  componentDidMount() { const t = () => { if (window.VCStore) { this._u = window.VCStore.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); if (window.VCS5) this._u5 = window.VCS5.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); }; t();
+  // Paginado que entra en la pantalla: la cantidad de filas por página sale del alto disponible (sin bajar para ver "Siguiente").
+  _fitTick() { if (this._fq) return; this._fq = true; requestAnimationFrame(() => { this._fq = false; this.fitRows(); }); }
+  fitRows() {
+    const root = document.querySelector('[data-fit="aud"]'); if (!root) return;
+    const card = root.closest('.vc-pg'); const rows = root.querySelectorAll('tr[data-fit-row]'); if (!card || !rows.length) return;
+    const pager = card.querySelector('.vc-pg-pager'); const pagerH = pager ? pager.getBoundingClientRect().height + 14 : 0;
+    const avail = window.innerHeight - 32 - 22 - pagerH - (rows[0].getBoundingClientRect().top + window.scrollY);
+    let used = 0, mx = 0; rows.forEach((r) => { const h = r.getBoundingClientRect().height; used += h; mx = Math.max(mx, h); });
+    const size = this.state.fitN || 10; let n = size;
+    if (used > avail + 1) { n = Math.max(3, size - Math.ceil((used - avail) / (used / rows.length))); if (this._up) this._cap = n; this._up = false; }
+    else if (rows.length >= size && avail - used >= mx) { n = size + Math.floor((avail - used) / mx); if (this._cap) n = Math.min(n, this._cap); this._up = n > size; }
+    if (n !== size) this.setState({ fitN: n });
+  }
+  componentDidMount() {
+    this._onR = () => { this._cap = 0; this._fitTick(); }; window.addEventListener('resize', this._onR); const t = () => { if (window.VCStore) { this._u = window.VCStore.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); if (window.VCS5) this._u5 = window.VCS5.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); }; t();
     const t2 = () => { if (window.VCCanjes) this._u2 = window.VCCanjes.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); else this._p2 = setTimeout(t2, 40); }; t2(); }
-  componentWillUnmount() { clearTimeout(this._p); if (this._u) this._u(); if (this._u5) this._u5(); }
+  componentWillUnmount() { window.removeEventListener('resize', this._onR); clearTimeout(this._p); if (this._u) this._u(); if (this._u5) this._u5(); }
   num(n) { return String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
   sg(n) { return (n < 0 ? '−' : '+') + this.num(n) + ' pts'; }
   money(n) { return '$' + this.num(n); }
@@ -150,6 +164,7 @@ class Component extends DCLogic {
   }
   setF = (k) => (e) => { const v = e.target.value; this.setState((s) => ({ f: { ...s.f, [k]: v, ...(k === 'modulo' ? { accion: 'Todas' } : {}) }, page: 1 })); };
   renderVals() {
+    this._fitTick();
     const p = this.props || {}; const s = this.state; const f = s.f;
     const emps = (p.empleados || []).filter(Boolean);
     const empSet = new Set(emps);
@@ -160,7 +175,7 @@ class Component extends DCLogic {
     const nd = f.numDoc.replace(/\D/g, ''); const cq = f.codigo.trim().toLowerCase();
     const lista = todos.filter((a) => (f.usuario === 'Todos' || a.usuario === f.usuario) && (f.modulo === 'Todos' || a.modulo === f.modulo) && (f.accion === 'Todas' || a.accion === f.accion)
       && (!nd || (a.cliente && a.cliente.tipo === f.tipoDoc && String(a.cliente.num).includes(nd))) && okF(a.ts));
-    const size = 10, pages = Math.max(1, Math.ceil(lista.length / size)), pg = Math.min(s.page, pages);
+    const size = s.fitN || 10, pages = Math.max(1, Math.ceil(lista.length / size)), pg = Math.min(s.page, pages);
     const rows = lista.slice((pg - 1) * size, pg * size).map((a, i) => { const key = a.ts + '|' + a.texto; const ab = !!s.open[key];
       return { fecha: this.fdt(a.ts), usuario: a.usuario, icon: a.usuario === 'Sistema' ? this.ICON_S : this.ICON_P, modulo: a.modulo, texto: a.texto, abierto: ab, rot: ab ? 'rotate(90deg)' : 'none',
         toggle: () => this.setState((st) => ({ open: { ...st.open, [key]: !st.open[key] } })), tieneCliente: !!a.cliente, cliente: a.cliente || {}, filas: (a.filas || []).map(([k, v]) => ({ k, v })), sinFilas: !(a.filas || []).length }; });

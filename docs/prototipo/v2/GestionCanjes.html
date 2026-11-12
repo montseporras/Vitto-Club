@@ -7,8 +7,8 @@
 <body>
 <x-dc>
 <div class="vc-r" style="width:100%; display:flex; flex-direction:column; gap:20px;">
-  <div style="border-radius:24px; border:1px solid #f6d0b1; background:#ffffff; box-shadow:0 20px 25px -5px rgba(126,62,32,.1), 0 8px 10px -6px rgba(126,62,32,.1); padding:32px;">
-    <h2 style="margin:0; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.2; color:#2b1a10;">Canjes</h2>
+  <div class="vc-pg">
+    <h4 class="vc-pg-t">Canjes</h4>
     <p style="margin:4px 0 20px; font-size:13px; color:#7a6e63;">Hacé clic en un canje para ver el detalle y aplicarlo o rechazarlo.</p>
     <div style="position:relative; display:flex; flex-wrap:wrap; align-items:stretch; border:1px solid #f6d0b1; border-radius:12px; background:#ffffff;">
       <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; padding:8px 14px; min-width:0; flex:.7 1 110px;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#7e3e20;">Tipo doc.</span><select style="height:34px; width:100%; box-sizing:border-box; border:none; background:transparent; padding:0; font-family:var(--font-body); font-size:13px; color:#2b1a10; outline:none; cursor:pointer;" value="{{ fd.tipo }}" onChange="{{ on.tipo }}"><option value="DNI">DNI</option><option value="Pasaporte">Pasaporte</option></select></div>
@@ -32,9 +32,9 @@
     </div>
     <sc-if value="{{ cal.open }}" hint-placeholder-val="{{ false }}"><div onClick="{{ toggleCal }}" style="position:fixed; inset:0; z-index:50;"></div></sc-if>
 
-    <sc-if value="{{ hay }}" hint-placeholder-val="{{ true }}"><div style="margin-top:20px; overflow-x:auto;"><table class="table"><thead><tr><th>Código</th><th>Fecha y hora</th><th>Cliente</th><th>Recompensa</th><th style="text-align:right;">Puntos</th><th>Estado</th><th>Vence / resuelto</th><th style="width:28px;"></th></tr></thead><tbody>
+    <sc-if value="{{ hay }}" hint-placeholder-val="{{ true }}"><div data-fit="canj" style="margin-top:20px; overflow-x:auto;"><table class="table"><thead><tr><th>Código</th><th>Fecha y hora</th><th>Cliente</th><th>Recompensa</th><th style="text-align:right;">Puntos</th><th>Estado</th><th>Vence / resuelto</th><th style="width:28px;"></th></tr></thead><tbody>
       <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
-        <tr class="vc-rowlink" title="Ver canje" onClick="{{ r.abrir }}">
+        <tr data-fit-row="1" class="vc-rowlink" title="Ver canje" onClick="{{ r.abrir }}">
           <td style="font-weight:700; white-space:nowrap; letter-spacing:.04em;">{{ r.codigo }}</td>
           <td style="white-space:nowrap;">{{ r.fecha }}</td>
           <td>{{ r.cliente }}<div style="font-size:12px; color:#7a6e63;">{{ r.doc }}</div></td>
@@ -46,10 +46,9 @@
         </tr>
       </sc-for>
     </tbody></table></div>
-    <div style="margin-top:16px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;"><span style="font-size:14px; color:#5c5249;">{{ pg.info }}</span><div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary" disabled="{{ pg.prevDis }}" onClick="{{ pg.prev }}">Anterior</button><button type="button" class="btn btn-secondary" disabled="{{ pg.nextDis }}" onClick="{{ pg.next }}">Siguiente</button></div></div></sc-if>
+    <div class="vc-pg-pager"><span class="text-muted" style="font-size:13px;">{{ pg.info }}</span><div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary" disabled="{{ pg.prevDis }}" onClick="{{ pg.prev }}">Anterior</button><button type="button" class="btn btn-secondary" disabled="{{ pg.nextDis }}" onClick="{{ pg.next }}">Siguiente</button></div></div></sc-if>
     <sc-if value="{{ vacio }}" hint-placeholder-val="{{ false }}"><p style="margin:24px 0 0; padding:28px 16px; text-align:center; font-size:16px; color:#5c5249; border:1px dashed #f6d0b1; border-radius:16px;">No hay canjes para los filtros seleccionados.</p></sc-if>
   </div>
-  <div style="border:1px dashed #d9804f; background:#fffaf3; border-radius:12px; padding:10px 14px; font-size:13px; color:#6b5446;"><strong style="color:#7a3a1d;">Nota del prototipo:</strong> US-45 · RF-049 (consultar canjes con filtros). Desde el detalle de un canje confirmado el Administrador también lo aplica (US-42 · RF-046) o lo rechaza (US-43 · RF-047). Los Confirmados pasan solos a Vencido a los 15 minutos (US-44 · RF-048). En "Fechas", un solo día filtra ese día; dos días, el rango.</div>
 
   <sc-if value="{{ det.open }}" hint-placeholder-val="{{ false }}">
     <div class="dialog-backdrop" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10000; padding:16px;">
@@ -74,11 +73,25 @@
 class Component extends DCLogic {
   F0 = { tipo: 'DNI', num: '', codigo: '', rec: '', estado: 'Todos', desde: '', hasta: '', orden: 'Más recientes' };
   state = { f: { ...this.F0 }, fd: { ...this.F0 }, cal: { open: false, y: new Date().getFullYear(), m: new Date().getMonth() }, page: 1, det: '', accion: '', accionCodigo: '', toast: '', v: 0 };
+  // Paginado que entra en la pantalla: la cantidad de filas por página sale del alto disponible (sin bajar para ver "Siguiente").
+  _fitTick() { if (this._fq) return; this._fq = true; requestAnimationFrame(() => { this._fq = false; this.fitRows(); }); }
+  fitRows() {
+    const root = document.querySelector('[data-fit="canj"]'); if (!root) return;
+    const card = root.closest('.vc-pg'); const rows = root.querySelectorAll('tr[data-fit-row]'); if (!card || !rows.length) return;
+    const pager = card.querySelector('.vc-pg-pager'); const pagerH = pager ? pager.getBoundingClientRect().height + 14 : 0;
+    const avail = window.innerHeight - 32 - 22 - pagerH - (rows[0].getBoundingClientRect().top + window.scrollY);
+    let used = 0, mx = 0; rows.forEach((r) => { const h = r.getBoundingClientRect().height; used += h; mx = Math.max(mx, h); });
+    const size = this.state.fitN || 10; let n = size;
+    if (used > avail + 1) { n = Math.max(3, size - Math.ceil((used - avail) / (used / rows.length))); if (this._up) this._cap = n; this._up = false; }
+    else if (rows.length >= size && avail - used >= mx) { n = size + Math.floor((avail - used) / mx); if (this._cap) n = Math.min(n, this._cap); this._up = n > size; }
+    if (n !== size) this.setState({ fitN: n });
+  }
   componentDidMount() {
+    this._onR = () => { this._cap = 0; this._fitTick(); }; window.addEventListener('resize', this._onR);
     const t = () => { if (window.VCCanjes) { this._u = window.VCCanjes.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); };
     t(); this._i = setInterval(() => this.setState((s) => ({ v: s.v + 1 })), 15000);
   }
-  componentWillUnmount() { clearTimeout(this._p); clearTimeout(this._t); clearInterval(this._i); if (this._u) this._u(); }
+  componentWillUnmount() { window.removeEventListener('resize', this._onR); clearTimeout(this._p); clearTimeout(this._t); clearInterval(this._i); if (this._u) this._u(); }
   z(x) { return String(x).padStart(2, '0'); }
   fdt(ts) { const d = new Date(ts); return this.z(d.getDate()) + '/' + this.z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + this.z(d.getHours()) + ':' + this.z(d.getMinutes()); }
   iso(ts) { const d = new Date(ts); return d.getFullYear() + '-' + this.z(d.getMonth() + 1) + '-' + this.z(d.getDate()); }
@@ -107,6 +120,7 @@ class Component extends DCLogic {
     return f.map(([k, v]) => ({ k, v }));
   }
   renderVals() {
+    this._fitTick();
     const K = window.VCCanjes; const s = this.state; const f = s.f; const p = this.props || {};
     const todos = K ? K.canjes() : [];
     const okF = (ts) => { const i = this.iso(ts); if (!f.desde) return true; if (!f.hasta) return i === f.desde; return i >= f.desde && i <= f.hasta; };
@@ -114,7 +128,7 @@ class Component extends DCLogic {
     const lista = todos.filter((c) => (f.estado === 'Todos' || c.estado === f.estado) && (!cq || c.codigo.includes(cq)) && (!rq || this.nrm(c.recompensa).includes(rq)) && okF(c.creadoTs)
       && (!nd || ((c.tipo || 'DNI') === f.tipo && this.doc(c.num).includes(nd))))
       .slice().sort((a, b) => f.orden === 'Más antiguos' ? a.creadoTs - b.creadoTs : b.creadoTs - a.creadoTs);
-    const size = 10, pages = Math.max(1, Math.ceil(lista.length / size)), pg = Math.min(s.page, pages);
+    const size = s.fitN || 10, pages = Math.max(1, Math.ceil(lista.length / size)), pg = Math.min(s.page, pages);
     const rows = lista.slice((pg - 1) * size, pg * size).map((c) => {
       const conf = c.estado === 'Confirmado';
       return { codigo: c.codigo, fecha: this.fdt(c.creadoTs), cliente: c.nombre, doc: (c.tipo || 'DNI') + ' ' + c.num, recompensa: c.recompensa, puntos: K.num(c.puntos), estado: c.estado, badge: K.badge(c.estado),

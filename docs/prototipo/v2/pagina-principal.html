@@ -969,6 +969,20 @@ textarea.input { min-height: 90px; resize: vertical; }
     .vc-root .vc-r .vc-reg-f p { font-size:12px !important; }
     .vc-root .vc-r .vc-reg-seg { padding:3px; gap:3px; height:40px; box-sizing:border-box; border-radius:8px; }
     .vc-root .vc-r .vc-reg-seg .vc-seg-opt { padding:0 10px; font-size:14px; border-radius:6px; }
+    /* ===== Pantallas del Administrador: mismo recuadro, título y tabla que Auditoría (12/11) ===== */
+    .vc-root .vc-pg { box-sizing:border-box; border-radius:18px; border:1px solid #f0d9c4; background:#ffffff; box-shadow:0 10px 24px -18px rgba(122,58,29,.45); padding:22px; display:flex; flex-direction:column; min-height:calc(100vh - 128px); }
+    .vc-root .vc-pg-t, .vc-root .vc-pg > h4:first-child { margin:0 0 8px; font-family:var(--font-heading); font-size:20px; font-weight:800; line-height:22.4px; color:#5a2a14; }
+    .vc-root .vc-pg-t + p { margin-top:-4px !important; }
+    .vc-root .vc-pg > .sc-host { flex:1; display:flex; flex-direction:column; }
+    .vc-root .vc-pg > .sc-host > div { flex:1; }
+    .vc-root .vc-pg-pager { margin-top:auto; padding-top:14px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; }
+    .vc-root .vc-pg .vc-r .table th, .vc-root .vc-r .vc-pg .table th { background:#fdf0e4; color:#7a3a1d; font-size:13px; line-height:16px; letter-spacing:.04em; padding:10px 12px; }
+    .vc-root .vc-pg .vc-r .table td, .vc-root .vc-r .vc-pg .table td { font-size:14px; line-height:20px; padding:10px 12px; }
+    .vc-root .vc-side-note { margin:16px 16px 0 0; border:1px dashed #d9804f; background:#fffaf3; border-radius:12px; padding:8px 12px; font-size:12px; line-height:1.45; color:#6b5446; }
+    .vc-root .vc-side-note summary { cursor:pointer; font-weight:700; color:#7a3a1d; font-size:12px; }
+    .vc-root .vc-side-note p { margin:6px 0 0; max-height:calc(100vh - 620px); min-height:60px; overflow:auto; }
+    .vc-root .vc-side-col .vc-side-note { display:none; }
+    @media (max-width:900px) { .vc-root .vc-pg { min-height:0; } }
   </style>
 </helmet>
 <div class="vc-root" style="min-height:100vh; background:#fdf7ee; color:#2b1a10; font-family:var(--font-body); position:relative; --font-heading:'Playfair Display', Georgia, serif; --font-body:'Lora', Georgia, serif; --color-bg:#fdf7ee; --color-text:#2b1a10; --color-surface:#ffffff; --color-divider:#f0d9c4; --color-accent:#a9532b; --color-accent-100:#fbeee3; --color-accent-200:#f5d6bf; --color-accent-300:#eab08a; --color-accent-400:#d9804f; --color-accent-500:#a9532b; --color-accent-600:#8f4422; --color-accent-700:#7a3a1d; --color-accent-800:#5e2c16; --color-accent-900:#3f1d0e; --color-accent-2:#a9532b; --color-accent-2-100:#fbeee3; --color-accent-2-200:#f5d6bf; --color-accent-2-300:#eab08a; --color-accent-2-400:#d9804f; --color-accent-2-500:#a9532b; --color-accent-2-600:#8f4422; --color-accent-2-700:#7a3a1d; --color-accent-2-800:#5e2c16; --color-accent-2-900:#3f1d0e;">
@@ -1377,8 +1391,9 @@ textarea.input { min-height: 90px; resize: vertical; }
         <sc-if value="{{ drawerAbierto }}" hint-placeholder-val="{{ false }}"><div class="vc-drawer-bg" sc-camel-on-click="{{ cerrarDrawer }}"></div></sc-if>
         <aside class="{{ sideCls }}">
           <dc-import name="SidebarMenu" titulo="Menú de administración" items="{{ adminNavItems }}" colapsado="{{ navCol }}" on-toggle="{{ toggleNav }}" toggle-icon="{{ navToggleIcon }}" on-item-leave="{{ leaveTip }}" hint-size="100%,260px"></dc-import>
+          <sc-if value="{{ adminNota.hay }}" hint-placeholder-val="{{ false }}"><details class="vc-side-note" open=""><summary>Nota del prototipo</summary><p>{{ adminNota.txt }}</p><sc-if value="{{ adminNota.esMis }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-secondary" style="height:32px; padding:0 12px; font-size:13px; margin-top:8px;" sc-camel-on-click="{{ adminNota.simular }}">Simular fin de mes</button></sc-if></details></sc-if>
         </aside>
-        <div class="vc-main" style="flex:1 1 0; min-width:0; padding:32px 24px 32px 32px; box-sizing:border-box;">
+        <div class="vc-main vc-adm" style="flex:1 1 0; min-width:0; padding:32px 24px 32px 32px; box-sizing:border-box;">
           <sc-if value="{{ aIsConsumo }}" hint-placeholder-val="{{ false }}"><dc-import name="RegistrarConsumo" usuario="{{ consumoUsuario }}" niveles="{{ nivelesLista }}" hist-por-doc="{{ histPorDoc }}" clientes="{{ consumoClientes }}" recompensas="{{ consumoRecompensas }}" canjes-cliente="{{ consumoCanjesCliente }}" movs-cliente="{{ consumoMovsCliente }}" monto-base="{{ configGuardada.montoBase }}" puntos-por-monto="{{ configGuardada.puntosPorMonto }}" bonif-tipo="{{ configGuardada.bonificacionTipo }}" bonif-valor="{{ configGuardada.bonificacionPrimeraCompra }}" on-ir-alta="{{ consumoIrAltaAdm }}" rol="{{ consumoRolAdm }}" dni-inicial="{{ consumoPrefill }}" on-ver-detalle="{{ consumoVerAdm }}" hint-size="100%,420px"></dc-import></sc-if>
           <sc-if value="{{ aIsFicha }}" hint-placeholder-val="{{ false }}"><dc-import name="FichaCliente" cliente="{{ fichaCliente }}" niveles="{{ nivelesLista }}" rol="{{ consumoRolAdm }}" on-volver="{{ fichaVolver }}" on-registrar-consumo="{{ consumoNuevoAdm }}" on-ver-consumo="{{ consumoVerAdm }}" on-ver-todos="{{ fichaVerTodosAdm }}" on-ver-todos-movs="{{ fichaVerMovsAdm }}" usuario="{{ consumoUsuario }}" hint-size="100%,560px"></dc-import></sc-if>
           <sc-if value="{{ aIsConsumos }}" hint-placeholder-val="{{ false }}"><dc-import name="Consumos" usuario="{{ consumoUsuario }}" rol="{{ consumoRolAdm }}" codigo="{{ consumoDet }}" cliente-inicial="{{ consumoFiltro }}" on-ver-cliente="{{ consumoVerClienteAdm }}" on-ver="{{ consumoVerAdm }}" on-volver="{{ consumoVolverAdm }}" on-registrar-nuevo="{{ consumoNuevoAdm }}" hint-size="100%,520px"></dc-import></sc-if>
@@ -1395,7 +1410,7 @@ textarea.input { min-height: 90px; resize: vertical; }
           </sc-if>
 
           <sc-if value="{{ aIsClientes }}" hint-placeholder-val="{{ false }}">
-            <div class="card" style="padding:22px;" sc-camel-on-mouse-enter="{{ on_a_nav_clientes }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
+            <div class="card vc-pg" sc-camel-on-mouse-enter="{{ on_a_nav_clientes }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
               <h4>Clientes</h4>
               <div style="display:flex; gap:var(--space-2); flex-wrap:wrap; align-items:flex-end; margin-bottom:var(--space-3);">
                 <div class="field" style="max-width:180px;"><label>Tipo de documento</label><sc-raw-select class="input vc-input" value="{{ clienteTipoDoc }}" sc-camel-on-change="{{ setClienteTipoDoc }}"><option value="DNI">DNI</option><option value="Pasaporte">Pasaporte</option></sc-raw-select></div><div class="field" style="max-width:240px;"><label>Número de documento</label><input class="input vc-input" placeholder="{{ clienteDocPh }}" value="{{ clienteBusqueda }}" sc-camel-on-change="{{ setClienteBusqueda }}"></div>
@@ -1427,9 +1442,9 @@ textarea.input { min-height: 90px; resize: vertical; }
           </sc-if>
 
           <sc-if value="{{ aIsAuditoria }}" hint-placeholder-val="{{ false }}">
-            <div class="card" style="padding:22px;" sc-camel-on-mouse-enter="{{ on_a_nav_auditoria }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
+            <div class="card vc-pg" sc-camel-on-mouse-enter="{{ on_a_nav_auditoria }}" sc-camel-on-mouse-leave="{{ leaveTip }}">
               <h4>Auditoría</h4>
-              <div style="border:1px dashed #d9804f; background:#fffaf3; border-radius:12px; padding:10px 14px; margin-bottom:14px; font-size:13px; color:#6b5446;"><strong style="color:#7a3a1d;">Nota del prototipo (no es parte del diseño de la pantalla):</strong> cada movimiento se puede abrir para ver sus detalles internos, como el monto del consumo y los puntos otorgados, el valor anterior y el nuevo de una configuración modificada, o qué puntos vencieron y cuántos.</div>
+              
               <dc-import name="Auditoria" registros="{{ auditoriaRegistros }}" empleados="{{ auditoriaEmpleados }}" hint-size="100%,480px"></dc-import>
             </div>
           </sc-if>
@@ -2040,7 +2055,7 @@ class Component extends DCLogic {
       a_misiones: { t: 'Misiones', c: mis },
       a_clientes: { t: 'Clientes', c: [['Apellido', 'String', 'si'], ['Nombre', 'String', 'si'], ['Nivel', 'String', 'auto'], ['Saldo', 'int', 'auto'], ['Fecha de alta', 'Date', 'auto'], ['Estado', 'enum', 'auto'], ['Filtro: tipo de documento', 'enum', 'no'], ['Filtro: número de documento', 'String', 'no'], ['Filtro de nivel', 'enum', 'no']] },
       a_cliente_edit: { t: 'Editar cliente', c: [['Nombre', 'String', 'si'], ['Apellido', 'String', 'si'], ['Número de documento', 'String', 'si'], ['Teléfono', 'String', 'no'], ['Mail', MAIL, 'si'], ['Motivo del cambio', 'String', 'si']] },
-      a_stats: { t: 'Estadísticas y reportes', c: [['Mes', 'int (1 a 12)', 'si'], ['Año', 'int', 'si'], ['Clientes activos, nuevos y frecuentes', 'int', 'auto'], ['Consumos y monto por día de la semana y franja horaria', 'int / decimal', 'auto'], ['Puntos por tipo (sin ajustes)', 'int', 'auto'], ['Clientes por nivel, que subieron de nivel, misiones y recompensas (con %)', 'int', 'auto'], ['Reporte: secciones', 'enum[] (Clientes / Consumos / Puntos / Programa), al menos una', 'si'], ['Reporte', 'PDF', 'auto']] },
+      a_stats: { t: 'Estadísticas y reportes', c: [['Mes', 'int (1 a 12)', 'si'], ['Año', 'int', 'si'], ['Clientes activos, nuevos y frecuentes', 'int', 'auto'], ['Consumos y monto por día de la semana y franja horaria', 'int / decimal', 'auto'], ['Conversión de clientes nuevos (últimos 6 meses)', 'int / %', 'auto'], ['Puntos por tipo (sin ajustes) y del mes anterior', 'int', 'auto'], ['Clientes por nivel, que subieron de nivel, misiones y recompensas (con %)', 'int', 'auto'], ['Reporte: secciones', 'enum[] (Clientes / Consumos / Puntos / Programa), al menos una', 'si'], ['Reporte', 'PDF', 'auto']] },
       a_auditoria: { t: 'Auditoría', c: [['Fecha y hora', 'DateTime', 'auto'], ['Realizado por', 'String', 'auto'], ['Módulo', 'enum', 'auto'], ['Acción', 'String', 'auto'], ['Cliente afectado', 'String', 'auto'], ['Detalle', 'lista', 'auto'], ['Filtro: realizado por', 'enum', 'no'], ['Filtro: módulo', 'enum', 'no'], ['Filtro: acción', 'enum', 'no'], ['Filtro: tipo y N° de documento', 'enum + String', 'no'], ['Filtro: fecha o rango', 'Date', 'no']] },
       cfg_empleados: { t: 'Empleados', c: emp },
       cfg_config: { t: 'Puntos', c: [['Monto base ($)', 'float', 'si'], ['Puntos por monto', 'int', 'si'], ['Vigencia', 'int', 'si'], ['Tipo de bonificación', 'enum', 'si'], ['Valor de bonificación', 'decimal (porcentaje) / int (fijo)', 'si'], ['Umbral Plata', 'int', 'si'], ['Umbral Oro', 'int', 'si']] },
@@ -3299,6 +3314,8 @@ class Component extends DCLogic {
       empleadoNavItems,
 
       aIsMisiones: s.adminScreen === 'misiones', aIsRecompensas: s.adminScreen === 'recompensas', aIsCanjes: s.adminScreen === 'canjes', aIsStats: s.adminScreen === 'stats', aIsClientes: s.adminScreen === 'clientes' && !s.fichaId, aIsFicha: s.adminScreen === 'clientes' && !!s.fichaId, aIsAuditoria: s.adminScreen === 'auditoria',
+      adminNota: (() => { const N = {"recompensas": "US-34 · RF-038 (crear), US-35 · RF-039 (editar), US-36 · RF-040 (activar / desactivar), US-37 · RF-041 (el Sistema la deshabilita sin stock o vencida y la vuelve a habilitar al reponer stock o extender la fecha) y US-38 · RF-042 (eliminar: queda \"Dada de baja\"). Las dadas de baja no se listan. La foto (US-34, Sprint 5) se ve en el catálogo del Cliente, en la caja y en los canjes. Las filas por página dependen del alto de la pantalla.", "canjes": "US-45 · RF-049 (consultar canjes con filtros). Desde el detalle de un canje confirmado el Administrador también lo aplica (US-42 · RF-046) o lo rechaza (US-43 · RF-047). Los Confirmados pasan solos a Vencido a los 15 minutos (US-44 · RF-048). En \"Fechas\", un solo día filtra ese día; dos días, el rango. Las filas por página dependen del alto de la pantalla.", "misiones": "US-28 · RF-031 (crear misión mensual), US-29 · RF-032 (editar o dar de baja), US-30 · RF-033 / RF-034 (el avance sale de cada consumo) y US-32 · RF-036 (el día 1 a las 00:10 las En progreso vencen y las Completadas con recompensa se reclaman solas). El botón de abajo simula ese proceso sobre el mes actual: no es parte del diseño. Las filas por página dependen del alto de la pantalla.", "stats": "US-51 · RF-054 (clientes: activos, nuevos, frecuentes y conversión de los nuevos de los últimos 6 meses), US-52 · RF-055 (consumos por día de la semana y franja horaria), US-53 · RF-056 (puntos, con la variación contra el mes anterior), US-54 · RF-057 (niveles, misiones y recompensas) y US-55 · RF-058 (exportar el reporte en PDF). El período es un mes. Las pestañas muestran un total de cada sección. Los números son de ejemplo y los calcula el backend; los gráficos se dibujan con CSS, sin librería. Pasá el mouse sobre una barra o una fila para ver el detalle.", "auditoria": "Cada movimiento se puede abrir para ver sus detalles internos, como el monto del consumo y los puntos otorgados, el valor anterior y el nuevo de una configuración modificada, o qué puntos vencieron y cuántos. Las filas por página dependen del alto de la pantalla.", "consumos": "Las filas por página dependen del alto de la pantalla."}; const k = s.fichaId || s.consumoDet ? '' : s.adminScreen; const txt = N[k] || '';
+        return { hay: !!txt, txt, esMis: k === 'misiones', simular: () => { const K = window.VCS5; if (!K || !K.simularFinDeMes) return; const r = K.simularFinDeMes(); this.toastGlobal('Fin de mes simulado: ' + r.vencidas + ' misiones vencidas y ' + r.reclamadas + ' recompensas reclamadas automáticamente.'); } }; })(),
       adminNavItems,
       configAbierto: s.configAbierto, abrirConfig: this.abrirConfig, cerrarConfig: this.cerrarConfig, configNavItems,
       cIsEmpleados: s.configScreen === 'empleados', cIsConfig: s.configScreen === 'config', cIsNiveles: s.configScreen === 'niveles',

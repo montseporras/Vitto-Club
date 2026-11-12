@@ -14,8 +14,8 @@
 </helmet>
 <div class="vc-r" style="width:100%; display:flex; flex-direction:column; gap:20px;">
   <sc-if value="{{ enLista }}" hint-placeholder-val="{{ true }}"><div style="display:flex; flex-direction:column; gap:20px;">
-    <div style="border-radius:24px; border:1px solid #f6d0b1; background:#ffffff; box-shadow:0 20px 25px -5px rgba(126,62,32,.1), 0 8px 10px -6px rgba(126,62,32,.1); padding:32px;">
-      <h2 style="margin:0 0 20px; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.2; color:#2b1a10;">Consumos</h2>
+    <div class="vc-pg">
+      <h4 class="vc-pg-t">Consumos</h4>
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
         <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 18px;"><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">Consumos</div><div style="margin-top:4px; font-size:24px; font-family:'DM Serif Display', Georgia, serif; font-variant-numeric:lining-nums tabular-nums; color:#2b1a10;">{{ tot.n }}</div></div>
         <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:14px 18px;"><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">Monto total</div><div style="margin-top:4px; font-size:24px; font-family:'DM Serif Display', Georgia, serif; font-variant-numeric:lining-nums tabular-nums; color:#2b1a10;">{{ tot.monto }}</div></div>
@@ -39,10 +39,10 @@
         <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-left:1px solid #f6d0b1;"><sc-if value="{{ hayPendientes }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; color:#7e3e20;">Sin aplicar</span></sc-if><button type="button" class="btn btn-primary" style="height:36px;" onClick="{{ filtrar }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg>Filtrar</button></div>
       </div>
       <sc-if value="{{ cal.open }}" hint-placeholder-val="{{ false }}"><div onClick="{{ toggleCal }}" style="position:fixed; inset:0; z-index:50;"></div></sc-if>
-      <sc-if value="{{ hay }}" hint-placeholder-val="{{ true }}"><div style="margin-top:20px; overflow-x:auto;"><table class="table"><thead><tr><th>Código</th><th>Fecha y hora</th><th>Cliente</th><th style="text-align:right;">Monto</th><th style="text-align:right;">Puntos</th><th>Registrado por</th><th>Estado</th><th></th></tr></thead><tbody>
-        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5"><tr><td style="font-weight:700; white-space:nowrap;">{{ r.codigo }}</td><td style="white-space:nowrap;">{{ r.fecha }}</td><td>{{ r.cliente }}<div style="font-size:12px; color:#7a6e63;">{{ r.doc }}</div></td><td style="text-align:right; white-space:nowrap;">{{ r.monto }}</td><td style="text-align:right;">{{ r.pts }}</td><td>{{ r.por }}</td><td><span class="{{ r.badge }}">{{ r.estado }}</span></td><td style="text-align:right;"><button type="button" class="btn btn-secondary" onClick="{{ r.ver }}">Ver</button></td></tr></sc-for>
+      <sc-if value="{{ hay }}" hint-placeholder-val="{{ true }}"><div data-fit="cons" style="margin-top:20px; overflow-x:auto;"><table class="table"><thead><tr><th>Código</th><th>Fecha y hora</th><th>Cliente</th><th style="text-align:right;">Monto</th><th style="text-align:right;">Puntos</th><th>Registrado por</th><th>Estado</th><th></th></tr></thead><tbody>
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5"><tr data-fit-row="1"><td style="font-weight:700; white-space:nowrap;">{{ r.codigo }}</td><td style="white-space:nowrap;">{{ r.fecha }}</td><td>{{ r.cliente }}<div style="font-size:12px; color:#7a6e63;">{{ r.doc }}</div></td><td style="text-align:right; white-space:nowrap;">{{ r.monto }}</td><td style="text-align:right;">{{ r.pts }}</td><td>{{ r.por }}</td><td><span class="{{ r.badge }}">{{ r.estado }}</span></td><td style="text-align:right;"><button type="button" class="btn btn-secondary" onClick="{{ r.ver }}">Ver</button></td></tr></sc-for>
       </tbody></table></div>
-      <div style="margin-top:16px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;"><span style="font-size:14px; color:#5c5249;">{{ pg.info }}</span><div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary" disabled="{{ pg.prevDis }}" onClick="{{ pg.prev }}">Anterior</button><button type="button" class="btn btn-secondary" disabled="{{ pg.nextDis }}" onClick="{{ pg.next }}">Siguiente</button></div></div></sc-if>
+      <div class="vc-pg-pager"><span class="text-muted" style="font-size:13px;">{{ pg.info }}</span><div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary" disabled="{{ pg.prevDis }}" onClick="{{ pg.prev }}">Anterior</button><button type="button" class="btn btn-secondary" disabled="{{ pg.nextDis }}" onClick="{{ pg.next }}">Siguiente</button></div></div></sc-if>
       <sc-if value="{{ vacio }}" hint-placeholder-val="{{ false }}"><p style="margin:24px 0 0; padding:28px 16px; text-align:center; font-size:16px; color:#5c5249; border:1px dashed #f6d0b1; border-radius:16px;">No hay consumos para los filtros seleccionados</p></sc-if>
     </div>
   </div></sc-if>
@@ -50,7 +50,7 @@
   <sc-if value="{{ enDetalle }}" hint-placeholder-val="{{ false }}"><div style="max-width:896px; width:100%; margin:0 auto; display:flex; flex-direction:column; gap:20px;">
     <div><button type="button" class="btn btn-ghost" onClick="{{ volver }}">← Volver a Consumos</button></div>
     <div style="overflow:hidden; border-radius:24px; border:1px solid #f6d0b1; background:#ffffff; box-shadow:0 20px 25px -5px rgba(126,62,32,.1), 0 8px 10px -6px rgba(126,62,32,.1); padding:32px;">
-      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:20px;"><h2 style="margin:0; font-family:var(--font-heading); font-weight:700; font-size:24px; line-height:1.2; color:#2b1a10;">{{ d.codigo }}</h2><span class="{{ d.badge }}">{{ d.estado }}</span></div>
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:20px;"><h4 class="vc-pg-t">{{ d.codigo }}</h4><span class="{{ d.badge }}">{{ d.estado }}</span></div>
       <div style="border:1px solid #f6d0b1; background:rgba(253,243,234,.6); border-radius:16px; padding:20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px 24px;">
         <sc-for list="{{ d.datos }}" as="x" hint-placeholder-count="7"><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; color:#7e3e20;">{{ x.k }}</span><sc-if value="{{ x.link }}" hint-placeholder-val="{{ false }}"><span style="font-size:16px; color:#2b1a10; overflow-wrap:anywhere;"><a href="#" onClick="{{ x.onClick }}" style="font-weight:600; text-decoration:underline; text-underline-offset:2px; color:inherit;">{{ x.v }}</a>{{ x.extra }}</span></sc-if><sc-if value="{{ x.plain }}" hint-placeholder-val="{{ true }}"><span style="font-size:16px; color:#2b1a10; overflow-wrap:anywhere;">{{ x.v }}</span></sc-if></div></sc-for>
       </div>
@@ -100,11 +100,25 @@
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1100,&quot;height&quot;:800},&quot;usuario&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Ana Pereyra&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;rol&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Cajero&quot;,&quot;Administrador&quot;],&quot;default&quot;:&quot;Cajero&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;codigo&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onVer&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(codigo: string) =&gt; void&quot;},&quot;onVolver&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onRegistrarNuevo&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(dni: string) =&gt; void&quot;}}">
 class Component extends DCLogic {
   state = { f: { desde: '', hasta: '', q: '', estado: 'Todos', cajero: 'Todos' }, fd: { desde: '', hasta: '', q: '', estado: 'Todos', cajero: 'Todos' }, cal: { open: false, y: new Date().getFullYear(), m: new Date().getMonth() }, page: 1, m: { open: false, ask: false, motivo: '', err: '', cid: null }, toast: '', v: 0, tick: 0 };
+  // Paginado que entra en la pantalla: la cantidad de filas por página sale del alto disponible (sin bajar para ver "Siguiente").
+  _fitTick() { if (this._fq) return; this._fq = true; requestAnimationFrame(() => { this._fq = false; this.fitRows(); }); }
+  fitRows() {
+    const root = document.querySelector('[data-fit="cons"]'); if (!root) return;
+    const card = root.closest('.vc-pg'); const rows = root.querySelectorAll('tr[data-fit-row]'); if (!card || !rows.length) return;
+    const pager = card.querySelector('.vc-pg-pager'); const pagerH = pager ? pager.getBoundingClientRect().height + 14 : 0;
+    const avail = window.innerHeight - 32 - 22 - pagerH - (rows[0].getBoundingClientRect().top + window.scrollY);
+    let used = 0, mx = 0; rows.forEach((r) => { const h = r.getBoundingClientRect().height; used += h; mx = Math.max(mx, h); });
+    const size = this.state.fitN || 8; let n = size;
+    if (used > avail + 1) { n = Math.max(3, size - Math.ceil((used - avail) / (used / rows.length))); if (this._up) this._cap = n; this._up = false; }
+    else if (rows.length >= size && avail - used >= mx) { n = size + Math.floor((avail - used) / mx); if (this._cap) n = Math.min(n, this._cap); this._up = n > size; }
+    if (n !== size) this.setState({ fitN: n });
+  }
   componentDidMount() {
+    this._onR = () => { this._cap = 0; this._fitTick(); }; window.addEventListener('resize', this._onR);
     const t = () => { if (window.VCStore) { this._u = window.VCStore.subscribe(() => this.setState((s) => ({ v: s.v + 1 }))); this.setState((s) => ({ v: s.v + 1 })); } else this._p = setTimeout(t, 40); };
     t(); if (this.props && this.props.clienteInicial) this.setState((s) => ({ f: { ...s.f, q: this.props.clienteInicial }, fd: { ...s.fd, q: this.props.clienteInicial } })); this._i = setInterval(() => this.setState((s) => ({ tick: s.tick + 1 })), 30000);
   }
-  componentWillUnmount() { clearTimeout(this._p); clearTimeout(this._t); clearInterval(this._i); if (this._u) this._u(); }
+  componentWillUnmount() { window.removeEventListener('resize', this._onR); clearTimeout(this._p); clearTimeout(this._t); clearInterval(this._i); if (this._u) this._u(); }
   num(n) { const s = String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); return (n < 0 ? '-' : '') + s; }
   money(n) { const p = (Math.round(n * 100) / 100).toFixed(2).split('.'); return '$' + this.num(+p[0]) + (p[1] !== '00' ? ',' + p[1] : ''); }
   z(x) { return String(x).padStart(2, '0'); }
@@ -132,6 +146,7 @@ class Component extends DCLogic {
     clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 3800);
   };
   renderVals() {
+    this._fitTick();
     const S = window.VCStore; const p = this.props || {}; const s = this.state; const esAdmin = p.rol === 'Administrador'; const user = p.usuario || '';
     const cons = S ? S.consumos : []; const cli = (id) => (S && S.cliente(id)) || {};
     const f = s.f; const q = f.q.trim(); const qd = q.replace(/\D/g, '');
@@ -139,7 +154,7 @@ class Component extends DCLogic {
       && (!f.desde || this.iso(c.ts) >= f.desde) && (!f.hasta || this.iso(c.ts) <= f.hasta)
       && (!q || this.nrm(cli(c.cid).nombre).includes(this.nrm(q)) || (qd.length >= 3 && String(cli(c.cid).dni).replace(/\D/g, '').includes(qd)))).sort((a, b) => b.ts - a.ts);
     const ok = lista.filter((c) => c.estado === 'Registrado');
-    const size = 8, pages = Math.max(1, Math.ceil(lista.length / size)), pg = Math.min(s.page, pages);
+    const size = s.fitN || 8, pages = Math.max(1, Math.ceil(lista.length / size)), pg = Math.min(s.page, pages);
     const rows = lista.slice((pg - 1) * size, pg * size).map((c) => ({ codigo: c.codigo, fecha: this.fdt(c.ts), cliente: cli(c.cid).nombre, dni: cli(c.cid).dni, doc: (cli(c.cid).tipo || 'DNI') + ' ' + cli(c.cid).dni, monto: this.money(c.monto), pts: this.num(c.pts), por: c.por, estado: c.estado, badge: 'vc-b ' + (c.estado === 'Anulado' ? 'vc-b-off' : 'vc-b-ok'), ver: () => p.onVer && p.onVer(c.codigo) }));
     const cajeros = ['Todos', ...Array.from(new Set(cons.map((c) => c.por)))];
     // detalle
