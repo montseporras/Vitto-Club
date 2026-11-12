@@ -1,6 +1,6 @@
-// Pestaña Canjes del Cliente (prototipo ClienteCanjes): el control "Catálogo / Mis canjes" alterna
-// entre el catálogo de recompensas (US-39) y Mis canjes (US-45). Por defecto abre el Catálogo; con
-// `?vista=mis` abre Mis canjes ("Ver código" del Inicio y "Ver mis canjes" de "¡Canje confirmado!").
+// Pestaña Canjes del Cliente (prototipo ClienteCanjes): el control "Mis canjes / Catálogo" alterna
+// entre Mis canjes (US-45) y el catálogo de recompensas (US-39). Por defecto abre Mis canjes; con
+// `?vista=catalogo` abre el Catálogo ("Ver catálogo completo" del Inicio).
 // "Cancelar canje" abre el diálogo de US-43.
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
@@ -9,26 +9,27 @@ import { cn } from '@/shared/lib/utils'
 import { CancelRedemptionDialog } from '../components/CancelRedemptionDialog'
 import { MyRedemptions } from '../components/MyRedemptions'
 import { RewardsCatalog } from '../components/RewardsCatalog'
-import { MY_REDEMPTIONS_VIEW, REDEMPTIONS_VIEW_PARAM } from '../components/redemptions-view'
+import { CATALOG_REDEMPTIONS_VIEW, REDEMPTIONS_VIEW_PARAM } from '../components/redemptions-view'
 
 type View = 'catalog' | 'mine'
 
 const VIEWS: { value: View; label: string }[] = [
-  { value: 'catalog', label: 'Catálogo' },
   { value: 'mine', label: 'Mis canjes' },
+  { value: 'catalog', label: 'Catálogo' },
 ]
 
 export function MyRedemptionsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const view: View =
-    searchParams.get(REDEMPTIONS_VIEW_PARAM) === MY_REDEMPTIONS_VIEW ? 'mine' : 'catalog'
+    searchParams.get(REDEMPTIONS_VIEW_PARAM) === CATALOG_REDEMPTIONS_VIEW ? 'catalog' : 'mine'
   // Canje que el Cliente está por cancelar (diálogo "Cancelar canje")
   const [cancelling, setCancelling] = useState<MyRedemption | null>(null)
 
   const changeView = (next: View) =>
-    setSearchParams(next === 'mine' ? { [REDEMPTIONS_VIEW_PARAM]: MY_REDEMPTIONS_VIEW } : {}, {
-      replace: true,
-    })
+    setSearchParams(
+      next === 'catalog' ? { [REDEMPTIONS_VIEW_PARAM]: CATALOG_REDEMPTIONS_VIEW } : {},
+      { replace: true },
+    )
 
   return (
     <div className="mx-auto grid w-full max-w-xl gap-4">

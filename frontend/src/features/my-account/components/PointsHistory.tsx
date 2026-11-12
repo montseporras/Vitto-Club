@@ -49,7 +49,7 @@ export function PointsHistory() {
 
   return (
     <section aria-labelledby="points-history-title">
-      <h2 id="points-history-title" className="mb-4 text-xl font-semibold">
+      <h2 id="points-history-title" className="sr-only">
         Historial de puntos
       </h2>
 
