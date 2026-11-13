@@ -179,16 +179,19 @@ export const router = createBrowserRouter([
           return { Component: AuditPage }
         },
       },
-      // Pantallas de otras historias o sprints: todavía no están construidas
-      ...(
-        [
-          [PATHS.admin.missions, 'Misiones', 'Misiones'],
-          [PATHS.admin.statistics, 'Estadísticas', 'Estadísticas y reportes'],
-        ] as const
-      ).map(([path, eyebrow, title]) => ({
-        path,
-        element: <ComingSoon eyebrow={eyebrow} title={title} />,
-      })),
+      {
+        // Estadísticas y reportes (US-51 a US-55)
+        path: PATHS.admin.statistics,
+        lazy: async () => {
+          const { StatisticsPage } = await import('@/features/statistics')
+          return { Component: StatisticsPage }
+        },
+      },
+      // Pantallas de otras historias: todavía no están construidas
+      {
+        path: PATHS.admin.missions,
+        element: <ComingSoon eyebrow="Misiones" title="Misiones" />,
+      },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

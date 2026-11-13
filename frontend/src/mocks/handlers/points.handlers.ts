@@ -16,6 +16,7 @@ const FIRST_CONSUMPTION_BONUS_URL = `${API_URL}/loyalty/configuration/first-cons
 const POINTS_EQUIVALENCE_URL = `${API_URL}/loyalty/configuration/points-equivalence`;
 const POINTS_EXPIRATION_URL = `${API_URL}/loyalty/configuration/points-validity`;
 const LOYALTY_LEVELS_URL = `${API_URL}/loyalty/configuration/levels`;
+const FREQUENT_CUSTOMERS_URL = `${API_URL}/loyalty/configuration/frequent-customers`;
 
 // Fecha de la versión guardada, como la devuelve el backend en updatedAt.
 const now = () => new Date().toISOString();
@@ -223,7 +224,45 @@ function validatePointsExpirationBody(body: Record<string, unknown>): string[] {
   return errors;
 }
 
+// US-51: mínimo de consumos de un cliente frecuente (contrato S5 §3.9.6). Por defecto, 3.
+// Lo comparte statistics.handlers.ts para que las estadísticas usen el mismo mínimo.
+let frequentMinConsumptions = 3;
+export const getFrequentMinConsumptions = () => frequentMinConsumptions;
+
+function validateFrequentCustomersBody(body: Record<string, unknown>): string[] {
+  const errors = Object.keys(body)
+    .filter((key) => key !== 'minConsumptions')
+    .map((key) => `property ${key} should not exist`);
+
+  const { minConsumptions: min } = body;
+  if (typeof min !== 'number' || !Number.isInteger(min)) {
+    errors.push('minConsumptions must be an integer number');
+  } else if (min < 1) {
+    errors.push('minConsumptions must not be less than 1');
+  } else if (min > 100) {
+    errors.push('minConsumptions must not be greater than 100');
+  }
+  return errors;
+}
+
 export const pointsHandlers = [
+  // US-51: solo el Administrador consulta y cambia el mínimo de frecuente.
+  http.get(FREQUENT_CUSTOMERS_URL, ({ request }) => {
+    if (!isAdminRequest(request)) return forbidden(request);
+    return HttpResponse.json({ minConsumptions: frequentMinConsumptions });
+  }),
+
+  http.put(FREQUENT_CUSTOMERS_URL, async ({ request }) => {
+    if (!isAdminRequest(request)) return forbidden(request);
+
+    const body = (await request.json()) as Record<string, unknown>;
+    const errors = validateFrequentCustomersBody(body);
+    if (errors.length) return badRequest(errors, request);
+
+    frequentMinConsumptions = body.minConsumptions as number;
+    return HttpResponse.json({ minConsumptions: frequentMinConsumptions });
+  }),
+
   // US-27: solo el Administrador puede consultar y modificar los umbrales.
   http.get(LOYALTY_LEVELS_URL, ({ request }) => {
     if (!isAdminRequest(request)) return forbidden(request);
