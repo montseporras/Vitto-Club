@@ -845,6 +845,64 @@ export function levelsUpdatedEntry(
   };
 }
 
+// --- Mensajes automáticos (Sprint 5, US-14, contrato S5 §3.14.2) ------------------------------
+
+export type AutomaticMessageSnapshot = { type: string; active: boolean; subject: string; body: string };
+
+export type MessagesConfigSnapshot = {
+  birthdayBonusPoints: number;
+  messages: AutomaticMessageSnapshot[];
+};
+
+// Los tres tipos automáticos, en el orden en que se muestran las filas de la auditoría. Los nombres se
+// escriben acá y no se importan de `notifications`: `audit` no importa ningún módulo de negocio.
+const AUTOMATIC_MESSAGE_ROWS: { type: string; message: string; switch: string }[] = [
+  { type: 'POINTS_EXPIRING', message: 'Mensaje de vencimiento de puntos', switch: 'Vencimiento de puntos' },
+  { type: 'BIRTHDAY', message: 'Mensaje de cumpleaños', switch: 'Cumpleaños' },
+  { type: 'MISSION', message: 'Mensaje de misiones', switch: 'Misiones' },
+];
+
+const activeLabel = (active: boolean): string => (active ? 'Activado' : 'Desactivado');
+
+// "Modificó los mensajes automáticos" (§3.14.2). Una sola entrada por guardado, con una fila por cambio, en este
+// orden: "Puntos de cumpleaños: 100 → 150" y, por cada tipo, "Mensaje de {tipo}: Modificado" (si cambió el asunto
+// o el mensaje; no se muestra el texto) y "{Tipo}: Activado → Desactivado". Si no cambió nada: "Cambios: Se guardó
+// sin modificar valores" (S3-24). Sigue usando el código LOGO_AND_MESSAGES_UPDATED, que ya no incluye el logo (S5-35).
+export function messagesUpdatedEntry(
+  actor: AuditActor,
+  before: MessagesConfigSnapshot,
+  after: MessagesConfigSnapshot,
+): AuditEntryInput {
+  const details: AuditDetail[] = [];
+
+  if (before.birthdayBonusPoints !== after.birthdayBonusPoints) {
+    details.push({
+      label: 'Puntos de cumpleaños',
+      value: change(formatNumber(before.birthdayBonusPoints), formatNumber(after.birthdayBonusPoints)),
+    });
+  }
+
+  for (const row of AUTOMATIC_MESSAGE_ROWS) {
+    const was = before.messages.find((message) => message.type === row.type);
+    const now = after.messages.find((message) => message.type === row.type);
+    if (!was || !now) continue;
+    if (was.subject !== now.subject || was.body !== now.body) {
+      details.push({ label: row.message, value: 'Modificado' });
+    }
+    if (was.active !== now.active) {
+      details.push({ label: row.switch, value: change(activeLabel(was.active), activeLabel(now.active)) });
+    }
+  }
+
+  return {
+    actor,
+    module: 'CONFIGURATION',
+    action: 'LOGO_AND_MESSAGES_UPDATED',
+    description: 'Modificó los mensajes automáticos',
+    details: details.length > 0 ? details : [{ label: 'Cambios', value: NO_CHANGES }],
+  };
+}
+
 // Guardado completo (PUT /loyalty/configuration): una entrada por cada sección que cambió. Si no
 // cambió ninguna igual se registra una, con la fila "Cambios: Se guardó sin modificar valores"
 // (contrato §3.9.3). Para ese caso el contrato no dice qué código usar: se usa el de la equivalencia.

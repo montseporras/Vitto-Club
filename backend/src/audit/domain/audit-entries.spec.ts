@@ -3,6 +3,7 @@ import {
   consumptionRegisteredEntry,
   consumptionVoidedEntry,
   levelsUpdatedEntry,
+  messagesUpdatedEntry,
   customerCreatedEntry,
   customerDeactivatedEntry,
   customerUpdatedEntry,
@@ -23,6 +24,7 @@ import {
   type CustomerSnapshot,
   type EmployeeSnapshot,
   type LoyaltyConfigSnapshot,
+  type MessagesConfigSnapshot,
 } from './audit-entries.js';
 import { assertValidAuditEntry, type AuditActor } from './audit-entry.js';
 
@@ -211,6 +213,101 @@ describe('levelsUpdatedEntry() — US-27', () => {
     const entry = levelsUpdatedEntry(actor, config, { ...config });
 
     expect(entry.details).toEqual([{ label: 'Cambios', value: 'Se guardó sin modificar valores' }]);
+  });
+});
+
+describe('messagesUpdatedEntry() — US-14, contrato S5 §3.14.2', () => {
+  const messages = (): MessagesConfigSnapshot['messages'] => [
+    { type: 'POINTS_EXPIRING', active: true, subject: 'Tus puntos están por vencer', body: 'Hola {nombre}' },
+    { type: 'BIRTHDAY', active: true, subject: '¡Feliz cumpleaños!', body: '¡Feliz cumpleaños, {nombre}!' },
+    { type: 'MISSION', active: true, subject: '¡Completaste una misión!', body: '¡Bien, {nombre}!' },
+  ];
+  const before = (): MessagesConfigSnapshot => ({ birthdayBonusPoints: 100, messages: messages() });
+
+  it('es una entrada LOGO_AND_MESSAGES_UPDATED del módulo Configuración, a nombre del empleado', () => {
+    const entry = messagesUpdatedEntry(actor, before(), { ...before(), birthdayBonusPoints: 150 });
+
+    assertValidAuditEntry(entry);
+    expect(entry).toMatchObject({
+      actor,
+      module: 'CONFIGURATION',
+      action: 'LOGO_AND_MESSAGES_UPDATED',
+      description: 'Modificó los mensajes automáticos',
+    });
+  });
+
+  it('puntos de cumpleaños: "Puntos de cumpleaños: 100 → 150", con puntos de miles', () => {
+    const entry = messagesUpdatedEntry(actor, before(), { ...before(), birthdayBonusPoints: 1500 });
+
+    expect(entry.details).toEqual([{ label: 'Puntos de cumpleaños', value: '100 → 1.500' }]);
+  });
+
+  it('un mensaje modificado: "Mensaje de cumpleaños: Modificado", sin mostrar el texto', () => {
+    const after = before();
+    after.messages[1].body = '¡Que cumplas muchos, {nombre}!';
+
+    expect(messagesUpdatedEntry(actor, before(), after).details).toEqual([
+      { label: 'Mensaje de cumpleaños', value: 'Modificado' },
+    ]);
+  });
+
+  it('cambiar el asunto y el mensaje a la vez es una sola fila', () => {
+    const after = before();
+    after.messages[0].subject = 'Se vencen tus puntos';
+    after.messages[0].body = 'Hola {nombre}, mirá {fecha}';
+
+    expect(messagesUpdatedEntry(actor, before(), after).details).toEqual([
+      { label: 'Mensaje de vencimiento de puntos', value: 'Modificado' },
+    ]);
+  });
+
+  it('activar y desactivar: "Vencimiento de puntos: Activado → Desactivado"', () => {
+    const after = before();
+    after.messages[0].active = false;
+    after.messages[2].active = false;
+
+    expect(messagesUpdatedEntry(actor, before(), after).details).toEqual([
+      { label: 'Vencimiento de puntos', value: 'Activado → Desactivado' },
+      { label: 'Misiones', value: 'Activado → Desactivado' },
+    ]);
+  });
+
+  it('desactivado → activado', () => {
+    const start = before();
+    start.messages[1].active = false;
+
+    expect(messagesUpdatedEntry(actor, start, before()).details).toEqual([
+      { label: 'Cumpleaños', value: 'Desactivado → Activado' },
+    ]);
+  });
+
+  it('varios cambios van en el orden acordado: primero los puntos y después, por tipo, mensaje y activación', () => {
+    const after = before();
+    after.birthdayBonusPoints = 0;
+    after.messages[0].active = false;
+    after.messages[0].body = 'Nuevo {nombre}';
+    after.messages[2].subject = 'Otro asunto';
+
+    expect(messagesUpdatedEntry(actor, before(), after).details).toEqual([
+      { label: 'Puntos de cumpleaños', value: '100 → 0' },
+      { label: 'Mensaje de vencimiento de puntos', value: 'Modificado' },
+      { label: 'Vencimiento de puntos', value: 'Activado → Desactivado' },
+      { label: 'Mensaje de misiones', value: 'Modificado' },
+    ]);
+  });
+
+  it('sin cambios: la fila fija "Cambios: Se guardó sin modificar valores"', () => {
+    const entry = messagesUpdatedEntry(actor, before(), before());
+
+    assertValidAuditEntry(entry);
+    expect(entry.details).toEqual([{ label: 'Cambios', value: 'Se guardó sin modificar valores' }]);
+  });
+
+  it('no tiene cliente afectado ni código de operación', () => {
+    const entry = messagesUpdatedEntry(actor, before(), { ...before(), birthdayBonusPoints: 5 });
+
+    expect(entry.affectedCustomer).toBeUndefined();
+    expect(entry.operationCode).toBeUndefined();
   });
 });
 
