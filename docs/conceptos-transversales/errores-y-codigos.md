@@ -40,9 +40,17 @@ Los textos exactos de cada caso están en los contratos: `docs/sprint-3/API_CONT
 | 409 | `REDEMPTION_EXPIRED` | Usar, rechazar o cancelar un canje vencido. "El canje venció. El cliente tiene que pedirlo de nuevo." (Cliente: "El canje ya venció.") | Sprint 4 |
 | 400 | `INVALID_IMAGE` | Subir una imagen que no es JPG, PNG o WebP **por su contenido** (un PDF renombrado a `.jpg` se rechaza), o que pesa más de 2 MB. "Usá una imagen JPG, PNG o WebP de hasta 2 MB." Se valida antes de subir a Cloudinary. Es un `HttpException` con `code`: `InvalidImageException` en `images/application/` | Sprint 5 (BASE-5) |
 
-> Los demás códigos del Sprint 5 (`MISSION_NAME_IN_USE`, `MISSION_NOT_CLAIMABLE`, `NOTIFICATION_DISABLED`,
-> `NOTIFICATION_NOT_RESENDABLE` y `PROMOTION_SEND_NOT_CANCELLABLE`) se documentan acá cuando los agregue la
-> historia que los lanza. Hoy el único que existe en el código es `INVALID_IMAGE`.
+| 409 | `NOTIFICATION_NOT_RESENDABLE` | Reenviar un correo que no falló ("Solo se pueden reenviar los correos que fallaron."), que ya se reenvió, o que ya es un reenvío ("Este correo ya se reenvió."). Se reenvía una sola vez | Sprint 5 (US-14) |
+| 409 | `NOTIFICATION_DISABLED` | Reenviar un correo de un tipo automático que está desactivado. "Las notificaciones de {tipo} están desactivadas." con el tipo en minúscula: "vencimiento de puntos", "cumpleaños" o "misiones". `PROMOTION` no tiene interruptor | Sprint 5 (US-14) |
+
+> Los demás códigos del Sprint 5 (`MISSION_NAME_IN_USE`, `MISSION_NOT_CLAIMABLE` y
+> `PROMOTION_SEND_NOT_CANCELLABLE`) se documentan acá cuando los agregue la historia que los lanza. Hoy existen
+> en el código `INVALID_IMAGE`, `NOTIFICATION_NOT_RESENDABLE` y `NOTIFICATION_DISABLED`.
+>
+> Los errores de validación de `PUT /configuracion/mensajes` (asunto, mensaje, variable que no corresponde,
+> mensaje `PROMOTION`, faltan tipos) **no llevan `code`**: son `400` con el texto del contrato en `message` y el campo
+> en `details` (por ejemplo `messages.1.body`). Los puntos de cumpleaños inválidos devuelven `message` como lista,
+> como el resto de los DTO.
 
 ### Errores sin `code`
 

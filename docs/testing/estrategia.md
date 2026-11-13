@@ -103,6 +103,7 @@ Postgres real, que una escritura no confirmada no se ve desde otra conexión.
 | `PointsService.canjear` (FIFO, `REDEMPTION`, bloqueo) | `points-redemption` |
 | Modelo del Sprint 5 (BASE-5: `CHECK`, índices, trigger de `notifications`, valores por defecto) | `base5-schema` |
 | `PointsService.acreditarBonificacion` (`MISSION_REWARD`, `BIRTHDAY_BONUS`; no toca `lifetime_points`) | `points-bonus` |
+| Mensajes automáticos, envío común, reenvío e historial de notificaciones (US-14) | `notifications-messages`, `notifications-history`, `notifications-send` |
 | Recompensas (US-34 a US-39) | `rewards-create`, `rewards-edit`, `rewards-status`, `rewards-delete`, `rewards-expiration`, `rewards-catalog` |
 | Canjes (US-40 a US-45) | `redemptions-confirm`, `redemptions-by-code`, `redemptions-use`, `redemptions-reject-cancel`, `redemptions-expiration`, `redemptions-query` |
 

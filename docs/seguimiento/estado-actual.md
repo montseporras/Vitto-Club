@@ -21,7 +21,7 @@
 | `rewards` | 4 | US-34 a US-39: crear, editar, activar/desactivar, eliminar, disponibilidad automática y proceso diario de vencidas |
 | `redemptions` | 4 | US-40 a US-45: confirmar, usar, rechazar, cancelar, vencer (al leer y cada 5 minutos) y consultar; catálogo del Cliente |
 | `images` | 5 (BASE-5) | Módulo técnico sin dominio: puerto `ImageStorage` con adaptador de Cloudinary y adaptador falso, validación por contenido y URL firmada. Todavía nadie lo usa (lo usarán US-34 y FOTO-PERFIL) |
-| `notifications` | 5 (BASE-5) | **Esqueleto:** repositorios sin operaciones y el puerto `EmailSender` (Resend o log). Sin endpoints ni procesos todavía (US-14, US-15 y US-47 a US-50) |
+| `notifications` | 5 (BASE-5 y US-14) | Mensajes automáticos y puntos de cumpleaños (`/configuracion/mensajes`), envío común (`enviar`), reenvío e historial (`/notificaciones`), con el puerto `EmailSender` (Resend o log). Falta US-15 (promociones) y los envíos y procesos de US-47 a US-50 |
 | `missions` | 5 (BASE-5) | **Esqueleto:** repositorios sin operaciones. Sin endpoints ni procesos todavía (US-28 a US-33) |
 | `statistics` | 5 (BASE-5) | **Esqueleto:** repositorio sin operaciones. Sin endpoints todavía (US-51 a US-55) |
 | `shared`, `prisma`, `health` | — | Eventos, seguridad, hora de Argentina; transacción ambiente; health check |
