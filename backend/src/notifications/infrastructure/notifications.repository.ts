@@ -4,6 +4,7 @@ import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.
 import type { MovementDateRange } from '../../points/domain/movement-filters.js';
 import {
   NotificationRepository,
+  type BirthdayCustomer,
   type NewNotification,
   type NotificationCustomer,
   type NotificationListFilters,
@@ -112,6 +113,23 @@ export class NotificationsPrismaRepository implements NotificationRepository {
     return await this.prisma.customer.findUnique({
       where: { id: customerId },
       select: { id: true, firstName: true, email: true },
+    });
+  }
+
+  async findBirthdayCustomers(dates: { month: number; day: number }[]): Promise<BirthdayCustomer[]> {
+    if (dates.length === 0) return [];
+    // El mes y el día de date_of_birth (columna DATE, sin hora ni zona) se comparan en la base
+    const rows = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM customers
+      WHERE is_active = true
+        AND date_of_birth IS NOT NULL
+        AND (EXTRACT(MONTH FROM date_of_birth)::int * 100 + EXTRACT(DAY FROM date_of_birth)::int)
+            = ANY(${dates.map(({ month, day }) => month * 100 + day)}::int[])
+    `;
+    return await this.prisma.customer.findMany({
+      where: { id: { in: rows.map((row) => row.id) } },
+      select: CUSTOMER_SELECT,
+      orderBy: { id: 'asc' },
     });
   }
 

@@ -38,6 +38,9 @@ export type SendAutomaticInput = {
   reason: string;
   // Los valores de las variables del tipo, sin {nombre}: { puntos, fecha } o { puntos } o { mision }
   variables?: Record<string, string>;
+  // Reemplaza el asunto y el texto de la plantilla (que sigue mandando por el interruptor active). Solo lo usa US-48
+  // para el saludo de cumpleaños sin regalo.
+  textOverride?: { subject: string; body: string };
 };
 
 // Una promoción no tiene plantilla ni interruptor: cada una se escribe desde cero (S5-37). Solo admite {nombre}.
@@ -116,7 +119,7 @@ export class NotificationsService {
       if (!template) {
         throw new Error(`Falta la plantilla del mensaje ${input.type}`);
       }
-      source = template;
+      source = input.textOverride ? { active: template.active, ...input.textOverride } : template;
     }
 
     // {nombre} siempre es el nombre de pila del cliente; quien llama no lo puede pisar

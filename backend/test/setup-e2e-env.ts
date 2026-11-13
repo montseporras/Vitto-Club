@@ -17,6 +17,12 @@ process.env.POINTS_EXPIRATION_CRON_ENABLED = 'false';
 process.env.REWARDS_EXPIRATION_CRON_ENABLED = 'false';
 process.env.REDEMPTIONS_EXPIRATION_CRON_ENABLED = 'false';
 
+// US-15, US-47 y US-48: los procesos de las promociones programadas (cada minuto) y de los avisos diarios (09:00) no
+// corren durante los e2e; los tests llaman a los servicios directamente. Mismo motivo: ConfigModule no pisa lo ya
+// definido.
+process.env.PROMOTIONS_CRON_ENABLED = 'false';
+process.env.NOTIFICATIONS_CRON_ENABLED = 'false';
+
 // BASE-5 (contrato S5 §3.5.1 y §3.8.3): los e2e nunca llaman a Cloudinary ni a Resend. Con estas dos en
 // false se usan los adaptadores falsos (el de imágenes valida el archivo pero no sube nada; el de correo
 // solo deja el envío en el log). Mismo motivo: ConfigModule no pisa lo ya definido.

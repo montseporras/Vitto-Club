@@ -94,8 +94,16 @@ class FakePointsRepository implements PointsRepository {
     this.lots.set(lot.getId() as number, lot);
   }
 
+  // Cuándo se creó cada movimiento (para existsMovementBetween). Los de los tests se cargan con seedMovementAt
+  readonly movementDates: { customerId: number; type: string; createdAt: Date }[] = [];
+
+  seedMovementAt(customerId: number, type: string, createdAt: Date): void {
+    this.movementDates.push({ customerId, type, createdAt });
+  }
+
   async insertMovement(data: InsertMovementData): Promise<InsertedMovement> {
     this.movements.push(data);
+    this.movementDates.push({ customerId: data.customerId, type: data.type, createdAt: new Date() });
     return { id: this.movements.length, createdAt: new Date('2026-10-16T18:12:00.000Z') };
   }
 
@@ -134,6 +142,37 @@ class FakePointsRepository implements PointsRepository {
       documentType: 'DNI',
       documentNumber: '38456123',
     };
+  }
+
+  // US-47: lotes ACTIVE con saldo, de clientes activos, que vencen en (from, to]
+  async findLotsExpiringBetween(from: Date, to: Date) {
+    return [...this.lots.entries()]
+      .filter(
+        ([, lot]) =>
+          lot.isActive() &&
+          lot.getRemainingPoints() > 0 &&
+          lot.getExpiresAt().getTime() > from.getTime() &&
+          lot.getExpiresAt().getTime() <= to.getTime() &&
+          !this.inactiveCustomers.has(lot.getCustomerId()),
+      )
+      .sort(([idA, a], [idB, b]) => a.getExpiresAt().getTime() - b.getExpiresAt().getTime() || idA - idB)
+      .map(([lotId, lot]) => ({
+        lotId,
+        customerId: lot.getCustomerId(),
+        remainingPoints: lot.getRemainingPoints(),
+        expiresAt: lot.getExpiresAt(),
+      }));
+  }
+
+  // US-48: ¿hay un movimiento de ese tipo creado en [from, to)?
+  async existsMovementBetween(customerId: number, type: string, from: Date, to: Date) {
+    return this.movementDates.some(
+      (movement) =>
+        movement.customerId === customerId &&
+        movement.type === type &&
+        movement.createdAt.getTime() >= from.getTime() &&
+        movement.createdAt.getTime() < to.getTime(),
+    );
   }
 }
 
@@ -335,6 +374,125 @@ describe('PointsService', () => {
       expect(repository.movements).toEqual([]);
       expect(await repository.findBalance(101)).toBeNull();
       expect(await repository.findActiveLotsByCustomerId(101)).toHaveLength(0);
+    });
+  });
+
+  describe('acreditarBonificacionUnaVez (US-48, CA-48.5)', () => {
+    const year2026 = { from: new Date('2026-01-01T03:00:00.000Z'), to: new Date('2027-01-01T03:00:00.000Z') };
+    const birthday = { customerId: 101, type: 'BIRTHDAY_BONUS' as const, points: 100 };
+
+    it('la primera vez del período acredita igual que acreditarBonificacion', async () => {
+      repository.seedBalance({ customerId: 101, balance: 40, debt: 0, lifetimePoints: 250 });
+
+      const result = await service.acreditarBonificacionUnaVez(birthday, year2026);
+
+      expect(result).toEqual({ balanceBefore: 40, balanceAfter: 140, lifetimePointsBefore: 250, lifetimePointsAfter: 250 });
+      expect(repository.movements).toHaveLength(1);
+      expect(repository.movements[0]).toMatchObject({ type: 'BIRTHDAY_BONUS', points: 100, performedByName: 'Sistema' });
+    });
+
+    it('si en ese período ya hay un movimiento del mismo tipo: devuelve null y no cambia nada', async () => {
+      repository.seedBalance({ customerId: 101, balance: 140, debt: 0, lifetimePoints: 250 });
+      repository.seedMovementAt(101, 'BIRTHDAY_BONUS', new Date('2026-03-10T12:00:00.000Z'));
+
+      const result = await service.acreditarBonificacionUnaVez(birthday, year2026);
+
+      expect(result).toBeNull();
+      expect(repository.movements).toEqual([]);
+      expect(await repository.findBalance(101)).toMatchObject({ balance: 140, debt: 0, lifetimePoints: 250 });
+      expect(await repository.findActiveLotsByCustomerId(101)).toHaveLength(0);
+    });
+
+    it('el regalo de otro año no cuenta: se acredita', async () => {
+      repository.seedMovementAt(101, 'BIRTHDAY_BONUS', new Date('2025-11-13T12:00:00.000Z'));
+
+      expect(await service.acreditarBonificacionUnaVez(birthday, year2026)).not.toBeNull();
+    });
+
+    it('los bordes del período: el límite inferior cuenta, el superior no', async () => {
+      repository.seedMovementAt(101, 'BIRTHDAY_BONUS', year2026.to);
+      expect(await service.acreditarBonificacionUnaVez(birthday, year2026)).not.toBeNull();
+
+      const other = { ...birthday, customerId: 102 };
+      repository.seedMovementAt(102, 'BIRTHDAY_BONUS', year2026.from);
+      expect(await service.acreditarBonificacionUnaVez(other, year2026)).toBeNull();
+    });
+
+    it('un movimiento de otro tipo o de otro cliente no lo impide', async () => {
+      repository.seedMovementAt(101, 'MISSION_REWARD', new Date('2026-03-10T12:00:00.000Z'));
+      repository.seedMovementAt(102, 'BIRTHDAY_BONUS', new Date('2026-03-10T12:00:00.000Z'));
+
+      expect(await service.acreditarBonificacionUnaVez(birthday, year2026)).not.toBeNull();
+    });
+
+    it('dos llamadas seguidas: la segunda no regala', async () => {
+      expect(await service.acreditarBonificacionUnaVez(birthday, year2026)).not.toBeNull();
+      expect(await service.acreditarBonificacionUnaVez(birthday, year2026)).toBeNull();
+
+      expect(repository.movements).toHaveLength(1);
+      expect((await repository.findBalance(101))?.balance).toBe(100);
+    });
+
+    it('valida igual que acreditarBonificacion: puntos enteros y positivos', async () => {
+      await expect(service.acreditarBonificacionUnaVez({ ...birthday, points: 0 }, year2026)).rejects.toThrow();
+      expect(repository.movements).toEqual([]);
+    });
+  });
+
+  describe('lotesPorVencer (US-47, contrato S5 §3.8.1)', () => {
+    const now = new Date('2026-11-13T12:00:00.000Z');
+    const day = 24 * 60 * 60 * 1000;
+    const lot = (id: number, customerId: number, remaining: number, expiresAt: Date) =>
+      repository.seedLot({
+        id,
+        customerId,
+        consumptionId: null,
+        initialPoints: remaining,
+        remainingPoints: remaining,
+        accreditedAt: new Date('2025-11-13T12:00:00.000Z'),
+        expiresAt,
+      });
+
+    it('devuelve los lotes que vencen entre ahora y dentro de 7 días, del que vence antes al que vence después', async () => {
+      lot(1, 101, 150, new Date(now.getTime() + 6 * day));
+      lot(2, 101, 80, new Date(now.getTime() + 2 * day));
+      lot(3, 102, 30, new Date(now.getTime() + 4 * day));
+
+      const result = await service.lotesPorVencer(now);
+
+      expect(result.map((item) => item.lotId)).toEqual([2, 3, 1]);
+      expect(result[0]).toEqual({ lotId: 2, customerId: 101, remainingPoints: 80, expiresAt: new Date(now.getTime() + 2 * day) });
+    });
+
+    it('los bordes: lo que vence justo ahora no entra; lo que vence justo a los 7 días sí; un milisegundo más, no', async () => {
+      lot(1, 101, 10, now);
+      lot(2, 101, 10, new Date(now.getTime() + 7 * day));
+      lot(3, 101, 10, new Date(now.getTime() + 7 * day + 1));
+
+      expect((await service.lotesPorVencer(now)).map((item) => item.lotId)).toEqual([2]);
+    });
+
+    it('no trae los que vencen más adelante, ni los ya vencidos, ni los sin saldo', async () => {
+      lot(1, 101, 10, new Date(now.getTime() + 30 * day));
+      lot(2, 101, 10, new Date(now.getTime() - day));
+      lot(3, 101, 0, new Date(now.getTime() + 2 * day));
+
+      expect(await service.lotesPorVencer(now)).toEqual([]);
+    });
+
+    it('no trae los de clientes dados de baja', async () => {
+      lot(1, 101, 10, new Date(now.getTime() + 2 * day));
+      lot(2, 102, 10, new Date(now.getTime() + 2 * day));
+      repository.inactiveCustomers.add(102);
+
+      expect((await service.lotesPorVencer(now)).map((item) => item.customerId)).toEqual([101]);
+    });
+
+    it('la cantidad de días se puede cambiar', async () => {
+      lot(1, 101, 10, new Date(now.getTime() + 10 * day));
+
+      expect(await service.lotesPorVencer(now, 7)).toEqual([]);
+      expect(await service.lotesPorVencer(now, 14)).toHaveLength(1);
     });
   });
 

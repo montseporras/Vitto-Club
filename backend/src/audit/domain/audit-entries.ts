@@ -333,6 +333,30 @@ export function pointsExpiredEntry(
   };
 }
 
+export type BirthdayBonusSnapshot = {
+  // Puntos regalados (positivo)
+  points: number;
+  balanceAfter: number;
+};
+
+// BIRTHDAY_BONUS_GRANTED (US-48, contrato S5 §3.14): lo registra el Sistema, sin código de operación.
+export function birthdayBonusGrantedEntry(
+  customer: AffectedCustomerSnapshot,
+  bonus: BirthdayBonusSnapshot,
+): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'POINTS',
+    action: 'BIRTHDAY_BONUS_GRANTED',
+    description: `Regaló puntos de cumpleaños a ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    details: [
+      { label: 'Puntos otorgados', value: formatSignedPoints(bonus.points) },
+      { label: 'Saldo resultante', value: `${formatNumber(bonus.balanceAfter)} pts` },
+    ],
+  };
+}
+
 // --- Recompensas --------------------------------------------------------------------------
 
 // §2.2: motivo de una recompensa deshabilitada, como se lee en auditoría

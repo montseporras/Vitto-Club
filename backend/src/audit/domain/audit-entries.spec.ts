@@ -4,6 +4,7 @@ import {
   consumptionVoidedEntry,
   levelsUpdatedEntry,
   messagesUpdatedEntry,
+  birthdayBonusGrantedEntry,
   customerCreatedEntry,
   customerDeactivatedEntry,
   customerUpdatedEntry,
@@ -348,6 +349,35 @@ describe('configurationSavedEntries() con niveles — US-27', () => {
     expect(entries[0].details).toEqual([
       { label: 'Plata', value: '300 → 300 pts' },
       { label: 'Oro', value: '800 → 1.000 pts' },
+    ]);
+  });
+});
+
+describe('birthdayBonusGrantedEntry() (US-48)', () => {
+  it('actor Sistema, description del contrato y las 2 filas en orden, sin código de operación', () => {
+    const entry = birthdayBonusGrantedEntry(customer, { points: 100, balanceAfter: 340 });
+
+    expect(entry).toEqual({
+      actor: { type: 'SYSTEM' },
+      module: 'POINTS',
+      action: 'BIRTHDAY_BONUS_GRANTED',
+      description: 'Regaló puntos de cumpleaños a Sofía Ríos',
+      affectedCustomer: { customerId: 102, name: 'Sofía Ríos', documentType: 'DNI', documentNumber: '30111222' },
+      details: [
+        { label: 'Puntos otorgados', value: '+100 pts' },
+        { label: 'Saldo resultante', value: '340 pts' },
+      ],
+    });
+    expect(entry.operationCode).toBeUndefined();
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+
+  it('puntos y saldo de miles, con punto', () => {
+    const entry = birthdayBonusGrantedEntry(customer, { points: 1500, balanceAfter: 2340 });
+
+    expect(entry.details).toEqual([
+      { label: 'Puntos otorgados', value: '+1.500 pts' },
+      { label: 'Saldo resultante', value: '2.340 pts' },
     ]);
   });
 });

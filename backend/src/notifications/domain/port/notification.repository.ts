@@ -21,6 +21,15 @@ export type NewNotification = {
 // Del cliente solo lo que hace falta para mandarle un correo
 export type NotificationCustomer = { id: number; firstName: string; email: string };
 
+// Del cliente que cumple años, lo que hace falta para regalarle y auditar (US-48)
+export type BirthdayCustomer = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  documentType: DocumentType;
+  documentNumber: string;
+};
+
 export type NotificationListFilters = {
   type?: NotificationType;
   status?: NotificationStatus;
@@ -55,6 +64,9 @@ export abstract class NotificationRepository {
 
   // null si el cliente no existe. Se lee de `customers` por Prisma, sin importar el módulo
   abstract findCustomer(customerId: number): Promise<NotificationCustomer | null>;
+
+  // US-48: clientes ACTIVOS nacidos en alguno de esos (mes, día), del que tiene el id más bajo al más alto
+  abstract findBirthdayCustomers(dates: { month: number; day: number }[]): Promise<BirthdayCustomer[]>;
 
   abstract list(filters: NotificationListFilters): Promise<{ items: NotificationListItem[]; total: number }>;
 }

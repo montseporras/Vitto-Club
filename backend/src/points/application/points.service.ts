@@ -5,6 +5,7 @@ import { toArgentinaDateString } from '../../shared/time/argentina-date.js';
 import { InsufficientBalanceError } from '../domain/errors/insufficient-balance.error.js';
 import {
   ExpirationCustomer,
+  ExpiringLot,
   InsertedMovement,
   PointsRepository,
 } from '../domain/port/points.repository.js';
@@ -206,6 +207,25 @@ export class PointsService {
   // consumo, NO suma a lifetimePoints: el nivel sale solo de los consumos (S5-9, §2.7). El lote no
   // pertenece a ningún consumo. El movimiento queda a nombre del Sistema.
   async acreditarBonificacion(input: AcreditarBonificacionInput): Promise<BalanceMutationResult> {
+    // Sin período no hay nada que controlar: siempre acredita
+    return (await this.grantBonus(input)) as BalanceMutationResult;
+  }
+
+  // US-48 (CA-48.5, contrato S5 §3.8.2): igual que acreditarBonificacion, pero solo si en ese período el cliente todavía
+  // no tiene un movimiento de ese tipo (el regalo de cumpleaños es una vez por año). La revisión y el regalo van en la
+  // misma transacción y bajo el bloqueo del saldo del cliente: dos corridas a la vez no regalan dos veces. Devuelve
+  // null, sin acreditar nada, si ya se había regalado en ese período.
+  async acreditarBonificacionUnaVez(
+    input: AcreditarBonificacionInput,
+    period: { from: Date; to: Date },
+  ): Promise<BalanceMutationResult | null> {
+    return await this.grantBonus(input, period);
+  }
+
+  private async grantBonus(
+    input: AcreditarBonificacionInput,
+    period?: { from: Date; to: Date },
+  ): Promise<BalanceMutationResult | null> {
     if (!Number.isInteger(input.points) || input.points <= 0) {
       throw new Error(`Gift points must be a positive integer (got ${input.points})`);
     }
@@ -216,6 +236,12 @@ export class PointsService {
     return await this.transactionRunner.run(async () => {
       const config = await this.requireActiveConfiguration();
       const row = await this.pointsRepository.lockOrCreateBalance(input.customerId);
+      if (
+        period &&
+        (await this.pointsRepository.existsMovementBetween(input.customerId, input.type, period.from, period.to))
+      ) {
+        return null;
+      }
 
       const { newDebt, remainingToCredit } = this.cancelDebtFirst(row.debt, input.points);
 
@@ -259,6 +285,14 @@ export class PointsService {
         lifetimePointsAfter: row.lifetimePoints,
       };
     });
+  }
+
+  // US-47 (contrato S5 §3.8.1): los lotes ACTIVE con saldo, de clientes activos, que vencen entre ahora y dentro de
+  // `days` días (7 × 24 horas: S5-17), del que vence antes al que vence después. Lo usa el aviso de vencimiento de
+  // puntos: `notifications` depende de `points` para esto, nunca al revés.
+  async lotesPorVencer(now: Date, days = 7): Promise<ExpiringLot[]> {
+    const until = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    return await this.pointsRepository.findLotsExpiringBetween(now, until);
   }
 
   // CA-BASE.4: revierte todos los puntos de un consumo anulado (VOID_REVERSAL). Del lote

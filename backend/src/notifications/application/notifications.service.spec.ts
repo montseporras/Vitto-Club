@@ -212,6 +212,29 @@ describe('NotificationsService.enviar (CA-14.7, contrato S5 §3.8)', () => {
     expect(record).toMatchObject({ status: 'SKIPPED', error: null, body: 'Hola Carolina: tenés 120 pts que vencen el 20/11/2026.' });
   });
 
+  describe('textOverride (US-48: saludo sin regalo)', () => {
+    const override = { subject: '¡Feliz cumpleaños!', body: '¡Feliz cumpleaños, {nombre}!' };
+
+    it('manda ese texto en vez de la plantilla y no pide {puntos}', async () => {
+      const { service, email } = setup();
+
+      const record = await service.enviar({ type: 'BIRTHDAY', customerId: 7, reason: 'birthday:2026', textOverride: override });
+
+      expect(record).toMatchObject({ type: 'BIRTHDAY', status: 'SENT', body: '¡Feliz cumpleaños, Carolina!' });
+      expect(email.sent[0].text).toContain('¡Feliz cumpleaños, Carolina!');
+    });
+
+    it('sigue respetando el interruptor del tipo: desactivado, no se manda y queda SKIPPED', async () => {
+      const { service, config, email } = setup();
+      config.templates.set('BIRTHDAY', { ...config.templates.get('BIRTHDAY')!, active: false });
+
+      const record = await service.enviar({ type: 'BIRTHDAY', customerId: 7, reason: 'birthday:2026', textOverride: override });
+
+      expect(email.sent).toEqual([]);
+      expect(record).toMatchObject({ status: 'SKIPPED' });
+    });
+  });
+
   it('si el proveedor falla se registra FAILED con el motivo y NO lanza', async () => {
     const { service, email } = setup();
     email.result = new Error('The to address is not valid.');

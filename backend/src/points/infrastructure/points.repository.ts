@@ -7,6 +7,7 @@ import {
   CustomerPointsBalance,
   ExpirationCustomer,
   ExpiredLotCandidate,
+  ExpiringLot,
   InsertedMovement,
   InsertMovementData,
   PointsRepository,
@@ -166,6 +167,38 @@ export class PointsPrismaRepository implements PointsRepository {
       silverMinPoints: config.silverMinPoints,
       goldMinPoints: config.goldMinPoints,
     };
+  }
+
+  async findLotsExpiringBetween(from: Date, to: Date): Promise<ExpiringLot[]> {
+    const lots = await this.prisma.pointsLot.findMany({
+      where: {
+        status: 'ACTIVE',
+        remainingPoints: { gt: 0 },
+        expiresAt: { gt: from, lte: to },
+        customer: { isActive: true },
+      },
+      orderBy: [{ expiresAt: 'asc' }, { id: 'asc' }],
+      select: { id: true, customerId: true, remainingPoints: true, expiresAt: true },
+    });
+    return lots.map((lot) => ({
+      lotId: lot.id,
+      customerId: lot.customerId,
+      remainingPoints: lot.remainingPoints,
+      expiresAt: lot.expiresAt,
+    }));
+  }
+
+  async existsMovementBetween(
+    customerId: number,
+    type: InsertMovementData['type'],
+    from: Date,
+    to: Date,
+  ): Promise<boolean> {
+    const movement = await this.prisma.pointsMovement.findFirst({
+      where: { customerId, type, createdAt: { gte: from, lt: to } },
+      select: { id: true },
+    });
+    return movement !== null;
   }
 
   async findExpiredLotCandidates(now: Date): Promise<ExpiredLotCandidate[]> {

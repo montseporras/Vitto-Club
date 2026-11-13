@@ -45,6 +45,9 @@ export type ExpirationCustomer = {
   documentNumber: string;
 };
 
+// US-47: un lote que vence pronto, con lo que le queda (contrato S5 §3.8.1)
+export type ExpiringLot = { lotId: number; customerId: number; remainingPoints: number; expiresAt: Date };
+
 // Lo que la base le asigna al movimiento al guardarlo (US-24 lo devuelve en la respuesta)
 export type InsertedMovement = { id: number; createdAt: Date };
 
@@ -99,4 +102,17 @@ export abstract class PointsRepository {
   // US-25: nombre y documento del cliente, leídos de customers por Prisma (decisión de
   // Melisa: points no importa el módulo customers, igual que con la configuración).
   abstract findExpirationCustomer(customerId: number): Promise<ExpirationCustomer>;
+
+  // US-47: lotes ACTIVE con saldo, de clientes activos, que vencen en (from, to], del que vence antes al que vence
+  // después. Usa el índice (status, expires_at)
+  abstract findLotsExpiringBetween(from: Date, to: Date): Promise<ExpiringLot[]>;
+
+  // US-48: ¿el cliente tiene un movimiento de ese tipo creado en [from, to)? Para el regalo de cumpleaños, una vez
+  // por año
+  abstract existsMovementBetween(
+    customerId: number,
+    type: InsertMovementData['type'],
+    from: Date,
+    to: Date,
+  ): Promise<boolean>;
 }
