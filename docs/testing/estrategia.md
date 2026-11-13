@@ -31,8 +31,8 @@ Protecciones:
   `REDEMPTIONS_EXPIRATION_CRON_ENABLED` en `false` (ARRASTRE-S4). Los tests que los prueban llaman al
   servicio directamente. Desde BASE-5 fija también `IMAGES_STORAGE_ENABLED=false` y
   `NOTIFICATIONS_EMAIL_ENABLED=false`: los e2e usan los adaptadores falsos de `ImageStorage` y de
-  `EmailSender` y **nunca** llaman a Cloudinary ni a Resend. Los crons nuevos del Sprint 5 (misiones,
-  notificaciones y promociones programadas) van a sumar su variable acá cuando los agregue cada historia.
+  `EmailSender` y **nunca** llaman a Cloudinary ni a Resend. `NOTIFICATIONS_CRON_ENABLED` y `PROMOTIONS_CRON_ENABLED` también van en `false`. El cron de misiones va a sumar su
+  variable acá cuando lo agregue US-32.
 
 ### Orden de limpieza
 
@@ -104,6 +104,8 @@ Postgres real, que una escritura no confirmada no se ve desde otra conexión.
 | Modelo del Sprint 5 (BASE-5: `CHECK`, índices, trigger de `notifications`, valores por defecto) | `base5-schema` |
 | `PointsService.acreditarBonificacion` (`MISSION_REWARD`, `BIRTHDAY_BONUS`; no toca `lifetime_points`) | `points-bonus` |
 | Mensajes automáticos, envío común, reenvío e historial de notificaciones (US-14) | `notifications-messages`, `notifications-history`, `notifications-send` |
+| Promociones: destinatarios por nivel, enviar ahora o programar, cancelar y el proceso de programados (US-15 y US-49) | `promotions` |
+| Proceso diario: puntos por vencer y regalo de cumpleaños (US-47 y US-48) | `notifications-daily` |
 | Recompensas (US-34 a US-39) | `rewards-create`, `rewards-edit`, `rewards-status`, `rewards-delete`, `rewards-expiration`, `rewards-catalog` |
 | Canjes (US-40 a US-45) | `redemptions-confirm`, `redemptions-by-code`, `redemptions-use`, `redemptions-reject-cancel`, `redemptions-expiration`, `redemptions-query` |
 

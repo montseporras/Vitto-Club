@@ -61,6 +61,7 @@ Sale de los `@Roles` de los controllers de `develop` (09/11/2026). Las rutas cue
 | `GET /canjes/:code` (Canjes por código, US-41) | Sí | Sí | No |
 | `GET /configuracion/mensajes`, `PUT /configuracion/mensajes` (mensajes automáticos y puntos de cumpleaños, US-14) | Sí | No | No |
 | `GET /notificaciones`, `POST /notificaciones/:id/reenviar` (historial y reenvío, US-14) | Sí | No | No |
+| `GET /promociones/destinatarios`, `POST /promociones/envios`, `GET /promociones/envios`, `PATCH /promociones/envios/:id/cancelar` (promociones, US-15 y US-49) | Sí | No | No |
 
 
 ## Efecto de una baja o un cambio de rol

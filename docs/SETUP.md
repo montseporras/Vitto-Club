@@ -141,8 +141,17 @@ está levantado. No tienen endpoint. Cada uno se puede apagar con su variable y 
 - Las tres variables están en `backend/.env.example` (ARRASTRE-S4).
 - Los scripts `rewards:expire` y `redemptions:expire` compilan y corren el proceso a demanda. Los dos también
   corren el proceso de inicio, así que corren dos veces, sin efecto (son idempotentes).
-- El Sprint 5 suma tres procesos más (misiones, notificaciones y promociones programadas) que **todavía no
-  existen**: los agregan US-32, US-47 a US-50 y US-15, cada uno con su variable y su script.
+- El Sprint 5 suma tres procesos más. **Ya existen dos:**
+  - **Notificaciones (US-47 y US-48):** todos los días a las 09:00, hora de Argentina; **no corre al iniciar**.
+    Avisa los lotes que vencen en 7 días y regala los puntos de cumpleaños. Variable `NOTIFICATIONS_CRON_ENABLED`,
+    script `npm run notifications:send`.
+  - **Promociones programadas (US-15):** cada minuto. Variable `PROMOTIONS_CRON_ENABLED`, script
+    `npm run promotions:send`.
+  - El de misiones (US-32) todavía no existe.
+  Los dos de arriba son idempotentes: correrlos de nuevo no repite correos ni regalos. **Ojo en local:** con
+  `NOTIFICATIONS_EMAIL_ENABLED=false` (lo normal en desarrollo) no sale ningún correo, pero el proceso diario
+  **sí regala** puntos de cumpleaños de verdad en tu base; poné `NOTIFICATIONS_CRON_ENABLED=false` en `backend/.env`
+  si no querés eso.
 - **Ojo en local:** si dejás el backend levantado a las 00:05, el proceso vence de verdad los lotes y las
   recompensas vencidas de tu base de desarrollo, con su movimiento y su auditoría. Si no querés eso, poné
   las variables en `false` en tu `backend/.env`.

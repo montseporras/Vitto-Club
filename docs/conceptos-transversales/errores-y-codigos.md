@@ -42,10 +42,11 @@ Los textos exactos de cada caso están en los contratos: `docs/sprint-3/API_CONT
 
 | 409 | `NOTIFICATION_NOT_RESENDABLE` | Reenviar un correo que no falló ("Solo se pueden reenviar los correos que fallaron."), que ya se reenvió, o que ya es un reenvío ("Este correo ya se reenvió."). Se reenvía una sola vez | Sprint 5 (US-14) |
 | 409 | `NOTIFICATION_DISABLED` | Reenviar un correo de un tipo automático que está desactivado. "Las notificaciones de {tipo} están desactivadas." con el tipo en minúscula: "vencimiento de puntos", "cumpleaños" o "misiones". `PROMOTION` no tiene interruptor | Sprint 5 (US-14) |
+| 409 | `PROMOTION_SEND_NOT_CANCELLABLE` | Cancelar un envío de promoción que ya salió o ya se canceló. "El envío ya salió o se canceló." (`PATCH /promociones/envios/:id/cancelar`). Un envío que no existe responde `404` "No existe el envío." | Sprint 5 (US-15) |
 
-> Los demás códigos del Sprint 5 (`MISSION_NAME_IN_USE`, `MISSION_NOT_CLAIMABLE` y
-> `PROMOTION_SEND_NOT_CANCELLABLE`) se documentan acá cuando los agregue la historia que los lanza. Hoy existen
-> en el código `INVALID_IMAGE`, `NOTIFICATION_NOT_RESENDABLE` y `NOTIFICATION_DISABLED`.
+> Los demás códigos del Sprint 5 (`MISSION_NAME_IN_USE` y `MISSION_NOT_CLAIMABLE`) se documentan acá cuando los
+> agregue la historia que los lanza. Hoy existen en el código `INVALID_IMAGE`, `NOTIFICATION_NOT_RESENDABLE`,
+> `NOTIFICATION_DISABLED` y `PROMOTION_SEND_NOT_CANCELLABLE`.
 >
 > Los errores de validación de `PUT /configuracion/mensajes` (asunto, mensaje, variable que no corresponde,
 > mensaje `PROMOTION`, faltan tipos) **no llevan `code`**: son `400` con el texto del contrato en `message` y el campo

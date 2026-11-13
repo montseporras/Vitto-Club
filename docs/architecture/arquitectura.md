@@ -35,7 +35,7 @@ puertos y adaptadores.
 | `rewards` | 4 | Catálogo de recompensas, estados, disponibilidad y proceso diario de vencidas (`/recompensas`) |
 | `redemptions` | 4 | Canjes: confirmar, usar, rechazar, cancelar, vencer y consultar (`/canjes`, `/customers/:id/canjes`, `/customers/me/canjes`), y el catálogo del Cliente (`/customers/me/recompensas`) |
 | `missions` | 5 | **Esqueleto (BASE-5):** solo los repositorios de `missions` y `customer_missions`, sin operaciones. Misiones, asignación, avance, reclamo y proceso de fin de mes los agregan US-28 a US-33 (`/misiones`, `/customers/me/misiones`, `/customers/:id/misiones`) |
-| `notifications` | 5 | **US-14 hecha:** mensajes automáticos y puntos de cumpleaños (`GET`/`PUT /configuracion/mensajes`, con auditoría), el envío común `NotificationsService.enviar`, el reenvío de un correo que falló y el historial (`GET /notificaciones`, `POST /notificaciones/:id/reenviar`). Puerto `EmailSender` (Resend o log). Falta lo de US-15 (promociones, `/promociones/*`; su repositorio sigue sin operaciones) y los envíos y procesos de US-47 a US-50 |
+| `notifications` | 5 | **US-14 hecha:** mensajes automáticos y puntos de cumpleaños (`GET`/`PUT /configuracion/mensajes`, con auditoría), el envío común `NotificationsService.enviar`, el reenvío de un correo que falló y el historial (`GET /notificaciones`, `POST /notificaciones/:id/reenviar`). Puerto `EmailSender` (Resend o log). **US-15 y US-49 hechas:** promociones (`/promociones/*`: destinatarios, enviar ahora o programar, listar programados y cancelar) y su proceso de cada minuto. **US-47 y US-48 hechas:** el proceso diario de las 09:00 (aviso de puntos por vencer, uno por lote, y regalo de cumpleaños con su auditoría); usa `points` (`lotesPorVencer`, `acreditarBonificacionUnaVez`). Falta el envío de US-50 |
 | `statistics` | 5 | **Esqueleto (BASE-5):** solo el repositorio, sin operaciones. Solo lectura. Estadísticas y PDF los agregan US-51 a US-55 (`/estadisticas/*`) |
 | `images` | 5 | Módulo técnico (sin dominio), como `prisma`: puerto `ImageStorage` con adaptador de Cloudinary y adaptador falso, validación por contenido y URL firmadas. Lo usarán `rewards` (US-34) y `customers` (FOTO-PERFIL) |
 | `prisma`, `health`, `shared` | — | Transversales, sin dominio (regla 4) |
@@ -213,8 +213,10 @@ en `AppModule`): vencimiento de puntos (`points`, 00:05), recompensas vencidas
 (`rewards`, 00:05 y al iniciar) y canjes vencidos (`redemptions`, cada 5
 minutos y al iniciar). Cada uno se apaga con su variable de entorno y se corre
 a demanda con un script de `backend/src/expire-*.ts`. Ver [SETUP](../SETUP.md). El Sprint 5 suma otros tres
-(misiones, día 1 a las 00:10 y al iniciar; notificaciones, 09:00; y promociones programadas, cada minuto), que
-**todavía no existen**: los agregan US-32, US-47 a US-50 y US-15 con el mismo patrón.
+(misiones, día 1 a las 00:10 y al iniciar; notificaciones, 09:00 en hora de Argentina y **sin correr al iniciar**; y
+promociones programadas, cada minuto). **Ya existen** los de notificaciones (`NotificationsScheduler`, variable
+`NOTIFICATIONS_CRON_ENABLED`, `npm run notifications:send`) y promociones (`PromotionsScheduler`, variable
+`PROMOTIONS_CRON_ENABLED`, `npm run promotions:send`). El de misiones lo agrega US-32 con el mismo patrón.
 
 ### Lo único que los módulos comparten: `src/shared/`
 

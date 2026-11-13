@@ -170,11 +170,11 @@ algo que no existe.
 | Documento | Qué falta | Lo hace |
 |---|---|---|
 | `docs/conceptos-transversales/roles-y-permisos.md` | Filas nuevas de la matriz del contrato §4 (`/misiones`, `/configuracion/mensajes`, `/promociones/*`, `/notificaciones`, `/estadisticas/*`, fotos, etc.); sacar `GET /movimientos-de-puntos` y los "Próx." de los menús. **US-14 ya agregó** las filas de `/configuracion/mensajes` y `/notificaciones` | Cada historia, al crear su endpoint |
-| `docs/conceptos-transversales/errores-y-codigos.md` | `MISSION_NAME_IN_USE`, `MISSION_NOT_CLAIMABLE`, `PROMOTION_SEND_NOT_CANCELLABLE` (**US-14 ya agregó** `NOTIFICATION_DISABLED` y `NOTIFICATION_NOT_RESENDABLE`) y los `404` nuevos. Marcar `FORBIDDEN_FIELD` como fuera de uso | Cada historia, cuando lance el código |
+| `docs/conceptos-transversales/errores-y-codigos.md` | `MISSION_NAME_IN_USE`, `MISSION_NOT_CLAIMABLE`, `PROMOTION_SEND_NOT_CANCELLABLE` (**US-15 ya lo agregó**; **US-14 ya agregó** `NOTIFICATION_DISABLED` y `NOTIFICATION_NOT_RESENDABLE`) y los `404` nuevos. Marcar `FORBIDDEN_FIELD` como fuera de uso | Cada historia, cuando lance el código |
 | `docs/conceptos-transversales/transacciones-y-eventos.md` | El avance de misiones dentro de la transacción del consumo; el reclamo bloquea la asignación y después `customer_points`; los correos siempre después del commit; el proceso de fin de mes con `SKIP LOCKED` | US-30, US-31, US-32 |
 | `docs/domain/programa-de-puntos.md` | Las secciones "Misiones" y "Notificaciones", los beneficios de los niveles y el mínimo de clientes frecuentes | US-28 a US-33, US-14 a US-50, NIV-BEN |
 | `docs/architecture/estructura-frontend.md` | Rutas y pantallas nuevas | Cada historia de frontend |
-| `docs/architecture/arquitectura.md` | La sección "Procesos automáticos": de tres a seis, con sus variables y comandos | US-32, US-15, US-47 a US-50 |
+| `docs/architecture/arquitectura.md` | La sección "Procesos automáticos": de tres a seis, con sus variables y comandos (**ya están** notificaciones y promociones; falta el de misiones) | US-32 |
 | `docs/glosario.md`, `docs/vision-general.md`, `docs/README.md` | Misión mensual, asignación, reclamo, notificación, promoción, beneficio del nivel, cliente frecuente; la fila del Sprint 5 | Al cerrar el sprint |
 
 ### Cómo se sabe que está hecho
@@ -195,8 +195,8 @@ los que ya hay (`backend/CLAUDE.md` §5.16).
 | Proceso | Historia | Cuándo corre | Variable | Script de `npm run` |
 |---|---|---|---|---|
 | Misiones (fin de mes) | US-32 | Día 1, 00:10, y al iniciar | `MISSIONS_EXPIRATION_CRON_ENABLED` | `missions:expire` |
-| Notificaciones | US-47 y US-48 | Todos los días, 09:00 hora de Argentina (no corre al iniciar) | `NOTIFICATIONS_CRON_ENABLED` | `notifications:send` |
-| Promociones programadas | US-15 | Cada minuto | `PROMOTIONS_CRON_ENABLED` | `promotions:send` |
+| Notificaciones | US-47 y US-48 | Todos los días, 09:00 hora de Argentina (no corre al iniciar) | `NOTIFICATIONS_CRON_ENABLED` | `notifications:send` | ✅ Hecho (13/11, rama `notificacion`) |
+| Promociones programadas | US-15 | Cada minuto | `PROMOTIONS_CRON_ENABLED` | `promotions:send` | ✅ Hecho (13/11, rama `notificacion`) |
 
 Pasos para cada uno:
 1. Copiar el patrón de `backend/src/rewards/infrastructure/rewards-expiration.scheduler.ts` y de
@@ -243,8 +243,9 @@ mejor qué necesita. Regla: **cada historia agrega los métodos que usa y nada m
 | Historia | Módulo y repositorio | Qué agrega |
 |---|---|---|
 | US-14 | `notifications` | ✅ **Hecho (backend)** el 12/11 en la rama `notificacion`: plantillas, puntos de cumpleaños, envío común, reenvío e historial. Ver `notificaciones-pendientes.md` |
-| US-15 y US-49 | `notifications` (`PromotionSendRepository`, sigue sin operaciones) | Enviar ahora y programar, cancelar, destinatarios |
-| US-47, US-48, US-50 | `notifications` | Los envíos de cada tipo y su proceso |
+| US-15 y US-49 | `notifications` (`PromotionSendRepository`) | ✅ **Hecho (backend)** el 13/11: enviar ahora y programar, cancelar, destinatarios y proceso de programados |
+| US-47, US-48 | `notifications` (+ `points`) | ✅ **Hecho (backend)** el 13/11: proceso diario de puntos por vencer y regalo de cumpleaños |
+| US-50 | `notifications` | Falta: el envío del aviso de misión (necesita US-30 de otra persona) |
 | US-28 a US-33 | `missions` (`MissionRepository`, `CustomerMissionRepository`) | Misiones, asignación, avance, reclamo y fin de mes |
 | US-34 | `images` (desde `rewards`) | Subir, reemplazar y quitar la foto de una recompensa |
 | FOTO-PERFIL | `images` (desde `customers`) | La foto de perfil del Cliente |

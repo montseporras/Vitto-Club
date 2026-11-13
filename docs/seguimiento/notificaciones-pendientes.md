@@ -16,7 +16,10 @@
   con auditoría `LOGO_AND_MESSAGES_UPDATED` en la misma transacción.
 - `GET /api/notificaciones`: el historial, con filtros y paginado.
 - `POST /api/notificaciones/:id/reenviar`: reenvía un correo que falló, en segundo plano.
-- `NotificationsService.enviar(...)`: el envío común que van a usar US-15, 47, 48, 49 y 50.
+- `NotificationsService.enviar(...)`: el envío común. **13/11:** ya lo usan US-15, 47, 48 y 49 (promociones y proceso
+  diario); falta US-50.
+- **13/11, misma rama:** promociones (`/promociones/*`, proceso de cada minuto) y el proceso diario de las 09:00 (aviso de
+  puntos por vencer, uno por lote, y regalo de cumpleaños con auditoría `BIRTHDAY_BONUS_GRANTED`).
 - Todo es solo del Administrador (Cajero y Cliente reciben `403`).
 - Verificado con tests unitarios y e2e contra la base real. Los e2e nunca llaman a Resend.
 
@@ -191,6 +194,16 @@ Deni, o quien lleve el contrato, para confirmarlas o corregirlas.
    fila nueva: el original sigue figurando como "no reenviado" y el Administrador puede volver a hacer clic.
 4. **Si Resend responde después de un tiempo muy largo**, el reenvío sigue en segundo plano; no hay límite de
    tiempo propio.
+5. **Una promoción "ahora" que se interrumpe** (el servidor se reinicia mientras se manda) queda como `SENT` en
+   `promotion_sends` pero los correos que faltaban **no salen solos**: no hay reintento automático (S5-28). Los que
+   ya salieron figuran en el historial y los que fallaron se pueden reenviar a mano.
+6. **Si el servidor está apagado a las 09:00**, ese día no corre el proceso diario (no corre al iniciar, a propósito).
+   Se recupera con `npm run notifications:send`: es idempotente, no repite lo ya hecho. Un aviso de puntos por vencer
+   que se perdió ese día igual sale al siguiente (la ventana es de 7 días); el regalo de cumpleaños del día perdido
+   **no se hace solo** al día siguiente.
+7. **Plan gratuito de Resend:** 100 correos por día (día UTC) y 3.000 por mes. Una promoción a más clientes que eso
+   deja los correos que pasan el tope como `FAILED` (se pueden reenviar a mano al día siguiente). Para producción,
+   un plan pago. El envío real separa los correos con una pausa de 150 ms (límite de Resend: 10 por segundo).
 
 ---
 
@@ -232,10 +245,15 @@ await this.notificationsService.enviar({
 ### Qué pasar en cada caso
 | Historia | `type` | `reason` | `variables` |
 |---|---|---|---|
-| US-47, vencimiento de puntos | `POINTS_EXPIRING` | `lot:{id}` | `puntos` y `fecha` |
-| US-48, cumpleaños | `BIRTHDAY` | `birthday:{año}` | `puntos` |
+| US-47, vencimiento de puntos ✅ | `POINTS_EXPIRING` | `lot:{id}` | `puntos` y `fecha` |
+| US-48, cumpleaños ✅ | `BIRTHDAY` | `birthday:{año}` | `puntos` (o, con 0 puntos, `textOverride` y sin variables) |
 | US-50, avance de misiones | `MISSION` | `mission:{id de customer_missions}` | `mision` |
 | US-15 y US-49, promociones | `PROMOTION` | `promotion-send:{id}` | no lleva: se pasa `subject` y `body`, y solo se puede usar `{nombre}` |
+
+### `textOverride` (solo lo usa US-48)
+Un campo opcional `textOverride: { subject, body }` de los mensajes automáticos: manda ese texto **en vez de** la plantilla,
+pero **sigue respetando el interruptor** del tipo (si está desactivado, queda `SKIPPED`). Lo usa el cumpleaños con 0 puntos
+(saludo fijo "¡Feliz cumpleaños, {nombre}!", sin hablar de puntos). No lo uses para otra cosa sin preguntar.
 
 ### Reglas que hay que respetar
 1. **Llamarlo siempre DESPUÉS del commit** de la operación de negocio. Un correo nunca va dentro de una
