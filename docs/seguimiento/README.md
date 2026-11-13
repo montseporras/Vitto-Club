@@ -9,7 +9,10 @@ Documentos que cambian con el tiempo: estado, decisiones, pendientes y pedidos e
 | [deuda-tecnica](./deuda-tecnica.md) | Deuda, limitaciones aceptadas (para la entrega) y riesgos |
 | [verificaciones-pendientes-recompensas](./verificaciones-pendientes-recompensas.md) | Criterios de US-35, US-36 y US-38 que prueba la historia que construye cada endpoint |
 | [actualizacion-docs-base4](./actualizacion-docs-base4.md) | Lista de cambios de documentación por BASE-4. **Aplicada el 09/11/2026** |
-| [actualizacion-docs-base5](./actualizacion-docs-base5.md) | Lista de cambios de documentación por BASE-5. **Aplicarla en la rama de BASE-5** |
+| [actualizacion-docs-base5](./actualizacion-docs-base5.md) | Lista de cambios de documentación por BASE-5. **Aplicada en parte el 12/11/2026**: lo que falta lo completa cada historia (ver su encabezado) |
+| [faltante-sprint-4](./faltante-sprint-4.md) | Lo que quedó del arrastre del Sprint 4 (ARRASTRE-S4), paso a paso, para que cualquiera lo tome |
+| [faltante-base-5](./faltante-base-5.md) | Lo que quedó sin hacer o sin comprobar de BASE-5 (cuentas reales de Cloudinary y Resend, descripciones de movimientos, documentos, procesos nuevos), paso a paso |
+| [notificaciones-pendientes](./notificaciones-pendientes.md) | Notificaciones (US-14): el logo del correo, la pantalla, las decisiones por confirmar, las limitaciones conocidas y **la guía para usar `enviar`** (US-15, 47, 48, 49 y 50) |
 | [estado-puntos-y-consumos](./estado-puntos-y-consumos.md) | Foto del 18/10: BASE, US-21 y US-22 (backend). Superada por `estado-actual` |
 | [avisos-cambios-2026-10-20](./avisos-cambios-2026-10-20.md) | Avisos al equipo del 20/10: "Compra" → "Consumo" en el código y lote `VOIDED` |
 | [diferencias-prototipo-frontend](./diferencias-prototipo-frontend.md) | Diferencias entre el prototipo v2 y el frontend tras la alineación visual del 19/10 |
