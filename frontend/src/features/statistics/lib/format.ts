@@ -2,11 +2,13 @@
 // Los enteros salen de @/shared/lib/numbers; acá solo lo que falta.
 import { formatInteger } from '@/shared/lib/numbers';
 
+// Espacio duro: no deja que una línea se parte entre una cifra y su "$" o su "%".
+export const NBSP = String.fromCharCode(160);
+
 /**
- * 9751700 → "$ 9.751.700" (como el prototipo: espacio duro entre el $ y la cifra, para que no
- * se parta la línea). Los montos de las estadísticas no llevan centavos.
+ * 9751700 → "$ 9.751.700" (como el prototipo: espacio duro entre el $ y la cifra).
+ * Los montos de las estadísticas no llevan centavos.
  */
-const NBSP = String.fromCharCode(160);
 export const formatStatisticsMoney = (value: number) => `$${NBSP}${formatInteger(value)}`;
 
 const ONE_DECIMAL = new Intl.NumberFormat('es-AR', {
@@ -16,6 +18,15 @@ const ONE_DECIMAL = new Intl.NumberFormat('es-AR', {
 
 /** 33.333 → "33,3" (un decimal, con coma). */
 export const formatOneDecimal = (value: number) => ONE_DECIMAL.format(value);
+
+/** Parte sobre el total, en porcentaje (0 si el total es 0, para no dividir por cero). */
+export const percentOf = (part: number, total: number) => (total > 0 ? (part / total) * 100 : 0);
+
+/** 8.46 → "8,5 %"; −3 → "−3,0 %" (un decimal, espacio duro antes del % y el signo menos real). */
+export const formatPercent = (value: number) => {
+  const text = formatOneDecimal(Math.abs(value));
+  return `${value < 0 && text !== '0,0' ? '−' : ''}${text}${NBSP}%`;
+};
 
 /** newFrequent ÷ new, como porcentaje con un decimal. Sin nuevos: "0,0" (como el prototipo). */
 export const conversionPercent = (newFrequent: number, newCustomers: number) =>

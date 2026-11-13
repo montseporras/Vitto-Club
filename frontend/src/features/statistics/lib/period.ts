@@ -67,6 +67,29 @@ export function shortMonthLabel(value: string): string {
   return `${MONTH_NAMES[month - 1].slice(0, 3)} ${String(year).slice(2)}`;
 }
 
+/** El mes anterior al elegido (enero → diciembre del año anterior). */
+export function previousMonthOf({ year, month }: YearMonth): YearMonth {
+  return month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
+}
+
+/** { 2026, 10 } → 'oct' (el mes en 3 letras y en minúscula, para "vs. oct."). */
+export const shortLowerMonthName = ({ month }: YearMonth) =>
+  MONTH_NAMES[month - 1].slice(0, 3).toLowerCase();
+
+/** { 2026, 11 } → 'noviembre' */
+export const lowerMonthName = ({ month }: YearMonth) => MONTH_NAMES[month - 1].toLowerCase();
+
+/**
+ * "Corte" (contrato §3.9.7): el último día del mes elegido o, en el mes en curso, la fecha de
+ * hoy. 'dd/mm/aaaa'.
+ */
+export function cutoffLabel(selected: YearMonth, today: YearMonth): string {
+  if (isCurrentMonth(selected, today)) return argentinaTodayLabel();
+  // Día 0 del mes siguiente = último día de este mes
+  const lastDay = new Date(Date.UTC(selected.year, selected.month, 0)).getUTCDate();
+  return `${pad(lastDay)}/${pad(selected.month)}/${selected.year}`;
+}
+
 /** ¿El mes elegido es el actual? */
 export const isCurrentMonth = (selected: YearMonth, today: YearMonth) =>
   selected.year === today.year && selected.month === today.month;
