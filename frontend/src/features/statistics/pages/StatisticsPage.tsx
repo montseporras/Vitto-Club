@@ -1,7 +1,7 @@
 // Este archivo es la pantalla "Estadísticas y reportes" del Administrador (US-51, contrato S5 §3.9.7).
 // Pide los cuatro endpoints al cambiar el mes, porque cada pestaña muestra un total.
-// Por ahora tienen contenido las pestañas Clientes (US-51), Consumos (US-52) y Puntos (US-53);
-// Programa la arma US-54 sobre este mismo marco.
+// Las cuatro pestañas tienen contenido: Clientes (US-51), Consumos (US-52), Puntos (US-53) y
+// Programa (US-54). El botón "Exportar reporte PDF" lo agrega US-55.
 import { useState } from 'react';
 import { StatusText } from '@/shared/components/feedback/StatusText';
 import { Alert } from '@/shared/components/ui/Alert';
@@ -17,6 +17,7 @@ import { ClientsTab } from '../components/ClientsTab';
 import { ConsumptionsTab } from '../components/ConsumptionsTab';
 import { PeriodSelectors } from '../components/PeriodSelectors';
 import { PointsTab } from '../components/PointsTab';
+import { ProgramTab } from '../components/ProgramTab';
 import {
   StatisticsTabs,
   type StatisticsTabId,
@@ -151,6 +152,9 @@ export function StatisticsPage() {
             )}
             {tab === 'points' && points.data && (
               <PointsTab data={points.data} selected={selected} today={today} />
+            )}
+            {tab === 'program' && program.data && (
+              <ProgramTab data={program.data} selected={selected} today={today} />
             )}
           </div>
         </div>

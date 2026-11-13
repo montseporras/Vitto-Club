@@ -28,6 +28,9 @@ export const formatPercent = (value: number) => {
   return `${value < 0 && text !== '0,0' ? '−' : ''}${text}${NBSP}%`;
 };
 
+/** 36.6 → "37 %" (porcentaje entero con espacio duro; lo usa la pestaña Programa, como el prototipo). */
+export const formatWholePercent = (value: number) => `${Math.round(value)}${NBSP}%`;
+
 /** newFrequent ÷ new, como porcentaje con un decimal. Sin nuevos: "0,0" (como el prototipo). */
 export const conversionPercent = (newFrequent: number, newCustomers: number) =>
   newCustomers > 0 ? formatOneDecimal((newFrequent / newCustomers) * 100) : '0,0';

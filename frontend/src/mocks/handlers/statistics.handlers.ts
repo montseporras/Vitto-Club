@@ -150,11 +150,24 @@ function program(month: string): ProgramStatistics {
       claimed,
       expired: assigned - inProgress - completed - claimed,
     },
+    // Hasta 10 recompensas, de mayor a menor. Su suma es menor que `redemptionsUsed` (hay más
+    // recompensas con canjes que las 10 que se listan), así el % de cada una sale del total real.
     topRewards: [
-      { id: 1, name: 'Café + medialuna', used: Math.round(redemptionsUsed * 0.42) },
-      { id: 2, name: 'Porción de torta', used: Math.round(redemptionsUsed * 0.28) },
-      { id: 3, name: 'Jugo de naranja', used: Math.round(redemptionsUsed * 0.18) },
-    ],
+      ['Café + medialuna', 0.2],
+      ['Porción de torta', 0.15],
+      ['Jugo de naranja exprimido natural con hielo', 0.12],
+      ['Tostado de jamón y queso', 0.1],
+      ['Licuado de frutilla', 0.08],
+      ['Medialuna extra', 0.06],
+      ['Alfajor de maicena', 0.05],
+      ['Café de especialidad', 0.04],
+      ['Brownie', 0.03],
+      ['Agua saborizada', 0.02],
+    ].map(([name, share], index) => ({
+      id: index + 1,
+      name: name as string,
+      used: Math.round(redemptionsUsed * (share as number)),
+    })),
     redemptionsUsed,
   };
 }
