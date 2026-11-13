@@ -1,5 +1,13 @@
 // Este archivo tiene los formatos de números de la pantalla de estadísticas.
-// Los enteros y los montos salen de @/shared/lib/numbers; acá solo lo que falta.
+// Los enteros salen de @/shared/lib/numbers; acá solo lo que falta.
+import { formatInteger } from '@/shared/lib/numbers';
+
+/**
+ * 9751700 → "$ 9.751.700" (como el prototipo: espacio duro entre el $ y la cifra, para que no
+ * se parta la línea). Los montos de las estadísticas no llevan centavos.
+ */
+const NBSP = String.fromCharCode(160);
+export const formatStatisticsMoney = (value: number) => `$${NBSP}${formatInteger(value)}`;
 
 const ONE_DECIMAL = new Intl.NumberFormat('es-AR', {
   minimumFractionDigits: 1,

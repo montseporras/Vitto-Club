@@ -1,7 +1,7 @@
 // Este archivo es la pantalla "Estadísticas y reportes" del Administrador (US-51, contrato S5 §3.9.7).
 // Pide los cuatro endpoints al cambiar el mes, porque cada pestaña muestra un total.
-// Por ahora solo la pestaña Clientes tiene contenido; Consumos, Puntos y Programa las arman
-// US-52, US-53 y US-54 sobre este mismo marco.
+// Por ahora tienen contenido las pestañas Clientes (US-51) y Consumos (US-52); Puntos y Programa
+// las arman US-53 y US-54 sobre este mismo marco.
 import { useState } from 'react';
 import { StatusText } from '@/shared/components/feedback/StatusText';
 import { Alert } from '@/shared/components/ui/Alert';
@@ -14,6 +14,7 @@ import {
   useProgramStatistics,
 } from '../api/statistics.queries';
 import { ClientsTab } from '../components/ClientsTab';
+import { ConsumptionsTab } from '../components/ConsumptionsTab';
 import { PeriodSelectors } from '../components/PeriodSelectors';
 import {
   StatisticsTabs,
@@ -143,6 +144,9 @@ export function StatisticsPage() {
                 conversionMonth={conversionMonth}
                 onSelectConversionMonth={setConversionMonth}
               />
+            )}
+            {tab === 'consumptions' && consumptions.data && (
+              <ConsumptionsTab data={consumptions.data} />
             )}
           </div>
         </div>
