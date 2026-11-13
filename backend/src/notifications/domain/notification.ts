@@ -67,3 +67,8 @@ export type PromotionSendRecord = {
   createdByEmployeeId: number;
   createdAt: Date;
 };
+
+// Un envío de promoción con quién lo cargó, tal como lo devuelve la API (contrato S5 §3.7.1)
+export type PromotionSendWithCreator = PromotionSendRecord & {
+  createdBy: { id: number; firstName: string; lastName: string };
+};
