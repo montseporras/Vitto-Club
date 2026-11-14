@@ -1,4 +1,4 @@
-import { calculateLevel } from './level.js';
+import { calculateLevel, withBenefits } from './level.js';
 
 describe('calculateLevel', () => {
   const silverMinPoints = 300;
@@ -50,5 +50,38 @@ describe('calculateLevel', () => {
   it('progressPercent a mitad de camino entre Bronce y Plata', () => {
     const level = calculateLevel(150, silverMinPoints, goldMinPoints); // (150-0)/(300-0)=50%
     expect(level.progressPercent).toBe(50);
+  });
+});
+
+describe('withBenefits — NIV-BEN (S5 §3.10)', () => {
+  const texts = { bronzeBenefit: 'Café', silverBenefit: 'Postre gratis', goldBenefit: 'Mesa reservada' };
+
+  it('Bronce: su beneficio y el de Plata como siguiente', () => {
+    const level = withBenefits(calculateLevel(0, 300, 800), texts);
+    expect(level).toMatchObject({ current: 'BRONZE', benefit: 'Café', nextBenefit: 'Postre gratis' });
+  });
+
+  it('Plata: su beneficio y el de Oro como siguiente', () => {
+    const level = withBenefits(calculateLevel(300, 300, 800), texts);
+    expect(level).toMatchObject({ current: 'SILVER', benefit: 'Postre gratis', nextBenefit: 'Mesa reservada' });
+  });
+
+  it('Oro: su beneficio y nextBenefit null (no hay nivel siguiente)', () => {
+    const level = withBenefits(calculateLevel(800, 300, 800), texts);
+    expect(level).toMatchObject({ current: 'GOLD', benefit: 'Mesa reservada', nextBenefit: null });
+  });
+
+  it('un nivel sin texto da null', () => {
+    const level = withBenefits(calculateLevel(0, 300, 800), { ...texts, bronzeBenefit: null, silverBenefit: null });
+    expect(level).toMatchObject({ benefit: null, nextBenefit: null });
+  });
+
+  it('CA-NB.4: el beneficio no cambia nada del cálculo del nivel ni de los puntos', () => {
+    const plain = calculateLevel(450, 300, 800);
+    const { benefit, nextBenefit, ...numbers } = withBenefits(plain, texts);
+
+    expect(numbers).toEqual(plain);
+    expect(benefit).toBe('Postre gratis');
+    expect(nextBenefit).toBe('Mesa reservada');
   });
 });

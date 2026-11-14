@@ -14,7 +14,7 @@ import {
   LoyaltyProgramConfigurationData,
   LoyaltyProgramConfigurationInput,
 } from '../domain/loyalty-program-configuration.js';
-import type { LevelThresholds } from '../domain/levels.js';
+import type { LevelsInput } from '../domain/levels.js';
 
 function toBonusType(value: string): FirstConsumptionBonusType {
   if (value === 'PERCENTAGE' || value === 'FIXED_AMOUNT') {
@@ -36,6 +36,9 @@ function toDomain(record: PrismaConfig): LoyaltyProgramConfiguration {
     silverMinPoints: record.silverMinPoints,
     goldMinPoints: record.goldMinPoints,
     frequentMinConsumptions: record.frequentMinConsumptions,
+    bronzeBenefit: record.bronzeBenefit,
+    silverBenefit: record.silverBenefit,
+    goldBenefit: record.goldBenefit,
     isActive: record.isActive,
     validFrom: record.validFrom,
     validTo: record.validTo,
@@ -117,12 +120,13 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
     });
   }
 
-  async saveLevels(
-    thresholds: LevelThresholds,
-  ): Promise<LoyaltyProgramConfiguration> {
+  async saveLevels(levels: LevelsInput): Promise<LoyaltyProgramConfiguration> {
     return await this.updatePartialConfig({
-      silverMinPoints: thresholds.silverMinPoints,
-      goldMinPoints: thresholds.goldMinPoints,
+      silverMinPoints: levels.silverMinPoints,
+      goldMinPoints: levels.goldMinPoints,
+      bronzeBenefit: levels.bronzeBenefit,
+      silverBenefit: levels.silverBenefit,
+      goldBenefit: levels.goldBenefit,
     });
   }
 
@@ -243,6 +247,9 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
         silverMinPoints: data.silverMinPoints,
         goldMinPoints: data.goldMinPoints,
         frequentMinConsumptions: data.frequentMinConsumptions,
+        bronzeBenefit: data.bronzeBenefit,
+        silverBenefit: data.silverBenefit,
+        goldBenefit: data.goldBenefit,
         isActive: true,
         validFrom: now,
         validTo: null,

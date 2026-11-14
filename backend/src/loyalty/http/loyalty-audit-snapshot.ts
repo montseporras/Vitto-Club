@@ -11,5 +11,8 @@ export function toLoyaltySnapshot(configuration: LoyaltyProgramConfiguration): L
     bonusValue: configuration.getBonusValue(),
     silverMinPoints: configuration.getSilverMinPoints(),
     goldMinPoints: configuration.getGoldMinPoints(),
+    bronzeBenefit: configuration.getBronzeBenefit(),
+    silverBenefit: configuration.getSilverBenefit(),
+    goldBenefit: configuration.getGoldBenefit(),
   };
 }

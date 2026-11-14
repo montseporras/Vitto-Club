@@ -61,6 +61,17 @@ export function PointsSummary({ points }: PointsSummaryProps) {
             />
           </div>
           <p className="mt-1 text-neutral-600">{levelMessage}</p>
+          {/* NIV-BEN: solo si el nivel tiene texto. Lo manda el backend; no se calcula acá */}
+          {level.benefit && (
+            <p className="mt-1.5">
+              <strong>Tu beneficio:</strong> {level.benefit}
+            </p>
+          )}
+          {level.next && level.nextBenefit && (
+            <p className="mt-0.5 text-neutral-600">
+              Con {LEVELS[level.next]}: {level.nextBenefit}
+            </p>
+          )}
         </div>
       </div>
     </div>

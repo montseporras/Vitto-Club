@@ -7,9 +7,12 @@ type LevelRow = {
   editable: boolean;
 };
 
-// §3.7.1: la respuesta de GET y PUT /loyalty/configuration/levels
+// §3.7.1 y S5 §3.10: la respuesta de GET y PUT /loyalty/configuration/levels
 export class LevelsResponseDto {
   levels: LevelRow[];
+  bronzeBenefit: string | null;
+  silverBenefit: string | null;
+  goldBenefit: string | null;
   configurationVersion: number;
   updatedAt: Date;
 
@@ -19,6 +22,9 @@ export class LevelsResponseDto {
       { level: 'SILVER', minPoints: configuration.getSilverMinPoints(), editable: true },
       { level: 'GOLD', minPoints: configuration.getGoldMinPoints(), editable: true },
     ];
+    this.bronzeBenefit = configuration.getBronzeBenefit();
+    this.silverBenefit = configuration.getSilverBenefit();
+    this.goldBenefit = configuration.getGoldBenefit();
     this.configurationVersion = configuration.getVersion();
     this.updatedAt = configuration.getCreatedAt();
   }

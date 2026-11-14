@@ -27,6 +27,8 @@ const summary: PointsSummary = {
     nextMinPoints: null,
     pointsToNext: 0,
     progressPercent: 100,
+    benefit: null,
+    nextBenefit: null,
   },
   nextExpirations: [],
 };

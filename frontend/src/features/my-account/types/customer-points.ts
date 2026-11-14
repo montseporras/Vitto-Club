@@ -13,6 +13,10 @@ export type CustomerLevel = {
   pointsToNext: number
   /** Entero de 0 a 100; 100 en Oro. */
   progressPercent: number
+  /** Texto informativo del nivel actual (NIV-BEN, S5 §3.10); null si no tiene. */
+  benefit: string | null
+  /** Texto informativo del nivel siguiente; null si no tiene o ya está en Oro. */
+  nextBenefit: string | null
 }
 
 export type PointsExpiration = {

@@ -6,7 +6,9 @@ import { PointsEquivalence } from './points-equivalence.js';
 import { PointsValidity } from './points-validity.js';
 import { DomainError } from './errors/domain.error.js';
 import {
+  assertBenefit,
   assertLevelThresholds,
+  normalizeBenefit,
   DEFAULT_GOLD_MIN_POINTS,
   DEFAULT_SILVER_MIN_POINTS,
 } from './levels.js';
@@ -26,6 +28,10 @@ export type LoyaltyProgramConfigurationData = {
   goldMinPoints: number;
   // S5-22: mínimo de consumos de un cliente frecuente
   frequentMinConsumptions: number;
+  // NIV-BEN (S5-2): texto informativo de cada nivel; no cambia los puntos (S5-26)
+  bronzeBenefit: string | null;
+  silverBenefit: string | null;
+  goldBenefit: string | null;
   isActive: boolean;
   validFrom: Date;
   validTo: Date | null;
@@ -43,6 +49,10 @@ export type LoyaltyProgramConfigurationInput = {
   goldMinPoints?: number;
   // S5-22: si falta se copia de la versión vigente
   frequentMinConsumptions?: number;
+  // NIV-BEN: opcionales; si no vienen se copian de la versión vigente, y null borra el beneficio
+  bronzeBenefit?: string | null;
+  silverBenefit?: string | null;
+  goldBenefit?: string | null;
 };
 
 export class LoyaltyProgramConfiguration {
@@ -92,6 +102,9 @@ export class LoyaltyProgramConfiguration {
       silverMinPoints: data.silverMinPoints,
       goldMinPoints: data.goldMinPoints,
     });
+    assertBenefit(data.bronzeBenefit, 'bronzeBenefit');
+    assertBenefit(data.silverBenefit, 'silverBenefit');
+    assertBenefit(data.goldBenefit, 'goldBenefit');
 
     assertFrequentMinConsumptions(data.frequentMinConsumptions);
 
@@ -128,6 +141,23 @@ export class LoyaltyProgramConfiguration {
       DEFAULT_FREQUENT_MIN_CONSUMPTIONS;
     assertFrequentMinConsumptions(frequentMinConsumptions);
 
+    // NIV-BEN: un beneficio que no viene se copia de la vigente; uno vacío se guarda como null
+    const bronzeBenefit =
+      input.bronzeBenefit === undefined
+        ? (current?.getBronzeBenefit() ?? null)
+        : normalizeBenefit(input.bronzeBenefit);
+    const silverBenefit =
+      input.silverBenefit === undefined
+        ? (current?.getSilverBenefit() ?? null)
+        : normalizeBenefit(input.silverBenefit);
+    const goldBenefit =
+      input.goldBenefit === undefined
+        ? (current?.getGoldBenefit() ?? null)
+        : normalizeBenefit(input.goldBenefit);
+    assertBenefit(bronzeBenefit, 'bronzeBenefit');
+    assertBenefit(silverBenefit, 'silverBenefit');
+    assertBenefit(goldBenefit, 'goldBenefit');
+
     return {
       version: (current?.getVersion() ?? 0) + 1,
       baseAmount,
@@ -138,6 +168,9 @@ export class LoyaltyProgramConfiguration {
       silverMinPoints,
       goldMinPoints,
       frequentMinConsumptions,
+      bronzeBenefit,
+      silverBenefit,
+      goldBenefit,
       isActive: true,
       validFrom: new Date(),
       validTo: null,
@@ -179,6 +212,18 @@ export class LoyaltyProgramConfiguration {
 
   getFrequentMinConsumptions(): number {
     return this.data.frequentMinConsumptions;
+  }
+
+  getBronzeBenefit(): string | null {
+    return this.data.bronzeBenefit;
+  }
+
+  getSilverBenefit(): string | null {
+    return this.data.silverBenefit;
+  }
+
+  getGoldBenefit(): string | null {
+    return this.data.goldBenefit;
   }
 
   getIsActive(): boolean {

@@ -1,4 +1,11 @@
-import { assertLevelThresholds, thresholdFormatError } from './levels.js';
+import {
+  assertBenefit,
+  assertLevelThresholds,
+  benefitError,
+  LEVEL_MESSAGES,
+  normalizeBenefit,
+  thresholdFormatError,
+} from './levels.js';
 import { DomainError } from './errors/domain.error.js';
 import { LoyaltyProgramConfiguration } from './loyalty-program-configuration.js';
 
@@ -35,6 +42,107 @@ describe('assertLevelThresholds() — §3.7.2', () => {
   });
 });
 
+describe('beneficios de los niveles — NIV-BEN (S5 §3.10)', () => {
+  it('normalizeBenefit: recorta los bordes y vacío = null', () => {
+    expect(normalizeBenefit('  Postre gratis ')).toBe('Postre gratis');
+    expect(normalizeBenefit('')).toBeNull();
+    expect(normalizeBenefit('   ')).toBeNull();
+    expect(normalizeBenefit(null)).toBeNull();
+    expect(normalizeBenefit(undefined)).toBeNull();
+  });
+
+  it('benefitError: hasta 255 caracteres sin contar los bordes; 256 da el mensaje del contrato', () => {
+    expect(benefitError('a'.repeat(255))).toBeNull();
+    expect(benefitError('  ' + 'a'.repeat(255) + '  ')).toBeNull();
+    expect(benefitError('a'.repeat(256))).toBe('El beneficio no puede superar los 255 caracteres.');
+  });
+
+  it('benefitError cuenta caracteres como la base: un emoji es uno', () => {
+    expect(benefitError('😀'.repeat(255))).toBeNull();
+    expect(benefitError('😀'.repeat(256))).toBe(LEVEL_MESSAGES.benefitTooLong);
+  });
+
+  it('benefitError: ausente o null está bien; algo que no es texto, no', () => {
+    expect(benefitError(undefined)).toBeNull();
+    expect(benefitError(null)).toBeNull();
+    expect(benefitError(5)).toBe(LEVEL_MESSAGES.benefitNotText);
+  });
+
+  it('assertBenefit lanza un DomainError sobre el campo del nivel', () => {
+    expect(() => assertBenefit('a'.repeat(256), 'silverBenefit')).toThrow(
+      new DomainError('El beneficio no puede superar los 255 caracteres.', 'silverBenefit'),
+    );
+    expect(() => assertBenefit(null, 'goldBenefit')).not.toThrow();
+  });
+});
+
+describe('LoyaltyProgramConfiguration con beneficios — NIV-BEN', () => {
+  const base = {
+    version: 3,
+    baseAmount: 1000,
+    pointsAwarded: 10,
+    pointsExpirationMonths: 12,
+    bonusType: null,
+    bonusValue: null,
+    silverMinPoints: 400,
+    goldMinPoints: 900,
+    frequentMinConsumptions: 3,
+    isActive: true,
+    validFrom: new Date(),
+    validTo: null,
+    createdAt: new Date(),
+  };
+  const current = LoyaltyProgramConfiguration.define({
+    ...base,
+    bronzeBenefit: 'Café de bienvenida',
+    silverBenefit: 'Postre gratis',
+    goldBenefit: null,
+  });
+
+  it('define() rechaza un beneficio de más de 255 caracteres', () => {
+    expect(() =>
+      LoyaltyProgramConfiguration.define({
+        ...base,
+        bronzeBenefit: null,
+        silverBenefit: 'a'.repeat(256),
+        goldBenefit: null,
+      }),
+    ).toThrow('El beneficio no puede superar los 255 caracteres.');
+  });
+
+  it('los getters devuelven cada beneficio', () => {
+    expect(current.getBronzeBenefit()).toBe('Café de bienvenida');
+    expect(current.getSilverBenefit()).toBe('Postre gratis');
+    expect(current.getGoldBenefit()).toBeNull();
+  });
+
+  it('una versión nueva copia los beneficios vigentes si no vienen', () => {
+    const next = LoyaltyProgramConfiguration.createNextVersion(current, { pointsExpirationMonths: 6 });
+
+    expect(next).toMatchObject({
+      bronzeBenefit: 'Café de bienvenida',
+      silverBenefit: 'Postre gratis',
+      goldBenefit: null,
+    });
+  });
+
+  it('un beneficio que viene reemplaza al vigente; vacío o null lo borra', () => {
+    const next = LoyaltyProgramConfiguration.createNextVersion(current, {
+      bronzeBenefit: null,
+      silverBenefit: '  Postre y café  ',
+      goldBenefit: '',
+    });
+
+    expect(next).toMatchObject({ bronzeBenefit: null, silverBenefit: 'Postre y café', goldBenefit: null });
+  });
+
+  it('un beneficio de más de 255 caracteres no genera versión', () => {
+    expect(() =>
+      LoyaltyProgramConfiguration.createNextVersion(current, { goldBenefit: 'a'.repeat(256) }),
+    ).toThrow('El beneficio no puede superar los 255 caracteres.');
+  });
+});
+
 describe('LoyaltyProgramConfiguration.createNextVersion() con niveles — CA-27.2 / CA-27.5', () => {
   const current = LoyaltyProgramConfiguration.define({
     version: 3,
@@ -46,6 +154,9 @@ describe('LoyaltyProgramConfiguration.createNextVersion() con niveles — CA-27.
     silverMinPoints: 400,
     goldMinPoints: 900,
     frequentMinConsumptions: 3,
+    bronzeBenefit: null,
+    silverBenefit: null,
+    goldBenefit: null,
     isActive: true,
     validFrom: new Date(),
     validTo: null,
@@ -76,6 +187,9 @@ describe('LoyaltyProgramConfiguration.createNextVersion() con niveles — CA-27.
       silverMinPoints: 300,
       goldMinPoints: 800,
       frequentMinConsumptions: 3,
+      bronzeBenefit: null,
+      silverBenefit: null,
+      goldBenefit: null,
     });
   });
 });
@@ -91,6 +205,9 @@ describe('LoyaltyProgramConfiguration.createNextVersion() con cliente frecuente 
     silverMinPoints: 300,
     goldMinPoints: 800,
     frequentMinConsumptions: 5,
+    bronzeBenefit: null,
+    silverBenefit: null,
+    goldBenefit: null,
     isActive: true,
     validFrom: new Date(),
     validTo: null,

@@ -15,6 +15,9 @@ describe('LoyaltyPrismaRepository', () => {
     silverMinPoints: 300,
     goldMinPoints: 800,
     frequentMinConsumptions: 3,
+    bronzeBenefit: null,
+    silverBenefit: null,
+    goldBenefit: null,
     isActive: true,
     validFrom: timestamp,
     validTo: null,
@@ -114,6 +117,9 @@ describe('LoyaltyPrismaRepository', () => {
       bonusValue: { toNumber: () => 15 },
       silverMinPoints: 400,
       goldMinPoints: 900,
+      bronzeBenefit: 'Café de bienvenida',
+      silverBenefit: 'Postre gratis',
+      goldBenefit: null,
     });
 
     const result = await repository.savePointsEquivalence(
@@ -138,6 +144,9 @@ describe('LoyaltyPrismaRepository', () => {
           bonusValue: 15,
           silverMinPoints: 400,
           goldMinPoints: 900,
+          bronzeBenefit: 'Café de bienvenida',
+          silverBenefit: 'Postre gratis',
+          goldBenefit: null,
           isActive: true,
           validTo: null,
         }),
@@ -145,6 +154,34 @@ describe('LoyaltyPrismaRepository', () => {
     );
     expect(result.getBaseAmount()).toBe(996.5);
     expect(result.getPointsAwarded()).toBe(12);
+  });
+
+  it('NIV-BEN: saveLevels guarda los beneficios nuevos y conserva los que no vienen', async () => {
+    transaction.loyaltyProgramConfiguration.findFirst.mockResolvedValue({
+      ...activeRecord,
+      bronzeBenefit: 'Café de bienvenida',
+      silverBenefit: 'Postre gratis',
+      goldBenefit: 'Mesa reservada',
+    });
+    transaction.loyaltyProgramConfiguration.create.mockImplementation(({ data }) => Promise.resolve({ ...data, id: 2 }));
+
+    const result = await repository.saveLevels({
+      silverMinPoints: 300,
+      goldMinPoints: 800,
+      silverBenefit: '  Postre y café ',
+      goldBenefit: null,
+    });
+
+    expect(transaction.loyaltyProgramConfiguration.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        version: 2,
+        bronzeBenefit: 'Café de bienvenida',
+        silverBenefit: 'Postre y café',
+        goldBenefit: null,
+      }),
+    });
+    expect(result.getSilverBenefit()).toBe('Postre y café');
+    expect(result.getGoldBenefit()).toBeNull();
   });
 
   it('creates the first version if no active version is present', async () => {

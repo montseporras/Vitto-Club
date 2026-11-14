@@ -14,6 +14,9 @@ export class CustomerPointsResponseDto {
     nextMinPoints: number | null;
     pointsToNext: number;
     progressPercent: number;
+    // NIV-BEN: texto informativo del nivel actual y del siguiente (null si no hay)
+    benefit: string | null;
+    nextBenefit: string | null;
   };
   nextExpirations!: { points: number; expiresAt: string }[];
 
@@ -30,6 +33,8 @@ export class CustomerPointsResponseDto {
       nextMinPoints: summary.level.nextMinPoints,
       pointsToNext: summary.level.pointsToNext,
       progressPercent: summary.level.progressPercent,
+      benefit: summary.level.benefit,
+      nextBenefit: summary.level.nextBenefit,
     };
     dto.nextExpirations = summary.nextExpirations.map((expiration) => ({
       points: expiration.points,

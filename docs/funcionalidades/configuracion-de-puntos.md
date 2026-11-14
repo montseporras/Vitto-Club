@@ -28,7 +28,9 @@ queda en la **auditoría** (módulo Configuración: `POINTS_EQUIVALENCE_UPDATED`
 | Límites: `baseAmount` hasta 1.000.000, `pointsAwarded` hasta 10.000, vigencia hasta 120 meses | `VERIFICACION_SPRINTS_1_2.md` §11 |
 | Ruta `first-purchase-bonus` → `/loyalty/configuration/first-consumption-bonus` y campo `firstConsumptionBonus` (20/10) | `docs/seguimiento/avisos-cambios-2026-10-20.md` §3 |
 | Niveles: `GET`/`PUT /loyalty/configuration/levels`; el snapshot suma `silverMinPoints` y `goldMinPoints` | Contrato S3 §3.7 |
+| Beneficios de los niveles: `GET`/`PUT …/levels` suman `bronzeBenefit`, `silverBenefit` y `goldBenefit` (texto de hasta 255, opcional, en la versión). Un beneficio que no viene se conserva; vacío o `null` lo borra. `LEVELS_UPDATED` suma "Beneficio {nivel}: antes → después" por cada uno que cambió (14/11/2026) | Contrato S5 §3.10 |
 | Los consumos ya toman el snapshot de la versión vigente | Contrato S3 §3.1.3 |
+| Pantalla: Configuración → Puntos → Niveles suma el campo "Beneficio (opcional)" en cada nivel (hasta 255). En el Inicio del Cliente se ven "Tu beneficio" y "Con {nivel siguiente}"; en la ficha, "Beneficio" junto al nivel. Los textos salen de lo que manda el backend (14/11/2026) | Contrato S5 §3.10 y §3.13 |
 
 ## Alcance de las cuatro historias
 

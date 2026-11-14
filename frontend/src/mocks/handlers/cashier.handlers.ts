@@ -9,6 +9,7 @@ import type { Level } from '@/domain/levels'
 import type { Consumption } from '@/features/customers'
 import { API_URL } from '@/shared/api/http'
 import { accountFromRequest } from './auth.handlers'
+import { withLevelBenefits } from './level-benefits.seed'
 
 // Body de PATCH /api/customers/:id (lo edita el Administrador desde Clientes)
 type PatchCustomerBody = {
@@ -225,16 +226,16 @@ export function levelOf(lifetimePoints: number): CustomerPoints['level'] {
   const current = LEVEL_ORDER[index]
   const next = LEVEL_ORDER[index + 1] ?? null
   if (!next) {
-    return { current: current.level, next: null, currentMinPoints: current.min, nextMinPoints: null, pointsToNext: 0, progressPercent: 100 }
+    return withLevelBenefits({ current: current.level, next: null, currentMinPoints: current.min, nextMinPoints: null, pointsToNext: 0, progressPercent: 100 })
   }
-  return {
+  return withLevelBenefits({
     current: current.level,
     next: next.level,
     currentMinPoints: current.min,
     nextMinPoints: next.min,
     pointsToNext: next.min - lifetimePoints,
     progressPercent: Math.round(((lifetimePoints - current.min) / (next.min - current.min)) * 100),
-  }
+  })
 }
 
 // 'YYYY-MM-DD' en hora de Argentina

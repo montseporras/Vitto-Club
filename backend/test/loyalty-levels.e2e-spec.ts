@@ -106,6 +106,9 @@ describe('Niveles de fidelización (e2e)', () => {
           { level: 'SILVER', minPoints: 300, editable: true },
           { level: 'GOLD', minPoints: 800, editable: true },
         ],
+        bronzeBenefit: null,
+        silverBenefit: null,
+        goldBenefit: null,
         configurationVersion: 1,
         updatedAt: expect.stringMatching(/Z$/),
       });
@@ -134,6 +137,9 @@ describe('Niveles de fidelización (e2e)', () => {
           { level: 'SILVER', minPoints: 400, editable: true },
           { level: 'GOLD', minPoints: 1500, editable: true },
         ],
+        bronzeBenefit: null,
+        silverBenefit: null,
+        goldBenefit: null,
         configurationVersion: 2,
         updatedAt: expect.stringMatching(/Z$/),
       });
@@ -187,6 +193,105 @@ describe('Niveles de fidelización (e2e)', () => {
       await request(app.getHttpServer()).put(LEVELS_URL).set(asAdmin).send({ silverMinPoints: 400, goldMinPoints: 900 }).expect(200);
 
       expect(await levelOf()).toBe('BRONZE');
+    });
+
+    it('NIV-BEN: guarda los beneficios en la versión nueva, los devuelve y audita solo los que cambiaron (CA-NB.1, CA-NB.2)', async () => {
+      const response = await request(app.getHttpServer())
+        .put(LEVELS_URL)
+        .set(asAdmin)
+        .send({
+          silverMinPoints: 300,
+          goldMinPoints: 800,
+          bronzeBenefit: '  Café de bienvenida ',
+          silverBenefit: 'Postre gratis',
+          goldBenefit: '',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        bronzeBenefit: 'Café de bienvenida',
+        silverBenefit: 'Postre gratis',
+        goldBenefit: null,
+        configurationVersion: 2,
+      });
+      const versions = await prisma.loyaltyProgramConfiguration.findMany({ orderBy: { version: 'asc' } });
+      expect(versions[0]).toMatchObject({ isActive: false, silverBenefit: null });
+      expect(versions[1]).toMatchObject({
+        isActive: true,
+        bronzeBenefit: 'Café de bienvenida',
+        silverBenefit: 'Postre gratis',
+        goldBenefit: null,
+      });
+      const rows = await newAuditRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ actionCode: 'LEVELS_UPDATED' });
+      expect(rows[0].details).toEqual([
+        { label: 'Beneficio Bronce', value: '— → Café de bienvenida' },
+        { label: 'Beneficio Plata', value: '— → Postre gratis' },
+      ]);
+      await expect(request(app.getHttpServer()).get(LEVELS_URL).set(asAdmin)).resolves.toMatchObject({
+        body: { bronzeBenefit: 'Café de bienvenida', silverBenefit: 'Postre gratis', goldBenefit: null },
+      });
+    });
+
+    it('NIV-BEN: sin los campos de beneficio se conservan; null o vacío los borra', async () => {
+      await request(app.getHttpServer())
+        .put(LEVELS_URL)
+        .set(asAdmin)
+        .send({ silverMinPoints: 300, goldMinPoints: 800, silverBenefit: 'Postre gratis', goldBenefit: 'Mesa reservada' })
+        .expect(200);
+
+      const kept = await request(app.getHttpServer())
+        .put(LEVELS_URL)
+        .set(asAdmin)
+        .send({ silverMinPoints: 400, goldMinPoints: 900 });
+      expect(kept.body).toMatchObject({ silverBenefit: 'Postre gratis', goldBenefit: 'Mesa reservada' });
+
+      const cleared = await request(app.getHttpServer())
+        .put(LEVELS_URL)
+        .set(asAdmin)
+        .send({ silverMinPoints: 400, goldMinPoints: 900, silverBenefit: null, goldBenefit: '' });
+      expect(cleared.body).toMatchObject({ silverBenefit: null, goldBenefit: null });
+    });
+
+    it('NIV-BEN: 255 caracteres entran; 256 → 400 con el mensaje del contrato y sin versión nueva', async () => {
+      await request(app.getHttpServer())
+        .put(LEVELS_URL)
+        .set(asAdmin)
+        .send({ silverMinPoints: 300, goldMinPoints: 800, goldBenefit: 'a'.repeat(255) })
+        .expect(200);
+      const versionsBefore = await prisma.loyaltyProgramConfiguration.count();
+
+      const response = await request(app.getHttpServer())
+        .put(LEVELS_URL)
+        .set(asAdmin)
+        .send({ silverMinPoints: 300, goldMinPoints: 800, silverBenefit: 'a'.repeat(256) });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toEqual(['El beneficio no puede superar los 255 caracteres.']);
+      await expect(prisma.loyaltyProgramConfiguration.count()).resolves.toBe(versionsBefore);
+    });
+
+    it('NIV-BEN: GET /customers/:id/puntos trae benefit y nextBenefit del nivel (CA-NB.3)', async () => {
+      const customer = await prisma.customer.create({
+        data: { firstName: 'Carolina', lastName: 'Fernández', documentType: 'DNI', documentNumber: '38456002', email: 'carolina.ben@example.com' },
+      });
+      await prisma.customerPoints.create({ data: { customerId: customer.id, balance: 350, lifetimePoints: 350 } });
+      await request(app.getHttpServer())
+        .put(LEVELS_URL)
+        .set(asAdmin)
+        .send({ silverMinPoints: 300, goldMinPoints: 800, silverBenefit: 'Postre gratis', goldBenefit: 'Mesa reservada' })
+        .expect(200);
+
+      const response = await request(app.getHttpServer()).get(`/api/customers/${customer.id}/puntos`).set(asAdmin);
+
+      expect(response.status).toBe(200);
+      expect(response.body.level).toMatchObject({
+        current: 'SILVER',
+        next: 'GOLD',
+        benefit: 'Postre gratis',
+        nextBenefit: 'Mesa reservada',
+      });
     });
 
     it('si la auditoría falla, no queda la versión nueva (misma transacción)', async () => {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PointsLot } from '../domain/points-lot.js';
-import { calculateLevel, Level, LevelSummary } from '../domain/level.js';
+import { calculateLevel, Level, LevelWithBenefits, withBenefits } from '../domain/level.js';
 import { toArgentinaDateString } from '../../shared/time/argentina-date.js';
 import { InsufficientBalanceError } from '../domain/errors/insufficient-balance.error.js';
 import {
@@ -118,7 +118,7 @@ export type PointsSummary = {
   balance: number;
   negativeBalance: boolean;
   lifetimePoints: number;
-  level: LevelSummary;
+  level: LevelWithBenefits;
   nextExpirations: { points: number; expiresAt: string }[];
 };
 
@@ -572,7 +572,10 @@ export class PointsService {
 
     const balance = row?.balance ?? 0;
     const lifetimePoints = row?.lifetimePoints ?? 0;
-    const level = calculateLevel(lifetimePoints, config.silverMinPoints, config.goldMinPoints);
+    const level = withBenefits(
+      calculateLevel(lifetimePoints, config.silverMinPoints, config.goldMinPoints),
+      config,
+    );
 
     const lots = await this.pointsRepository.findActiveLotsByCustomerId(customerId);
     const nextExpirations = lots

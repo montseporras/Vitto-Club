@@ -723,6 +723,10 @@ export type LoyaltyConfigSnapshot = {
   // US-27: umbrales de nivel
   silverMinPoints: number;
   goldMinPoints: number;
+  // NIV-BEN (S5 §3.10): beneficio informativo de cada nivel
+  bronzeBenefit: string | null;
+  silverBenefit: string | null;
+  goldBenefit: string | null;
 };
 
 const bonusTypeLabel = (type: string | null): string =>
@@ -747,8 +751,20 @@ export function firstConsumptionBonusChanged(before: LoyaltyConfigSnapshot, afte
   return before.bonusType !== after.bonusType || before.bonusValue !== after.bonusValue;
 }
 
-export function levelsChanged(before: LoyaltyConfigSnapshot, after: LoyaltyConfigSnapshot): boolean {
+export function levelThresholdsChanged(before: LoyaltyConfigSnapshot, after: LoyaltyConfigSnapshot): boolean {
   return before.silverMinPoints !== after.silverMinPoints || before.goldMinPoints !== after.goldMinPoints;
+}
+
+export function levelBenefitsChanged(before: LoyaltyConfigSnapshot, after: LoyaltyConfigSnapshot): boolean {
+  return (
+    before.bronzeBenefit !== after.bronzeBenefit ||
+    before.silverBenefit !== after.silverBenefit ||
+    before.goldBenefit !== after.goldBenefit
+  );
+}
+
+export function levelsChanged(before: LoyaltyConfigSnapshot, after: LoyaltyConfigSnapshot): boolean {
+  return levelThresholdsChanged(before, after) || levelBenefitsChanged(before, after);
 }
 
 export function pointsEquivalenceUpdatedEntry(
@@ -821,7 +837,9 @@ export function firstConsumptionBonusUpdatedEntry(
   };
 }
 
-// US-27 (§3.9.3): "Plata: {antes} → {después} pts · Oro: {antes} → {después} pts"
+// US-27 (§3.9.3): "Plata: {antes} → {después} pts · Oro: {antes} → {después} pts".
+// NIV-BEN (S5 §3.10): una fila "Beneficio {nivel}: {antes} → {después}" por beneficio que cambió
+// (vacío = "—"). Las filas de umbrales salen solo si cambió algún umbral.
 export function levelsUpdatedEntry(
   actor: AuditActor,
   before: LoyaltyConfigSnapshot,
@@ -831,17 +849,27 @@ export function levelsUpdatedEntry(
     label,
     value: `${change(formatNumber(from), formatNumber(to))} pts`,
   });
+  const benefitRow = (level: string, from: string | null, to: string | null): AuditDetail[] =>
+    from === to
+      ? []
+      : [{ label: `Beneficio ${level}`, value: change(from ?? NONE, to ?? NONE) }];
+  const details: AuditDetail[] = [
+    ...(levelThresholdsChanged(before, after)
+      ? [
+          levelRow('Plata', before.silverMinPoints, after.silverMinPoints),
+          levelRow('Oro', before.goldMinPoints, after.goldMinPoints),
+        ]
+      : []),
+    ...benefitRow('Bronce', before.bronzeBenefit, after.bronzeBenefit),
+    ...benefitRow('Plata', before.silverBenefit, after.silverBenefit),
+    ...benefitRow('Oro', before.goldBenefit, after.goldBenefit),
+  ];
   return {
     actor,
     module: 'CONFIGURATION',
     action: 'LEVELS_UPDATED',
     description: 'Modificó niveles',
-    details: levelsChanged(before, after)
-      ? [
-          levelRow('Plata', before.silverMinPoints, after.silverMinPoints),
-          levelRow('Oro', before.goldMinPoints, after.goldMinPoints),
-        ]
-      : [{ label: 'Cambios', value: NO_CHANGES }],
+    details: details.length > 0 ? details : [{ label: 'Cambios', value: NO_CHANGES }],
   };
 }
 
