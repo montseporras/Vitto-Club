@@ -845,6 +845,25 @@ export function levelsUpdatedEntry(
   };
 }
 
+// US-51 (S5 §3.14.2): "Mínimo de consumos: {antes} → {después}". Si no cambió, la fila fija de
+// "sin cambios" (S3 §3.9.3).
+export function frequentCustomersUpdatedEntry(
+  actor: AuditActor,
+  before: number,
+  after: number,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'CONFIGURATION',
+    action: 'FREQUENT_CUSTOMERS_UPDATED',
+    description: 'Modificó el mínimo de cliente frecuente',
+    details:
+      before !== after
+        ? [{ label: 'Mínimo de consumos', value: change(formatNumber(before), formatNumber(after)) }]
+        : [{ label: 'Cambios', value: NO_CHANGES }],
+  };
+}
+
 // Guardado completo (PUT /loyalty/configuration): una entrada por cada sección que cambió. Si no
 // cambió ninguna igual se registra una, con la fila "Cambios: Se guardó sin modificar valores"
 // (contrato §3.9.3). Para ese caso el contrato no dice qué código usar: se usa el de la equivalencia.

@@ -14,6 +14,7 @@ import {
   LoyaltyProgramConfigurationInput,
 } from '../domain/loyalty-program-configuration.js';
 import { assertLevelThresholds, LevelThresholds } from '../domain/levels.js';
+import { assertFrequentMinConsumptions } from '../domain/frequent-customers.js';
 
 @Injectable()
 export class LoyaltyService {
@@ -70,6 +71,14 @@ export class LoyaltyService {
   ): Promise<LoyaltyProgramConfiguration> {
     assertLevelThresholds(thresholds);
     return await this.loyaltyRepository.saveLevels(thresholds);
+  }
+
+  // US-51 (§3.9.6): versión nueva con el mínimo de cliente frecuente, copiando el resto
+  async setFrequentMinConsumptions(
+    minConsumptions: number,
+  ): Promise<LoyaltyProgramConfiguration> {
+    assertFrequentMinConsumptions(minConsumptions);
+    return await this.loyaltyRepository.saveFrequentMinConsumptions(minConsumptions);
   }
 
   async getActiveConfiguration(): Promise<LoyaltyProgramConfiguration> {

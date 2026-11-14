@@ -11,6 +11,8 @@ import { FirstConsumptionBonusValueValidator } from './http/validators/first-con
 import { LoyaltyProgramConfigurationController } from './http/loyalty-program-configuration.controller.js';
 import { LevelsController } from './http/levels.controller.js';
 import { LevelThresholdValidator } from './http/validators/level-threshold.validator.js';
+import { FrequentCustomersController } from './http/frequent-customers.controller.js';
+import { FrequentMinConsumptionsValidator } from './http/validators/frequent-min-consumptions.validator.js';
 
 @Module({
   imports: [AuditModule],
@@ -20,12 +22,14 @@ import { LevelThresholdValidator } from './http/validators/level-threshold.valid
     FirstConsumptionBonusController,
     LoyaltyProgramConfigurationController,
     LevelsController,
+    FrequentCustomersController,
   ],
   providers: [
     LoyaltyService,
     AdminRoleGuard,
     FirstConsumptionBonusValueValidator,
     LevelThresholdValidator,
+    FrequentMinConsumptionsValidator,
     {
       provide: LoyaltyConfigurationRepository,
       useClass: LoyaltyPrismaRepository,

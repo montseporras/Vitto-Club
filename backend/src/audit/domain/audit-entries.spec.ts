@@ -3,6 +3,7 @@ import {
   consumptionRegisteredEntry,
   consumptionVoidedEntry,
   levelsUpdatedEntry,
+  frequentCustomersUpdatedEntry,
   customerCreatedEntry,
   customerDeactivatedEntry,
   customerUpdatedEntry,
@@ -665,5 +666,25 @@ describe('rewardDisabledEntry() y rewardEnabledEntry() (US-37, §3.14.2)', () =>
       details: [{ label: 'Motivo', value: text }],
     });
     expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+});
+
+describe('frequentCustomersUpdatedEntry() — US-51 (S5 §3.14.2)', () => {
+  it('"Mínimo de consumos: {antes} → {después}", módulo Configuración, sin cliente afectado', () => {
+    const entry = frequentCustomersUpdatedEntry(actor, 3, 5);
+
+    expect(entry).toMatchObject({
+      module: 'CONFIGURATION',
+      action: 'FREQUENT_CUSTOMERS_UPDATED',
+      description: 'Modificó el mínimo de cliente frecuente',
+      details: [{ label: 'Mínimo de consumos', value: '3 → 5' }],
+    });
+    expect(entry.affectedCustomer).toBeUndefined();
+  });
+
+  it('sin cambios: la fila fija "Se guardó sin modificar valores"', () => {
+    expect(frequentCustomersUpdatedEntry(actor, 3, 3).details).toEqual([
+      { label: 'Cambios', value: 'Se guardó sin modificar valores' },
+    ]);
   });
 });

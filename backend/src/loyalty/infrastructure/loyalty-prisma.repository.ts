@@ -35,6 +35,7 @@ function toDomain(record: PrismaConfig): LoyaltyProgramConfiguration {
     bonusValue: record.bonusValue?.toNumber() ?? null,
     silverMinPoints: record.silverMinPoints,
     goldMinPoints: record.goldMinPoints,
+    frequentMinConsumptions: record.frequentMinConsumptions,
     isActive: record.isActive,
     validFrom: record.validFrom,
     validTo: record.validTo,
@@ -122,6 +123,15 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
     return await this.updatePartialConfig({
       silverMinPoints: thresholds.silverMinPoints,
       goldMinPoints: thresholds.goldMinPoints,
+    });
+  }
+
+  // US-51 (§3.9.6): versión nueva con el mínimo de cliente frecuente, copiando el resto
+  async saveFrequentMinConsumptions(
+    minConsumptions: number,
+  ): Promise<LoyaltyProgramConfiguration> {
+    return await this.updatePartialConfig({
+      frequentMinConsumptions: minConsumptions,
     });
   }
 
@@ -232,6 +242,7 @@ export class LoyaltyPrismaRepository implements LoyaltyConfigurationRepository {
         bonusValue: data.bonusValue,
         silverMinPoints: data.silverMinPoints,
         goldMinPoints: data.goldMinPoints,
+        frequentMinConsumptions: data.frequentMinConsumptions,
         isActive: true,
         validFrom: now,
         validTo: null,

@@ -9,7 +9,7 @@ import { CredentialsVerifier, VerifiedAccount } from '../src/auth/domain/port/cr
 
 type Actor = 'admin' | 'cashier' | 'customer';
 // allowed pisa al del grupo cuando un endpoint tiene menos roles que el resto (ej. D-02)
-type Endpoint = { method: 'get' | 'post' | 'patch' | 'delete'; path: string; allowed?: Actor[] };
+type Endpoint = { method: 'get' | 'post' | 'put' | 'patch' | 'delete'; path: string; allowed?: Actor[] };
 type Outcome = 'unauthenticated' | 'forbidden' | 'allowed';
 
 const ACTORS: Actor[] = ['admin', 'cashier', 'customer'];
@@ -43,11 +43,28 @@ const ACCOUNT_ENDPOINTS: Endpoint[] = [
   { method: 'patch', path: '/api/usuarios/999999/reactivate' },
 ];
 
+// US-51 a US-55 (contrato S5 §4): las estadísticas y el mínimo de cliente frecuente son solo del Administrador.
+// Sin el mes responden 400, y eso alcanza para saber que el pedido llegó al controller.
+const STATISTICS_ENDPOINTS: Endpoint[] = [
+  { method: 'get', path: '/api/estadisticas/clientes' },
+  { method: 'get', path: '/api/estadisticas/consumos' },
+  { method: 'get', path: '/api/estadisticas/puntos' },
+  { method: 'get', path: '/api/estadisticas/programa' },
+  { method: 'get', path: '/api/estadisticas/reporte.pdf' },
+];
+
+const FREQUENT_CUSTOMERS_ENDPOINTS: Endpoint[] = [
+  { method: 'get', path: '/api/loyalty/configuration/frequent-customers' },
+  { method: 'put', path: '/api/loyalty/configuration/frequent-customers' },
+];
+
 // La matriz de permisos: quién puede usar cada grupo de endpoints
 const GROUPS: { name: string; endpoints: Endpoint[]; allowed: Actor[] }[] = [
   { name: 'customers', endpoints: CUSTOMER_ENDPOINTS, allowed: ['admin', 'cashier'] },
   { name: 'empleados', endpoints: EMPLOYEE_ENDPOINTS, allowed: ['admin'] },
   { name: 'usuarios', endpoints: ACCOUNT_ENDPOINTS, allowed: ['admin'] },
+  { name: 'estadisticas', endpoints: STATISTICS_ENDPOINTS, allowed: ['admin'] },
+  { name: 'loyalty/configuration/frequent-customers', endpoints: FREQUENT_CUSTOMERS_ENDPOINTS, allowed: ['admin'] },
 ];
 
 // Reemplaza al verificador provisorio: acá sí hay cuentas con las que entrar

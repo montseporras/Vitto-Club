@@ -45,6 +45,7 @@ describe('LoyaltyProgramConfiguration.createNextVersion() con niveles — CA-27.
     bonusValue: null,
     silverMinPoints: 400,
     goldMinPoints: 900,
+    frequentMinConsumptions: 3,
     isActive: true,
     validFrom: new Date(),
     validTo: null,
@@ -74,6 +75,47 @@ describe('LoyaltyProgramConfiguration.createNextVersion() con niveles — CA-27.
       version: 1,
       silverMinPoints: 300,
       goldMinPoints: 800,
+      frequentMinConsumptions: 3,
     });
+  });
+});
+
+describe('LoyaltyProgramConfiguration.createNextVersion() con cliente frecuente — S5-22', () => {
+  const current = LoyaltyProgramConfiguration.define({
+    version: 2,
+    baseAmount: 1000,
+    pointsAwarded: 10,
+    pointsExpirationMonths: 12,
+    bonusType: null,
+    bonusValue: null,
+    silverMinPoints: 300,
+    goldMinPoints: 800,
+    frequentMinConsumptions: 5,
+    isActive: true,
+    validFrom: new Date(),
+    validTo: null,
+    createdAt: new Date(),
+  });
+
+  it('copia el mínimo vigente al cambiar cualquier otra cosa (no vuelve a 3)', () => {
+    const next = LoyaltyProgramConfiguration.createNextVersion(current, { silverMinPoints: 400 });
+
+    expect(next.frequentMinConsumptions).toBe(5);
+  });
+
+  it('usa el mínimo que viene', () => {
+    const next = LoyaltyProgramConfiguration.createNextVersion(current, { frequentMinConsumptions: 7 });
+
+    expect(next).toMatchObject({ frequentMinConsumptions: 7, silverMinPoints: 300 });
+  });
+
+  it('sin versión anterior usa 3', () => {
+    expect(LoyaltyProgramConfiguration.createNextVersion(null, {}).frequentMinConsumptions).toBe(3);
+  });
+
+  it('un mínimo fuera de 1–100 es un error', () => {
+    expect(() => LoyaltyProgramConfiguration.createNextVersion(current, { frequentMinConsumptions: 101 })).toThrow(
+      'Ingresá un número entero de 1 a 100.',
+    );
   });
 });

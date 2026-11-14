@@ -25,6 +25,10 @@ export abstract class LoyaltyConfigurationRepository {
   abstract saveLevels(
     thresholds: LevelThresholds,
   ): Promise<LoyaltyProgramConfiguration>;
+  // US-51: versión nueva con el mínimo de cliente frecuente, copiando el resto
+  abstract saveFrequentMinConsumptions(
+    minConsumptions: number,
+  ): Promise<LoyaltyProgramConfiguration>;
   abstract getActiveConfig(): Promise<LoyaltyProgramConfiguration>;
   abstract saveNewConfigVersion(
     configuration: LoyaltyProgramConfigurationData,

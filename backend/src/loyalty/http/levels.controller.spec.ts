@@ -17,6 +17,7 @@ const config = (version: number, silverMinPoints: number, goldMinPoints: number)
     bonusValue: null,
     silverMinPoints,
     goldMinPoints,
+    frequentMinConsumptions: 3,
     isActive: true,
     validFrom: createdAt,
     validTo: null,

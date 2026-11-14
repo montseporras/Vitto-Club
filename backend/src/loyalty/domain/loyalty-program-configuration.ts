@@ -10,6 +10,10 @@ import {
   DEFAULT_GOLD_MIN_POINTS,
   DEFAULT_SILVER_MIN_POINTS,
 } from './levels.js';
+import {
+  assertFrequentMinConsumptions,
+  DEFAULT_FREQUENT_MIN_CONSUMPTIONS,
+} from './frequent-customers.js';
 
 export type LoyaltyProgramConfigurationData = {
   version: number;
@@ -20,6 +24,8 @@ export type LoyaltyProgramConfigurationData = {
   bonusValue: number | null;
   silverMinPoints: number;
   goldMinPoints: number;
+  // S5-22: mínimo de consumos de un cliente frecuente
+  frequentMinConsumptions: number;
   isActive: boolean;
   validFrom: Date;
   validTo: Date | null;
@@ -35,6 +41,8 @@ export type LoyaltyProgramConfigurationInput = {
   // US-27: en el guardado completo son opcionales; si faltan se copian de la versión vigente
   silverMinPoints?: number;
   goldMinPoints?: number;
+  // S5-22: si falta se copia de la versión vigente
+  frequentMinConsumptions?: number;
 };
 
 export class LoyaltyProgramConfiguration {
@@ -85,6 +93,8 @@ export class LoyaltyProgramConfiguration {
       goldMinPoints: data.goldMinPoints,
     });
 
+    assertFrequentMinConsumptions(data.frequentMinConsumptions);
+
     return new LoyaltyProgramConfiguration(data);
   }
 
@@ -111,6 +121,13 @@ export class LoyaltyProgramConfiguration {
     // Oro > Plata también cuando llega uno solo y el otro se copia de la versión vigente
     assertLevelThresholds({ silverMinPoints, goldMinPoints });
 
+    // S5-22: cada versión nueva copia el mínimo de cliente frecuente vigente si no viene
+    const frequentMinConsumptions =
+      input.frequentMinConsumptions ??
+      current?.getFrequentMinConsumptions() ??
+      DEFAULT_FREQUENT_MIN_CONSUMPTIONS;
+    assertFrequentMinConsumptions(frequentMinConsumptions);
+
     return {
       version: (current?.getVersion() ?? 0) + 1,
       baseAmount,
@@ -120,6 +137,7 @@ export class LoyaltyProgramConfiguration {
       bonusValue,
       silverMinPoints,
       goldMinPoints,
+      frequentMinConsumptions,
       isActive: true,
       validFrom: new Date(),
       validTo: null,
@@ -157,6 +175,10 @@ export class LoyaltyProgramConfiguration {
 
   getGoldMinPoints(): number {
     return this.data.goldMinPoints;
+  }
+
+  getFrequentMinConsumptions(): number {
+    return this.data.frequentMinConsumptions;
   }
 
   getIsActive(): boolean {

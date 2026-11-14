@@ -186,6 +186,7 @@ describe('LoyaltyService', () => {
       bonusValue: 15,
       silverMinPoints: 300,
       goldMinPoints: 800,
+      frequentMinConsumptions: 3,
       isActive: true,
       validFrom: new Date(),
       validTo: null,

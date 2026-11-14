@@ -14,6 +14,7 @@ describe('LoyaltyPrismaRepository', () => {
     bonusValue: null,
     silverMinPoints: 300,
     goldMinPoints: 800,
+    frequentMinConsumptions: 3,
     isActive: true,
     validFrom: timestamp,
     validTo: null,
