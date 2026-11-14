@@ -4,10 +4,6 @@ import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.
 import { Employee, EmployeeRole } from '../domain/employee.js';
 import { EmployeeListFilters, EmployeeRepository } from '../domain/port/employee.repository.js';
 
-// TODO: la columna `phone` es NOT NULL en el schema, pero el teléfono es opcional para el negocio.
-// Mientras no se migre a `String?`, "sin teléfono" se guarda como '' y se lee como null.
-const NO_PHONE = '';
-
 function toDomain(record: PrismaEmployeeRecord): Employee {
   return Employee.reconstruct({
     id: record.id,
@@ -15,7 +11,7 @@ function toDomain(record: PrismaEmployeeRecord): Employee {
     lastName: record.lastName,
     email: record.email,
     role: record.role as EmployeeRole,
-    phone: record.phone === NO_PHONE ? null : record.phone,
+    phone: record.phone,
     active: record.isActive,
     deactivatedAt: record.deactivatedAt,
     createdAt: record.createdAt,
@@ -63,7 +59,7 @@ export class EmployeePrismaRepository implements EmployeeRepository {
         lastName: employee.getLastName(),
         email: employee.getEmail(),
         role: employee.getRole(),
-        phone: employee.getPhone() ?? NO_PHONE,
+        phone: employee.getPhone(),
         isActive: employee.isActive(),
         deactivatedAt: employee.getDeactivatedAt(),
       },
@@ -100,7 +96,7 @@ export class EmployeePrismaRepository implements EmployeeRepository {
         firstName: employee.getFirstName(),
         lastName: employee.getLastName(),
         role: employee.getRole(),
-        phone: employee.getPhone() ?? NO_PHONE,
+        phone: employee.getPhone(),
       },
     });
   }

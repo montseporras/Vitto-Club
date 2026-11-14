@@ -230,10 +230,8 @@ describe('Autorregistro de clientes (e2e)', () => {
     });
 
     // Decisión del PO (2026-10-08): un cliente dado de baja puede volver a registrarse como un
-    // cliente nuevo. En customers ya funciona (DNI y email únicos solo entre activos), pero la
-    // cuenta vieja todavía ocupa el email en accounts (accounts.email es único entre TODAS las
-    // cuentas). Se habilita cuando llegue el cambio de accounts que está haciendo Maga.
-    it.skip('dado de baja, puede volver a registrarse con el mismo DNI y email (pendiente: accounts.email)', async () => {
+    // cliente nuevo (DNI y email únicos solo entre activos, en customers y en accounts).
+    it('dado de baja, puede volver a registrarse con el mismo DNI y email', async () => {
       const first = await register(LUCIA).expect(201);
       const admin = await tokenOf(ADMIN);
       await request(app.getHttpServer())

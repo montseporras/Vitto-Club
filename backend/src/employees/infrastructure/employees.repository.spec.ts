@@ -125,3 +125,50 @@ describe('EmployeePrismaRepository.findAll', () => {
     );
   });
 });
+
+// A4-06: "sin teléfono" se guarda como NULL, no como ''
+describe('EmployeePrismaRepository: teléfono opcional', () => {
+  const withoutPhone = () =>
+    Employee.reconstruct({
+      id: 7,
+      firstName: 'Bruno',
+      lastName: 'Pérez',
+      email: 'bruno.perez@vitto.club',
+      role: 'CASHIER',
+      phone: null,
+      active: true,
+    });
+
+  it('save escribe phone en NULL cuando no hay teléfono y lo lee como null', async () => {
+    const create = jest.fn().mockResolvedValue({
+      id: 7,
+      firstName: 'Bruno',
+      lastName: 'Pérez',
+      email: 'bruno.perez@vitto.club',
+      role: 'CASHIER',
+      phone: null,
+      isActive: true,
+      deactivatedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const repository = new EmployeePrismaRepository(fakeTransactionRunner({ employee: { create } }));
+
+    const saved = await repository.save(withoutPhone());
+
+    expect(create).toHaveBeenCalledWith({ data: expect.objectContaining({ phone: null }) });
+    expect(saved.getPhone()).toBeNull();
+  });
+
+  it('update escribe phone en NULL cuando no hay teléfono', async () => {
+    const update = jest.fn().mockResolvedValue({});
+    const repository = new EmployeePrismaRepository(fakeTransactionRunner({ employee: { update } }));
+
+    await repository.update(withoutPhone());
+
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 7 },
+      data: expect.objectContaining({ phone: null }),
+    });
+  });
+});
