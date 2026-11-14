@@ -1,10 +1,12 @@
 // Este archivo es la pantalla "Estadísticas y reportes" del Administrador (US-51, contrato S5 §3.9.7).
 // Pide los cuatro endpoints al cambiar el mes, porque cada pestaña muestra un total.
 // Las cuatro pestañas tienen contenido: Clientes (US-51), Consumos (US-52), Puntos (US-53) y
-// Programa (US-54). El botón "Exportar reporte PDF" lo agrega US-55.
-import { useState } from 'react';
+// Programa (US-54). El botón "Exportar reporte PDF" y su modal son de US-55.
+import { useCallback, useRef, useState } from 'react';
 import { StatusText } from '@/shared/components/feedback/StatusText';
 import { Alert } from '@/shared/components/ui/Alert';
+import { Button } from '@/shared/components/ui/Button';
+import { Icon } from '@/shared/components/ui/Icon';
 import { AdminPanel } from '@/shared/components/ui/AdminPanel';
 import { formatInteger } from '@/shared/lib/numbers';
 import {
@@ -15,6 +17,7 @@ import {
 } from '../api/statistics.queries';
 import { ClientsTab } from '../components/ClientsTab';
 import { ConsumptionsTab } from '../components/ConsumptionsTab';
+import { ExportReportModal } from '../components/ExportReportModal';
 import { PeriodSelectors } from '../components/PeriodSelectors';
 import { PointsTab } from '../components/PointsTab';
 import { ProgramTab } from '../components/ProgramTab';
@@ -23,7 +26,7 @@ import {
   type StatisticsTabId,
   type StatisticsTabItem,
 } from '../components/StatisticsTabs';
-import { TAB_ICONS } from '../lib/icons';
+import { STATISTICS_ICONS, TAB_ICONS } from '../lib/icons';
 import {
   clampToToday,
   currentArgentinaMonth,
@@ -40,6 +43,14 @@ export function StatisticsPage() {
   const [tab, setTab] = useState<StatisticsTabId>('clients');
   // Mes de la conversión de clientes nuevos; vuelve a su valor por defecto al cambiar de mes.
   const [conversionMonth, setConversionMonth] = useState<string | null>(null);
+
+  // Modal "Exportar reporte PDF" (US-55); al cerrarlo, el foco vuelve al botón que lo abrió
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportButton = useRef<HTMLButtonElement>(null);
+  const closeExport = useCallback(() => {
+    setExportOpen(false);
+    exportButton.current?.focus();
+  }, []);
 
   const month = toMonthParam(selected);
   const clients = useClientsStatistics(month);
@@ -113,7 +124,15 @@ export function StatisticsPage() {
         </span>
       }
       subtitle="Elegí el mes y el año para ver los números del programa."
-      actions={<PeriodSelectors selected={selected} today={today} onChange={changePeriod} />}
+      actions={
+        <div className="flex items-end gap-2.5">
+          <PeriodSelectors selected={selected} today={today} onChange={changePeriod} />
+          <Button ref={exportButton} type="button" className="h-9" onClick={() => setExportOpen(true)}>
+            <Icon d={STATISTICS_ICONS.download} className="size-[18px]" />
+            Exportar reporte PDF
+          </Button>
+        </div>
+      }
     >
       {isError ? (
         <Alert variant="error">
@@ -159,6 +178,7 @@ export function StatisticsPage() {
           </div>
         </div>
       )}
+      {exportOpen && <ExportReportModal month={month} onClose={closeExport} />}
     </AdminPanel>
   );
 }

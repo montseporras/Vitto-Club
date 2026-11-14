@@ -181,9 +181,62 @@ const route = (path: string, build: (month: string) => object) =>
     return HttpResponse.json(build(new URL(request.url).searchParams.get('month') as string));
   });
 
+// §3.9.5: secciones válidas del reporte, en el orden del PDF.
+const REPORT_SECTIONS = ['CUSTOMERS', 'CONSUMPTIONS', 'POINTS', 'PROGRAM'];
+
+// PDF mínimo y válido (una página con un texto), para probar la descarga sin el backend.
+function miniPdf(text: string): Uint8Array {
+  const stream = `BT /F1 12 Tf 10 50 Td (${text}) Tj ET`;
+  const body = [
+    '%PDF-1.4',
+    '1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj',
+    '2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj',
+    '3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 420 100]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj',
+    `4 0 obj<</Length ${stream.length}>>stream\n${stream}\nendstream endobj`,
+    '5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj',
+    'trailer<</Root 1 0 R/Size 6>>',
+    '%%EOF',
+  ].join('\n');
+  return new TextEncoder().encode(body);
+}
+
+// GET /estadisticas/reporte.pdf?month&sections: mismas reglas de acceso y de `month`, y las
+// secciones del contrato §3.9.5 (una o más, sin repetir; falta o vacía → 400).
+const reportRoute = http.get(`${BASE}/reporte.pdf`, ({ request }) => {
+  if (!isAdminRequest(request)) return respondError(403, 'Forbidden', 'Forbidden resource', request);
+  const invalid = checkMonth(request);
+  if (invalid) return invalid;
+
+  const url = new URL(request.url);
+  const month = url.searchParams.get('month') as string;
+  const raw = url.searchParams.get('sections');
+  if (!raw) return respondError(400, 'Bad Request', 'Elegí al menos una sección.', request);
+
+  const sections = raw.split(',');
+  const unique = new Set(sections);
+  if (unique.size !== sections.length || sections.some((s) => !REPORT_SECTIONS.includes(s))) {
+    return respondError(
+      400,
+      'Bad Request',
+      `sections must be one or more of: ${REPORT_SECTIONS.join(', ')}`,
+      request,
+    );
+  }
+
+  const lastDay = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
+  const filename = `vitto-club-reporte-${month}-01-${month}-${pad(lastDay)}.pdf`;
+  return new HttpResponse(miniPdf(`Reporte Vitto Club ${month}: ${sections.join(', ')}`), {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    },
+  });
+});
+
 export const statisticsHandlers = [
   route('clientes', clients),
   route('consumos', consumptions),
   route('puntos', points),
   route('programa', program),
+  reportRoute,
 ];

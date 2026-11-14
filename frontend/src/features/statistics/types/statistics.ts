@@ -57,3 +57,6 @@ export interface ProgramStatistics {
   topRewards: { id: number; name: string; used: number }[];
   redemptionsUsed: number;
 }
+
+// §3.9.5 GET /estadisticas/reporte.pdf (US-55): secciones del reporte, tal como las pide la API
+export type ReportSection = 'CUSTOMERS' | 'CONSUMPTIONS' | 'POINTS' | 'PROGRAM';

@@ -1,9 +1,10 @@
 // Este archivo ofrece los hooks que leen las estadísticas de un mes.
 // La pantalla pide los cuatro endpoints al cambiar el mes (contrato S5 §3.9.7), porque cada
 // pestaña muestra un total.
-import { useQuery } from '@tanstack/react-query';
-import type { MonthParam } from '../types/statistics';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import type { MonthParam, ReportSection } from '../types/statistics';
 import {
+  downloadStatisticsReport,
   getClientsStatistics,
   getConsumptionsStatistics,
   getPointsStatistics,
@@ -33,4 +34,11 @@ export const useProgramStatistics = (month: MonthParam) =>
   useQuery({
     queryKey: statisticsKeys.program(month),
     queryFn: () => getProgramStatistics(month),
+  });
+
+// Baja el reporte PDF (US-55). No guarda nada en caché: es una descarga.
+export const useDownloadStatisticsReport = () =>
+  useMutation({
+    mutationFn: ({ month, sections }: { month: MonthParam; sections: ReportSection[] }) =>
+      downloadStatisticsReport(month, sections),
   });

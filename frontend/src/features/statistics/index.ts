@@ -8,5 +8,6 @@ export type {
   PointsStatistics,
   PointsTotals,
   ProgramStatistics,
+  ReportSection,
   StatisticsLevel,
 } from './types/statistics'
