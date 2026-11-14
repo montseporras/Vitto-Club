@@ -16,6 +16,7 @@ Actualizado el 09/11/2026 con el código de `develop`. Ante una diferencia, mand
 | Vigencia de puntos | `pointsExpirationMonths` | Entero de 1 a 120. Omitido, `null` o vacío → **12 meses (RF-010)**. Se mide desde que los puntos se acreditan |
 | Bonificación de primer consumo | `bonusType`, `bonusValue` | `PERCENTAGE`: 1 a 100, hasta 2 decimales. `FIXED_AMOUNT`: entero de 1 a 10.000 puntos |
 | Niveles (US-27) | `silverMinPoints`, `goldMinPoints` | Bronce desde 0 (fijo). Plata > 0 y Oro > Plata. Por defecto 300 y 800 |
+| Beneficios de los niveles (NIV-BEN, S5-2) | `bronzeBenefit`, `silverBenefit`, `goldBenefit` | Texto opcional de hasta 255 caracteres por nivel (se recortan los espacios de los bordes; vacío = `null`). **Informativo: no cambia los puntos** (S5-26) |
 
 Los límites 1.000.000 / 10.000 / 120 son las correcciones del Sprint 3 (`VERIFICACION_SPRINTS_1_2.md` §11).
 
@@ -65,6 +66,9 @@ configuración no guarda `updatedBy`: el actor queda en la auditoría.
 - **Nivel:** se calcula con `lifetimePoints` (consumos con bonificación − anulaciones) y los umbrales
   vigentes. No se guarda por cliente. Los ajustes, vencimientos y canjes **no** lo bajan.
   `progressPercent` se redondea y `nextMinPoints` es `null` en Oro (S3-03, S3-04).
+- **Beneficio del nivel (NIV-BEN):** `level` de `…/puntos` suma `benefit` (el del nivel actual) y `nextBenefit`
+  (el del siguiente; `null` en Oro). Salen de la versión vigente de la configuración y no intervienen en
+  ningún cálculo de puntos.
 
 **Ajuste de puntos (US-24, solo Administrador):** sumar o restar con motivo. "Restar" **nunca** deja el saldo negativo: `409 INSUFFICIENT_BALANCE`
 (decisión #1). No cambia el nivel.

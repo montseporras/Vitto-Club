@@ -89,7 +89,7 @@ Proyecto v1.7** y la **Definición del Producto v1.4** (los tres fuera del repo)
 
 | RF / US | Qué piden los documentos | Qué hay | Comentario |
 |---|---|---|---|
-| RF-029 / US-27 | "Consultar los niveles… su puntaje mínimo **y sus beneficios asociados**". El caso CP-US27-02 de la Definición del Producto carga "Beneficios: Postre gratis" | No hay beneficios en la base ni en la pantalla | Pasa al Sprint 5 (decisión de Deni, 09/11). El contrato S3 §3.7 los había dejado "pendientes de definir" |
+| RF-029 / US-27 | "Consultar los niveles… su puntaje mínimo **y sus beneficios asociados**". El caso CP-US27-02 de la Definición del Producto carga "Beneficios: Postre gratis" | No hay beneficios en la base ni en la pantalla | Pasa al Sprint 5 (decisión de Deni, 09/11). El contrato S3 §3.7 los había dejado "pendientes de definir". **Backend hecho el 14/11 (NIV-BEN); falta el frontend** |
 | RF-08 / US-08 | "Visualizar la cuenta de acceso de un usuario, **cualquiera sea su rol**" | `/usuarios` muestra solo cuentas de empleados | Pasa al Sprint 5 (decisión de Deni, 09/11: el Administrador tiene que ver también las cuentas de los clientes) |
 | RF-017 / US-19 | Consultar "misiones vigentes con su progreso" | No existe (misiones son del Sprint 5) | Se completa con US-33 |
 | RF-038 / US-34 | Recompensa con imagen | Sin foto (S4-17) | El Story Map la pasa al Sprint 5 ("US-34 — Imagen de la recompensa") |
@@ -146,7 +146,7 @@ Decidido por Deni el 09/11/2026: todo lo que debía estar y no está hecho pasa 
 | # | Qué | Origen | Por qué no figura en el Story Map |
 |---|---|---|---|
 | 1 | **Foto de perfil del Cliente** | Decisión #9 del contrato S3 (la ponía en el Sprint 4) y PD-2 del contrato S4 (la pasa al Sprint 5) | No hay ningún RF ni US que la pida: RF-065 / US-59 no mencionan la foto. Hay que sumarla a RF-065 y a US-59 (o crear un RF y una US nuevos) |
-| 2 | **Beneficios de los niveles** (mostrarlos y guardarlos) | RF-029 del Plan de Proyecto; CP-US27-02 de la Definición del Producto ("Beneficios: Postre gratis") | Es parte de US-27 (Sprint 3), que figura como terminada. El contrato S3 §3.7 los dejó "pendientes de definir". Decidido (S5-26): un texto informativo por nivel, que no cambia los puntos (NIV-BEN) |
+| 2 | **Beneficios de los niveles** (mostrarlos y guardarlos) | RF-029 del Plan de Proyecto; CP-US27-02 de la Definición del Producto ("Beneficios: Postre gratis") | Es parte de US-27 (Sprint 3), que figura como terminada. El contrato S3 §3.7 los dejó "pendientes de definir". Decidido (S5-26): un texto informativo por nivel, que no cambia los puntos (NIV-BEN). **Backend hecho el 14/11; falta el frontend** |
 | 3 | **El Administrador ve también las cuentas de los clientes** | RF-08 ("cualquiera sea su rol") / US-08 | Es parte de US-08 (Sprint 2), que figura como terminada. Hoy `GET /usuarios` solo devuelve cuentas de empleados (`findAllEmployeeAccounts`) y la pantalla de Clientes no muestra el estado de la cuenta |
 | 4 | Bloquear la recompensa al confirmar un canje | Anotado por US-35 (ítem 7 de las verificaciones pendientes) | Arrastre de US-40 |
 | 5 | Test: usar un canje rechazado por la desactivación | Ítem 4 de las verificaciones pendientes | Arrastre de US-42 |
