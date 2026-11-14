@@ -15,6 +15,7 @@ import {
 } from './redemptions.handlers'
 import { rewardsHandlers } from './rewards.handlers'
 import { pointsMovementsHandlers } from './points-movements.handlers'
+import { statisticsHandlers } from './statistics.handlers'
 
 export const handlers = [
   ...authHandlers,
@@ -36,4 +37,6 @@ export const handlers = [
   ...cashierHandlers,
   ...employeesHandlers,
   ...pointsHandlers,
+  // US-51 a US-54: estadísticas del Administrador
+  ...statisticsHandlers,
 ]

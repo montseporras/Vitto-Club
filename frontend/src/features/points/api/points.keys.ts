@@ -7,4 +7,5 @@ export const pointsKeys = {
   equivalence: () => [...pointsKeys.all, 'equivalence'] as const,
   expiration: () => [...pointsKeys.all, 'expiration'] as const,
   loyaltyLevels: () => [...pointsKeys.all, 'loyalty-levels'] as const,
+  frequentCustomers: () => [...pointsKeys.all, 'frequent-customers'] as const,
 };

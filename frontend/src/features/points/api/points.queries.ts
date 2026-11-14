@@ -5,7 +5,10 @@ import type { FirstConsumptionBonusFormValues } from '../schemas/first-consumpti
 import type { PointsEquivalenceFormValues } from '../schemas/points-equivalence.schema';
 import type { PointsExpirationFormValues } from '../schemas/points-expiration.schema';
 import type { LoyaltyLevelsFormValues } from '../schemas/loyalty-levels.schema';
+import type { FrequentCustomersFormValues } from '../schemas/frequent-customers.schema';
 import {
+  getFrequentCustomers,
+  updateFrequentCustomers,
   formToUpdateFirstConsumptionBonusDto,
   formToUpdatePointsEquivalenceDto,
   formToUpdatePointsExpirationDto,
@@ -83,6 +86,27 @@ export const useUpdateLoyaltyLevels = () => {
       }),
     onSuccess: (saved) => {
       qc.setQueryData(pointsKeys.loyaltyLevels(), saved);
+    },
+  });
+};
+
+// Mínimo de consumos de un cliente frecuente (US-51).
+export const useFrequentCustomers = () =>
+  useQuery({
+    queryKey: pointsKeys.frequentCustomers(),
+    queryFn: getFrequentCustomers,
+  });
+
+// Guarda el mínimo. Como cambia qué clientes son frecuentes, las estadísticas guardadas
+// en caché quedan viejas: se invalidan.
+export const useUpdateFrequentCustomers = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (form: FrequentCustomersFormValues) =>
+      updateFrequentCustomers({ minConsumptions: form.minConsumptions }),
+    onSuccess: (saved) => {
+      qc.setQueryData(pointsKeys.frequentCustomers(), saved);
+      void qc.invalidateQueries({ queryKey: ['statistics'] });
     },
   });
 };

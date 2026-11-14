@@ -22,9 +22,8 @@ import { Modal } from '@/shared/components/ui/Modal';
 import { useModalEscape } from '@/shared/hooks/useModalEscape';
 import { appHeaderStyles } from '@/styles/ui';
 
-// Menú lateral del Administrador, en el orden del prototipo v2. Recompensas, Misiones y
-// Estadísticas son de otros sprints: deshabilitadas con "Próx.", como en el prototipo. El resto
-// de las opciones que todavía no están construidas abre una pantalla "Próximamente".
+// Menú lateral del Administrador, en el orden del prototipo v2. Misiones todavía no está
+// construida (US-28): deshabilitada con "Próx.", como en el prototipo.
 const SOON = 'Próx.';
 const NAV: SideNavItem[] = [
   { id: 'rewards', to: PATHS.admin.rewards, label: 'Recompensas', icon: ICONS.gift },
@@ -33,8 +32,7 @@ const NAV: SideNavItem[] = [
   { id: 'customers', to: PATHS.admin.customers, label: 'Clientes', icon: ICONS.users },
   {
     id: 'statistics',
-    disabled: true,
-    tag: SOON,
+    to: PATHS.admin.statistics,
     label: 'Estadísticas y reportes',
     icon: ICONS.chart,
   },
