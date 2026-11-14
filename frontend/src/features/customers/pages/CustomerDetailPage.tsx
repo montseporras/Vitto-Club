@@ -176,6 +176,13 @@ export function CustomerDetailPage() {
                   ? `Le faltan ${formatInteger(summary.level.pointsToNext)} pts para ${LEVELS[summary.level.next]}`
                   : 'Nivel máximo alcanzado'}
               </p>
+              {/* NIV-BEN (CA-NB.5): el beneficio del nivel, solo si tiene texto */}
+              {summary.level.benefit && (
+                <p className="text-[13px] text-[#2b1a10]">
+                  <span className="font-medium">Beneficio:</span>{' '}
+                  {summary.level.benefit}
+                </p>
+              )}
             </div>
 
             <div className="mt-3.5 border-t border-[#f6d0b1] pt-3">

@@ -4,7 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FirstConsumptionBonusFormValues } from '../schemas/first-consumption-bonus.schema';
 import type { PointsEquivalenceFormValues } from '../schemas/points-equivalence.schema';
 import type { PointsExpirationFormValues } from '../schemas/points-expiration.schema';
-import type { LoyaltyLevelsFormValues } from '../schemas/loyalty-levels.schema';
+import {
+  benefitToDto,
+  type LoyaltyLevelsFormValues,
+} from '../schemas/loyalty-levels.schema';
 import type { FrequentCustomersFormValues } from '../schemas/frequent-customers.schema';
 import {
   getFrequentCustomers,
@@ -83,9 +86,15 @@ export const useUpdateLoyaltyLevels = () => {
       updateLoyaltyLevels({
         silverMinPoints: form.silverMinPoints,
         goldMinPoints: form.goldMinPoints,
+        bronzeBenefit: benefitToDto(form.bronzeBenefit),
+        silverBenefit: benefitToDto(form.silverBenefit),
+        goldBenefit: benefitToDto(form.goldBenefit),
       }),
     onSuccess: (saved) => {
       qc.setQueryData(pointsKeys.loyaltyLevels(), saved);
+      // El beneficio también se ve en el Inicio del Cliente y en la ficha: quedan viejos
+      void qc.invalidateQueries({ queryKey: ['customers'] });
+      void qc.invalidateQueries({ queryKey: ['my-account'] });
     },
   });
 };

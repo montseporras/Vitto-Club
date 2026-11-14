@@ -46,6 +46,10 @@ export type MyPoints = {
     nextMinPoints: number | null
     pointsToNext: number
     progressPercent: number
+    /** Texto informativo del nivel actual (NIV-BEN, S5 §3.10); null si no tiene. */
+    benefit: string | null
+    /** Texto informativo del nivel siguiente; null si no tiene o ya está en Oro. */
+    nextBenefit: string | null
   }
   nextExpirations: { points: number; expiresAt: string }[]
 }

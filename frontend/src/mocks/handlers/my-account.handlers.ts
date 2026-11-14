@@ -6,6 +6,7 @@ import type { MyPoints, MyProfile } from '@/features/my-account'
 import { API_URL } from '@/shared/api/http'
 import { accounts, passwordOf, setPassword } from './auth.handlers'
 import { customers } from './cashier.handlers'
+import { withLevelBenefits } from './level-benefits.seed'
 
 const STATUS_NAMES: Record<number, string> = {
   400: 'Bad Request',
@@ -40,7 +41,7 @@ const points: Record<number, MyPoints> = {
     balance: 350,
     negativeBalance: false,
     lifetimePoints: 450,
-    level: { current: 'SILVER', next: 'GOLD', currentMinPoints: 300, nextMinPoints: 800, pointsToNext: 350, progressPercent: 30 },
+    level: { current: 'SILVER', next: 'GOLD', currentMinPoints: 300, nextMinPoints: 800, pointsToNext: 350, progressPercent: 30, benefit: null, nextBenefit: null },
     nextExpirations: [{ points: 200, expiresAt: '2026-11-30' }],
   },
   // Martín: una anulación lo dejó con deuda, para ver el aviso de saldo negativo
@@ -49,7 +50,7 @@ const points: Record<number, MyPoints> = {
     balance: -120,
     negativeBalance: true,
     lifetimePoints: 80,
-    level: { current: 'BRONZE', next: 'SILVER', currentMinPoints: 0, nextMinPoints: 300, pointsToNext: 220, progressPercent: 27 },
+    level: { current: 'BRONZE', next: 'SILVER', currentMinPoints: 0, nextMinPoints: 300, pointsToNext: 220, progressPercent: 27, benefit: null, nextBenefit: null },
     nextExpirations: [],
   },
 }
@@ -59,7 +60,7 @@ const emptyPoints = (customerId: number): MyPoints => ({
   balance: 0,
   negativeBalance: false,
   lifetimePoints: 0,
-  level: { current: 'BRONZE', next: 'SILVER', currentMinPoints: 0, nextMinPoints: 300, pointsToNext: 300, progressPercent: 0 },
+  level: { current: 'BRONZE', next: 'SILVER', currentMinPoints: 0, nextMinPoints: 300, pointsToNext: 300, progressPercent: 0, benefit: null, nextBenefit: null },
   nextExpirations: [],
 })
 
@@ -179,7 +180,9 @@ export const myAccountHandlers = [
     await delay(300)
     const caller = requireCustomer(request)
     if ('error' in caller) return caller.error
-    return HttpResponse.json(points[caller.customer.id] ?? emptyPoints(caller.customer.id))
+    const summary = points[caller.customer.id] ?? emptyPoints(caller.customer.id)
+    // El beneficio sale de la configuración vigente, no de los datos fijos del cliente
+    return HttpResponse.json({ ...summary, level: withLevelBenefits(summary.level) })
   }),
 
   // §3.10.4: solo lo que cambia; con un error no se guarda nada

@@ -3,6 +3,7 @@
 import { http, HttpResponse } from 'msw';
 import { API_URL } from '@/shared/api/http';
 import { DEFAULT_POINTS_EXPIRATION_MONTHS } from '@/domain/expiration';
+import { levelBenefits, setLevelBenefits } from './level-benefits.seed';
 import type {
   FirstConsumptionBonus,
   LoyaltyLevelsConfiguration,
@@ -41,7 +42,13 @@ let pointsExpiration: PointsExpiration = {
   updatedAt: now(),
 };
 
-let loyaltyLevels: LoyaltyLevelsConfiguration = {
+// Los beneficios viven aparte (level-benefits.seed) para que el Inicio del Cliente y la ficha vean lo guardado.
+type LoyaltyLevelsState = Omit<
+  LoyaltyLevelsConfiguration,
+  'bronzeBenefit' | 'silverBenefit' | 'goldBenefit'
+>;
+
+let loyaltyLevels: LoyaltyLevelsState = {
   levels: [
     { level: 'BRONZE', minPoints: 0, editable: false },
     { level: 'SILVER', minPoints: 300, editable: true },
@@ -52,6 +59,14 @@ let loyaltyLevels: LoyaltyLevelsConfiguration = {
 };
 
 const MAX_LEVEL_MIN_POINTS = 2_147_483_647;
+const MAX_BENEFIT_LENGTH = 255;
+const BENEFIT_FIELDS = ['bronzeBenefit', 'silverBenefit', 'goldBenefit'] as const;
+
+// Respuesta de GET y PUT …/levels: los umbrales de esta versión más los beneficios vigentes
+const levelsResponse = (): LoyaltyLevelsConfiguration => ({
+  ...loyaltyLevels,
+  ...levelBenefits,
+});
 
 // Mismos topes que el schema de Zod del formulario de equivalencia.
 const MAX_BASE_AMOUNT = 1_000_000;
@@ -110,7 +125,11 @@ const forbidden = (request: Request) => {
 function validateLoyaltyLevelsBody(body: Record<string, unknown>): string[] {
   const allowedFields = ['silverMinPoints', 'goldMinPoints'];
   const errors = Object.keys(body)
-    .filter((key) => !allowedFields.includes(key))
+    .filter(
+      (key) =>
+        !allowedFields.includes(key) &&
+        !(BENEFIT_FIELDS as readonly string[]).includes(key),
+    )
     .map((key) => `property ${key} should not exist`);
 
   for (const field of allowedFields) {
@@ -138,6 +157,17 @@ function validateLoyaltyLevelsBody(body: Record<string, unknown>): string[] {
     body.goldMinPoints <= body.silverMinPoints
   ) {
     errors.push('goldMinPoints must be greater than silverMinPoints');
+  }
+
+  // NIV-BEN: opcionales; texto de hasta 255 caracteres sin contar los espacios de los bordes
+  for (const field of BENEFIT_FIELDS) {
+    const value = body[field];
+    if (value === undefined || value === null) continue;
+    if (typeof value !== 'string') {
+      errors.push('El beneficio debe ser un texto.');
+    } else if ([...value.trim()].length > MAX_BENEFIT_LENGTH) {
+      errors.push('El beneficio no puede superar los 255 caracteres.');
+    }
   }
 
   return errors;
@@ -266,7 +296,7 @@ export const pointsHandlers = [
   // US-27: solo el Administrador puede consultar y modificar los umbrales.
   http.get(LOYALTY_LEVELS_URL, ({ request }) => {
     if (!isAdminRequest(request)) return forbidden(request);
-    return HttpResponse.json(loyaltyLevels);
+    return HttpResponse.json(levelsResponse());
   }),
 
   http.put(LOYALTY_LEVELS_URL, async ({ request }) => {
@@ -285,7 +315,15 @@ export const pointsHandlers = [
       configurationVersion: loyaltyLevels.configurationVersion + 1,
       updatedAt: now(),
     };
-    return HttpResponse.json(loyaltyLevels);
+    // Un beneficio que no viene se conserva; null o vacío lo borra (S5 §3.10)
+    const next = { ...levelBenefits };
+    for (const field of BENEFIT_FIELDS) {
+      const value = body[field];
+      if (value === undefined) continue;
+      next[field] = typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+    }
+    setLevelBenefits(next);
+    return HttpResponse.json(levelsResponse());
   }),
 
   // RF-011: GET /api/loyalty/configuration/first-consumption-bonus
