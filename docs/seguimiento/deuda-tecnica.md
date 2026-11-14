@@ -50,7 +50,7 @@ está en [estado actual](./estado-actual.md#lo-que-falta-o-no-coincide-con-los-c
 | Anular un consumo con el lote ya vencido convierte todo en deuda (doble pérdida) | `points.service.ts`, `points-lot.ts` | Pendiente de decisión (D-06) |
 | Un consumo que da 0 puntos | ✅ Resuelto el 12/11: se registra sin dejar movimiento, también al anularlo (opción a, decisión tomada a pedido de Montse; falta llevarla al contrato) | ✅ Resuelto (D-07) |
 | Comentarios de `schema.prisma` que mencionan `CHECK` de la §3.12 | El trigger de solo inserción y los `CHECK` `points <> 0` y "motivo en `MANUAL_ADJUSTMENT`" de `points_movements` existen desde ARRASTRE-S4. **Siguen sin existir** los `CHECK` de las otras tablas (A-03) | Pendiente (A-03, parcial) |
-| Evento `customer.document-changed` y su listener en `accounts` | Quedaron sin emisor tras D-03 (nadie edita el documento). Se dejaron a propósito: `accounts` está fuera del alcance del Sprint 4. Tampoco se usa `forbiddenField` (`customers/domain/errors/forbidden-field.error.ts`) | Pendiente |
+| Evento `customer.document-changed`, su listener en `accounts` y `forbiddenField` | ✅ **Borrados el 14/11 (ARRASTRE-S4, A4-12):** quedaron sin emisor tras D-03 (nadie edita el documento). Queda sin uso `replaceInitialPasswordHash` (puerto y repositorio de cuentas de clientes) | Parcial |
 
 ## Infraestructura y proceso
 

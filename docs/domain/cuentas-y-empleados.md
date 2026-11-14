@@ -68,7 +68,7 @@ darlo de baja y cargarlo de nuevo.
 | `customer.created` | `customers` | `accounts` | Crea la cuenta del cliente dado de alta en caja o por el Administrador (contraseña inicial = documento, `mustChangePassword = true`) |
 | `customer.deactivated` | `customers` | `accounts` y `redemptions` | Deja inactiva la cuenta del cliente y cierra sus sesiones; `redemptions` rechaza sus canjes Confirmados |
 | `customer.email-changed`, `customer.email-change-requested` | `customers` | `accounts` | Sincroniza el email de acceso; desde Mi perfil, primero verifica la contraseña actual |
-| `customer.document-changed` | `customers` | `accounts` | Si no cambió la contraseña inicial, pasa a ser el documento nuevo. Con la decisión D-03 (nadie edita el documento) queda sin uso desde la pantalla |
+| `customer.document-changed` | — | — | **Eliminado el 14/11 (ARRASTRE-S4, A4-12):** nadie edita el documento (D-03), así que no tenía emisor |
 | `customer.reactivated` | — | — | Declarado, sin uso: no hay reactivación de clientes (D-12) |
 
 Detalle del mecanismo: [transacciones y eventos](../conceptos-transversales/transacciones-y-eventos.md).

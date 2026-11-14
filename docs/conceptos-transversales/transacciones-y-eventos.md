@@ -317,7 +317,7 @@ Es la lista de avisos que existen y qué datos lleva cada uno.
 | `customer.deactivated` | `customers` | `accounts` | Dejar inactiva la cuenta del cliente; `accounts` publica `account.deactivated` y `auth` cierra sus sesiones (CLI-ADM) |
 | `customer.reactivated` | `customers` | `accounts` | Sin uso: la reactivación de clientes ya no existe (contrato §1) |
 | `customer.email-changed` | `customers` | `accounts` | Actualizar el email de acceso del cliente |
-| `customer.document-changed` | `customers` | `accounts` | Si el cliente no cambió la contraseña inicial, que pase a ser el documento nuevo (CLI-ADM) |
+| `customer.document-changed` | — | — | **Eliminado el 14/11 (ARRASTRE-S4, A4-12):** sin emisor desde D-03 (nadie edita el documento); se borraron el evento, su listener y el método de `accounts` |
 | `customer.email-change-requested` | `customers` | `accounts` | El cliente cambia su correo desde Mi perfil: verificar su contraseña actual (con el límite de intentos) y que ninguna otra cuenta activa use el correo, **antes** de escribir nada. Si falla, tira el error y se deshace todo (PERFIL) |
 | `account.password-changed` | `accounts` | `auth` | Cerrar las sesiones de la cuenta. Si el evento trae `currentRefreshToken` (el usuario cambia su propia contraseña, PERFIL), deja abierta la de la cookie del pedido. Si no lo trae (el Administrador cambia la contraseña de un empleado con `PATCH /usuarios/:id`, EMP-PASS), cierra todas |
 | `customer.deactivated` (segundo listener) | `customers` | `redemptions` | Rechazar los canjes Confirmados vigentes del cliente, como Sistema, con el motivo "Cliente dado de baja" (US-43, S4 §3.13.1). Devuelve `{ rejectedRedemptions }` |
@@ -485,7 +485,7 @@ Al escribir una operación que toca más de un módulo:
   `EmployeeEventsListener`, protección del último ADMIN incluida). Es el
   refactor de la rama `users`, ya integrado.
 - **Eventos de clientes:** `customer.created`, `customer.email-changed`,
-  `customer.deactivated` y `customer.document-changed` ya se publican desde
+  `customer.deactivated` ya se publican desde
   `customers` y los escucha `accounts` (`CustomerEventsListener`), todos en la
   transacción de quien los publica. `customer.reactivated` queda declarado pero
   sin uso desde CLI-ADM. PERFIL suma `customer.email-change-requested` (customers →
@@ -536,3 +536,4 @@ Al escribir una operación que toca más de un módulo:
 | 2026-10-20 | PERFIL: se suman `customer.email-change-requested` (el cliente cambia su correo; `accounts` verifica la contraseña antes de que `customers` escriba) y `account.password-changed` (`auth` cierra las otras sesiones) |
 | 2026-10-20 | EMP-PASS: `AccountsService.resetPassword` (`PATCH /usuarios/:id`) corre en la transacción ambiente y publica `account.password-changed` sin `currentRefreshToken`, así que `auth` cierra todas las sesiones de la cuenta |
 | 2026-11-09 | Sprints 3 y 4: todos los repositorios usan `client`; eventos `reward.deactivated` y `reward.deleted`; segundo listener de `customer.deactivated`; listeners que devuelven un valor; sección 8 (orden de los bloqueos, "vencer al leer" y procesos automáticos) |
+| 2026-11-14 | ARRASTRE-S4 (A4-12): se borra el evento `customer.document-changed` y su listener en `accounts` (sin emisor desde D-03) |

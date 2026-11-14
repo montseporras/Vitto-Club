@@ -14,7 +14,7 @@ endpoints existen, qué se puede enviar, qué devuelve la API y qué reglas hay 
 > |---|---|
 > | Ya **no existe** `PATCH /customers/:id/activate` (no hay reactivación de clientes) | Contrato S3 §1 y §7 #5 |
 > | `GET /customers`: `q`, `level`, `sort` y los campos `balance`, `lifetimePoints` y `level` en cada ítem | Contrato S3 §3.8.1 |
-> | `PATCH /customers/:id`: `reason` obligatorio para el Administrador; `409 CUSTOMER_INACTIVE`; `403 FORBIDDEN_FIELD` para el documento | Contrato S3 §3.8.2; decisión D-03 (25/10): nadie edita el documento. El backend lo cumple desde el 09/11: `UpdateCustomerDto` ya no acepta el documento |
+> | `PATCH /customers/:id`: `reason` obligatorio para el Administrador; `409 CUSTOMER_INACTIVE`; el documento no se edita (sin `FORBIDDEN_FIELD`: se borró el 14/11) | Contrato S3 §3.8.2; decisión D-03 (25/10): nadie edita el documento. El backend lo cumple desde el 09/11: `UpdateCustomerDto` ya no acepta el documento |
 > | `POST /customers` crea también la cuenta del cliente (contraseña inicial = documento) | Contrato S3 §3.11.3 |
 > | La baja devuelve el saldo perdido a la auditoría y **rechaza los canjes Confirmados** del cliente | Contrato S3 §3.8.3 y S4 §3.13.1 |
 > | `PATCH /customers/:id` y `…/deactivate`: **solo el Administrador** (D-02, 25/10) | Contrato S4 §4. Cumplido en el backend desde el 09/11 |

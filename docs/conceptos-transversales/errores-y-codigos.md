@@ -27,7 +27,7 @@ Los textos exactos de cada caso están en los contratos: `docs/sprint-3/API_CONT
 | 400 | `PASSWORD_SAME_AS_DOCUMENT` | Cliente: nueva contraseña igual a su número de documento | Sprint 3 |
 | 429 | `TOO_MANY_ATTEMPTS` | Demasiadas contraseñas actuales incorrectas (5 en 15 minutos por cuenta, en memoria; decisión S3-29) | Sprint 3 |
 | 403 | `VOID_NOT_ALLOWED` | Cajero anulando un consumo ajeno o con más de 24 h | Sprint 3 |
-| 403 | `FORBIDDEN_FIELD` | Intento de cambiar el documento de un cliente. Mensaje: "El documento no se puede modificar." Se valida antes que el `404` y el `409` | Sprint 3 |
+| 403 | `FORBIDDEN_FIELD` | **Sin uso** desde D-03: el documento no se edita y el backend ya no lo devuelve (el código se borró el 14/11, ARRASTRE-S4). Antes: intento de cambiar el documento de un cliente. Mensaje: "El documento no se puede modificar." Se valida antes que el `404` y el `409` | Sprint 3 |
 | 409 | `CUSTOMER_INACTIVE` | Operar puntos, consumos o canjes de un cliente dado de baja, o editarlo. Mensaje: "El cliente está dado de baja." | Sprint 3 (casos nuevos en el Sprint 4) |
 | 409 | `CONSUMPTION_ALREADY_VOIDED` | Anular un consumo ya anulado. Se evalúa **antes** que `VOID_NOT_ALLOWED` (decisión S3-02) | Sprint 3 |
 | 409 | `POINTS_EQUIVALENCE_NOT_CONFIGURED` | Registrar o previsualizar un consumo sin equivalencia configurada | Sprint 3 |

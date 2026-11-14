@@ -3,7 +3,7 @@ import type { Redemption, RedemptionOrigin, RedemptionStatus } from '../../domai
 import type { RedemptionCustomer } from '../../domain/port/redemption.repository.js';
 
 // Tipo Redemption del contrato S4 §3.6.2. Definido en US-43 a pedido de Melisa; lo reutilizan
-// US-41, US-42 y US-45 (ver src/redemptions/documentation-updates-us43.md). Dos vistas:
+// US-41, US-42 y US-45. Dos vistas:
 // - empleado (Administrador y Cajero): todos los campos menos canCancel;
 // - Cliente: sin customer, origin, confirmedBy, resolvedBy ni balanceBefore/balanceAfter, y con
 //   canCancel (§3.6.2 "Lo ve el Cliente", CA-45.2). El Cliente nunca ve qué empleado lo resolvió.

@@ -52,9 +52,9 @@ Encontrado al revisar el código. **No se corrigió nada**: es código de otras 
 |---|---|---|
 | A-02 | ✅ **Resuelto el 12/11 (ARRASTRE-S4):** `points_movements` es solo inserción (migración `sprint4_arrastre_points_movements_integrity`) | — |
 | A-03 | **Resuelto a medias el 12/11 (ARRASTRE-S4):** `points_movements` tiene `points <> 0` y "motivo obligatorio en `MANUAL_ADJUSTMENT`". **Siguen sin existir** los `CHECK` de las otras tablas de la §3.12 (montos y puntos de `consumptions`, anulación, lotes, deuda y acumulados de `customer_points`, niveles) | Migración nueva |
-| A-09 / B5 | `employees.phone`: la columna es nullable, pero el repositorio sigue guardando `''` y las filas viejas no se migraron | `backend/src/employees/infrastructure/employees.repository.ts:7` |
+| A-09 / B5 | ✅ **Resuelto el 14/11 (ARRASTRE-S4, A4-06):** el repositorio guarda `NULL` y la migración `sprint5_arrastre_employees_phone_null` convirtió los `''` | — |
 | B7 | ✅ **Resuelto el 12/11 (ARRASTRE-S4):** el CORS sale de `CORS_ORIGIN` (varios orígenes separados por coma; por defecto `http://localhost:5173`) | — |
-| A-13 | Las 13 notas `documentation-updates-*.md` siguen dentro del código. Su contenido ya está en [decisiones de implementación](./decisiones-de-implementacion.md) | `backend/src/*/`, `frontend/src/features/*/` |
+| A-13 | **Backend (14/11, A4-09):** se borraron 4 de las 5 notas; queda `rewards/documentation-updates-us37.md` porque tiene un dato que no está en `docs/` (una `DISABLED` por stock que además vence no cambia de motivo con el proceso diario). **Frontend:** siguen las 7. Lo demás de las notas ya está en [decisiones de implementación](./decisiones-de-implementacion.md) | `backend/src/*/`, `frontend/src/features/*/` |
 | A-10 | Las tablas de asignaciones de `HISTORIAS_SPRINT_3.md` §0 y `HISTORIAS_SPRINT_4.md` §0 dicen "Sin empezar" casi en todo | Fuentes de verdad (las actualiza el equipo) |
 | A-07 | Ficha del cliente para el **Cajero** (US-19, contrato S3 §3.4.1). El router no tiene ninguna ruta de ficha en `/caja`; solo existe la del Administrador (`/admin/clientes/:id`). Confirmar si con los ajustes de navegación del 25/10 sigue haciendo falta | `frontend/src/app/router/paths.ts` |
 
@@ -77,8 +77,6 @@ el documento) y **NAV** (menú "Recompensas", pantalla vieja de Movimientos de p
 
 ### Otros
 
-- `backend/test/customer-registration.e2e-spec.ts:234` sigue con `it.skip` ("volver a registrarse con el
-  mismo email"), aunque el cambio que lo bloqueaba (email de cuentas único entre activas) ya está.
 - `frontend/src/shared/components/ui/Modal.tsx` no se cierra con Escape: cada modal suma su listener.
 - Los saldos de los mocks del Cliente y de Caja son independientes (no afecta al backend real).
 - Errores de tipos en `npx tsc --noEmit` de algunos e2e (`supertest`), conocidos desde el Sprint 3.
@@ -154,12 +152,12 @@ Decidido por Deni el 09/11/2026: todo lo que debía estar y no está hecho pasa 
 | 4 | Bloquear la recompensa al confirmar un canje | Anotado por US-35 (ítem 7 de las verificaciones pendientes) | Arrastre de US-40 |
 | 5 | Test: usar un canje rechazado por la desactivación | Ítem 4 de las verificaciones pendientes | Arrastre de US-42 |
 | 6 | Trigger de solo inserción y `CHECK` de `points_movements` y demás tablas del Sprint 3 | A-02 y A-03 del cierre del Sprint 3 | Arrastre de BASE (Sprint 3) |
-| 7 | `employees.phone` en `NULL` y migrar los `''` | A-09 / B5 | Arrastre de CORR (Sprint 3) |
+| 7 | ✅ `employees.phone` en `NULL` y migrar los `''` (14/11) | A-09 / B5 | Arrastre de CORR (Sprint 3) |
 | 8 | CORS por variable de entorno y configuración de despliegue (Vercel, Render, Neon) | B7; Seguimiento §2.6 | Tecnología declarada sin historia |
 | 9 | Scripts `rewards:expire` y `redemptions:expire`, sus variables en `.env.example` y apagarlas en `test/setup-e2e-env.ts` | US-37 y US-44 | Configuración compartida que quedó sin aplicar |
-| 10 | Habilitar el e2e saltado de "volver a registrarse con el mismo email" | `customer-registration.e2e-spec.ts:235` | Arrastre de US-58 |
+| 10 | ✅ (14/11) Habilitar el e2e saltado de "volver a registrarse con el mismo email" | `customer-registration.e2e-spec.ts:235` | Arrastre de US-58 |
 | 11 | CI con GitHub Actions y tests del frontend (Vitest + Testing Library) | Seguimiento §2.6; D-17 | Tecnología declarada sin historia. Decidido (S5-30): se hace el CI y Vitest se saca del Seguimiento |
-| 12 | Sacar las notas `documentation-updates-*.md` del código | A-13 | Tarea de documentación |
+| 12 | Sacar las notas `documentation-updates-*.md` del código (backend hecho el 14/11, queda la de US-37; frontend pendiente) | A-13 | Tarea de documentación |
 
 Los ítems 1, 2 y 3 cambian el alcance de historias ya cerradas: hay que reflejarlos en el Plan de Proyecto
 (RF-065), en el Seguimiento (Story Map del Sprint 5, y marcar US-08 y US-27 como completadas en parte) y en

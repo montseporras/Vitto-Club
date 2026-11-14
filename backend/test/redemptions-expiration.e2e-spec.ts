@@ -9,8 +9,7 @@ import { RedemptionsExpirationService } from '../src/redemptions/application/red
 import { REDEMPTION_DURATION_MS } from '../src/redemptions/domain/redemption.js';
 
 // CA-44.7: el barrido no corre solo durante los e2e (ni al iniciar ni cada 5 minutos); los tests
-// llaman al proceso directo. Va acá porque test/setup-e2e-env.ts no se tocó en US-44 (el cambio
-// está anotado en src/redemptions/documentation-updates-us44.md). ConfigModule no pisa lo ya definido.
+// llaman al proceso directo. ConfigModule no pisa lo ya definido.
 process.env.REDEMPTIONS_EXPIRATION_CRON_ENABLED = 'false';
 
 // Cubre US-44 (contrato S4 §3.11 y la auditoría REDEMPTION_EXPIRED de §3.14.2) contra Postgres

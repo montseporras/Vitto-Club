@@ -7,12 +7,10 @@ import { PasswordChangeService } from './password-change.service.js';
 import {
   CUSTOMER_CREATED,
   CUSTOMER_DEACTIVATED,
-  CUSTOMER_DOCUMENT_CHANGED,
   CUSTOMER_EMAIL_CHANGED,
   CUSTOMER_EMAIL_CHANGE_REQUESTED,
   type CustomerCreatedEvent,
   type CustomerDeactivatedEvent,
-  type CustomerDocumentChangedEvent,
   type CustomerEmailChangedEvent,
   type CustomerEmailChangeRequestedEvent,
 } from '../../shared/events/domain-events.js';
@@ -22,8 +20,8 @@ import {
 // eso, un error acá no se propaga y la transacción de quien publicó sigue como si nada.
 //
 // Se escuchan el alta (customer.created: crea la cuenta), el cambio de email, la baja
-// (customer.deactivated: deja inactiva la cuenta y cierra sus sesiones) y la corrección del
-// documento (customer.document-changed: contraseña inicial). El login igual lee el estado
+// (customer.deactivated: deja inactiva la cuenta y cierra sus sesiones). El documento no se edita
+// (D-03), así que no hay evento de cambio de documento. El login igual lee el estado
 // directamente de Customer (ver AccountsService.toCustomerAuthInfo). La reactivación de clientes
 // ya no existe (CLI-ADM).
 @Injectable()
@@ -40,10 +38,6 @@ export class CustomerEventsListener {
     await this.customerAccountSync.handleCustomerDeactivated(event);
   }
 
-  @OnEvent(CUSTOMER_DOCUMENT_CHANGED, { suppressErrors: false })
-  async onCustomerDocumentChanged(event: CustomerDocumentChangedEvent): Promise<void> {
-    await this.customerAccountSync.handleCustomerDocumentChanged(event);
-  }
 
   @OnEvent(CUSTOMER_CREATED, { suppressErrors: false })
   async onCustomerCreated(event: CustomerCreatedEvent): Promise<void> {

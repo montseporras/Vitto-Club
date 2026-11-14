@@ -3,9 +3,8 @@ import { AppModule } from './app.module.js';
 import { RedemptionsExpirationService } from './redemptions/application/redemptions-expiration.service.js';
 
 // US-44, CA-44.7: corre el barrido de canjes vencidos a demanda, sin endpoint HTTP y sin levantar
-// el servidor. Se usa con `npm run redemptions:expire` (compila y ejecuta este archivo; el script
-// está anotado en src/redemptions/documentation-updates-us44.md). Vence lo que esté vencido en
-// este momento, igual que el cron de 5 minutos.
+// el servidor. Se usa con `npm run redemptions:expire` (compila y ejecuta este archivo). Vence lo que
+// esté vencido en este momento, igual que el cron de 5 minutos.
 async function main() {
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: ['log', 'warn', 'error'],

@@ -33,7 +33,7 @@ export type CustomerDeactivatedEvent = { customerId: number };
 // --- Recompensas y canjes (Sprint 4, contrato S4 §3.10.4 y §8.4) --------------------------
 // rewards no importa redemptions: publica estos eventos dentro de su transacción y redemptions
 // rechaza los canjes Confirmados de esa recompensa (US-43). Payload definido en US-43, a pedido de
-// Melisa (ver src/redemptions/documentation-updates-us43.md).
+// Melisa.
 
 // Lo emite rewards al desactivar una recompensa (US-36, PATCH /recompensas/:id/desactivar).
 export const REWARD_DEACTIVATED = 'reward.deactivated';
@@ -66,13 +66,6 @@ export type CustomerCreatedEvent = { customerId: number; email: string; document
 // tira ConflictException y se deshace el cambio.
 export const CUSTOMER_EMAIL_CHANGED = 'customer.email-changed';
 export type CustomerEmailChangedEvent = { customerId: number; email: string };
-
-// Lo emite customers cuando el Administrador corrige el número de documento de un cliente
-// (CLI-ADM, CA-CLI.7; evento nuevo, decisión a pedido de Magali). Lo escucha accounts: si la cuenta
-// todavía tiene la contraseña inicial (mustChangePassword = true), la contraseña pasa a ser el
-// documento nuevo. documentNumber ya viene normalizado y no se guarda: solo su hash.
-export const CUSTOMER_DOCUMENT_CHANGED = 'customer.document-changed';
-export type CustomerDocumentChangedEvent = { customerId: number; documentNumber: string };
 
 // Lo emite customers cuando el cliente cambia su correo desde Mi perfil (PERFIL, contrato §3.10.4),
 // ANTES de escribir nada. Lo escucha accounts: verifica la contraseña actual (con el límite de

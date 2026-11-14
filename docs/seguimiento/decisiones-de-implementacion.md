@@ -30,7 +30,7 @@
 | `docs/seguimiento/diferencias-prototipo-frontend.md` | Alineación visual (19/10) | Frontend | Denise |
 | `docs/sprint-4/CIERRE_SPRINT_3.md` §3 | S3-01 a S3-42 | Las dos | Varios |
 
-Las notas siguen dentro del código. Ver la [pregunta 1](#preguntas-abiertas).
+**14/11/2026 (ARRASTRE-S4, A4-09):** las notas del backend de US-25, US-43, US-44 y US-45 se borraron del código (todo su contenido está en este archivo y en `docs/`). Sigue `backend/src/rewards/documentation-updates-us37.md`, porque tiene un dato que no está en ningún otro documento: una recompensa `DISABLED` por stock que además vence no cambia de motivo con el proceso diario (solo toma las `ACTIVE`); pasa a `EXPIRED` la próxima vez que se reevalúa, por ejemplo al editarla. Las del frontend siguen en el código. Ver la [pregunta 1](#preguntas-abiertas).
 
 ---
 
