@@ -44,11 +44,11 @@ export function ClientsKpiCard({
         </span>
       </div>
       {/* Todos los números de la pantalla: misma letra, en negrita y con cifras del mismo ancho */}
-      <div className="mt-1 text-[32px] leading-[1.1] font-bold tracking-[-0.01em] text-[#2b1a10] tabular-nums [@media(max-height:820px)]:text-[25px]">
+      <div className="mt-1 text-[38px] leading-[1.1] font-bold tracking-[-0.01em] text-[#2b1a10] tabular-nums [@media(max-height:820px)]:text-[34px]">
         {value}
       </div>
       <div className="mt-0.5 text-sm font-semibold text-[#8a3d1c]">{label}</div>
-      <hr className="my-2.5 border-t border-[#f3e4da] [@media(max-height:820px)]:my-1.5" />
+      <hr className="my-2.5 border-t border-[#f3e4da] [@media(max-height:820px)]:my-1" />
       {helpAsChip ? (
         <span className="inline-flex items-center rounded-full bg-[#fde4d8] px-2.5 py-[3px] text-[11px] font-semibold text-[#8a3d1c]">
           {help}

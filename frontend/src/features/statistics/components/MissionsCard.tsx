@@ -17,7 +17,7 @@ export function MissionsCard({ missions, isCurrentMonth, cutoff }: MissionsCardP
   const slices = missionSlices(missions, isCurrentMonth);
 
   return (
-    <section className="flex min-w-0 flex-col rounded-2xl border border-[#f6e4da] bg-white px-5 py-4 shadow-[0_1px_2px_rgba(126,62,32,0.05)] [@media(max-height:820px)]:px-[18px] [@media(max-height:820px)]:py-2.5">
+    <section className="flex min-w-0 flex-col rounded-2xl border border-[#f6e4da] bg-white px-5 py-4 shadow-[0_1px_2px_rgba(126,62,32,0.05)] [@media(max-height:820px)]:px-[18px] [@media(max-height:820px)]:py-2">
       <h3 className="text-lg leading-tight font-bold text-[#2b1a10] [@media(max-height:820px)]:text-base">
         Misiones asignadas
       </h3>
@@ -26,7 +26,7 @@ export function MissionsCard({ missions, isCurrentMonth, cutoff }: MissionsCardP
       </p>
 
       {missions.assigned > 0 ? (
-        <div className="mt-3 [@media(max-height:820px)]:mt-1">
+        <div className="mt-3 [@media(max-height:820px)]:mt-0">
           <PieChart slices={slices} total={missions.assigned} centerLabel="asignadas" />
         </div>
       ) : (

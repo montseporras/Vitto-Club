@@ -29,9 +29,9 @@ export function NewClientsConversion({
   return (
     <section
       aria-labelledby="conversion-title"
-      className="flex flex-1 flex-col rounded-2xl border border-[#f6e4da] bg-white px-[22px] py-[18px] shadow-[0_1px_2px_rgba(126,62,32,0.05)] [@media(max-height:820px)]:py-3.5"
+      className="flex flex-1 flex-col rounded-2xl border border-[#f6e4da] bg-white px-[22px] py-[18px] shadow-[0_1px_2px_rgba(126,62,32,0.05)] [@media(max-height:820px)]:py-2.5"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f8ebe3] pb-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f8ebe3] pb-3.5 [@media(max-height:820px)]:pb-2">
         <div className="flex min-w-0 items-center gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#fde4d8]">
             <Icon d={STATISTICS_ICONS.userCheck} className="size-5 text-[#a9532b]" />
@@ -71,7 +71,7 @@ export function NewClientsConversion({
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col justify-center py-3">
+      <div className="flex flex-1 flex-col justify-center py-3 [@media(max-height:820px)]:py-1">
         <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1">
           <span className="text-[46px] leading-none font-bold tracking-[-0.01em] text-[#8a3d1c] tabular-nums">
             {conversionPercent(current.newFrequent, current.new)}
@@ -88,7 +88,7 @@ export function NewClientsConversion({
         </p>
       </div>
 
-      <div className="flex items-center gap-2.5 border-t border-[#f8ebe3] pt-2.5 text-xs text-[#8a7d72]">
+      <div className="flex items-center gap-2.5 border-t border-[#f8ebe3] pt-2.5 text-xs text-[#8a7d72] [@media(max-height:820px)]:pt-1.5">
         <Icon d={STATISTICS_ICONS.info} className="size-3.5 shrink-0 text-[#8a7d72]" />
         <span>
           Clientes dados de alta en el mes que llegaron al mínimo de frecuente en ese mismo mes. El

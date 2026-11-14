@@ -16,7 +16,7 @@ export function LevelsCard({ data }: { data: ProgramStatistics }) {
   const risenText = formatWholePercent(risen);
 
   return (
-    <section className="flex min-w-0 flex-col rounded-2xl border border-[#f6e4da] bg-white px-5 py-4 shadow-[0_1px_2px_rgba(126,62,32,0.05)] [@media(max-height:820px)]:px-[18px] [@media(max-height:820px)]:py-2.5">
+    <section className="flex min-w-0 flex-col rounded-2xl border border-[#f6e4da] bg-white px-5 py-4 shadow-[0_1px_2px_rgba(126,62,32,0.05)] [@media(max-height:820px)]:px-[18px] [@media(max-height:820px)]:py-2">
       <h3 className="text-lg leading-tight font-bold text-[#2b1a10] [@media(max-height:820px)]:text-base">
         Clientes por nivel
       </h3>
@@ -24,7 +24,7 @@ export function LevelsCard({ data }: { data: ProgramStatistics }) {
         Nivel actual de los clientes activos.
       </p>
 
-      <div className="mt-2 [@media(max-height:820px)]:mt-1">
+      <div className="mt-2 [@media(max-height:820px)]:mt-0">
         <PieChart slices={slices} total={activeCustomers} centerLabel="clientes" />
       </div>
 
@@ -34,7 +34,7 @@ export function LevelsCard({ data }: { data: ProgramStatistics }) {
       >
         <div className="flex items-baseline justify-between gap-2">
           <span className="text-sm text-[#2b1a10]">Subieron de nivel en el mes</span>
-          <span className="text-lg font-bold text-[#a9532b] tabular-nums">{risenText}</span>
+          <span className="text-lg leading-6 font-bold text-[#a9532b] tabular-nums">{risenText}</span>
         </div>
         <div
           role="img"
@@ -43,7 +43,7 @@ export function LevelsCard({ data }: { data: ProgramStatistics }) {
         >
           <HorizontalBar percent={risen} color="#ffa47e" />
         </div>
-        <p className="mt-1.5 text-[#7a6e63] [@media(max-height:820px)]:mt-1">
+        <p className="mt-1.5 text-[#7a6e63] [@media(max-height:820px)]:mt-0">
           {formatInteger(data.levelUps)} {data.levelUps === 1 ? 'cliente pasó' : 'clientes pasaron'} a
           un nivel más alto, a cualquiera.
         </p>
