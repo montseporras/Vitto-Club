@@ -30,7 +30,7 @@
 | `docs/seguimiento/diferencias-prototipo-frontend.md` | Alineación visual (19/10) | Frontend | Denise |
 | `docs/sprint-4/CIERRE_SPRINT_3.md` §3 | S3-01 a S3-42 | Las dos | Varios |
 
-**14/11/2026 (ARRASTRE-S4, A4-09):** las notas del backend de US-25, US-43, US-44 y US-45 se borraron del código (todo su contenido está en este archivo y en `docs/`). Sigue `backend/src/rewards/documentation-updates-us37.md`, porque tiene un dato que no está en ningún otro documento: una recompensa `DISABLED` por stock que además vence no cambia de motivo con el proceso diario (solo toma las `ACTIVE`); pasa a `EXPIRED` la próxima vez que se reevalúa, por ejemplo al editarla. Las del frontend siguen en el código. Ver la [pregunta 1](#preguntas-abiertas).
+**14/11/2026 (ARRASTRE-S4, A4-09):** se borraron del código las notas del backend de US-25, US-43, US-44 y US-45 y las 8 del frontend (todo su contenido está en este archivo y en `docs/`). Sigue `backend/src/rewards/documentation-updates-us37.md`, porque tiene un dato que no está en ningún otro documento: una recompensa `DISABLED` por stock que además vence no cambia de motivo con el proceso diario (solo toma las `ACTIVE`); pasa a `EXPIRED` la próxima vez que se reevalúa, por ejemplo al editarla. Ver la [pregunta 1](#preguntas-abiertas).
 
 ---
 
@@ -269,11 +269,10 @@ que **no** está ahí.
 
 - **PD-4 y PD-5:** resueltas en los documentos del producto: la Definición del Producto v1.4 (09/11) pasa
   `confirmarCanje()` a US-40 y el Seguimiento v1.7 corrige los textos de US-43 y US-44 (sin reintegro).
-- **Comentario viejo:** `frontend/src/features/employees/schemas/employee.schema.ts:63` todavía dice que el generador
-  hace 12 caracteres (el código hace 8).
+- **Comentario viejo:** ✅ corregido el 14/11 (ARRASTRE-S4, A4-14): `employee.schema.ts` ya dice que el generador hace 8 caracteres.
 - **D-02, D-03 y CLI-DOC:** resueltas en el backend el 09/11 (`fix/cerrar-sprint4`).
 - **Prototipo:** el archivo único no coincide con `v2/`; falta el script de desempaquetado (D-37).
-- **Modales:** `Modal` no se cierra con Escape; cada uno suma su listener.
+- **Modales:** ✅ desde el 14/11 (A4-13) todos cierran con Escape; `Modal` no lo hace por sí solo, cada modal suma su listener (ver `deuda-tecnica.md`).
 
 ---
 

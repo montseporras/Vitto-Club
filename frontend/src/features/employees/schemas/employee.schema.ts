@@ -60,7 +60,7 @@ export type EditEmployeeFormValues = z.infer<typeof editEmployeeSchema>;
 // (EMP-PASS). El usuario es el mail, que ya está validado en el alta del
 // empleado; acá solo se valida la contraseña, por si la editan a mano.
 // Regla exacta del backend (contrato §3.11): no puede ser más estricta que
-// esa regla (CA-EMP.4). El generador (12 caracteres, con mayúscula, número y
+// esa regla (CA-EMP.4). El generador (8 caracteres, con mayúscula, número y
 // especial) la cumple igual, así que sigue devolviendo contraseñas más
 // fuertes que el mínimo exigido.
 export const accountPasswordSchema = (email: string) =>

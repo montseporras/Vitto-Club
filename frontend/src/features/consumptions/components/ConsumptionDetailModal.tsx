@@ -12,6 +12,7 @@ import { Badge } from '@/shared/components/ui/Badge';
 import { Button } from '@/shared/components/ui/Button';
 import { DataList } from '@/shared/components/ui/DataList';
 import { Modal } from '@/shared/components/ui/Modal';
+import { useModalEscape } from '@/shared/hooks/useModalEscape';
 import { isoToDisplayDateTime } from '@/shared/lib/dates';
 import { formatInteger, formatMoney } from '@/shared/lib/numbers';
 import { consumptionsKeys } from '../api/consumptions.keys';
@@ -36,6 +37,8 @@ export function ConsumptionDetailModal({
   const consumption = useConsumption(code);
   const queryClient = useQueryClient();
   const [voiding, setVoiding] = useState(false);
+  // Escape cierra el detalle (A4-13), salvo mientras está el modal de anulación encima, que tiene el suyo
+  useModalEscape(onClose, !voiding);
 
   if (consumption.isPending) {
     return (

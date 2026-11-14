@@ -11,6 +11,7 @@ import { Button } from '@/shared/components/ui/Button';
 import { Icon } from '@/shared/components/ui/Icon';
 import { ICONS } from '@/shared/components/ui/icons';
 import { Modal } from '@/shared/components/ui/Modal';
+import { useModalEscape } from '@/shared/hooks/useModalEscape';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useEmployees } from '../api/employees.queries';
 import { EmployeeSearch } from '../components/EmployeeSearch';
@@ -59,6 +60,10 @@ export function EmployeesPage() {
     setSelectedEmployee(null);
     setModalView('edit');
   };
+
+  // Escape cierra el modal que esté arriba (A4-13)
+  useModalEscape(() => setCreating(false), creating);
+  useModalEscape(closeEdit, selectedEmployee !== null);
 
   const hasSearch = term !== '';
 

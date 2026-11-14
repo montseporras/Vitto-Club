@@ -19,6 +19,7 @@ import { SideNav, type SideNavItem } from '@/shared/components/navigation/SideNa
 import { Icon } from '@/shared/components/ui/Icon';
 import { ICONS } from '@/shared/components/ui/icons';
 import { Modal } from '@/shared/components/ui/Modal';
+import { useModalEscape } from '@/shared/hooks/useModalEscape';
 import { appHeaderStyles } from '@/styles/ui';
 
 // Menú lateral del Administrador, en el orden del prototipo v2. Recompensas, Misiones y
@@ -67,6 +68,8 @@ type Section = (typeof SECTIONS)[number];
 export function AdminLayout() {
   // ¿Está abierto el modal de Configuración?
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Escape cierra la ventana de Configuración (A4-13)
+  useModalEscape(() => setSettingsOpen(false), settingsOpen);
   // Sección elegida en el menú lateral (arranca en la primera).
   const [activeSection, setActiveSection] = useState<Section>(SECTIONS[0]);
 

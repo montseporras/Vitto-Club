@@ -70,7 +70,7 @@ está en [estado actual](./estado-actual.md#lo-que-falta-o-no-coincide-con-los-c
 |---|---|---|
 | Pantalla de administración de clientes | Hecha (CLI-ADM). `GET /customers/:id/status-history` sigue sin pantalla | Parcial (D-18) |
 | Tests automatizados | Vitest y Testing Library no están instalados | ✅ Decidido (D-17, S5-30): no se suman; el frontend se verifica con el recorrido manual con mocks y el CI corre lint y build |
-| `Modal` no se cierra con Escape | Cada modal agrega su propio listener (`useEscapeKey` en `redemptions`) | Pendiente |
+| `Modal` no se cierra con Escape | ✅ **Resuelto el 14/11 (ARRASTRE-S4, A4-13), sin tocar `Modal`:** todos los modales cierran con Escape. Los que no tenían usan `shared/hooks/useModalEscape`; el resto sigue con su listener propio (`useEscapeKey` en `redemptions`). Hay dos hooks parecidos: unificarlos queda pendiente | Parcial |
 | Componentes sin uso de `features/cashier` (`CustomerSummary`, `EditCustomerForm`, `useUpdateCustomer`) | Se borraron el 09/11 (`fix/cerrar-sprint4`) | ✅ Resuelto |
 | Saldos de los mocks del Cliente y de Caja independientes | Solo afecta el recorrido con mocks | Vigente |
 | Reglas de manejo de sesión en el frontend (renovar solo ante 401, un solo refresh a la vez, access token en memoria, decidir por `code`) | Ver [autenticación](../funcionalidades/autenticacion.md) | Sin verificar |

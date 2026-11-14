@@ -364,7 +364,7 @@ El sistema se compone de tres niveles:
    | Acciones | `Button` — variantes `primary`, `secondary`, `ghost`; tamaño `lg` para la pantalla de caja |
    | Estados y mensajes | `Alert` (`success` / `error`), `Badge` (`success`, `danger`, `alert`, `neutral`, `accent`), `StatusText`, `Toast` (solo de éxito), `ComingSoon` (descripción opcional) |
    | Datos | `Table` y sus subcomponentes (`TableRow highlight`: se pinta al pasar el mouse sin ser clickeable), `DataList` (pares etiqueta/valor), `Pagination` ("Página X de Y", Anterior / Siguiente) |
-   | Diálogos | `Modal`. **No se cierra con Escape**: cada modal suma su propio listener (en `redemptions`, el hook `useEscapeKey`) |
+   | Diálogos | `Modal`. **No tiene Escape propio**: cada modal suma el suyo. En `redemptions`, el hook `useEscapeKey`; los que no lo tenían (Configuración, detalle de un consumo y los modales de Empleados) usan `shared/hooks/useModalEscape`, que cierra solo el modal de arriba cuando hay uno dentro de otro (A4-13) |
    | Navegación | `AppHeader`, `SideNav` (opciones deshabilitadas con etiqueta: `{ disabled: true, tag: 'Próx.' }`) |
 
    Recetas sin componente propio: `segmentedTabsStyles` (pestañas segmentadas, `styles/ui/form.ts`),
