@@ -6,6 +6,8 @@ export const DEFAULT_SILVER_MIN_POINTS = 300;
 export const DEFAULT_GOLD_MIN_POINTS = 800;
 export const BRONZE_MIN_POINTS = 0;
 export const MAX_LEVEL_MIN_POINTS = 2_147_483_647;
+// NIV-BEN (S5-2): el beneficio de un nivel es un texto informativo de hasta 255 caracteres
+export const MAX_BENEFIT_LENGTH = 255;
 
 // Mensajes de §3.7.2. El del máximo no está en el contrato (decisión de Jazmín).
 export const LEVEL_MESSAGES = {
@@ -14,6 +16,9 @@ export const LEVEL_MESSAGES = {
   tooLarge: 'Ingresá un número menor o igual a 2.147.483.647.',
   silverNotPositive: 'El umbral de Plata debe ser mayor que 0',
   goldNotAboveSilver: 'El umbral de Oro debe ser mayor que el de Plata',
+  // S5 §3.10
+  benefitTooLong: 'El beneficio no puede superar los 255 caracteres.',
+  benefitNotText: 'El beneficio debe ser un texto.',
 } as const;
 
 export type LevelThresholds = {
@@ -21,7 +26,39 @@ export type LevelThresholds = {
   goldMinPoints: number;
 };
 
+// Beneficio de cada nivel (NIV-BEN). null = sin beneficio.
+export type LevelBenefits = {
+  bronzeBenefit: string | null;
+  silverBenefit: string | null;
+  goldBenefit: string | null;
+};
+
 type ThresholdField = keyof LevelThresholds;
+
+// Texto sin espacios en los bordes; vacío = null (S5 §3.10: "vacío = null")
+export function normalizeBenefit(value: string | null | undefined): string | null {
+  if (value === undefined || value === null) return null;
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed;
+}
+
+// Mensaje del problema de un beneficio, o null si está bien. Cuenta caracteres como la base
+// (VARCHAR(255) cuenta caracteres, no unidades UTF-16: un emoji es uno).
+export function benefitError(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'string') return LEVEL_MESSAGES.benefitNotText;
+  const trimmed = value.trim();
+  return [...trimmed].length > MAX_BENEFIT_LENGTH ? LEVEL_MESSAGES.benefitTooLong : null;
+}
+
+export function assertBenefit(value: string | null | undefined, field: keyof LevelBenefits): void {
+  const error = benefitError(value);
+  if (error) throw new DomainError(error, field);
+}
+
+// Lo que recibe el guardado de niveles: los umbrales y, opcionales, los beneficios.
+// Un beneficio que no viene se conserva; uno que viene vacío se borra.
+export type LevelsInput = LevelThresholds & Partial<LevelBenefits>;
 
 // Mensaje del primer problema de un umbral por sí solo (sin compararlo con el otro), o null
 export function thresholdFormatError(value: unknown): string | null {

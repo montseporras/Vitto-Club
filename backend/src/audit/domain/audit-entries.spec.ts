@@ -55,6 +55,9 @@ const config: LoyaltyConfigSnapshot = {
   bonusValue: 15,
   silverMinPoints: 300,
   goldMinPoints: 800,
+  bronzeBenefit: null,
+  silverBenefit: null,
+  goldBenefit: null,
 };
 
 describe('employeeUpdatedEntry()', () => {
@@ -204,6 +207,39 @@ describe('levelsUpdatedEntry() — US-27', () => {
     expect(entry.details).toEqual([
       { label: 'Plata', value: '300 → 400 pts' },
       { label: 'Oro', value: '800 → 1.500 pts' },
+    ]);
+  });
+
+  it('NIV-BEN: solo cambió un beneficio: solo su fila, sin las de umbrales (CA-NB.2)', () => {
+    const entry = levelsUpdatedEntry(actor, { ...config, silverBenefit: 'Postre gratis' }, {
+      ...config,
+      silverBenefit: 'Postre y café',
+    });
+
+    assertValidAuditEntry(entry);
+    expect(entry.details).toEqual([{ label: 'Beneficio Plata', value: 'Postre gratis → Postre y café' }]);
+  });
+
+  it('NIV-BEN: un beneficio vacío se muestra como "—" en las dos puntas', () => {
+    const entry = levelsUpdatedEntry(actor, { ...config, bronzeBenefit: null, goldBenefit: 'Mesa' }, {
+      ...config,
+      bronzeBenefit: 'Café',
+      goldBenefit: null,
+    });
+
+    expect(entry.details).toEqual([
+      { label: 'Beneficio Bronce', value: '— → Café' },
+      { label: 'Beneficio Oro', value: 'Mesa → —' },
+    ]);
+  });
+
+  it('NIV-BEN: umbrales y beneficios juntos: filas de umbrales y después las de beneficios', () => {
+    const entry = levelsUpdatedEntry(actor, config, { ...config, silverMinPoints: 400, bronzeBenefit: 'Café' });
+
+    expect(entry.details).toEqual([
+      { label: 'Plata', value: '300 → 400 pts' },
+      { label: 'Oro', value: '800 → 800 pts' },
+      { label: 'Beneficio Bronce', value: '— → Café' },
     ]);
   });
 

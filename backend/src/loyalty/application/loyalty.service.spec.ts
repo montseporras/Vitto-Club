@@ -186,6 +186,9 @@ describe('LoyaltyService', () => {
       bonusValue: 15,
       silverMinPoints: 300,
       goldMinPoints: 800,
+      bronzeBenefit: null,
+      silverBenefit: null,
+      goldBenefit: null,
       isActive: true,
       validFrom: new Date(),
       validTo: null,
@@ -230,6 +233,26 @@ describe('LoyaltyService', () => {
         silverMinPoints: 400,
         goldMinPoints: 900,
       });
+    });
+
+    it('NIV-BEN: pasa los beneficios al repositorio junto con los umbrales', async () => {
+      repository.saveLevels.mockResolvedValue('saved');
+      const levels = {
+        silverMinPoints: 400,
+        goldMinPoints: 900,
+        bronzeBenefit: null,
+        silverBenefit: 'Postre gratis',
+      };
+
+      await expect(service.setLevels(levels)).resolves.toBe('saved');
+      expect(repository.saveLevels).toHaveBeenCalledWith(levels);
+    });
+
+    it('NIV-BEN: un beneficio de más de 255 caracteres se rechaza sin guardar', async () => {
+      await expect(
+        service.setLevels({ silverMinPoints: 400, goldMinPoints: 900, goldBenefit: 'a'.repeat(256) }),
+      ).rejects.toThrow('El beneficio no puede superar los 255 caracteres.');
+      expect(repository.saveLevels).not.toHaveBeenCalled();
     });
 
     it.each([

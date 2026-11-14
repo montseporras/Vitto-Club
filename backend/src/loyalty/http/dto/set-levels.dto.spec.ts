@@ -10,6 +10,36 @@ async function messages(dtoClass: new () => object, payload: object): Promise<Re
   return Object.fromEntries(errors.map((error) => [error.property, Object.values(error.constraints ?? {})]));
 }
 
+describe('SetLevelsDto — beneficios (NIV-BEN, CA-NB.1)', () => {
+  const thresholds = { silverMinPoints: 300, goldMinPoints: 800 };
+
+  it('los beneficios son opcionales: ausentes, null o vacíos pasan', async () => {
+    await expect(messages(SetLevelsDto, thresholds)).resolves.toEqual({});
+    await expect(
+      messages(SetLevelsDto, { ...thresholds, bronzeBenefit: null, silverBenefit: '', goldBenefit: '  ' }),
+    ).resolves.toEqual({});
+  });
+
+  it('acepta un beneficio de exactamente 255 caracteres', async () => {
+    await expect(messages(SetLevelsDto, { ...thresholds, silverBenefit: 'a'.repeat(255) })).resolves.toEqual({});
+  });
+
+  it('256 caracteres da "El beneficio no puede superar los 255 caracteres." sobre ese campo', async () => {
+    await expect(
+      messages(SetLevelsDto, { ...thresholds, bronzeBenefit: 'a'.repeat(256), goldBenefit: 'b'.repeat(300) }),
+    ).resolves.toEqual({
+      bronzeBenefit: ['El beneficio no puede superar los 255 caracteres.'],
+      goldBenefit: ['El beneficio no puede superar los 255 caracteres.'],
+    });
+  });
+
+  it('algo que no es texto da "El beneficio debe ser un texto."', async () => {
+    await expect(messages(SetLevelsDto, { ...thresholds, silverBenefit: 12 })).resolves.toEqual({
+      silverBenefit: ['El beneficio debe ser un texto.'],
+    });
+  });
+});
+
 describe('SetLevelsDto — CA-27.3', () => {
   it('acepta umbrales válidos', async () => {
     await expect(messages(SetLevelsDto, { silverMinPoints: 300, goldMinPoints: 800 })).resolves.toEqual({});

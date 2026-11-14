@@ -7,7 +7,14 @@ import { LoyaltyProgramConfiguration } from '../domain/loyalty-program-configura
 
 const admin: CurrentUserData = { accountId: 1, role: 'ADMIN', employeeId: 1 };
 const createdAt = new Date('2026-10-16T17:05:00.000Z');
-const config = (version: number, silverMinPoints: number, goldMinPoints: number) =>
+type Benefits = { bronzeBenefit: string | null; silverBenefit: string | null; goldBenefit: string | null };
+const noBenefits: Benefits = { bronzeBenefit: null, silverBenefit: null, goldBenefit: null };
+const config = (
+  version: number,
+  silverMinPoints: number,
+  goldMinPoints: number,
+  benefits: Benefits = noBenefits,
+) =>
   LoyaltyProgramConfiguration.define({
     version,
     baseAmount: 1000,
@@ -17,6 +24,7 @@ const config = (version: number, silverMinPoints: number, goldMinPoints: number)
     bonusValue: null,
     silverMinPoints,
     goldMinPoints,
+    ...benefits,
     isActive: true,
     validFrom: createdAt,
     validTo: null,
@@ -45,6 +53,9 @@ describe('LevelsController', () => {
         { level: 'SILVER', minPoints: 300, editable: true },
         { level: 'GOLD', minPoints: 800, editable: true },
       ],
+      bronzeBenefit: null,
+      silverBenefit: null,
+      goldBenefit: null,
       configurationVersion: 5,
       updatedAt: createdAt,
     });
@@ -65,6 +76,47 @@ describe('LevelsController', () => {
       details: [
         { label: 'Plata', value: '300 → 400 pts' },
         { label: 'Oro', value: '800 → 900 pts' },
+      ],
+    });
+  });
+
+  it('getCurrent(): suma el beneficio de cada nivel (CA-NB.1)', async () => {
+    service.getActiveConfiguration.mockResolvedValue(
+      config(5, 300, 800, { bronzeBenefit: 'Café', silverBenefit: 'Postre gratis', goldBenefit: null }),
+    );
+
+    await expect(controller.getCurrent()).resolves.toMatchObject({
+      bronzeBenefit: 'Café',
+      silverBenefit: 'Postre gratis',
+      goldBenefit: null,
+    });
+  });
+
+  it('set(): pasa los beneficios al servicio y audita "Beneficio {nivel}: antes → después" (CA-NB.2)', async () => {
+    service.getActiveConfiguration.mockResolvedValue(
+      config(5, 300, 800, { bronzeBenefit: null, silverBenefit: 'Postre gratis', goldBenefit: 'Mesa reservada' }),
+    );
+    service.setLevels.mockResolvedValue(
+      config(6, 300, 800, { bronzeBenefit: 'Café de bienvenida', silverBenefit: 'Postre y café', goldBenefit: null }),
+    );
+    const body = {
+      silverMinPoints: 300,
+      goldMinPoints: 800,
+      bronzeBenefit: 'Café de bienvenida',
+      silverBenefit: 'Postre y café',
+      goldBenefit: '',
+    };
+
+    const result = await controller.set(body, admin);
+
+    expect(service.setLevels).toHaveBeenCalledWith(body);
+    expect(result).toMatchObject({ bronzeBenefit: 'Café de bienvenida', silverBenefit: 'Postre y café', goldBenefit: null });
+    expect(audit[0]).toMatchObject({
+      action: 'LEVELS_UPDATED',
+      details: [
+        { label: 'Beneficio Bronce', value: '— → Café de bienvenida' },
+        { label: 'Beneficio Plata', value: 'Postre gratis → Postre y café' },
+        { label: 'Beneficio Oro', value: 'Mesa reservada → —' },
       ],
     });
   });

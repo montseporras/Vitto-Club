@@ -20,6 +20,7 @@ import { LevelsResponseDto } from './dto/levels-response.dto.js';
 import { SetLevelsDto } from './dto/set-levels.dto.js';
 
 // US-27 (§3.7): umbrales de Plata y Oro. Bronce arranca siempre en 0.
+// NIV-BEN (S5 §3.10): además, el beneficio informativo de cada nivel.
 @Controller('loyalty/configuration/levels')
 // RolesGuard (global) cierra todo endpoint sin @Roles: solo el Administrador configura el programa
 @Roles('ADMIN')
@@ -51,6 +52,9 @@ export class LevelsController {
         const saved = await this.loyaltyService.setLevels({
           silverMinPoints: dto.silverMinPoints,
           goldMinPoints: dto.goldMinPoints,
+          bronzeBenefit: dto.bronzeBenefit,
+          silverBenefit: dto.silverBenefit,
+          goldBenefit: dto.goldBenefit,
         });
         return { before, configuration: saved };
       },

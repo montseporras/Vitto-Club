@@ -165,6 +165,9 @@ export class PointsPrismaRepository implements PointsRepository {
       pointsExpirationMonths: config.pointsExpirationMonths,
       silverMinPoints: config.silverMinPoints,
       goldMinPoints: config.goldMinPoints,
+      bronzeBenefit: config.bronzeBenefit,
+      silverBenefit: config.silverBenefit,
+      goldBenefit: config.goldBenefit,
     };
   }
 

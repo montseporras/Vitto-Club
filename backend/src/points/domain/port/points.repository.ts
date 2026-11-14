@@ -55,6 +55,10 @@ export type ActiveLoyaltyConfiguration = {
   pointsExpirationMonths: number;
   silverMinPoints: number;
   goldMinPoints: number;
+  // NIV-BEN: texto informativo de cada nivel (no cambia los puntos)
+  bronzeBenefit: string | null;
+  silverBenefit: string | null;
+  goldBenefit: string | null;
 };
 
 export abstract class PointsRepository {

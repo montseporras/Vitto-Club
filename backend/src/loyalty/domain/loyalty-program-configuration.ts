@@ -6,7 +6,9 @@ import { PointsEquivalence } from './points-equivalence.js';
 import { PointsValidity } from './points-validity.js';
 import { DomainError } from './errors/domain.error.js';
 import {
+  assertBenefit,
   assertLevelThresholds,
+  normalizeBenefit,
   DEFAULT_GOLD_MIN_POINTS,
   DEFAULT_SILVER_MIN_POINTS,
 } from './levels.js';
@@ -20,6 +22,10 @@ export type LoyaltyProgramConfigurationData = {
   bonusValue: number | null;
   silverMinPoints: number;
   goldMinPoints: number;
+  // NIV-BEN (S5-2): texto informativo de cada nivel; no cambia los puntos (S5-26)
+  bronzeBenefit: string | null;
+  silverBenefit: string | null;
+  goldBenefit: string | null;
   isActive: boolean;
   validFrom: Date;
   validTo: Date | null;
@@ -35,6 +41,10 @@ export type LoyaltyProgramConfigurationInput = {
   // US-27: en el guardado completo son opcionales; si faltan se copian de la versión vigente
   silverMinPoints?: number;
   goldMinPoints?: number;
+  // NIV-BEN: opcionales; si no vienen se copian de la versión vigente, y null borra el beneficio
+  bronzeBenefit?: string | null;
+  silverBenefit?: string | null;
+  goldBenefit?: string | null;
 };
 
 export class LoyaltyProgramConfiguration {
@@ -84,6 +94,9 @@ export class LoyaltyProgramConfiguration {
       silverMinPoints: data.silverMinPoints,
       goldMinPoints: data.goldMinPoints,
     });
+    assertBenefit(data.bronzeBenefit, 'bronzeBenefit');
+    assertBenefit(data.silverBenefit, 'silverBenefit');
+    assertBenefit(data.goldBenefit, 'goldBenefit');
 
     return new LoyaltyProgramConfiguration(data);
   }
@@ -111,6 +124,23 @@ export class LoyaltyProgramConfiguration {
     // Oro > Plata también cuando llega uno solo y el otro se copia de la versión vigente
     assertLevelThresholds({ silverMinPoints, goldMinPoints });
 
+    // NIV-BEN: un beneficio que no viene se copia de la vigente; uno vacío se guarda como null
+    const bronzeBenefit =
+      input.bronzeBenefit === undefined
+        ? (current?.getBronzeBenefit() ?? null)
+        : normalizeBenefit(input.bronzeBenefit);
+    const silverBenefit =
+      input.silverBenefit === undefined
+        ? (current?.getSilverBenefit() ?? null)
+        : normalizeBenefit(input.silverBenefit);
+    const goldBenefit =
+      input.goldBenefit === undefined
+        ? (current?.getGoldBenefit() ?? null)
+        : normalizeBenefit(input.goldBenefit);
+    assertBenefit(bronzeBenefit, 'bronzeBenefit');
+    assertBenefit(silverBenefit, 'silverBenefit');
+    assertBenefit(goldBenefit, 'goldBenefit');
+
     return {
       version: (current?.getVersion() ?? 0) + 1,
       baseAmount,
@@ -120,6 +150,9 @@ export class LoyaltyProgramConfiguration {
       bonusValue,
       silverMinPoints,
       goldMinPoints,
+      bronzeBenefit,
+      silverBenefit,
+      goldBenefit,
       isActive: true,
       validFrom: new Date(),
       validTo: null,
@@ -157,6 +190,18 @@ export class LoyaltyProgramConfiguration {
 
   getGoldMinPoints(): number {
     return this.data.goldMinPoints;
+  }
+
+  getBronzeBenefit(): string | null {
+    return this.data.bronzeBenefit;
+  }
+
+  getSilverBenefit(): string | null {
+    return this.data.silverBenefit;
+  }
+
+  getGoldBenefit(): string | null {
+    return this.data.goldBenefit;
   }
 
   getIsActive(): boolean {

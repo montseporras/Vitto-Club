@@ -11,7 +11,36 @@ export type LevelSummary = {
   progressPercent: number;
 };
 
+// NIV-BEN (S5 §3.10): resumen del nivel más el texto informativo del nivel actual y del siguiente.
+// El texto no interviene en ningún cálculo de puntos (S5-26).
+export type LevelBenefitTexts = {
+  bronzeBenefit: string | null;
+  silverBenefit: string | null;
+  goldBenefit: string | null;
+};
+
+export type LevelWithBenefits = LevelSummary & {
+  benefit: string | null;
+  nextBenefit: string | null;
+};
+
 const BRONZE_MIN_POINTS = 0;
+
+function benefitOf(level: Level | null, texts: LevelBenefitTexts): string | null {
+  if (level === 'BRONZE') return texts.bronzeBenefit;
+  if (level === 'SILVER') return texts.silverBenefit;
+  if (level === 'GOLD') return texts.goldBenefit;
+  return null;
+}
+
+// `nextBenefit` es null en Oro (no hay nivel siguiente)
+export function withBenefits(summary: LevelSummary, texts: LevelBenefitTexts): LevelWithBenefits {
+  return {
+    ...summary,
+    benefit: benefitOf(summary.current, texts),
+    nextBenefit: benefitOf(summary.next, texts),
+  };
+}
 
 // NOTA: el contrato no especifica el método de redondeo de progressPercent (a diferencia
 // de "points", que explícitamente trunca). Uso Math.round como criterio razonable; si el

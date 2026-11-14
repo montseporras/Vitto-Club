@@ -18,6 +18,8 @@ const pointsSummary: PointsSummary = {
     nextMinPoints: 800,
     pointsToNext: 350,
     progressPercent: 30,
+    benefit: null,
+    nextBenefit: null,
   },
   nextExpirations: [{ points: 200, expiresAt: '2026-11-30' }],
 };

@@ -140,6 +140,8 @@ describe('Puntos del cliente (e2e)', () => {
           nextMinPoints: 800,
           pointsToNext: 350,
           progressPercent: 30,
+          benefit: null,
+          nextBenefit: null,
         },
         nextExpirations: [
           { points: 200, expiresAt: '2026-11-30' },
@@ -171,6 +173,8 @@ describe('Puntos del cliente (e2e)', () => {
           nextMinPoints: null,
           pointsToNext: 0,
           progressPercent: 100,
+          benefit: null,
+          nextBenefit: null,
         },
         nextExpirations: [],
       });
@@ -196,6 +200,8 @@ describe('Puntos del cliente (e2e)', () => {
           nextMinPoints: 300,
           pointsToNext: 300,
           progressPercent: 0,
+          benefit: null,
+          nextBenefit: null,
         },
         nextExpirations: [],
       });
@@ -279,6 +285,8 @@ describe('Puntos del cliente (e2e)', () => {
           nextMinPoints: 300,
           pointsToNext: 180,
           progressPercent: 40,
+          benefit: null,
+          nextBenefit: null,
         },
         nextExpirations: [{ points: 120, expiresAt: '2027-01-10' }],
       });

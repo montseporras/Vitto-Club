@@ -13,7 +13,7 @@ import {
   LoyaltyProgramConfiguration,
   LoyaltyProgramConfigurationInput,
 } from '../domain/loyalty-program-configuration.js';
-import { assertLevelThresholds, LevelThresholds } from '../domain/levels.js';
+import { assertBenefit, assertLevelThresholds, LevelsInput } from '../domain/levels.js';
 
 @Injectable()
 export class LoyaltyService {
@@ -64,12 +64,14 @@ export class LoyaltyService {
     return bonus;
   }
 
-  // US-27 (§3.7.2): versión nueva con los umbrales, copiando el resto de los valores
-  async setLevels(
-    thresholds: LevelThresholds,
-  ): Promise<LoyaltyProgramConfiguration> {
-    assertLevelThresholds(thresholds);
-    return await this.loyaltyRepository.saveLevels(thresholds);
+  // US-27 (§3.7.2) y NIV-BEN (S5 §3.10): versión nueva con los umbrales y los beneficios,
+  // copiando el resto de los valores
+  async setLevels(levels: LevelsInput): Promise<LoyaltyProgramConfiguration> {
+    assertLevelThresholds(levels);
+    assertBenefit(levels.bronzeBenefit, 'bronzeBenefit');
+    assertBenefit(levels.silverBenefit, 'silverBenefit');
+    assertBenefit(levels.goldBenefit, 'goldBenefit');
+    return await this.loyaltyRepository.saveLevels(levels);
   }
 
   async getActiveConfiguration(): Promise<LoyaltyProgramConfiguration> {

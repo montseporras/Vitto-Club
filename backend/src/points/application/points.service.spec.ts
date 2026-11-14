@@ -21,6 +21,9 @@ class FakePointsRepository implements PointsRepository {
     pointsExpirationMonths: 12,
     silverMinPoints: 300,
     goldMinPoints: 800,
+    bronzeBenefit: null,
+    silverBenefit: null,
+    goldBenefit: null,
   };
 
   // Helper de test: carga un saldo inicial conocido (simula que ya hubo movimientos antes).
@@ -562,9 +565,50 @@ describe('PointsService', () => {
           nextMinPoints: 300,
           pointsToNext: 300,
           progressPercent: 0,
+          benefit: null,
+          nextBenefit: null,
         },
         nextExpirations: [],
       });
+    });
+
+    it('NIV-BEN: level trae el beneficio del nivel actual y el del siguiente (CA-NB.3)', async () => {
+      repository.activeConfig = {
+        pointsExpirationMonths: 12,
+        silverMinPoints: 300,
+        goldMinPoints: 800,
+        bronzeBenefit: 'Café de bienvenida',
+        silverBenefit: 'Postre gratis',
+        goldBenefit: 'Mesa reservada',
+      };
+      repository.seedBalance({ customerId: 101, balance: 450, debt: 0, lifetimePoints: 450 });
+      repository.seedBalance({ customerId: 102, balance: 900, debt: 0, lifetimePoints: 900 });
+      repository.seedBalance({ customerId: 103, balance: 10, debt: 0, lifetimePoints: 10 });
+
+      const silver = await service.resumen(101);
+      const gold = await service.resumen(102);
+      const bronze = await service.resumen(103);
+
+      expect(silver.level).toMatchObject({ current: 'SILVER', benefit: 'Postre gratis', nextBenefit: 'Mesa reservada' });
+      expect(gold.level).toMatchObject({ current: 'GOLD', benefit: 'Mesa reservada', nextBenefit: null });
+      expect(bronze.level).toMatchObject({ current: 'BRONZE', benefit: 'Café de bienvenida', nextBenefit: 'Postre gratis' });
+    });
+
+    it('CA-NB.4: con beneficios cargados, el saldo y el progreso son los mismos', async () => {
+      repository.seedBalance({ customerId: 101, balance: 450, debt: 0, lifetimePoints: 450 });
+      const without = await service.resumen(101);
+
+      repository.activeConfig = {
+        pointsExpirationMonths: 12,
+        silverMinPoints: 300,
+        goldMinPoints: 800,
+        bronzeBenefit: 'Café',
+        silverBenefit: 'Postre gratis',
+        goldBenefit: 'Mesa reservada',
+      };
+      const withTexts = await service.resumen(101);
+
+      expect({ ...withTexts, level: { ...withTexts.level, benefit: null, nextBenefit: null } }).toEqual(without);
     });
 
     it('saldo negativo: negativeBalance true', async () => {
@@ -705,7 +749,7 @@ describe('PointsService', () => {
     });
 
     it('CA-25.5: manda la fecha del lote (snapshot), aunque la vigencia vigente haya cambiado', async () => {
-      repository.activeConfig = { pointsExpirationMonths: 24, silverMinPoints: 300, goldMinPoints: 800 };
+      repository.activeConfig = { pointsExpirationMonths: 24, silverMinPoints: 300, goldMinPoints: 800, bronzeBenefit: null, silverBenefit: null, goldBenefit: null };
       repository.seedBalance({ customerId: 101, balance: 500, debt: 0, lifetimePoints: 500 });
       repository.seedLot({ id: 1, customerId: 101, consumptionId: 141, initialPoints: 500, remainingPoints: 500, accreditedAt, expiresAt: expired });
 
