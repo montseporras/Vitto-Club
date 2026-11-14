@@ -6,6 +6,10 @@ import type { FirstConsumptionBonusFormValues } from '../schemas/first-consumpti
 import type { PointsEquivalenceFormValues } from '../schemas/points-equivalence.schema';
 import type { PointsExpirationFormValues } from '../schemas/points-expiration.schema';
 import type {
+  FrequentCustomers,
+  UpdateFrequentCustomersDto,
+} from '../types/frequent-customers';
+import type {
   FirstConsumptionBonus,
   UpdateFirstConsumptionBonusDto,
 } from '../types/first-consumption-bonus';
@@ -26,6 +30,21 @@ const FIRST_CONSUMPTION_BONUS_URL = '/loyalty/configuration/first-consumption-bo
 const POINTS_EQUIVALENCE_URL = '/loyalty/configuration/points-equivalence';
 const POINTS_EXPIRATION_URL = '/loyalty/configuration/points-validity';
 const LOYALTY_LEVELS_URL = '/loyalty/configuration/levels';
+const FREQUENT_CUSTOMERS_URL = '/loyalty/configuration/frequent-customers';
+
+// Mínimo de consumos de un cliente frecuente (US-51, contrato S5 §3.9.6).
+export async function getFrequentCustomers(): Promise<FrequentCustomers> {
+  const { data } = await http.get<FrequentCustomers>(FREQUENT_CUSTOMERS_URL);
+  return data;
+}
+
+// Guarda el mínimo. El backend lo guarda en una versión nueva de la configuración.
+export async function updateFrequentCustomers(
+  body: UpdateFrequentCustomersDto,
+): Promise<FrequentCustomers> {
+  const { data } = await http.put<FrequentCustomers>(FREQUENT_CUSTOMERS_URL, body);
+  return data;
+}
 
 export async function getLoyaltyLevels(): Promise<LoyaltyLevelsConfiguration> {
   const { data } = await http.get<LoyaltyLevelsConfiguration>(LOYALTY_LEVELS_URL);

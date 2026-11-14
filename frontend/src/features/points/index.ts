@@ -15,6 +15,10 @@ export type {
   UpdatePointsExpirationDto,
 } from './types/points-expiration';
 export type {
+  FrequentCustomers,
+  UpdateFrequentCustomersDto,
+} from './types/frequent-customers';
+export type {
   LoyaltyLevel,
   LoyaltyLevelEntry,
   LoyaltyLevelsConfiguration,

@@ -4,12 +4,14 @@ import { StatusText } from '@/shared/components/feedback/StatusText';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Card, CardTitle } from '@/shared/components/ui/Card';
 import {
+  useFrequentCustomers,
   useFirstConsumptionBonus,
   useLoyaltyLevels,
   usePointsEquivalence,
   usePointsExpiration,
 } from '../api/points.queries';
 import { FirstConsumptionBonusForm } from '../components/FirstConsumptionBonusForm';
+import { FrequentCustomersForm } from '../components/FrequentCustomersForm';
 import { LoyaltyLevelsForm } from '../components/LoyaltyLevelsForm';
 import { PointsEquivalenceForm } from '../components/PointsEquivalenceForm';
 import { PointsExpirationForm } from '../components/PointsExpirationForm';
@@ -19,6 +21,7 @@ export function PointsSettingsPage() {
   const equivalence = usePointsEquivalence();
   const expiration = usePointsExpiration();
   const levels = useLoyaltyLevels();
+  const frequent = useFrequentCustomers();
   const { data: bonus, isLoading, isError, refetch } = useFirstConsumptionBonus();
 
   return (
@@ -87,6 +90,37 @@ export function PointsSettingsPage() {
 
         {levels.data && !levels.isError && (
           <LoyaltyLevelsForm configuration={levels.data} />
+        )}
+      </Card>
+
+      {/* US-51 (S5-22): mínimo de consumos de un cliente frecuente. */}
+      <Card compact>
+        <CardTitle>Clientes frecuentes</CardTitle>
+        <StatusText className="mt-0.5 mb-3 text-sm">
+          Un cliente es frecuente si tiene al menos{' '}
+          {frequent.data?.minConsumptions ?? '…'} consumos en el período. Se usa en
+          Estadísticas y reportes.
+        </StatusText>
+
+        {frequent.isLoading && <StatusText>Cargando mínimo…</StatusText>}
+
+        {frequent.isError && (
+          <Alert variant="error">
+            <p>
+              No se pudo cargar el mínimo.{' '}
+              <button
+                type="button"
+                onClick={() => void frequent.refetch()}
+                className="cursor-pointer font-semibold underline underline-offset-2"
+              >
+                Reintentar
+              </button>
+            </p>
+          </Alert>
+        )}
+
+        {frequent.data && !frequent.isError && (
+          <FrequentCustomersForm frequentCustomers={frequent.data} />
         )}
       </Card>
 
