@@ -1,12 +1,13 @@
 // Pestaña "Historial" de Configuración → Notificaciones (US-14, CA-14.6 y CA-14.8, contrato S5 §3.8.4 y
 // §3.8.5): filtros, la tabla de notificaciones de a 20 y "Reenviar" en las FAILED que todavía no se
-// reenviaron. Los resultados y los errores de "Reenviar" van en el toast, como en el prototipo.
+// reenviaron. El éxito de "Reenviar" va en el toast, como en el prototipo; el error, en un aviso rojo
+// arriba de la tabla, como en el resto de la app (decisión de Melisa).
 import { useDeferredValue, useState } from 'react'
 import { DOCUMENT_TYPES } from '@/domain/documents'
 import { toApiError } from '@/shared/api/ApiError'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { useToast } from '@/shared/components/feedback/useToast'
-import { Alert } from '@/shared/components/ui/Alert'
+import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Button } from '@/shared/components/ui/Button'
 import { RangePagination } from '@/shared/components/ui/Pagination'
@@ -29,10 +30,10 @@ import {
 import { NotificationsFilters } from './NotificationsFilters'
 
 // El mensaje del backend (404 y los dos 409 de §3.8.5), o uno genérico
-function resendErrorMessage(error: unknown): string {
+function resendErrorMessages(error: unknown): string[] {
   const apiError = toApiError(error)
-  if (apiError.messages.length > 0) return apiError.messages.join(' ')
-  return 'No se pudo reenviar el correo. Intentá nuevamente.'
+  if (apiError.messages.length > 0) return apiError.messages
+  return ['No se pudo reenviar el correo. Intentá nuevamente.']
 }
 
 // Debajo del estado: "Reenvío de un correo que falló." o "Ya se reenvió." (§3.8.4)
@@ -43,6 +44,8 @@ export function HistoryTab() {
   const toast = useToast()
   const [filters, setFilters] = useState<NotificationsFiltersState>(EMPTY_NOTIFICATIONS_FILTERS)
   const [page, setPage] = useState(1)
+  // Error del último "Reenviar"; se borra con el próximo reenvío o al cambiar los filtros o la página
+  const [resendError, setResendError] = useState<string[] | null>(null)
   // El número de documento se escribe de a una letra: se espera a que React esté libre para pedir
   const deferredFilters = useDeferredValue(filters)
 
@@ -60,19 +63,33 @@ export function HistoryTab() {
   const changeFilters = (next: NotificationsFiltersState) => {
     setFilters(next)
     setPage(1)
+    setResendError(null)
   }
 
-  const resendRow = (row: NotificationRecord) =>
+  const changePage = (next: number) => {
+    setPage(next)
+    setResendError(null)
+  }
+
+  const resendRow = (row: NotificationRecord) => {
+    setResendError(null)
     resend.mutate(row.id, {
       onSuccess: () => toast(`Correo reenviado a ${row.recipient}.`),
-      onError: (error) => toast(resendErrorMessage(error)),
+      onError: (error) => setResendError(resendErrorMessages(error)),
     })
+  }
 
   const items = history.data?.items ?? []
 
   return (
     <div className="flex flex-col gap-4">
       <NotificationsFilters filters={filters} onChange={changeFilters} />
+
+      {resendError && (
+        <Alert variant="error">
+          <AlertMessages messages={resendError} />
+        </Alert>
+      )}
 
       {history.isLoading && <StatusText>Cargando notificaciones…</StatusText>}
 
@@ -162,7 +179,7 @@ export function HistoryTab() {
             page={history.data.page}
             total={history.data.total}
             pageSize={history.data.limit || NOTIFICATIONS_PAGE_SIZE}
-            onChange={setPage}
+            onChange={changePage}
             disabled={history.isFetching}
           />
         </>

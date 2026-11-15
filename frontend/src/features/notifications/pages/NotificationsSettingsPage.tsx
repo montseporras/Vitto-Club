@@ -9,6 +9,7 @@ import { segmentedTabsStyles } from '@/styles/ui'
 import { useMessagesConfiguration } from '../api/notifications.queries'
 import { HistoryTab } from '../components/HistoryTab'
 import { MessagesTab } from '../components/MessagesTab'
+import { PromotionsCard } from '../components/PromotionsCard'
 import type { MessagesDraft } from '../lib/messages-draft'
 
 type Tab = 'messages' | 'history'
@@ -26,7 +27,8 @@ export function NotificationsSettingsPage() {
   const config = useMessagesConfiguration()
 
   return (
-    <div className="flex flex-col gap-6">
+    // pb-8: aire debajo de la última tarjeta (Promociones), para que no quede pegada al borde del modal
+    <div className="flex flex-col gap-6 pb-8">
       <div role="tablist" aria-label="Notificaciones" className={cn(segmentedTabsStyles.group, 'max-w-[420px]')}>
         {TABS.map(([value, label]) => (
           <button
@@ -62,7 +64,12 @@ export function NotificationsSettingsPage() {
               </p>
             </Alert>
           )}
-          {config.data && <MessagesTab saved={config.data} draft={draft} onDraftChange={setDraft} />}
+          {config.data && (
+            <MessagesTab saved={config.data} draft={draft} onDraftChange={setDraft}>
+              {/* US-15: la tarjeta "Promociones", tercera en la pestaña (contrato S5 §3.6.2) */}
+              <PromotionsCard />
+            </MessagesTab>
+          )}
         </>
       )}
 

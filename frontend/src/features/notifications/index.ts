@@ -15,3 +15,9 @@ export type {
   ResendResult,
   UpdateMessagesConfigurationDto,
 } from './types/notifications'
+export type {
+  PromotionRecipients,
+  PromotionSend,
+  PromotionSendStatus,
+  SendPromotionDto,
+} from './types/promotions'
