@@ -6,6 +6,7 @@ import { cashierHandlers } from './cashier.handlers'
 import { consumptionsHandlers } from './consumptions.handlers'
 import { employeesHandlers } from './employees.handlers'
 import { myAccountHandlers } from './my-account.handlers'
+import { notificationsHandlers } from './notifications.handlers'
 import { pointsHandlers } from './points.handlers'
 import {
   confirmRedemptionHandlers,
@@ -39,4 +40,6 @@ export const handlers = [
   ...pointsHandlers,
   // US-51 a US-54: estadísticas del Administrador
   ...statisticsHandlers,
+  // US-14: mensajes automáticos e historial de notificaciones
+  ...notificationsHandlers,
 ]
