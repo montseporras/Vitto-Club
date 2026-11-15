@@ -13,7 +13,8 @@ import { EmployeesPage } from '@/features/employees';
 // NUEVO (cambio 1): la pantalla de puntos, importada desde la API pública del
 // feature (su index.ts, archivo 10), nunca desde sus carpetas internas.
 import { PointsSettingsPage } from '@/features/points';
-import { StatusText } from '@/shared/components/feedback/StatusText';
+// US-14: Configuración → Notificaciones (mensajes automáticos e historial)
+import { NotificationsSettingsPage } from '@/features/notifications';
 import { AppHeader } from '@/shared/components/navigation/AppHeader';
 import { SideNav, type SideNavItem } from '@/shared/components/navigation/SideNav';
 import { Icon } from '@/shared/components/ui/Icon';
@@ -57,8 +58,15 @@ const SECTIONS = [
     icon: ICONS.coins,
     description: 'Reglas con las que los clientes suman puntos en sus consumos.',
   },
-  // Otro sprint: deshabilitada con "Próx.", como en el prototipo v2
-  { id: 'notifications', label: 'Notificaciones', icon: ICONS.bell, soon: true },
+  // US-14 (contrato S5 §3.6.2 y §3.13): habilitada, con el subtítulo del contrato. No hay opción
+  // "Promociones": se envían desde esta misma sección (S5-36).
+  {
+    id: 'notifications',
+    label: 'Notificaciones',
+    icon: ICONS.bell,
+    description:
+      'Mensajes que el sistema envía automáticamente a los clientes, envío de promociones e historial de envíos.',
+  },
 ] as const;
 
 type Section = (typeof SECTIONS)[number];
@@ -152,8 +160,8 @@ export function AdminLayout() {
               // "pendiente (otro RF)"; ahora muestra la pantalla nueva.
               <PointsSettingsPage />
             ) : (
-              // No se llega: Notificaciones está deshabilitada en el menú. Los niveles van dentro de Puntos.
-              <StatusText>{activeSection.label}: pendiente (otro RF).</StatusText>
+              // US-14: Notificaciones. Es la última sección; los niveles van dentro de Puntos.
+              <NotificationsSettingsPage />
             )}
           </section>
         </Modal>
