@@ -57,6 +57,25 @@
   --animate-vitto-steam: vitto-steam 2.8s ease-in-out infinite;
   --animate-vitto-rise: vitto-rise 450ms ease-out both;
   --animate-vitto-spin: vitto-spin 0.9s linear infinite;
+  --animate-vitto-bar: vitto-bar 1.2s ease-out both;
+  --animate-vitto-fade-in: vitto-fade-in 200ms ease-out both;
+
+  @keyframes vitto-bar {
+    from {
+      width: 0%;
+    }
+    to {
+      width: 100%;
+    }
+  }
+  @keyframes vitto-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 
   @keyframes vitto-modal-in {
     from {

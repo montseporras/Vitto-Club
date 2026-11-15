@@ -12,6 +12,7 @@ import { cn } from '@/shared/lib/utils'
 import { authShellStyles } from '@/styles/ui'
 import { useLogin } from '../api/auth.queries'
 import { AuthTabs } from '../components/AuthTabs'
+import { LoginLoading } from '../components/LoginLoading'
 import {
   loginSchema,
   type LoginFormInput,
@@ -22,11 +23,14 @@ import { AUTH_ERROR_CODES } from '../types/auth'
 
 const INITIAL_VALUES: LoginFormInput = { email: '', password: '' }
 
+// Tiempo mínimo de la pantalla de carga (ms), aunque el servidor responda antes
+const LOGIN_MIN_MS = 1200
+
 /** RF-059: un solo ingreso, con mail y contraseña, para clientes, cajeros y administradores. */
 export function LoginPage() {
   const session = useSession()
   const location = useLocation()
-  const login = useLogin()
+  const login = useLogin(LOGIN_MIN_MS)
   const {
     register,
     handleSubmit,
@@ -71,6 +75,7 @@ export function LoginPage() {
 
   return (
     <AuthShell title="Ingresar">
+      {login.isPending && <LoginLoading />}
       {/* Como en el prototipo, el aviso va arriba de las pestañas */}
       {error && (
         <Alert variant="error" className={cn(authShellStyles.narrow, 'mb-5')}>
