@@ -10,7 +10,7 @@ interface StatTileProps {
 
 export function StatTile({ label, value, help, color }: StatTileProps) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-[#f6e4da] bg-white py-3.5 pr-[18px] pl-6 [@media(max-height:820px)]:py-2.5">
+    <div className="relative bg-[#fdfbf9] py-4 pr-5 pl-6 [@media(max-height:820px)]:py-2.5">
       <span
         aria-hidden="true"
         className="absolute inset-y-0 left-0 w-1.5"
@@ -20,7 +20,7 @@ export function StatTile({ label, value, help, color }: StatTileProps) {
         {label}
       </div>
       {/* Todos los números de la pantalla: misma letra, en negrita y con cifras del mismo ancho */}
-      <div className="mt-1.5 text-[30px] leading-[1.1] font-bold tracking-[-0.01em] text-[#2b1a10] tabular-nums [@media(max-height:820px)]:mt-0.5 [@media(max-height:820px)]:text-[25px]">
+      <div className="mt-1.5 text-2xl leading-[1.1] font-bold tracking-[-0.01em] text-[#2b1a10] font-stats tabular-nums [@media(max-height:820px)]:mt-0.5 [@media(max-height:820px)]:text-xl">
         {value}
       </div>
       <div className="mt-1 text-xs text-[#7a6e63]">{help}</div>

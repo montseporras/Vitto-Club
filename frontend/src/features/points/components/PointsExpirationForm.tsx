@@ -4,11 +4,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { DEFAULT_POINTS_EXPIRATION_MONTHS } from '@/domain/expiration';
 import { toApiError } from '@/shared/api/ApiError';
-import { FormActions } from '@/shared/components/forms/FormActions';
-import { FormField } from '@/shared/components/forms/FormField';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
+import { Label } from '@/shared/components/ui/Label';
+import { InfoHint } from '@/shared/components/ui/InfoHint';
+import { formFieldStyles } from '@/styles/ui';
 import { useUpdatePointsExpiration } from '../api/points.queries';
 import {
   MAX_EXPIRATION_MONTHS,
@@ -69,23 +70,19 @@ export function PointsExpirationForm({ expiration }: PointsExpirationFormProps) 
   return (
     <form onSubmit={onSubmit} noValidate>
       {updateExpiration.isError && (
-        <Alert variant="error" className="mb-6">
+        <Alert variant="error" className="mb-2.5">
           {errorMessage(updateExpiration.error)}
         </Alert>
       )}
 
       {showSuccess && (
-        <Alert variant="success" className="mb-6">
+        <Alert variant="success" className="mb-2.5">
           Vigencia de los puntos guardada. Aplica a las operaciones futuras.
         </Alert>
       )}
 
-      <FormField
-        id="pointsExpirationMonths"
-        label="Meses"
-        error={errors.pointsExpirationMonths?.message}
-        hint={HINT}
-      >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <Label htmlFor="pointsExpirationMonths">Meses</Label>
         <Input
           id="pointsExpirationMonths"
           type="number"
@@ -93,7 +90,7 @@ export function PointsExpirationForm({ expiration }: PointsExpirationFormProps) 
           min={1}
           step={1}
           autoComplete="off"
-          className="w-40"
+          className="h-10 w-24"
           aria-invalid={errors.pointsExpirationMonths ? true : undefined}
           aria-describedby={
             errors.pointsExpirationMonths
@@ -102,17 +99,24 @@ export function PointsExpirationForm({ expiration }: PointsExpirationFormProps) 
           }
           {...register('pointsExpirationMonths', { valueAsNumber: true })}
         />
-      </FormField>
-
-      <FormActions>
+        <InfoHint label="Ayuda sobre la vigencia">{HINT}</InfoHint>
         <Button
           type="submit"
-          size="lg"
+          className="ml-auto h-10"
           disabled={!isDirty || updateExpiration.isPending}
         >
           {updateExpiration.isPending ? 'Guardando…' : 'Guardar'}
         </Button>
-      </FormActions>
+      </div>
+      {errors.pointsExpirationMonths ? (
+        <p id="pointsExpirationMonths-error" className={formFieldStyles.error}>
+          {errors.pointsExpirationMonths.message}
+        </p>
+      ) : (
+        <p id="pointsExpirationMonths-hint" className="sr-only">
+          {HINT}
+        </p>
+      )}
     </form>
   );
 }

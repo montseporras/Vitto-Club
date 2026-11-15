@@ -60,7 +60,7 @@ export function ExportReportModal({ month, onClose }: ExportReportModalProps) {
     );
 
   return (
-    <Modal title="Exportar reporte PDF" onClose={onClose} className="max-w-[460px]">
+    <Modal title="Exportar reporte PDF" onClose={onClose} className="max-w-[460px] rounded-lg">
       <p className="text-sm text-[#5c5249]">
         Elegí las secciones que van en el reporte de <strong>{monthLabel(month)}</strong>.
       </p>
@@ -69,12 +69,12 @@ export function ExportReportModal({ month, onClose }: ExportReportModalProps) {
         <span className="text-xs font-bold tracking-[0.04em] text-[#7e3e20] uppercase">
           Secciones
         </span>
-        <Button type="button" variant="ghost" className="h-[30px] px-2.5 text-[13px]" onClick={toggleAll}>
+        <Button type="button" variant="ghost" className="h-[30px] rounded px-2.5 text-[13px]" onClick={toggleAll}>
           {allSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-[#f6d0b1]">
+      <div className="overflow-hidden rounded-md border border-[#f6d0b1]">
         {REPORT_SECTIONS.map((section, index) => (
           <label
             key={section.value}
@@ -108,11 +108,12 @@ export function ExportReportModal({ month, onClose }: ExportReportModalProps) {
       )}
 
       <FormActions>
-        <Button type="button" variant="secondary" onClick={onClose}>
+        <Button type="button" variant="secondary" className="rounded" onClick={onClose}>
           Cancelar
         </Button>
         <Button
           type="button"
+          className="rounded"
           onClick={onDownload}
           disabled={noneSelected || download.isPending}
           aria-describedby={noneSelected ? 'export-report-error' : undefined}

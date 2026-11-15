@@ -21,18 +21,18 @@ export const pageCardPlainDescriptionStyles = 'mt-1.5 max-w-prose text-sm text-n
 // Ocupa todo el alto entre el encabezado y el pie (prototipo v2, vista de ingreso).
 // En celular el panel de marca va arriba, a lo ancho, y la página se desplaza entera.
 export const authShellStyles = {
-  root: 'flex w-full flex-1 flex-wrap bg-surface md:min-h-0',
+  root: 'flex w-full flex-1 flex-wrap bg-surface lg:min-h-0',
   // #b8653d: color del panel en el prototipo (no hay un tono igual en la paleta)
-  left: 'relative flex min-h-[220px] max-w-full shrink-0 grow-0 basis-full flex-col justify-center overflow-hidden bg-[#b8653d] px-6 py-10 text-white md:px-[clamp(32px,6vw,96px)]',
+  left: 'relative flex min-h-[220px] max-w-full shrink-0 grow-0 basis-full flex-col justify-center overflow-hidden bg-[#b8653d] px-6 py-10 text-white sm:py-12 md:px-12 lg:px-[clamp(32px,6vw,96px)]',
   // Ancho del panel: más angosto en el registro, que tiene más campos
-  leftWide: 'md:basis-[60%]',
-  leftNarrow: 'md:basis-[38%]',
+  leftWide: 'lg:basis-[60%]',
+  leftNarrow: 'lg:basis-[38%]',
   logo: 'pointer-events-none absolute -right-10 -bottom-10 h-[min(70%,460px)] w-auto opacity-[.12]',
   eyebrow: 'relative text-xs font-bold uppercase tracking-[0.18em]',
   title: 'relative mt-2.5 font-heading text-[44px] leading-[1.1] font-bold tracking-[-0.01em] text-white',
   tagline: 'relative mt-5 max-w-[22ch] font-heading text-[clamp(22px,2.4vw,32px)] leading-[1.3] font-semibold italic',
   description: 'relative mt-3 max-w-[65ch] text-sm leading-relaxed text-white/90',
-  right: 'flex min-w-0 flex-[1_1_360px] flex-col justify-center-safe px-[clamp(24px,4vw,64px)] py-7 md:max-h-full md:overflow-y-auto',
+  right: 'flex min-w-0 flex-[1_1_360px] flex-col justify-center-safe px-[clamp(24px,4vw,64px)] py-7 lg:max-h-full lg:overflow-y-auto',
   // Ancho del formulario de ingreso, de las pestañas y de los avisos
   narrow: 'mx-auto w-full max-w-[440px]',
 }
@@ -81,7 +81,7 @@ export const modalStyles = {
     'hover:bg-white/25',
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
   ].join(' '),
-  body: 'overflow-y-auto px-5 py-6 sm:px-8',
+  body: 'overflow-y-auto px-5 py-5 sm:px-8 sm:py-6',
   // Cruz en la esquina, para diálogos sin encabezado naranja (ej. cerrar sesión)
   closeIcon: [
     'absolute top-4 right-4 grid size-9 cursor-pointer place-items-center rounded-full text-accent-800 transition-colors',

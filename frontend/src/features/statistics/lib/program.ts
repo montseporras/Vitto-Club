@@ -16,9 +16,9 @@ export interface PieSlice {
 
 // Colores de la paleta de la marca (S5-54).
 const LEVEL_COLORS: Record<StatisticsLevel, string> = {
-  BRONZE: '#ffa47e', // durazno
-  SILVER: '#8a7468', // topo
-  GOLD: '#d4ae3a', // mostaza
+  BRONZE: '#b5826a', // cobre
+  SILVER: '#b09a8b', // topo
+  GOLD: '#ceb17c', // mostaza
 };
 
 /** Porciones de "Clientes por nivel": Bronce, Plata y Oro. */
@@ -45,7 +45,7 @@ export function missionSlices(
             key: 'inProgress',
             label: 'En progreso',
             count: missions.inProgress,
-            color: '#1b7f8c', // turquesa
+            color: '#589ea6', // turquesa
             help: 'El mes todavía no terminó.',
           },
         ]
@@ -54,21 +54,21 @@ export function missionSlices(
       key: 'completed',
       label: 'Completada',
       count: missions.completed,
-      color: '#d4ae3a', // mostaza
+      color: '#ceb17c', // mostaza
       help: 'Falta que el cliente la reclame o la misión no tiene recompensa.',
     },
     {
       key: 'claimed',
       label: 'Reclamada',
       count: missions.claimed,
-      color: '#8b3f22', // rojizo
+      color: '#a9532b', // terracota
       help: 'Se acreditaron los puntos.',
     },
     {
       key: 'expired',
       label: 'Vencida',
       count: missions.expired,
-      color: '#ffa47e', // durazno
+      color: '#e8b9a2', // durazno
       help: missions.expired > 0 ? 'No llegó al objetivo antes de fin de mes.' : undefined,
     },
   ];

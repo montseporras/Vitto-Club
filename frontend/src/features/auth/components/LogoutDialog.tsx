@@ -103,7 +103,7 @@ export function LogoutDialog({ onCancel }: LogoutDialogProps) {
       ) : (
         <div
           className={cn(
-            'relative w-full max-w-md rounded-[20px] border border-accent-100 bg-bg p-6 shadow-2xl shadow-accent-800/20 sm:p-8',
+            'relative max-h-[calc(100svh-2rem)] w-full max-w-md overflow-y-auto rounded-[20px] border border-accent-100 bg-bg p-6 shadow-2xl shadow-accent-800/20 sm:p-8',
             phase === 'leaving'
               ? 'motion-safe:animate-vitto-modal-out'
               : 'motion-safe:animate-vitto-modal-in',
@@ -154,7 +154,7 @@ export function LogoutDialog({ onCancel }: LogoutDialogProps) {
             </span>
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="mt-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
             <button
               type="button"
               autoFocus

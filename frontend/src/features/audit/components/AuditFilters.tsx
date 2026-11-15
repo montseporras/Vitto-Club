@@ -1,9 +1,14 @@
 import { DOCUMENT_TYPES } from '@/domain/documents'
 import { Button } from '@/shared/components/ui/Button'
 import { DateRangePicker } from '@/shared/components/ui/DateRangePicker'
-import { LooseField } from '@/shared/components/ui/FilterBar'
+import {
+  FilterActions,
+  FilterBar,
+  FilterCell,
+  FilterRowDivider,
+} from '@/shared/components/ui/FilterBar'
 import { FilterSelect } from '@/shared/components/ui/FilterSelect'
-import { looseInputClass } from '@/shared/components/ui/filter-styles'
+import { filterControlClass } from '@/shared/components/ui/filter-styles'
 import { AUDIT_ACTIONS_BY_MODULE, AUDIT_MODULES } from '../types/audit'
 import type { AuditActor, AuditAction, AuditModule } from '../types/audit'
 
@@ -71,92 +76,93 @@ export function AuditFilters({
     ...actions.map((action) => ({ value: action.value, label: action.label })),
   ]
 
-  // Campos sueltos en una grilla que se acomoda sola, como en el prototipo (Auditoria.html)
+  // Barra unida, igual que Canjes y Consumos. Los filtros se aplican al cambiarlos, así que no
+  // lleva botón "Filtrar": solo "Limpiar filtros".
   return (
-    <section
-      aria-label="Filtros de auditoría"
-      className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] items-end gap-2.5"
-    >
-      <LooseField label="Realizado por" htmlFor="audit-actor">
+    <FilterBar onSubmit={(event) => event.preventDefault()} aria-label="Filtros de auditoría">
+      <FilterCell label="Realizado por" htmlFor="audit-actor" flex="1.2 1 170px" divider={false}>
         <FilterSelect
           id="audit-actor"
-          variant="field"
+          variant="bar"
           value={filters.actor}
           options={actorOptions}
           disabled={actorsLoading}
           onChange={(value) => onChange({ actor: value })}
         />
-      </LooseField>
+      </FilterCell>
 
-      <LooseField label="Módulo" htmlFor="audit-module">
+      <FilterCell label="Módulo" htmlFor="audit-module" flex="1 1 140px">
         <FilterSelect
           id="audit-module"
-          variant="field"
+          variant="bar"
           value={filters.module}
           options={moduleOptions}
           onChange={(value) => onChange({ module: value as AuditModule | '', action: '' })}
         />
-      </LooseField>
+      </FilterCell>
 
-      <LooseField label="Acción" htmlFor="audit-action">
+      <FilterCell label="Acción" htmlFor="audit-action" flex="1 1 140px">
         <FilterSelect
           id="audit-action"
-          variant="field"
+          variant="bar"
           value={filters.action}
           options={actionOptions}
           disabled={!filters.module}
           onChange={(value) => onChange({ action: value as AuditAction | '' })}
         />
-      </LooseField>
+      </FilterCell>
 
-      <LooseField label="Tipo doc." htmlFor="audit-document-type">
+      <FilterRowDivider />
+
+      <FilterCell label="Tipo doc." htmlFor="audit-document-type" flex="0.7 1 110px" divider={false}>
         <FilterSelect
           id="audit-document-type"
-          variant="field"
+          variant="bar"
           value={filters.documentType}
           options={DOCUMENT_OPTIONS}
           onChange={(value) => onChange({ documentType: value as AuditFiltersState['documentType'] })}
         />
-      </LooseField>
+      </FilterCell>
 
-      <LooseField label="N° doc. cliente" htmlFor="audit-document-number">
+      <FilterCell label="N° doc. cliente" htmlFor="audit-document-number" flex="1 1 150px">
         <input
           id="audit-document-number"
-          className={looseInputClass}
+          className={filterControlClass}
           placeholder="30111222"
           maxLength={20}
           value={filters.documentNumber}
           onChange={(event) => onChange({ documentNumber: event.target.value })}
         />
-      </LooseField>
+      </FilterCell>
 
-      <LooseField label="Fecha" htmlFor="audit-date-preset">
+      <FilterCell label="Fecha" htmlFor="audit-date-preset" flex="1 1 160px">
         <FilterSelect
           id="audit-date-preset"
-          variant="field"
+          variant="bar"
           value={filters.datePreset}
           options={DATE_OPTIONS}
           onChange={(value) => onChange({ datePreset: value as AuditDatePreset })}
         />
-      </LooseField>
+      </FilterCell>
 
       {filters.datePreset === 'CUSTOM' && (
-        <div className="col-span-2 min-w-0">
+        <FilterCell label="Rango de fechas" htmlFor="audit-date-range" flex="1.3 1 220px">
           <DateRangePicker
             id="audit-date-range"
             label="Rango de fechas"
+            variant="bar"
             fromDate={filters.fromDate}
             toDate={filters.toDate}
             onApply={(fromDate, toDate) => onChange({ fromDate, toDate })}
           />
-        </div>
+        </FilterCell>
       )}
 
-      <div className="flex items-end">
-        <Button type="button" variant="secondary" onClick={onClear}>
+      <FilterActions>
+        <Button type="button" variant="secondary" onClick={onClear} className="h-9">
           Limpiar filtros
         </Button>
-      </div>
-    </section>
+      </FilterActions>
+    </FilterBar>
   )
 }

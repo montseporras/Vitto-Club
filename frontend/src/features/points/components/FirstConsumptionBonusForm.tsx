@@ -3,12 +3,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
 import { toApiError } from '@/shared/api/ApiError';
-import { FormActions } from '@/shared/components/forms/FormActions';
 import { FormField } from '@/shared/components/forms/FormField';
 import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
+import { InfoHint } from '@/shared/components/ui/InfoHint';
 import { useUpdateFirstConsumptionBonus } from '../api/points.queries';
 import {
   firstConsumptionBonusSchema,
@@ -100,19 +100,19 @@ export function FirstConsumptionBonusForm({ bonus }: FirstConsumptionBonusFormPr
   return (
     <form onSubmit={onSubmit} noValidate>
       {updateBonus.isError && (
-        <Alert variant="error" className="mb-6">
+        <Alert variant="error" className="mb-2.5">
           {errorMessage(updateBonus.error)}
         </Alert>
       )}
 
       {showSuccess && (
-        <Alert variant="success" className="mb-6">
+        <Alert variant="success" className="mb-2.5">
           Bonificación por primer consumo guardada. Aplica a las operaciones
           futuras.
         </Alert>
       )}
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid items-start gap-x-5 gap-y-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
         {/* El tope del valor depende del tipo: al cambiarlo se revalida el valor. */}
         <SegmentedRadio
           legend="Tipo de bonificación"
@@ -124,7 +124,6 @@ export function FirstConsumptionBonusForm({ bonus }: FirstConsumptionBonusFormPr
           id="bonusValue"
           label={valueField.label}
           error={errors.bonusValue?.message}
-          hint={valueField.hint}
         >
           <Input
             id="bonusValue"
@@ -137,20 +136,25 @@ export function FirstConsumptionBonusForm({ bonus }: FirstConsumptionBonusFormPr
             aria-describedby={
               errors.bonusValue ? 'bonusValue-error' : 'bonusValue-hint'
             }
+            className="h-10"
             {...register('bonusValue', { valueAsNumber: true })}
           />
         </FormField>
-      </div>
 
-      <FormActions>
-        <Button
-          type="submit"
-          size="lg"
-          disabled={!isDirty || updateBonus.isPending}
-        >
-          {updateBonus.isPending ? 'Guardando…' : 'Guardar'}
-        </Button>
-      </FormActions>
+        <div className="flex items-center gap-2 sm:mt-7">
+          <InfoHint label="Ayuda sobre la bonificación">{valueField.hint}</InfoHint>
+          <p id="bonusValue-hint" className="sr-only">
+            {valueField.hint}
+          </p>
+          <Button
+            type="submit"
+            className="h-10"
+            disabled={!isDirty || updateBonus.isPending}
+          >
+            {updateBonus.isPending ? 'Guardando…' : 'Guardar'}
+          </Button>
+        </div>
+      </div>
     </form>
   );
 }

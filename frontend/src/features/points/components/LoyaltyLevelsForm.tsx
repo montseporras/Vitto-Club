@@ -1,13 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { toApiError } from '@/shared/api/ApiError'
-import { FormActions } from '@/shared/components/forms/FormActions'
-import { FormField } from '@/shared/components/forms/FormField'
 import { Alert } from '@/shared/components/ui/Alert'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
 import { Label } from '@/shared/components/ui/Label'
+import { InfoHint } from '@/shared/components/ui/InfoHint'
 import { formFieldStyles, labelStyles } from '@/styles/ui'
 import { useUpdateLoyaltyLevels } from '../api/points.queries'
 import {
@@ -70,152 +69,168 @@ export function LoyaltyLevelsForm({
   })
 
   const showSuccess = updateLevels.isSuccess && !isDirty
-  const hasErrors = Boolean(
-    errors.silverMinPoints ||
-      errors.goldMinPoints ||
-      errors.bronzeBenefit ||
-      errors.silverBenefit ||
-      errors.goldBenefit,
-  )
 
   // Campo "Beneficio (opcional)" de un nivel: hasta 255, con el error del contrato debajo
   const benefitField = (
     name: 'bronzeBenefit' | 'silverBenefit' | 'goldBenefit',
   ) => (
-    <div className="mt-2 max-w-[560px]">
-      <FormField
+    <div className="flex min-w-60 flex-1 items-center gap-2">
+      <Label htmlFor={name} className="shrink-0">
+        Beneficio
+        <span className={formFieldStyles.optional}>(opcional)</span>
+      </Label>
+      <Input
         id={name}
-        label="Beneficio"
-        optional
-        error={errors[name]?.message}
-      >
-        <Input
-          id={name}
-          maxLength={MAX_BENEFIT_LENGTH}
-          autoComplete="off"
-          placeholder={BENEFIT_PLACEHOLDERS[name]}
-          aria-invalid={errors[name] ? true : undefined}
-          aria-describedby={errors[name] ? `${name}-error` : undefined}
-          {...register(name)}
-        />
-      </FormField>
+        maxLength={MAX_BENEFIT_LENGTH}
+        autoComplete="off"
+        placeholder={BENEFIT_PLACEHOLDERS[name]}
+        className="h-10 text-sm"
+        aria-invalid={errors[name] ? true : undefined}
+        aria-describedby={errors[name] ? `${name}-error` : undefined}
+        {...register(name)}
+      />
     </div>
   )
 
   return (
     <form onSubmit={onSubmit} noValidate>
       {updateLevels.isError && (
-        <Alert variant="error" className="mb-6">
+        <Alert variant="error" className="mb-2.5">
           {errorMessage(updateLevels.error)}
         </Alert>
       )}
 
       {showSuccess && (
-        <Alert variant="success" className="mb-6">
+        <Alert variant="success" className="mb-2.5">
           Niveles actualizados. Se recalculó el nivel de los clientes.
         </Alert>
       )}
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge variant="neutral" className="min-w-16 justify-center">
-              Bronce
-            </Badge>
-            <span className={labelStyles}>Desde 0 puntos</span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="flex shrink-0 items-center gap-2 sm:w-80">
+              <Badge variant="neutral" className="min-w-16 justify-center">
+                Bronce
+              </Badge>
+              <span className={labelStyles}>Desde 0 puntos</span>
+            </div>
+            {benefitField('bronzeBenefit')}
           </div>
-          {benefitField('bronzeBenefit')}
+          {errors.bronzeBenefit && (
+            <p id="bronzeBenefit-error" className={formFieldStyles.error}>
+              {errors.bronzeBenefit.message}
+            </p>
+          )}
         </div>
 
         <div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <Label htmlFor="silverMinPoints">
-              <Badge variant="neutral" className="min-w-16 justify-center">
-                Plata
-              </Badge>
-            </Label>
-            <span className={labelStyles}>Desde</span>
-            <Input
-              id="silverMinPoints"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={MAX_LEVEL_MIN_POINTS}
-              step={1}
-              autoComplete="off"
-              className="w-36"
-              aria-invalid={errors.silverMinPoints ? true : undefined}
-              aria-describedby={
-                errors.silverMinPoints
-                  ? 'silverMinPoints-error'
-                  : 'loyalty-levels-hint'
-              }
-              {...register('silverMinPoints', { valueAsNumber: true })}
-            />
-            <span className={labelStyles}>puntos</span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="flex shrink-0 items-center gap-2 sm:w-80">
+              <Label htmlFor="silverMinPoints">
+                <Badge variant="neutral" className="min-w-16 justify-center">
+                  Plata
+                </Badge>
+              </Label>
+              <span className={labelStyles}>Desde</span>
+              <Input
+                id="silverMinPoints"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={MAX_LEVEL_MIN_POINTS}
+                step={1}
+                autoComplete="off"
+                className="h-10 w-28"
+                aria-invalid={errors.silverMinPoints ? true : undefined}
+                aria-describedby={
+                  errors.silverMinPoints
+                    ? 'silverMinPoints-error'
+                    : 'loyalty-levels-hint'
+                }
+                {...register('silverMinPoints', { valueAsNumber: true })}
+              />
+              <span className={labelStyles}>puntos</span>
+            </div>
+            {benefitField('silverBenefit')}
           </div>
           {errors.silverMinPoints && (
             <p id="silverMinPoints-error" className={formFieldStyles.error}>
               {errors.silverMinPoints.message}
             </p>
           )}
-          {benefitField('silverBenefit')}
+          {errors.silverBenefit && (
+            <p id="silverBenefit-error" className={formFieldStyles.error}>
+              {errors.silverBenefit.message}
+            </p>
+          )}
         </div>
 
         <div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <Label htmlFor="goldMinPoints">
-              <Badge variant="neutral" className="min-w-16 justify-center">
-                Oro
-              </Badge>
-            </Label>
-            <span className={labelStyles}>Desde</span>
-            <Input
-              id="goldMinPoints"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={MAX_LEVEL_MIN_POINTS}
-              step={1}
-              autoComplete="off"
-              className="w-36"
-              aria-invalid={errors.goldMinPoints ? true : undefined}
-              aria-describedby={
-                errors.goldMinPoints
-                  ? 'goldMinPoints-error'
-                  : 'loyalty-levels-hint'
-              }
-              {...register('goldMinPoints', { valueAsNumber: true })}
-            />
-            <span className={labelStyles}>puntos</span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="flex shrink-0 items-center gap-2 sm:w-80">
+              <Label htmlFor="goldMinPoints">
+                <Badge variant="neutral" className="min-w-16 justify-center">
+                  Oro
+                </Badge>
+              </Label>
+              <span className={labelStyles}>Desde</span>
+              <Input
+                id="goldMinPoints"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={MAX_LEVEL_MIN_POINTS}
+                step={1}
+                autoComplete="off"
+                className="h-10 w-28"
+                aria-invalid={errors.goldMinPoints ? true : undefined}
+                aria-describedby={
+                  errors.goldMinPoints
+                    ? 'goldMinPoints-error'
+                    : 'loyalty-levels-hint'
+                }
+                {...register('goldMinPoints', { valueAsNumber: true })}
+              />
+              <span className={labelStyles}>puntos</span>
+            </div>
+            {benefitField('goldBenefit')}
           </div>
           {errors.goldMinPoints && (
             <p id="goldMinPoints-error" className={formFieldStyles.error}>
               {errors.goldMinPoints.message}
             </p>
           )}
-          {benefitField('goldBenefit')}
+          {errors.goldBenefit && (
+            <p id="goldBenefit-error" className={formFieldStyles.error}>
+              {errors.goldBenefit.message}
+            </p>
+          )}
         </div>
       </div>
 
-      {!hasErrors && (
-        <p id="loyalty-levels-hint" className={`${formFieldStyles.hint} mt-3`}>
-          Los canjes y vencimientos no bajan el nivel. Los consumos anulados no
-          suman. Los puntos de misiones y de cumpleaños no cuentan para el
-          nivel. El beneficio es informativo: lo ven los clientes y no cambia
-          los puntos.
+      <div className="mt-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <InfoHint label="Ayuda sobre los niveles">
+            Los canjes y vencimientos no bajan el nivel. Los consumos anulados no suman. Los puntos
+            de misiones y de cumpleaños no cuentan para el nivel. El beneficio es informativo: lo
+            ven los clientes y no cambia los puntos.
+          </InfoHint>
+          <span className="text-xs text-neutral-600">Cómo se calcula el nivel</span>
+        </div>
+        {/* La ayuda se ve con el "?"; acá queda solo para los lectores de pantalla */}
+        <p id="loyalty-levels-hint" className="sr-only">
+          Los canjes y vencimientos no bajan el nivel. Los consumos anulados no suman. Los puntos de
+          misiones y de cumpleaños no cuentan para el nivel. El beneficio es informativo.
         </p>
-      )}
-
-      <FormActions>
         <Button
           type="submit"
-          size="lg"
+          className="h-10 shrink-0"
           disabled={!isDirty || updateLevels.isPending}
         >
           {updateLevels.isPending ? 'Guardando…' : 'Guardar'}
         </Button>
-      </FormActions>
+      </div>
     </form>
   )
 }

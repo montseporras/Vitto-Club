@@ -7,10 +7,10 @@ import { AppFooter, AppHeader } from '@/shared/components/navigation/AppHeader'
  */
 export function AuthLayout() {
   return (
-    <div className="flex min-h-svh flex-col md:h-svh md:overflow-hidden">
+    <div className="flex min-h-svh flex-col lg:h-svh lg:overflow-hidden">
       <AppHeader area="Ingreso" showBack={false} />
 
-      <main className="flex w-full flex-1 md:min-h-0">
+      <main className="flex w-full flex-1 lg:min-h-0">
         <Outlet />
       </main>
 

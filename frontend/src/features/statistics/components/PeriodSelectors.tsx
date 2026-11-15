@@ -13,7 +13,8 @@ interface PeriodSelectorsProps {
 const labelClass =
   'flex flex-col gap-0.5 text-[11px] font-bold tracking-[0.04em] text-[#7e3e20] uppercase';
 // Los selectores de esta pantalla miden 36 px de alto (prototipo).
-const selectClass = 'h-9 min-h-0 py-0 text-sm font-normal normal-case tracking-normal';
+const selectClass =
+  'h-9 min-h-0 rounded border-[#e8dfd5] py-0 text-sm font-normal normal-case tracking-normal';
 
 export function PeriodSelectors({ selected, today, onChange }: PeriodSelectorsProps) {
   const isFuture = (month: number) => selected.year === today.year && month > today.month;

@@ -118,7 +118,7 @@ export function DateRangePicker({
           <section
             role="dialog"
             aria-label="Elegir rango de fechas"
-            className="absolute top-[calc(100%+6px)] left-0 z-60 w-[280px] rounded-[14px] border border-[#f6d0b1] bg-white p-3 shadow-[0_20px_25px_-5px_rgba(126,62,32,0.15),0_8px_10px_-6px_rgba(126,62,32,0.12)]"
+            className="absolute top-[calc(100%+6px)] left-0 z-60 w-[280px] max-sm:fixed max-sm:inset-x-0 max-sm:top-1/2 max-sm:mx-auto max-sm:-translate-y-1/2 rounded-[14px] border border-[#f6d0b1] bg-white p-3 shadow-[0_20px_25px_-5px_rgba(126,62,32,0.15),0_8px_10px_-6px_rgba(126,62,32,0.12)]"
           >
             <header className="mb-2 flex items-center justify-between">
               <button

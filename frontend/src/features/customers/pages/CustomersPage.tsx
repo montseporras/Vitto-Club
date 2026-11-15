@@ -7,9 +7,9 @@ import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Button } from '@/shared/components/ui/Button'
-import { LooseField } from '@/shared/components/ui/FilterBar'
+import { FilterBar, FilterCell } from '@/shared/components/ui/FilterBar'
 import { FilterSelect } from '@/shared/components/ui/FilterSelect'
-import { looseInputClass } from '@/shared/components/ui/filter-styles'
+import { filterControlClass } from '@/shared/components/ui/filter-styles'
 import { AdminPanel } from '@/shared/components/ui/AdminPanel'
 import { Page } from '@/shared/components/ui/Page'
 import { RangePagination } from '@/shared/components/ui/Pagination'
@@ -85,33 +85,34 @@ export function CustomersPage() {
   return (
     <Page className="max-w-none">
       <AdminPanel title="Clientes">
-        {/* Campos sueltos con anchos máximos, como en el prototipo (Clientes) */}
-        <div className="mb-3 flex flex-wrap items-end gap-2">
-          <LooseField
+        {/* Barra unida, igual que Canjes y Consumos; se aplica al cambiar cada campo */}
+        <FilterBar
+          onSubmit={(event) => event.preventDefault()}
+          aria-label="Filtros de clientes"
+          className="mb-4"
+        >
+          <FilterCell
             label="Tipo de documento"
             htmlFor="customers-document-type"
-            className="mb-2.5 max-w-[180px]"
+            flex="0.8 1 150px"
+            divider={false}
           >
             <FilterSelect
               id="customers-document-type"
-              variant="field"
+              variant="bar"
               value={documentType}
               options={DOCUMENT_TYPE_OPTIONS}
               onChange={(value) => {
-  setDocumentType(value as DocumentType)
-  setPage(1)
-}}
+                setDocumentType(value as DocumentType)
+                setPage(1)
+              }}
             />
-          </LooseField>
-          <LooseField
-            label="Número de documento"
-            htmlFor="customers-search"
-            className="mb-2.5 max-w-[240px]"
-          >
+          </FilterCell>
+          <FilterCell label="Número de documento" htmlFor="customers-search" flex="1.4 1 200px">
             <input
               id="customers-search"
               type="search"
-              className={looseInputClass}
+              className={filterControlClass}
               placeholder={DOCUMENT_PLACEHOLDERS[documentType]}
               autoComplete="off"
               value={search}
@@ -120,20 +121,20 @@ export function CustomersPage() {
                 setPage(1)
               }}
             />
-          </LooseField>
-          <LooseField label="Nivel" htmlFor="customers-level" className="mb-2.5 max-w-[200px]">
+          </FilterCell>
+          <FilterCell label="Nivel" htmlFor="customers-level" flex="1 1 170px">
             <FilterSelect
               id="customers-level"
-              variant="field"
+              variant="bar"
               value={level}
               options={LEVEL_OPTIONS}
               onChange={(value) => {
-  setLevel(value as Level | '')
-  setPage(1)
-}}
+                setLevel(value as Level | '')
+                setPage(1)
+              }}
             />
-          </LooseField>
-        </div>
+          </FilterCell>
+        </FilterBar>
 
         <div ref={areaRef} aria-live="polite">
           {customers.isPending && <StatusText>Cargando…</StatusText>}

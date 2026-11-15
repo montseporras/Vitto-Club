@@ -14,6 +14,7 @@ Documentos que cambian con el tiempo: estado, decisiones, pendientes y pedidos e
 | [avisos-cambios-2026-10-20](./avisos-cambios-2026-10-20.md) | Avisos al equipo del 20/10: "Compra" → "Consumo" en el código y lote `VOIDED` |
 | [diferencias-prototipo-frontend](./diferencias-prototipo-frontend.md) | Diferencias entre el prototipo v2 y el frontend tras la alineación visual del 19/10 |
 | [emp-pass-frontend](./emp-pass-frontend.md) | EMP-PASS (frontend): contraseña y reactivación de usuarios |
+| [responsive-pendientes](./responsive-pendientes.md) | Qué se adaptó a tablet y celular, qué se revisó y qué queda pendiente por tocarlo el Sprint 5 |
 | [pedidos/](./pedidos/) | Pedidos entre equipos (ver [plantilla](../plantillas/pedido-entre-equipos.md)) |
 | [historico/](./historico/) | Documentos de traspaso, comparación de ramas y pendientes ya superados |
 

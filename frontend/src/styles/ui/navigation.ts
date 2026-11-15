@@ -3,9 +3,9 @@ import { cva } from 'class-variance-authority'
 /** Barra superior de la app (mostrador y administración). */
 export const appHeaderStyles = {
   root: 'sticky top-0 z-20 bg-accent-700 shadow-md shadow-accent-900/20',
-  inner: 'flex w-full items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-6 sm:py-3',
+  inner: 'flex w-full flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 sm:gap-x-4 sm:px-6 sm:py-3',
   back: [
-    'inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-bg px-4 text-sm font-bold text-accent-800 shadow-sm transition-colors',
+    'inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-bg px-3 text-sm sm:px-4 font-bold text-accent-800 shadow-sm transition-colors',
     'hover:bg-accent-50',
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
   ].join(' '),
@@ -14,11 +14,11 @@ export const appHeaderStyles = {
   logo: 'h-9 w-auto',
   title: 'truncate text-lg text-white sm:text-2xl',
   area: 'font-sans text-base font-semibold sm:text-lg',
-  actions: 'ml-auto flex items-center gap-3',
+  actions: 'ml-auto flex items-center gap-2 sm:gap-3',
   meta: 'hidden text-sm text-white/90 md:inline',
   // Botón con texto sobre el naranja (ej. cerrar sesión)
   action: [
-    'inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-white/15 px-4 text-sm font-bold text-white transition-colors',
+    'inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-white/15 px-3 text-sm sm:px-4 font-bold text-white transition-colors',
     'hover:bg-white/25 disabled:pointer-events-none disabled:opacity-60',
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
   ].join(' '),
@@ -99,6 +99,11 @@ export const sideNavStyles = {
     'ml-auto shrink-0 text-accent-200 transition-[color,transform] duration-150 group-hover/nav:translate-x-0.5',
   chevronActive: 'text-accent-700',
   chevronCollapsed: 'hidden',
+  // Debajo de lg el menú queda al costado, cerrado (solo íconos); abierto flota sobre el contenido
+  drawerClosed: 'w-14',
+  drawerOpen:
+    'absolute top-0 left-0 z-30 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-accent-200 bg-surface p-2 shadow-2xl shadow-accent-900/20',
+  drawerBackdrop: 'fixed inset-0 z-20 cursor-default bg-accent-900/10',
   // Nombre de la sección al pasar el cursor sobre el ícono (solo con el menú contraído)
   tooltip: [
     'pointer-events-none invisible absolute top-1/2 left-full z-30 ml-3 -translate-x-1 -translate-y-1/2 opacity-0',
@@ -106,7 +111,8 @@ export const sideNavStyles = {
     'transition-[opacity,translate] duration-150',
     'before:absolute before:top-1/2 before:-left-1 before:size-2.5 before:-translate-y-1/2 before:rotate-45 before:bg-accent-700',
     'group-hover/nav:visible group-hover/nav:translate-x-0 group-hover/nav:opacity-100',
-    'group-focus-within/nav:visible group-focus-within/nav:translate-x-0 group-focus-within/nav:opacity-100',
+    // Con el foco (después de un clic o un toque) se ve 2 segundos y se oculta sola
+    'group-focus-within/nav:translate-x-0 group-focus-within/nav:animate-vitto-tip',
   ].join(' '),
 }
 
