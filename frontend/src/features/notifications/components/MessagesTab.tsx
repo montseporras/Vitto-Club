@@ -6,9 +6,8 @@
 // cambiar a Historial y volver (decisión de Melisa).
 import { useState, type ReactNode } from 'react'
 import { toApiError } from '@/shared/api/ApiError'
-import { useToast } from '@/shared/components/feedback/useToast'
 import { FormField } from '@/shared/components/forms/FormField'
-import { Alert } from '@/shared/components/ui/Alert'
+import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { Card, CardTitle } from '@/shared/components/ui/Card'
 import { Input } from '@/shared/components/ui/Input'
@@ -21,12 +20,13 @@ import type { AutomaticMessage, AutomaticNotificationType, MessagesConfiguration
 import { ActiveSwitch } from './ActiveSwitch'
 import { EditMessageModal } from './EditMessageModal'
 
-// Los errores del PUT van en el toast (decisión de Melisa), con el mensaje del backend
-function saveErrorMessage(error: unknown): string {
+// Los errores del PUT van en un aviso rojo arriba de las tarjetas, como en el resto de la
+// Configuración (decisión de Melisa), con los mensajes del backend
+function saveErrorMessages(error: unknown): string[] {
   const apiError = toApiError(error)
-  if (apiError.status === 403) return 'Solo un Administrador puede cambiar esta configuración.'
-  if (apiError.messages.length > 0) return apiError.messages.join(' ')
-  return 'No se pudieron guardar las notificaciones. Intentá nuevamente.'
+  if (apiError.status === 403) return ['Solo un Administrador puede cambiar esta configuración.']
+  if (apiError.messages.length > 0) return apiError.messages
+  return ['No se pudieron guardar las notificaciones. Intentá nuevamente.']
 }
 
 type MessagesTabProps = {
@@ -39,11 +39,12 @@ type MessagesTabProps = {
 }
 
 export function MessagesTab({ saved, draft, onDraftChange, children }: MessagesTabProps) {
-  const toast = useToast()
   const update = useUpdateMessagesConfiguration()
   const [editing, setEditing] = useState<AutomaticNotificationType | null>(null)
   const [pointsError, setPointsError] = useState<string | null>(null)
   const [savedOk, setSavedOk] = useState(false)
+  // Se borra con el próximo cambio, al descartar o al volver a guardar
+  const [saveError, setSaveError] = useState<string[] | null>(null)
 
   const current = draft ?? draftFrom(saved)
   const pending = !sameDraft(current, draftFrom(saved))
@@ -52,6 +53,7 @@ export function MessagesTab({ saved, draft, onDraftChange, children }: MessagesT
 
   const change = (next: MessagesDraft) => {
     setSavedOk(false)
+    setSaveError(null)
     onDraftChange(next)
   }
 
@@ -67,6 +69,7 @@ export function MessagesTab({ saved, draft, onDraftChange, children }: MessagesT
   }
 
   const save = () => {
+    setSaveError(null)
     if (!parsedPoints.success) {
       setPointsError(parsedPoints.error.issues[0]?.message ?? null)
       return
@@ -79,13 +82,14 @@ export function MessagesTab({ saved, draft, onDraftChange, children }: MessagesT
           onDraftChange(null)
           setSavedOk(true)
         },
-        onError: (error) => toast(saveErrorMessage(error)),
+        onError: (error) => setSaveError(saveErrorMessages(error)),
       },
     )
   }
 
   const discard = () => {
     setPointsError(null)
+    setSaveError(null)
     setSavedOk(false)
     onDraftChange(null)
   }
@@ -94,6 +98,12 @@ export function MessagesTab({ saved, draft, onDraftChange, children }: MessagesT
     <div className="space-y-6">
       {savedOk && (
         <Alert variant="success">Notificaciones guardadas. Se aplican a los próximos envíos.</Alert>
+      )}
+
+      {saveError && (
+        <Alert variant="error">
+          <AlertMessages messages={saveError} />
+        </Alert>
       )}
 
       <Card compact>

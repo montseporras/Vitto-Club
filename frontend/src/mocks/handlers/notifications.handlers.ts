@@ -113,6 +113,15 @@ history.push(record('MISSION', 'SENT', 2, 28, { resentFromId: failedAndResent.id
 // Una de cumpleaños que falló, para probar "Las notificaciones de Cumpleaños están desactivadas."
 history.push(record('BIRTHDAY', 'FAILED', 3, 2))
 
+// US-15: los correos PROMOTION de un envío quedan en el historial, uno por cliente. En la app salen en
+// segundo plano (§8.1 #3); acá quedan enviados al instante.
+export function recordPromotionEmails(subject: string, customerIds: number[]) {
+  for (const customerId of customerIds) {
+    const index = customers.findIndex((customer) => customer.id === customerId)
+    if (index >= 0) history.push(record('PROMOTION', 'SENT', index, 0, { subject }))
+  }
+}
+
 // Sin puntos, espacios ni guiones, en mayúsculas (igual que en Canjes)
 const normalize = (value: string) => value.replace(/[^0-9A-Za-z]/g, '').toUpperCase()
 

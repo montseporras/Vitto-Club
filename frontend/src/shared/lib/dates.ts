@@ -138,3 +138,31 @@ export function formatDateTimeInTimeZone(value: string, timeZone: string) {
   const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
   return `${values.day}/${values.month}/${values.year} ${values.hour}:${values.minute}`
 }
+
+// Argentina es UTC−3 todo el año (sin horario de verano)
+const ARGENTINA_UTC_OFFSET = '-03:00'
+
+/**
+ * Valor de un campo `datetime-local` ('YYYY-MM-DDTHH:mm'), tomado como hora de Argentina → ISO UTC.
+ * null si está vacío o no es una fecha válida (US-15, "Programar" una promoción).
+ */
+export function argentinaDateTimeToIso(value: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null
+  const date = new Date(`${value}:00${ARGENTINA_UTC_OFFSET}`)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+/** Ahora (más `offsetMinutes`) en hora de Argentina, como 'YYYY-MM-DDTHH:mm' para un `datetime-local`. */
+export function argentinaDateTimeInputValue(offsetMinutes = 0): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(Date.now() + offsetMinutes * 60_000))
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
+  return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}`
+}
