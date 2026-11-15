@@ -54,8 +54,11 @@
 
 ### SCRUM-36: cerrar sesión
 
-1. **Cierre.** El sistema lo lleva al inicio de sesión y deja de tener acceso
-   desde ese dispositivo.
+1. **Cierre.** El sistema deja de tener acceso desde ese dispositivo y muestra
+   una pantalla de despedida con un botón para volver al inicio de sesión.
+   Antes pide confirmación y, mientras guarda, muestra el logo y un mensaje
+   (mínimo 1,2 s). Los textos cambian según el rol (Administrador, Cajero,
+   Cliente).
 2. **No se puede renovar.** Una sesión cerrada no se renueva.
 3. **Solo la sesión actual.** Con dos dispositivos, cerrar en uno deja la otra
    activa.

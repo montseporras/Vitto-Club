@@ -251,6 +251,7 @@ Las pantallas y sus nombres corresponden a las validadas en el prototipo interac
 |---|---|
 | `/login` | Ingresar — usuario/correo y contraseña, un solo formulario para los tres roles |
 | `/registro` | Registrarme — solo crea cuentas con rol Cliente |
+| `/sesion-cerrada` | Despedida después de cerrar sesión, con textos por rol (`auth/LoggedOutPage`). Es pública, pero solo se ve justo después de un cierre voluntario (`farewellRole` en la sesión); sin eso, redirige a `/login`. El cierre se hace en `LogoutDialog`: confirmación → guardado (logo + mensaje, mínimo 1,2 s) → `endSession({ farewellRole })`. |
 
 Las rutas salen de `src/app/router/paths.ts` (09/11/2026). "Página" es el componente de `features/`.
 
