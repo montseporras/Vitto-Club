@@ -64,7 +64,7 @@ export type CreateConsumptionBody = {
   notes: string | null
 }
 
-/** Respuesta 201 de POST /api/consumos (contrato §3.1.3). */
+/** Respuesta 201 de POST /api/consumos (contratos S3 §3.1.3 y S5 §3.2). */
 export type CreateConsumptionResult = {
   consumption: Consumption
   balanceBefore: number
@@ -72,6 +72,7 @@ export type CreateConsumptionResult = {
   levelBefore: Level
   levelAfter: Level
   levelUp: boolean
+  completedMissions: { id: number; name: string; rewardPoints: number }[]
 }
 
 /** Respuesta de GET /api/customers/:id/consumos (contrato §3.2.1). */

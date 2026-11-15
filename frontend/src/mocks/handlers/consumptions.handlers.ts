@@ -21,7 +21,7 @@ import {
   toConsumption,
 } from './cashier.handlers'
 
-// US-21: GET /api/consumos/preview y POST /api/consumos (contrato §3.1.2 y §3.1.3).
+// US-21 / US-30: GET /api/consumos/preview y POST /api/consumos (S3 §3.1.2–3.1.3, S5 §3.2).
 // Simulan lo que hace el backend: la pantalla no calcula nada.
 
 // Configuración vigente de ejemplo: $1.000 = 10 pts y 15 % de bonificación por primer consumo
@@ -297,6 +297,7 @@ export const consumptionsHandlers = [
       levelBefore,
       levelAfter,
       levelUp: levelBefore !== levelAfter,
+      completedMissions: [],
     }
     return HttpResponse.json(result, { status: 201 })
   }),

@@ -25,7 +25,14 @@ export function ConsumptionRegistered({
   canViewDetail,
   onRegisterAnother,
 }: ConsumptionRegisteredProps) {
-  const { consumption, balanceBefore, balanceAfter, levelUp, levelAfter } = result
+  const {
+    consumption,
+    balanceBefore,
+    balanceAfter,
+    levelUp,
+    levelAfter,
+    completedMissions,
+  } = result
   const { customer } = consumption
 
   const rows = [
@@ -63,6 +70,12 @@ export function ConsumptionRegistered({
           ¡{customer.firstName} {customer.lastName} subió a nivel {LEVELS[levelAfter]}!
         </Alert>
       )}
+
+      {completedMissions.map((mission) => (
+        <Alert key={mission.id} variant="success" className="mt-4 font-bold">
+          ¡{customer.firstName} completó la misión {mission.name}!
+        </Alert>
+      ))}
 
       <DataList items={rows} className="mt-4 gap-y-4 pt-4 text-sm" />
 
