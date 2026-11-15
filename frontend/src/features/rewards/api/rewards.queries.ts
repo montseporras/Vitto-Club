@@ -17,6 +17,7 @@ import type {
   DeactivateRewardResponse,
   Reward,
   RewardListFilters,
+  RewardPhotoResponse,
   UpdateRewardBody,
   UpdateRewardResponse,
 } from '../types/reward'
@@ -24,12 +25,14 @@ import {
   activateReward,
   createReward,
   deleteReward,
+  deleteRewardPhoto,
   deactivateReward,
   getAdminReward,
   getAvailableRewards,
   getMyCatalog,
   listAdminRewards,
   updateReward,
+  uploadRewardPhoto,
 } from './rewards.api'
 import { rewardsKeys } from './rewards.keys'
 
@@ -57,13 +60,39 @@ export const useAdminReward = (id: number | undefined) =>
     retry: retryNetworkOnce,
   })
 
-/** Alta de recompensa; al guardar se refrescan las variantes del listado del Administrador. */
+/**
+ * Alta de recompensa; al guardar se refrescan las variantes del listado del Administrador. El
+ * detalle queda en caché: si la foto falla, el modal sigue abierto en modo Editar sin recargar.
+ */
 export const useCreateReward = () => {
   const queryClient = useQueryClient()
   return useMutation<Reward, ApiError, CreateRewardBody>({
     mutationFn: createReward,
-    onSuccess: () => {
+    onSuccess: (reward) => {
+      queryClient.setQueryData(rewardsKeys.adminDetail(reward.id), reward)
       void queryClient.invalidateQueries({ queryKey: rewardsKeys.adminLists })
+    },
+  })
+}
+
+/** Sube o reemplaza la foto (S5 §3.5.2); refresca todas las vistas que la muestran. */
+export const useUploadRewardPhoto = () => {
+  const queryClient = useQueryClient()
+  return useMutation<RewardPhotoResponse, ApiError, { id: number; file: File }>({
+    mutationFn: ({ id, file }) => uploadRewardPhoto(id, file),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: rewardsKeys.all })
+    },
+  })
+}
+
+/** Quita la foto (S5 §3.5.2); refresca todas las vistas que la muestran. */
+export const useDeleteRewardPhoto = () => {
+  const queryClient = useQueryClient()
+  return useMutation<void, ApiError, number>({
+    mutationFn: deleteRewardPhoto,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: rewardsKeys.all })
     },
   })
 }

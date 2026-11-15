@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { FormField } from '@/shared/components/forms/FormField'
+import { ImagePicker } from '@/shared/components/forms/ImagePicker'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Badge } from '@/shared/components/ui/Badge'
@@ -17,14 +18,16 @@ import { useToast } from '@/shared/components/feedback/useToast'
 import { todayIsoInTimeZone } from '@/shared/lib/dates'
 import { cn } from '@/shared/lib/utils'
 import { modalStyles } from '@/styles/ui'
-import type { ApiError } from '@/shared/api/ApiError'
+import { toApiError, type ApiError } from '@/shared/api/ApiError'
 import {
   useActivateReward,
   useAdminReward,
   useCreateReward,
   useDeleteReward,
+  useDeleteRewardPhoto,
   useDeactivateReward,
   useUpdateReward,
+  useUploadRewardPhoto,
 } from '../api/rewards.queries'
 import {
   createRewardSchema,
@@ -32,6 +35,7 @@ import {
   type CreateRewardFormOutput,
 } from '../schemas/create-reward.schema'
 import type { Reward } from '../types/reward'
+import { RewardImage } from './RewardImage'
 
 const REWARD_FORM_FIELDS = ['name', 'description', 'points', 'stock', 'expiresAt'] as const
 type RewardFormField = (typeof REWARD_FORM_FIELDS)[number]
@@ -39,6 +43,12 @@ type RewardFormField = (typeof REWARD_FORM_FIELDS)[number]
 function isRewardFormField(field: string): field is RewardFormField {
   return REWARD_FORM_FIELDS.some((candidate) => candidate === field)
 }
+
+// La foto se aplica al guardar, como en el prototipo: una elegida para subir o la guardada para quitar
+type PhotoChange = { kind: 'file'; file: File } | { kind: 'remove' } | null
+
+// Contrato S5 §3.5.2
+const PHOTO_NOT_UPLOADED = 'La recompensa se guardó, pero no se pudo subir la foto.'
 
 type RewardCreateModalProps = {
   onClose: () => void
@@ -104,9 +114,15 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
   const [actionError, setActionError] = useState<ApiError | null>(null)
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [photoChange, setPhotoChange] = useState<PhotoChange>(null)
+  // Error de la foto que devuelve el backend (400 INVALID_IMAGE), debajo del selector
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  // Si al crear falla la foto, el modal sigue abierto en modo Editar (decisión de Melisa)
+  const [createdId, setCreatedId] = useState<number | undefined>(undefined)
   const today = todayIsoInTimeZone('America/Argentina/Buenos_Aires')
-  const isEditing = rewardId !== undefined
-  const rewardQuery = useAdminReward(rewardId)
+  const currentId = rewardId ?? createdId
+  const isEditing = currentId !== undefined
+  const rewardQuery = useAdminReward(currentId)
   const reward = rewardQuery.data
   const schema = useMemo(
     () =>
@@ -121,6 +137,8 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
   const activateMutation = useActivateReward()
   const deactivateMutation = useDeactivateReward()
   const deleteMutation = useDeleteReward()
+  const uploadPhotoMutation = useUploadRewardPhoto()
+  const deletePhotoMutation = useDeleteRewardPhoto()
   const showToast = useToast()
   const {
     register,
@@ -128,7 +146,7 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
     setError,
     reset,
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CreateRewardFormInput, unknown, CreateRewardFormOutput>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -175,8 +193,9 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
 
   const descriptionLength = useWatch({ control, name: 'description' })?.length ?? 0
 
-  const onSubmit = (data: CreateRewardFormOutput) => {
+  const onSubmit = async (data: CreateRewardFormOutput) => {
     setServerError(null)
+    setPhotoError(null)
     const handleError = (error: ApiError) => {
       if (error.code === 'REWARD_NAME_IN_USE') {
         setError(
@@ -201,39 +220,90 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
       if (!mappedFieldError) setServerError(error)
     }
 
-    if (isEditing && rewardId !== undefined) {
-      updateMutation.mutate(
-        { id: rewardId, body: data },
-        {
-          onSuccess: ({ availabilityChange }) => {
-            const availabilityMessage =
-              availabilityChange === 'ENABLED'
-                ? ' La recompensa volvió a estar disponible.'
-                : availabilityChange === 'DISABLED'
-                  ? ' La recompensa quedó deshabilitada porque no tiene stock o está vencida.'
-                  : ''
-            showToast(`Recompensa guardada.${availabilityMessage}`)
-            onClose()
-          },
-          onError: handleError,
-        },
-      )
+    // Sube o quita la foto pendiente (S5 §3.5.2). Devuelve el error, si falló.
+    const change = photoChange
+    const applyPhoto = async (id: number): Promise<ApiError | null> => {
+      if (!change) return null
+      try {
+        if (change.kind === 'file') {
+          await uploadPhotoMutation.mutateAsync({ id, file: change.file })
+        } else {
+          await deletePhotoMutation.mutateAsync(id)
+        }
+        setPhotoChange(null)
+        return null
+      } catch (error) {
+        return toApiError(error)
+      }
+    }
+
+    // Si la foto falla (decisión de Melisa, opción a): el INVALID_IMAGE va debajo del selector; si
+    // los datos ya se guardaron y no se pudo subir, el aviso del contrato; si no, el mensaje del
+    // backend, sin textos nuevos.
+    const showPhotoFailure = (error: ApiError, dataSaved: boolean) => {
+      const invalidImage = error.code === 'INVALID_IMAGE'
+      if (invalidImage) setPhotoError(error.messages[0] ?? null)
+      if (change?.kind === 'file' && dataSaved) {
+        setServerError({ messages: [PHOTO_NOT_UPLOADED] })
+      } else if (!invalidImage) {
+        setServerError(error)
+      }
+    }
+
+    if (isEditing && currentId !== undefined) {
+      let availabilityMessage = ''
+      let dataSaved = false
+      // Si solo cambió la foto, no se manda el PATCH (no deja un "Modificó recompensa" vacío)
+      if (isDirty || !change) {
+        try {
+          const { availabilityChange } = await updateMutation.mutateAsync({
+            id: currentId,
+            body: data,
+          })
+          availabilityMessage =
+            availabilityChange === 'ENABLED'
+              ? ' La recompensa volvió a estar disponible.'
+              : availabilityChange === 'DISABLED'
+                ? ' La recompensa quedó deshabilitada porque no tiene stock o está vencida.'
+                : ''
+          dataSaved = true
+        } catch (error) {
+          handleError(toApiError(error))
+          return
+        }
+      }
+      const photoFailure = await applyPhoto(currentId)
+      if (photoFailure) {
+        showPhotoFailure(photoFailure, dataSaved)
+        return
+      }
+      showToast(`Recompensa guardada.${availabilityMessage}`)
+      onClose()
       return
     }
 
-    createMutation.mutate(data, {
-      onSuccess: () => {
-        showToast('Recompensa guardada.')
-        onClose()
-      },
-      onError: handleError,
-    })
+    // Al crear, la foto se sube después del POST, con el id nuevo (S5 §3.5.2)
+    let created: Reward
+    try {
+      created = await createMutation.mutateAsync(data)
+    } catch (error) {
+      handleError(toApiError(error))
+      return
+    }
+    const photoFailure = await applyPhoto(created.id)
+    if (photoFailure) {
+      setCreatedId(created.id)
+      showPhotoFailure(photoFailure, true)
+      return
+    }
+    showToast('Recompensa guardada.')
+    onClose()
   }
 
   const activate = () => {
-    if (rewardId === undefined) return
+    if (currentId === undefined) return
     setServerError(null)
-    activateMutation.mutate(rewardId, {
+    activateMutation.mutate(currentId, {
       onSuccess: ({ reward: activatedReward }) => {
         showToast(
           activatedReward.status === 'DISABLED'
@@ -247,9 +317,9 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
   }
 
   const confirmDeactivate = () => {
-    if (rewardId === undefined) return
+    if (currentId === undefined) return
     setActionError(null)
-    deactivateMutation.mutate(rewardId, {
+    deactivateMutation.mutate(currentId, {
       onSuccess: ({ rejectedRedemptions }) => {
         const rejectedMessage =
           rejectedRedemptions > 0
@@ -263,9 +333,9 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
   }
 
   const confirmDelete = () => {
-    if (rewardId === undefined) return
+    if (currentId === undefined) return
     setActionError(null)
-    deleteMutation.mutate(rewardId, {
+    deleteMutation.mutate(currentId, {
       onSuccess: () => {
         showToast('Recompensa eliminada.')
         onClose()
@@ -288,7 +358,9 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
     updateMutation.isPending ||
     activateMutation.isPending ||
     deactivateMutation.isPending ||
-    deleteMutation.isPending
+    deleteMutation.isPending ||
+    uploadPhotoMutation.isPending ||
+    deletePhotoMutation.isPending
   const title = isEditing ? 'Editar recompensa' : 'Crear recompensa'
 
   if (isEditing && rewardQuery.isPending) {
@@ -367,40 +439,32 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
             Recompensa
           </legend>
 
-          <div className="grid gap-1.5">
-            <p className="text-sm font-semibold text-[#3b2a20]">Foto que verán los clientes</p>
-            <div className="flex flex-wrap items-center gap-3.5">
-              <div
-                role="img"
-                aria-label="Imagen genérica"
-                className="grid size-24 place-items-center rounded-[14px] bg-[#fbe6d4] text-[#a8532a]"
-              >
-                <Icon d={ICONS.gift} className="size-8" />
-              </div>
-              <div className="grid justify-items-start gap-1.5">
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled
-                    className="h-[34px] rounded-lg px-3.5 text-[13px]"
-                  >
-                    Elegir imagen
-                  </Button>
-                  <Badge
-                    variant="accent"
-                    className="px-3 text-[10px] normal-case tracking-normal"
-                  >
-                    Próximamente
-                  </Badge>
-                </div>
-                <p className="text-[11px] text-[#7a6e63]">
-                  La carga de imágenes llega en el Sprint 5. Mientras tanto, los clientes ven la
-                  imagen genérica.
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* US-34: foto con vista previa, "Elegir imagen" y "Quitar" (S5 §3.5.2) */}
+          <ImagePicker
+            label="Foto que verán los clientes"
+            photoUrl={reward?.photoUrl ?? null}
+            previewAlt="Foto de la recompensa"
+            placeholder={
+              <RewardImage
+                photoUrl={null}
+                className="size-24 rounded-[14px]"
+                iconClassName="size-7"
+                genericLabel="Imagen genérica"
+              />
+            }
+            hint="JPG, PNG o WebP de hasta 2 MB. Sin foto, los clientes ven la imagen genérica."
+            error={photoError}
+            disabled={isPending}
+            onSelect={(file) => {
+              setPhotoError(null)
+              setPhotoChange({ kind: 'file', file })
+            }}
+            onRemove={() => {
+              setPhotoError(null)
+              // Una elegida y no subida solo se descarta; la guardada se quita al guardar
+              setPhotoChange(reward?.photoUrl ? { kind: 'remove' } : null)
+            }}
+          />
 
           <FormField
             id="reward-name"

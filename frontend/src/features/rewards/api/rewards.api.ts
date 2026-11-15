@@ -13,6 +13,7 @@ import type {
   DeactivateRewardResponse,
   Reward,
   RewardListFilters,
+  RewardPhotoResponse,
   UpdateRewardBody,
   UpdateRewardResponse,
 } from '../types/reward'
@@ -24,6 +25,7 @@ export const REWARDS_PAGE_SIZE = 10
 export async function listAdminRewards({
   q,
   status,
+  order,
   page,
   limit = REWARDS_PAGE_SIZE,
 }: RewardListFilters): Promise<Paginated<AdminReward>> {
@@ -32,6 +34,7 @@ export async function listAdminRewards({
       params: {
         q: q || undefined,
         status: status || undefined,
+        order,
         page,
         limit,
       },
@@ -70,6 +73,27 @@ export async function updateReward(
   try {
     const { data } = await http.patch<UpdateRewardResponse>(`/recompensas/${id}`, body)
     return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+/** Sube o reemplaza la foto (S5 §3.5.1 y §3.5.2): `multipart/form-data` con el campo `photo`. */
+export async function uploadRewardPhoto(id: number, file: File): Promise<RewardPhotoResponse> {
+  const form = new FormData()
+  form.append('photo', file)
+  try {
+    const { data } = await http.put<RewardPhotoResponse>(`/recompensas/${id}/foto`, form)
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+/** Quita la foto (S5 §3.5.2): `204`, vuelve la imagen genérica. */
+export async function deleteRewardPhoto(id: number): Promise<void> {
+  try {
+    await http.delete(`/recompensas/${id}/foto`)
   } catch (error) {
     throw toApiError(error)
   }

@@ -1,10 +1,8 @@
 // Tarjeta de una recompensa en el catálogo del Cliente (US-39, CA-39.3 y CA-39.4, contrato §3.5.1 y
 // prototipo ClienteCanjes → Catálogo). Si "Canjear" se puede usar lo decide la pantalla con el saldo
 // que ya trajo el catálogo (decisión S4-2): es la única cuenta que el contrato deja hacer acá.
-import { RewardExpiryTag, type CatalogReward } from '@/features/rewards'
+import { RewardExpiryTag, RewardImage, type CatalogReward } from '@/features/rewards'
 import { Button } from '@/shared/components/ui/Button'
-import { Icon } from '@/shared/components/ui/Icon'
-import { ICONS } from '@/shared/components/ui/icons'
 import { formatInteger } from '@/shared/lib/numbers'
 import { cn } from '@/shared/lib/utils'
 
@@ -33,13 +31,13 @@ export function CatalogRewardCard({ reward, balance, onRedeem }: CatalogRewardCa
         disabledReward && 'opacity-70',
       )}
     >
-      {/* Imagen genérica: la foto de la recompensa es del Sprint 5 (§3.3) */}
-      <div
-        aria-hidden="true"
-        className="grid h-21 place-items-center bg-linear-135 from-orange-100 to-amber-200 text-accent-700"
-      >
-        <Icon d={ICONS.gift} className="size-8" />
-      </div>
+      {/* La foto de la recompensa o, sin foto, la imagen genérica (S5 §3.5.2) */}
+      <RewardImage
+        photoUrl={reward.photoUrl}
+        className="h-21 w-full"
+        genericClassName="bg-linear-135 from-orange-100 to-amber-200 text-accent-700"
+        iconClassName="size-8"
+      />
       <div className="flex flex-1 flex-col gap-1 p-2.5">
         <strong className="text-sm leading-tight">{reward.name}</strong>
         {reward.description && (
