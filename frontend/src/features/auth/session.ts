@@ -2,6 +2,7 @@
 // localStorage). Al recargar la página se pierde y se recupera con refresh,
 // que usa la cookie httpOnly. Ver docs/auth-api.md del backend.
 import { useSyncExternalStore } from 'react'
+import type { Role } from '@/domain/roles'
 import { ApiError } from '@/shared/api/ApiError'
 import { connectSession } from '@/shared/api/http'
 import { queryClient } from '@/shared/api/queryClient'
@@ -11,11 +12,15 @@ import type { AuthResponse, AuthUser } from './types/auth'
 export type Session =
   // Al cargar la app, mientras se intenta recuperar la sesión
   | { status: 'restoring'; user: null }
-  | { status: 'anonymous'; user: null }
+  // farewellRole: solo después de un cierre de sesión voluntario; hace que se
+  // muestre la pantalla de despedida en vez de ir directo al login
+  | { status: 'anonymous'; user: null; farewellRole?: Role }
   | { status: 'authenticated'; user: AuthUser }
 
 let accessToken: string | null = null
 let session: Session = { status: 'restoring', user: null }
+// Desde cuándo está activa la sesión (solo para mostrarlo al cerrarla)
+let startedAt = Date.now()
 const listeners = new Set<() => void>()
 
 function setSession(next: Session) {
@@ -25,7 +30,11 @@ function setSession(next: Session) {
 
 export const getAccessToken = () => accessToken
 
+export const getSessionStartedAt = () => startedAt
+
 export function startSession(response: AuthResponse) {
+  // Un refresh con la sesión ya iniciada no reinicia el contador
+  if (session.status !== 'authenticated') startedAt = Date.now()
   accessToken = response.accessToken
   setSession({ status: 'authenticated', user: response.user })
 }
@@ -40,11 +49,14 @@ export function updateSessionUser(changes: Partial<AuthUser>) {
   setSession({ status: 'authenticated', user: { ...session.user, ...changes } })
 }
 
-/** Cierra la sesión en el front y descarta los datos cacheados del usuario anterior. */
-export function endSession() {
+/**
+ * Cierra la sesión en el front y descarta los datos cacheados del usuario anterior.
+ * Con `farewellRole` (cierre voluntario) se muestra la pantalla de despedida.
+ */
+export function endSession(options?: { farewellRole?: Role }) {
   accessToken = null
   queryClient.clear()
-  setSession({ status: 'anonymous', user: null })
+  setSession({ status: 'anonymous', user: null, farewellRole: options?.farewellRole })
 }
 
 let renewing: Promise<boolean> | null = null

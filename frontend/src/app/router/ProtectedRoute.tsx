@@ -23,6 +23,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (session.status === 'anonymous') {
+    // Cierre voluntario: pantalla de despedida en vez del login
+    if (session.farewellRole) return <Navigate to={PATHS.loggedOut} replace />
     return (
       <Navigate
         to={PATHS.login}

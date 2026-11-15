@@ -31,6 +31,14 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    // Pública: sin sesión, pero solo se ve justo después de cerrarla
+    path: PATHS.loggedOut,
+    lazy: async () => {
+      const { LoggedOutPage } = await import('@/features/auth')
+      return { Component: LoggedOutPage }
+    },
+  },
+  {
     path: PATHS.customer.root,
     lazy: async () => {
       const { CustomerLayout } = await import('@/app/layouts/CustomerLayout')

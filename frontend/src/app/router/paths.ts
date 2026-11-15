@@ -3,6 +3,7 @@ import type { Role } from '@/domain/roles'
 export const PATHS = {
   login: '/login',
   register: '/registro',
+  loggedOut: '/sesion-cerrada',
   customer: {
     root: '/mi-cuenta',
     history: '/mi-cuenta/historial',

@@ -1,6 +1,7 @@
 // Barrel del feature auth: lo único que otros módulos deben importar.
 export { LoginPage } from './pages/LoginPage'
 export { RegisterPage } from './pages/RegisterPage'
+export { LoggedOutPage } from './pages/LoggedOutPage'
 export { SessionActions } from './components/SessionActions'
 export { LogoutDialog } from './components/LogoutDialog'
 export {
