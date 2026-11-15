@@ -915,3 +915,107 @@ export function configurationSavedEntries(
   }
   return entries.length > 0 ? entries : [pointsEquivalenceUpdatedEntry(actor, before, after)];
 }
+
+// ---------------------------------------------------------------------------------------------
+// Misiones (contrato S5 §3.14.2). Los textos repiten los del listado de §3.1.2 ("3 consumos",
+// "$ 20.000 en consumos", "los domingos de 09:00 a 13:00", "50 pts" / "Sin recompensa",
+// "Noviembre 2026 – Diciembre 2026" / "Desde noviembre 2026"); sin condición, "Todos los días"
+// (§3.1.6). Decisión de Jazmín: el contrato da las filas pero no sus valores.
+
+export type MissionAuditSnapshot = {
+  name: string;
+  objectiveType: 'CONSUMPTION_COUNT' | 'CONSUMPTION_AMOUNT';
+  target: number;
+  // 1 (lunes) a 7 (domingo), ordenados. null = todos los días
+  daysOfWeek: number[] | null;
+  // HH:mm
+  timeFrom: string | null;
+  timeTo: string | null;
+  rewardPoints: number | null;
+  // YYYY-MM
+  startMonth: string;
+  endMonth: string | null;
+};
+
+const MONTH_NAMES = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+];
+
+// En plural, como en "los domingos". Índice = día - 1 (1 = lunes)
+const DAY_NAMES_PLURAL = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'];
+
+const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
+// "a", "a y b", "a, b y c"
+function joinWithAnd(items: string[]): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} y ${items[items.length - 1]}`;
+}
+
+// "noviembre 2026"
+function formatMonth(month: string): string {
+  const [year, monthNumber] = month.split('-');
+  return `${MONTH_NAMES[Number(monthNumber) - 1]} ${year}`;
+}
+
+// "3 consumos" (1 → "1 consumo") o "$ 20.000 en consumos" (hasta 2 decimales)
+export function formatMissionObjective(
+  objectiveType: MissionAuditSnapshot['objectiveType'],
+  target: number,
+): string {
+  if (objectiveType === 'CONSUMPTION_COUNT') {
+    return `${formatNumber(target)} ${target === 1 ? 'consumo' : 'consumos'}`;
+  }
+  return `$ ${target.toLocaleString('es-AR', { maximumFractionDigits: 2 })} en consumos`;
+}
+
+// "Todos los días", "los domingos", "los lunes, miércoles y domingos", "Todos los días de 09:00 a
+// 13:00" o "los domingos de 09:00 a 13:00"
+export function formatMissionCondition(
+  daysOfWeek: number[] | null,
+  timeFrom: string | null,
+  timeTo: string | null,
+): string {
+  const days =
+    daysOfWeek === null || daysOfWeek.length === 0
+      ? 'Todos los días'
+      : `los ${joinWithAnd(daysOfWeek.map((day) => DAY_NAMES_PLURAL[day - 1]))}`;
+  return timeFrom !== null && timeTo !== null ? `${days} de ${timeFrom} a ${timeTo}` : days;
+}
+
+// "50 pts" o "Sin recompensa"
+export const formatMissionReward = (rewardPoints: number | null): string =>
+  rewardPoints === null ? 'Sin recompensa' : `${formatNumber(rewardPoints)} pts`;
+
+// "Noviembre 2026 – Diciembre 2026" o "Desde noviembre 2026"
+export const formatMissionValidity = (startMonth: string, endMonth: string | null): string =>
+  endMonth === null
+    ? `Desde ${formatMonth(startMonth)}`
+    : `${capitalize(formatMonth(startMonth))} – ${capitalize(formatMonth(endMonth))}`;
+
+// MISSION_CREATED (§3.14.2, US-28): Objetivo · Condición · Recompensa · Vigencia
+export function missionCreatedEntry(actor: AuditActor, mission: MissionAuditSnapshot): AuditEntryInput {
+  return {
+    actor,
+    module: 'MISSIONS',
+    action: 'MISSION_CREATED',
+    description: `Creó la misión "${mission.name}"`,
+    details: [
+      { label: 'Objetivo', value: formatMissionObjective(mission.objectiveType, mission.target) },
+      { label: 'Condición', value: formatMissionCondition(mission.daysOfWeek, mission.timeFrom, mission.timeTo) },
+      { label: 'Recompensa', value: formatMissionReward(mission.rewardPoints) },
+      { label: 'Vigencia', value: formatMissionValidity(mission.startMonth, mission.endMonth) },
+    ],
+  };
+}
