@@ -27,6 +27,7 @@ export type AuditAction =
   | 'CONSUMPTION_VOIDED'
   | 'POINTS_ADJUSTED'
   | 'POINTS_EXPIRED'
+  | 'BIRTHDAY_BONUS_GRANTED'
   | 'REDEMPTION_CONFIRMED'
   | 'REDEMPTION_USED'
   | 'REDEMPTION_REJECTED'
@@ -49,6 +50,8 @@ export type AuditAction =
   | 'FIRST_CONSUMPTION_BONUS_UPDATED'
   | 'LEVELS_UPDATED'
   | 'LOGO_AND_MESSAGES_UPDATED'
+  | 'FREQUENT_CUSTOMERS_UPDATED'
+  // Queda en el enum, pero no se usa ni aparece en el filtro (contrato S5 §2.8, S5-36)
   | 'PROMOTIONS_UPDATED'
 
 export type AuditDetail = {
@@ -115,8 +118,9 @@ export const AUDIT_MODULES: {
   { value: 'CONSUMPTIONS', label: 'Consumos' },
   { value: 'POINTS', label: 'Puntos' },
   { value: 'REDEMPTIONS', label: 'Canjes' },
-  { value: 'REWARDS', label: 'Recompensas (Próximamente)', disabled: true },
-  { value: 'MISSIONS', label: 'Misiones (Próximamente)', disabled: true },
+  // Recompensas se habilita en el Sprint 4 (S4 §2.7) y Misiones en el 5 (S5 §2.8)
+  { value: 'REWARDS', label: 'Recompensas' },
+  { value: 'MISSIONS', label: 'Misiones' },
   { value: 'CONFIGURATION', label: 'Configuración' },
 ]
 
@@ -145,6 +149,7 @@ export const AUDIT_ACTIONS_BY_MODULE: Record<
   POINTS: [
     { value: 'POINTS_ADJUSTED', label: 'Ajustó puntos' },
     { value: 'POINTS_EXPIRED', label: 'Venció puntos' },
+    { value: 'BIRTHDAY_BONUS_GRANTED', label: 'Regaló puntos de cumpleaños' },
   ],
   REDEMPTIONS: [
     { value: 'REDEMPTION_CONFIRMED', label: 'Confirmó canje' },
@@ -176,8 +181,9 @@ export const AUDIT_ACTIONS_BY_MODULE: Record<
       value: 'FIRST_CONSUMPTION_BONUS_UPDATED',
       label: 'Modificó bonificación por primer consumo',
     },
-    { value: 'LEVELS_UPDATED', label: 'Modificó niveles' },
+    // Orden del prototipo; "Modificó promociones" no aparece (S5 §2.8 y §3.13)
     { value: 'LOGO_AND_MESSAGES_UPDATED', label: 'Modificó logo y mensajes' },
-    { value: 'PROMOTIONS_UPDATED', label: 'Modificó promociones' },
+    { value: 'LEVELS_UPDATED', label: 'Modificó niveles' },
+    { value: 'FREQUENT_CUSTOMERS_UPDATED', label: 'Modificó cliente frecuente' },
   ],
 }
