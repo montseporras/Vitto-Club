@@ -21,7 +21,7 @@ import { cn } from '@/shared/lib/utils'
 
 type ConfirmRedemptionFlowProps = {
   /** La recompensa que eligió el Cliente en el catálogo */
-  reward: Pick<Reward, 'id' | 'name' | 'description' | 'points'>
+  reward: Pick<Reward, 'id' | 'name' | 'description' | 'points' | 'photoUrl'>
   /** Saldo que ya tiene cargado la pantalla (`balance` del catálogo) */
   balance: number
   /** Cierra el flujo y vuelve al catálogo */
@@ -119,6 +119,7 @@ export function ConfirmRedemptionFlow({
         name={reward.name}
         description={reward.description}
         points={reward.points}
+        photoUrl={reward.photoUrl}
       />
       <div className="mt-3 rounded-xl border border-orange-200 bg-white px-3 py-2 text-sm">
         Saldo: <strong>{formatInteger(balance)} pts</strong> →{' '}

@@ -94,6 +94,7 @@ export function CounterRedeemFlow({
         name={reward.name}
         description={reward.description}
         points={reward.points}
+        photoUrl={reward.photoUrl}
         tag={<RewardExpiryTag reward={reward} />}
       />
 

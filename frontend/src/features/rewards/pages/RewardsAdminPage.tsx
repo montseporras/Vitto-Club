@@ -24,13 +24,20 @@ import { formatInteger } from '@/shared/lib/numbers'
 import { REWARDS_PAGE_SIZE } from '../api/rewards.api'
 import { useAdminRewards } from '../api/rewards.queries'
 import { RewardCreateModal } from '../components/RewardCreateModal'
-import type { RewardListStatus } from '../types/reward'
+import { RewardImage } from '../components/RewardImage'
+import type { RewardListOrder, RewardListStatus } from '../types/reward'
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todas' },
   { value: 'ACTIVE', label: 'Activas' },
   { value: 'DISABLED', label: 'Deshabilitadas' },
   { value: 'INACTIVE', label: 'Inactivas' },
+]
+
+// Orden por fecha de alta (S5-45)
+const ORDER_OPTIONS = [
+  { value: 'RECENT', label: 'Más recientes' },
+  { value: 'OLDEST', label: 'Más antiguas' },
 ]
 
 function rewardStatusLabel(
@@ -52,6 +59,7 @@ function rewardStatusVariant(status: 'ACTIVE' | 'DISABLED' | 'INACTIVE') {
 export function RewardsAdminPage() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<RewardListStatus | ''>('')
+  const [order, setOrder] = useState<RewardListOrder>('RECENT')
   const [page, setPage] = useState(1)
   const [creating, setCreating] = useState(false)
   const [editingRewardId, setEditingRewardId] = useState<number | null>(null)
@@ -62,7 +70,7 @@ export function RewardsAdminPage() {
   const pagerRef = useRef<HTMLElement>(null)
   const limit = useRowsThatFit({ areaRef, pagerRef, initial: REWARDS_PAGE_SIZE })
 
-  const rewards = useAdminRewards({ q: query, status, page, limit })
+  const rewards = useAdminRewards({ q: query, status, order, page, limit })
   const data = rewards.data
   useClampPage(page, setPage, data?.total, data?.limit)
 
@@ -116,6 +124,24 @@ export function RewardsAdminPage() {
 }}
             />
           </div>
+          <div className="flex min-w-0 flex-[1_1_180px] flex-col justify-center gap-0.5 border-l border-[#f6d0b1] px-3.5 py-2">
+            <label
+              htmlFor="reward-order"
+              className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#7e3e20]"
+            >
+              Orden
+            </label>
+            <FilterSelect
+              id="reward-order"
+              variant="bar"
+              value={order}
+              options={ORDER_OPTIONS}
+              onChange={(value) => {
+                setOrder(value as RewardListOrder)
+                setPage(1)
+              }}
+            />
+          </div>
         </div>
 
         <div ref={areaRef} className="mt-5" aria-live="polite">
@@ -166,12 +192,7 @@ export function RewardsAdminPage() {
                     }}
                   >
                     <TableCell>
-                      <div
-                        aria-hidden="true"
-                        className="grid size-11 place-items-center rounded-[10px] bg-[#fbe6d4] text-[#a8532a]"
-                      >
-                        <Icon d={ICONS.gift} className="size-5" />
-                      </div>
+                      <RewardImage photoUrl={reward.photoUrl} className="size-11 rounded-[10px]" />
                     </TableCell>
                     <TableCell className="min-w-[190px]">
                       <strong className="font-semibold">{reward.name}</strong>

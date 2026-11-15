@@ -21,7 +21,7 @@ export type Reward = {
   daysToExpire: number | null
   status: RewardStatus
   disabledReason: RewardDisabledReason | null
-  /** Siempre `null` en el Sprint 4: todas usan la imagen genérica */
+  /** URL pública de la foto en Cloudinary (S5 §3.5.2); `null` = imagen genérica */
   photoUrl: string | null
   usedCount: number
   /** Solo en las respuestas del Administrador */
@@ -37,9 +37,13 @@ export type AdminReward = Omit<Reward, 'status' | 'confirmedCount'> & {
 
 export type RewardListStatus = Exclude<RewardStatus, 'DELETED'>
 
+/** Orden del listado del Administrador, por fecha de alta (S5-45). */
+export type RewardListOrder = 'RECENT' | 'OLDEST'
+
 export type RewardListFilters = {
   q: string
   status: RewardListStatus | ''
+  order: RewardListOrder
   page: number
   /** Filas por página: las que entran en la pantalla (1–100). */
   limit?: number
@@ -61,6 +65,11 @@ export type UpdateRewardBody = Partial<CreateRewardBody>
 export type UpdateRewardResponse = {
   reward: Reward
   availabilityChange: 'ENABLED' | 'DISABLED' | null
+}
+
+/** Respuesta de `PUT /recompensas/:id/foto` (S5 §3.5.2). */
+export type RewardPhotoResponse = {
+  photoUrl: string
 }
 
 /** Respuesta de activación de una recompensa (§3.2.5). */

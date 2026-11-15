@@ -1,4 +1,5 @@
-// Mocks de recompensas: GET /recompensas/disponibles (mostrador, US-40, contrato del Sprint 4
+// Mocks de recompensas. US-34 (S5 §3.5.2): PUT y DELETE /recompensas/:id/foto y el orden del
+// listado. GET /recompensas/disponibles (mostrador, US-40, contrato del Sprint 4
 // §3.5.2) y GET /customers/me/recompensas (catálogo del Cliente, US-39, §3.5.1). Las recompensas de
 // ejemplo las comparte la confirmación de canjes (redemptions.handlers.ts).
 import { delay, http, HttpResponse } from 'msw'
@@ -8,6 +9,7 @@ import type {
   CatalogReward,
   CreateRewardBody,
   Reward,
+  RewardListOrder,
   RewardListStatus,
 } from '@/features/rewards'
 import { API_URL } from '@/shared/api/http'
@@ -45,6 +47,43 @@ function toCatalogReward(item: Reward): CatalogReward {
 }
 
 const CATALOG_FILTERS: CatalogFilter[] = ['ALL', 'MOST_REDEEMED', 'EXPIRING_SOON']
+const ADMIN_ORDERS: RewardListOrder[] = ['RECENT', 'OLDEST']
+
+// S5 §3.5.1: JPG, PNG o WebP de hasta 2 MB, revisado por los primeros bytes (el contenido), no por
+// la extensión ni por el tipo que dice el navegador
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024
+const INVALID_IMAGE_MESSAGE = 'Usá una imagen JPG, PNG o WebP de hasta 2 MB.'
+
+async function isValidImage(file: File) {
+  if (file.size === 0 || file.size > MAX_PHOTO_BYTES) return false
+  const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer())
+  const starts = (signature: number[], offset = 0) =>
+    signature.every((byte, index) => bytes[offset + index] === byte)
+  const ascii = (text: string) => [...text].map((char) => char.charCodeAt(0))
+  const jpeg = starts([0xff, 0xd8, 0xff])
+  const png = starts([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+  const webp = starts(ascii('RIFF')) && starts(ascii('WEBP'), 8)
+  return jpeg || png || webp
+}
+
+// 401, 403 y 404 de los endpoints de la foto (S5 §3.5.2 y §4)
+function photoTarget(request: Request, id: number) {
+  const path = new URL(request.url).pathname
+  const account = accountFromRequest(request)
+  if (!account) {
+    return { error: errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED') }
+  }
+  if (account.role !== 'ADMIN') {
+    return {
+      error: errorResponse(403, 'No tenés permiso para realizar esta acción.', path, 'FORBIDDEN'),
+    }
+  }
+  const item = rewardSeeds.find((candidate) => candidate.id === id)
+  if (!item || item.status === 'DELETED') {
+    return { error: errorResponse(404, 'No existe la recompensa.', path) }
+  }
+  return { item, path }
+}
 const ADMIN_STATUSES: RewardListStatus[] = ['ACTIVE', 'DISABLED', 'INACTIVE']
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -77,6 +116,11 @@ export const rewardsHandlers = [
       )
     }
 
+    const order = url.searchParams.get('order') ?? 'RECENT'
+    if (!ADMIN_ORDERS.includes(order as RewardListOrder)) {
+      return errorResponse(400, 'order must be one of the following values: RECENT, OLDEST', path)
+    }
+
     const requestedPage = Number(url.searchParams.get('page') ?? '1')
     const requestedLimit = Number(url.searchParams.get('limit') ?? '20')
     const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1
@@ -92,7 +136,8 @@ export const rewardsHandlers = [
       )
       .filter((item) => !requestedStatus || item.status === requestedStatus)
       .filter((item) => !normalizedQuery || normalizeSearch(item.name).includes(normalizedQuery))
-      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      // Por fecha de alta (S5-45): en los mocks el id crece con la fecha de alta
+      .sort((left, right) => (order === 'OLDEST' ? left.id - right.id : right.id - left.id))
     const items: AdminReward[] = filtered
       .slice((page - 1) * limit, page * limit)
       .map((item) => ({ ...item, confirmedCount: item.confirmedCount ?? 0 }))
@@ -539,5 +584,37 @@ export const rewardsHandlers = [
     }
 
     return HttpResponse.json({ balance: myBalanceOf(account.customerId), items })
+  }),
+
+  // US-34: subir o reemplazar la foto (S5 §3.5.2). La URL es temporal del navegador, como la
+  // pública de Cloudinary en el backend real.
+  http.put(`${API_URL}/recompensas/:id/foto`, async ({ request, params }) => {
+    await delay(400)
+    const target = photoTarget(request, Number(params.id))
+    if (target.error) return target.error
+    const { item, path } = target
+
+    const form = await request.formData().catch(() => null)
+    const photo = form?.get('photo')
+    if (!(photo instanceof File) || !(await isValidImage(photo))) {
+      return errorResponse(400, INVALID_IMAGE_MESSAGE, path, 'INVALID_IMAGE')
+    }
+    if (item.photoUrl?.startsWith('blob:')) URL.revokeObjectURL(item.photoUrl)
+    item.photoUrl = URL.createObjectURL(photo)
+    item.updatedAt = new Date().toISOString()
+    return HttpResponse.json({ photoUrl: item.photoUrl })
+  }),
+
+  // US-34: quitar la foto (S5 §3.5.2): 204, o 404 si no tiene.
+  http.delete(`${API_URL}/recompensas/:id/foto`, async ({ request, params }) => {
+    await delay(250)
+    const target = photoTarget(request, Number(params.id))
+    if (target.error) return target.error
+    const { item, path } = target
+    if (!item.photoUrl) return errorResponse(404, 'La recompensa no tiene foto.', path)
+    if (item.photoUrl.startsWith('blob:')) URL.revokeObjectURL(item.photoUrl)
+    item.photoUrl = null
+    item.updatedAt = new Date().toISOString()
+    return new HttpResponse(null, { status: 204 })
   }),
 ]
