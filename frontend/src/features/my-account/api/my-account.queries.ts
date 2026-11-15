@@ -3,11 +3,13 @@ import { updateSessionUser } from '@/features/auth'
 import type { ApiError } from '@/shared/api/ApiError'
 import type {
   ChangePasswordBody,
+  ClaimMissionRewardResult,
   MyProfile,
   UpdateMyProfileBody,
 } from '../types/my-account'
 import {
   changeMyPassword,
+  claimMissionReward,
   getMyPoints,
   getMyProfile,
   updateMyProfile,
@@ -22,6 +24,15 @@ export const useMyProfile = () =>
 
 export const useMyPoints = () =>
   useQuery({ queryKey: myAccountKeys.points(), queryFn: getMyPoints })
+
+/** Reclama la recompensa e invalida los datos de Mi cuenta que cambian (§3.3.3). */
+export const useClaimMissionReward = () => {
+  const qc = useQueryClient()
+  return useMutation<ClaimMissionRewardResult, ApiError, number>({
+    mutationFn: claimMissionReward,
+    onSuccess: () => qc.invalidateQueries({ queryKey: myAccountKeys.all }),
+  })
+}
 
 /**
  * Guarda los datos de contacto. Si cambió el correo, cambió también el de

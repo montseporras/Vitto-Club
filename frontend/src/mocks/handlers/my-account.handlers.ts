@@ -2,7 +2,12 @@
 // formato de error que el backend (contrato §3.10 y §3.11, y la §8 de
 // CAMBIOS_PROPUESTOS_AL_CONTRATO_PERFIL.md en la rama backend-maga).
 import { delay, http, HttpResponse } from 'msw'
-import type { MyPoints, MyProfile } from '@/features/my-account'
+import type {
+  CustomerMission,
+  MyPoints,
+  MyProfile,
+} from '@/features/my-account'
+import { addMonths, monthKeyInArgentina } from '@/features/missions'
 import { API_URL } from '@/shared/api/http'
 import { accounts, passwordOf, setPassword } from './auth.handlers'
 import { customers } from './cashier.handlers'
@@ -12,12 +17,13 @@ const STATUS_NAMES: Record<number, string> = {
   400: 'Bad Request',
   401: 'Unauthorized',
   403: 'Forbidden',
+  404: 'Not Found',
   409: 'Conflict',
   429: 'Too Many Requests',
 }
 
 const errorResponse = (
-  statusCode: 400 | 401 | 403 | 409 | 429,
+  statusCode: 400 | 401 | 403 | 404 | 409 | 429,
   message: string | string[],
   request: Request,
   code?: string,
@@ -63,6 +69,108 @@ const emptyPoints = (customerId: number): MyPoints => ({
   level: { current: 'BRONZE', next: 'SILVER', currentMinPoints: 0, nextMinPoints: 300, pointsToNext: 300, progressPercent: 0, benefit: null, nextBenefit: null },
   nextExpirations: [],
 })
+
+const currentMonth = monthKeyInArgentina()
+const previousMonth = addMonths(currentMonth, -1)
+const monthEndFor = (month: string) => {
+  const [year, monthNumber] = month.split('-').map(Number)
+  return new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10)
+}
+const monthEnd = monthEndFor(currentMonth)
+const previousMonthEnd = monthEndFor(previousMonth)
+
+const missionAssignments: CustomerMission[] = [
+  {
+    id: 41,
+    mission: { id: 1, name: 'Vení 3 veces', description: 'Sumá 3 consumos en el mes.' },
+    period: currentMonth,
+    objectiveType: 'CONSUMPTION_COUNT',
+    target: 3,
+    daysOfWeek: null,
+    timeFrom: null,
+    timeTo: null,
+    rewardPoints: 50,
+    progress: 3,
+    status: 'COMPLETED',
+    completedAt: new Date().toISOString(),
+    claimedAt: null,
+    claimedBy: null,
+    canClaim: true,
+    endsAt: monthEnd,
+  },
+  {
+    id: 42,
+    mission: { id: 2, name: 'Una misión en progreso', description: null },
+    period: currentMonth,
+    objectiveType: 'CONSUMPTION_COUNT',
+    target: 3,
+    daysOfWeek: null,
+    timeFrom: null,
+    timeTo: null,
+    rewardPoints: 50,
+    progress: 1,
+    status: 'IN_PROGRESS',
+    completedAt: null,
+    claimedAt: null,
+    claimedBy: null,
+    canClaim: false,
+    endsAt: monthEnd,
+  },
+  {
+    id: 43,
+    mission: { id: 3, name: 'Una misión reclamada', description: null },
+    period: currentMonth,
+    objectiveType: 'CONSUMPTION_COUNT',
+    target: 3,
+    daysOfWeek: null,
+    timeFrom: null,
+    timeTo: null,
+    rewardPoints: 50,
+    progress: 3,
+    status: 'CLAIMED',
+    completedAt: new Date().toISOString(),
+    claimedAt: new Date().toISOString(),
+    claimedBy: 'CUSTOMER',
+    canClaim: false,
+    endsAt: monthEnd,
+  },
+  {
+    id: 44,
+    mission: { id: 4, name: 'Una misión vencida', description: null },
+    period: previousMonth,
+    objectiveType: 'CONSUMPTION_COUNT',
+    target: 3,
+    daysOfWeek: null,
+    timeFrom: null,
+    timeTo: null,
+    rewardPoints: 50,
+    progress: 1,
+    status: 'EXPIRED',
+    completedAt: null,
+    claimedAt: null,
+    claimedBy: null,
+    canClaim: false,
+    endsAt: previousMonthEnd,
+  },
+  {
+    id: 45,
+    mission: { id: 5, name: 'Una misión sin recompensa', description: null },
+    period: currentMonth,
+    objectiveType: 'CONSUMPTION_COUNT',
+    target: 3,
+    daysOfWeek: null,
+    timeFrom: null,
+    timeTo: null,
+    rewardPoints: null,
+    progress: 3,
+    status: 'COMPLETED',
+    completedAt: new Date().toISOString(),
+    claimedAt: null,
+    claimedBy: null,
+    canClaim: false,
+    endsAt: monthEnd,
+  },
+]
 
 /** Saldo del Cliente, el mismo de `GET /customers/me/puntos` (lo usa el catálogo, US-39 §3.5.1). */
 export const myBalanceOf = (customerId: number) =>
@@ -183,6 +291,50 @@ export const myAccountHandlers = [
     const summary = points[caller.customer.id] ?? emptyPoints(caller.customer.id)
     // El beneficio sale de la configuración vigente, no de los datos fijos del cliente
     return HttpResponse.json({ ...summary, level: withLevelBenefits(summary.level) })
+  }),
+
+  http.patch(`${API_URL}/customers/me/misiones/:id/reclamar`, async ({ params, request }) => {
+    await delay(300)
+    const caller = requireCustomer(request)
+    if ('error' in caller) return caller.error
+    if (!caller.customer.active) {
+      return errorResponse(401, 'Unauthorized', request, 'UNAUTHENTICATED')
+    }
+
+    const assignmentId = Number(params.id)
+    const assignment = missionAssignments.find(
+      (item) => item.id === assignmentId && caller.customer.id === 1,
+    )
+    if (!assignment) return errorResponse(404, 'No existe la misión.', request)
+
+    if (assignment.status !== 'COMPLETED') {
+      const message =
+        assignment.status === 'IN_PROGRESS'
+          ? 'La misión todavía no está completada.'
+          : assignment.status === 'CLAIMED'
+            ? 'La recompensa de esta misión ya se reclamó.'
+            : 'La misión venció.'
+      return errorResponse(409, message, request, 'MISSION_NOT_CLAIMABLE')
+    }
+    if (assignment.rewardPoints === null) {
+      return errorResponse(409, 'Esta misión no tiene recompensa.', request, 'MISSION_NOT_CLAIMABLE')
+    }
+
+    const now = new Date().toISOString()
+    assignment.status = 'CLAIMED'
+    assignment.claimedAt = now
+    assignment.claimedBy = 'CUSTOMER'
+    assignment.canClaim = false
+
+    const summary = points[caller.customer.id] ?? emptyPoints(caller.customer.id)
+    const balanceAfter = summary.balance + assignment.rewardPoints
+    points[caller.customer.id] = {
+      ...summary,
+      balance: balanceAfter,
+      negativeBalance: balanceAfter < 0,
+    }
+
+    return HttpResponse.json({ customerMission: assignment, balanceAfter })
   }),
 
   // §3.10.4: solo lo que cambia; con un error no se guarda nada

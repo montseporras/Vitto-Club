@@ -2,6 +2,7 @@ import { toApiError } from '@/shared/api/ApiError'
 import { http } from '@/shared/api/http'
 import type {
   ChangePasswordBody,
+  ClaimMissionRewardResult,
   MyPoints,
   MyProfile,
   UpdateMyProfileBody,
@@ -31,6 +32,18 @@ export async function updateMyProfile(body: UpdateMyProfileBody) {
 export async function getMyPoints() {
   try {
     const res = await http.get<MyPoints>('/customers/me/puntos')
+    return res.data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+/** PATCH /customers/me/misiones/:id/reclamar (§3.3.3): reclama una misión completada. */
+export async function claimMissionReward(customerMissionId: number) {
+  try {
+    const res = await http.patch<ClaimMissionRewardResult>(
+      `/customers/me/misiones/${customerMissionId}/reclamar`,
+    )
     return res.data
   } catch (error) {
     throw toApiError(error)
