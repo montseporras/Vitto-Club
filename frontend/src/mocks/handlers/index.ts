@@ -6,6 +6,7 @@ import { cashierHandlers } from './cashier.handlers'
 import { consumptionsHandlers } from './consumptions.handlers'
 import { employeesHandlers } from './employees.handlers'
 import { myAccountHandlers } from './my-account.handlers'
+import { missionsHandlers } from './missions.handlers'
 import { notificationsHandlers } from './notifications.handlers'
 import { promotionsHandlers } from './promotions.handlers'
 import { pointsHandlers } from './points.handlers'
@@ -41,6 +42,8 @@ export const handlers = [
   ...pointsHandlers,
   // US-51 a US-54: estadísticas del Administrador
   ...statisticsHandlers,
+  // US-28: misiones del Administrador
+  ...missionsHandlers,
   // US-14: mensajes automáticos e historial de notificaciones
   ...notificationsHandlers,
   // US-15: envío de promociones (ahora o programadas)
