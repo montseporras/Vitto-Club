@@ -8,8 +8,8 @@ import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { AdminPanel } from '@/shared/components/ui/AdminPanel'
 import { Page } from '@/shared/components/ui/Page'
 import { RangePagination } from '@/shared/components/ui/Pagination'
-import { useClampPage, useRowsThatFit } from '@/shared/hooks/useRowsThatFit'
-import { REDEMPTIONS_PAGE_SIZE } from '../api/redemptions.api'
+import { useClampPage } from '@/shared/hooks/useRowsThatFit'
+import { TABLE_PAGE_SIZE } from '@/shared/lib/pagination'
 import { useRedemptions } from '../api/redemptions.queries'
 import { AdminRedemptionFilters } from '../components/AdminRedemptionFilters'
 import { AdminRedemptionsTable } from '../components/AdminRedemptionsTable'
@@ -49,7 +49,7 @@ export function RedemptionsAdminPage() {
   // Filas por página: las que entran en la pantalla (ajustes S5-57)
   const areaRef = useRef<HTMLDivElement>(null)
   const pagerRef = useRef<HTMLElement>(null)
-  const limit = useRowsThatFit({ areaRef, pagerRef, initial: REDEMPTIONS_PAGE_SIZE })
+  const limit = TABLE_PAGE_SIZE
   const result = useRedemptions(filters, page, limit)
   useClampPage(page, setPage, result.data?.total, result.data?.limit)
   const now = useExpiryRefetch(result.data?.items, result.refetch)

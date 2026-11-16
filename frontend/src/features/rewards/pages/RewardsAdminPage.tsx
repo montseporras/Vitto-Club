@@ -22,10 +22,10 @@ import {
 } from '@/shared/components/ui/Table'
 import { useDebounce } from '@/shared/hooks/useDebounce'
 import { useUndoableAction } from '@/shared/hooks/useUndoableAction'
-import { useClampPage, useRowsThatFit } from '@/shared/hooks/useRowsThatFit'
+import { useClampPage } from '@/shared/hooks/useRowsThatFit'
+import { TABLE_PAGE_SIZE } from '@/shared/lib/pagination'
 import { isoToDisplayDate } from '@/shared/lib/dates'
 import { formatInteger } from '@/shared/lib/numbers'
-import { REWARDS_PAGE_SIZE } from '../api/rewards.api'
 import { useAdminRewards, useDeleteReward } from '../api/rewards.queries'
 import { RewardCreateModal } from '../components/RewardCreateModal'
 import { RewardImage } from '../components/RewardImage'
@@ -102,7 +102,7 @@ export function RewardsAdminPage() {
   // Filas por página: las que entran en la pantalla (ajustes S5-57)
   const areaRef = useRef<HTMLDivElement>(null)
   const pagerRef = useRef<HTMLElement>(null)
-  const limit = useRowsThatFit({ areaRef, pagerRef, initial: REWARDS_PAGE_SIZE })
+  const limit = TABLE_PAGE_SIZE
 
   const rewards = useAdminRewards({ q: query, status, order, page, limit })
   const data = rewards.data

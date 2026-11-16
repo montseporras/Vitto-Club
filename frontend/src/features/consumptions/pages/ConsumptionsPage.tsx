@@ -30,10 +30,10 @@ import {
   TableHeaderCell,
   TableRow,
 } from '@/shared/components/ui/Table';
-import { useClampPage, useRowsThatFit } from '@/shared/hooks/useRowsThatFit';
+import { useClampPage } from '@/shared/hooks/useRowsThatFit';
+import { TABLE_PAGE_SIZE } from '@/shared/lib/pagination';
 import { isoToDisplayDateTime } from '@/shared/lib/dates';
 import { formatInteger, formatMoney } from '@/shared/lib/numbers';
-import { CONSUMPTIONS_PAGE_SIZE } from '../api/consumptions.api';
 import { useConsumptions } from '../api/consumptions.queries';
 import { ConsumptionDetailModal } from '../components/ConsumptionDetailModal';
 import type {
@@ -100,7 +100,7 @@ export function ConsumptionsPage() {
   // Filas por página: las que entran en la pantalla (ajustes S5-57)
   const areaRef = useRef<HTMLDivElement>(null);
   const pagerRef = useRef<HTMLElement>(null);
-  const limit = useRowsThatFit({ areaRef, pagerRef, initial: CONSUMPTIONS_PAGE_SIZE });
+  const limit = TABLE_PAGE_SIZE;
   const result = useConsumptions(filters, page, limit);
   useClampPage(page, setPage, result.data?.total, result.data?.limit);
   const actors = useAuditActors();

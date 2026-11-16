@@ -1,3 +1,4 @@
+import { TABLE_PAGE_SIZE } from '@/shared/lib/pagination'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { DOCUMENT_TYPES } from '@/domain/documents'
@@ -37,7 +38,7 @@ import { useCustomer, useCustomerConsumptions } from '../api/customers.queries'
 // La pestaña de consumos muestra los últimos 5 (contrato del Sprint 3, §3.4.1). La de movimientos
 // muestra todos, de a 10 (contrato del Sprint 4, §3.13.3)
 const TAB_LIMIT = 5
-const MOVEMENTS_PAGE_SIZE = 10
+const MOVEMENTS_PAGE_SIZE = TABLE_PAGE_SIZE
 
 type Tab = 'consumptions' | 'movements'
 

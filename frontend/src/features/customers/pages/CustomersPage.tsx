@@ -25,12 +25,12 @@ import {
 } from '@/shared/components/ui/Table'
 import { useDebounce } from '@/shared/hooks/useDebounce'
 import { useUndoableAction } from '@/shared/hooks/useUndoableAction'
-import { useClampPage, useRowsThatFit } from '@/shared/hooks/useRowsThatFit'
+import { useClampPage } from '@/shared/hooks/useRowsThatFit'
+import { TABLE_PAGE_SIZE } from '@/shared/lib/pagination'
 import { isoToDisplayDateOnly } from '@/shared/lib/dates'
 import { formatInteger } from '@/shared/lib/numbers'
 import { cn } from '@/shared/lib/utils'
 import { buttonVariants, pointsToneStyles } from '@/styles/ui'
-import { CUSTOMERS_PAGE_SIZE } from '../api/customers.api'
 import { useCustomers, useDeactivateCustomer } from '../api/customers.queries'
 import { CustomerDetailsModal } from '../components/CustomerDetailsModal'
 import { DeactivateCustomerDialog } from '../components/DeactivateCustomerDialog'
@@ -75,12 +75,7 @@ export function CustomersPage() {
   // el botón "+ Registrar cliente" (24 + 48 px) y, si hay, el mensaje de éxito (16 + 18 px).
   const areaRef = useRef<HTMLDivElement>(null)
   const pagerRef = useRef<HTMLElement>(null)
-  const limit = useRowsThatFit({
-    areaRef,
-    pagerRef,
-    initial: CUSTOMERS_PAGE_SIZE,
-    extraBelow: 72 + (message ? 34 : 0),
-  })
+  const limit = TABLE_PAGE_SIZE
   const customers = useCustomers({ documentType, documentNumber, level, page, limit })
   useClampPage(page, setPage, customers.data?.total, customers.data?.limit)
 
