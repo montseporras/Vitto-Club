@@ -1,4 +1,4 @@
-import { argentinaMonthStart, toArgentinaDateString, toArgentinaParts } from './argentina-date.js';
+import { argentinaMonthStart, toArgentinaDateString, toArgentinaParts, toArgentinaWeekdayAndTime } from './argentina-date.js';
 
 describe('toArgentinaDateString', () => {
   it('convierte UTC a la fecha de Argentina (UTC-3)', () => {
@@ -27,5 +27,19 @@ describe('toArgentinaParts / argentinaMonthStart', () => {
   it('acepta el mes 13 (enero siguiente) y el 0 (diciembre anterior)', () => {
     expect(argentinaMonthStart(2026, 13).toISOString()).toBe('2027-01-01T03:00:00.000Z');
     expect(argentinaMonthStart(2026, 0).toISOString()).toBe('2025-12-01T03:00:00.000Z');
+  });
+});
+
+describe('toArgentinaWeekdayAndTime (US-30)', () => {
+  it('domingo 15/11/2026 09:00 en Argentina (12:00 UTC) → 7, "09:00"', () => {
+    expect(toArgentinaWeekdayAndTime(new Date('2026-11-15T12:00:00.000Z'))).toEqual({ weekday: 7, time: '09:00' });
+  });
+
+  it('lunes 16/11/2026 02:30 UTC todavía es domingo 23:30 en Argentina', () => {
+    expect(toArgentinaWeekdayAndTime(new Date('2026-11-16T02:30:00.000Z'))).toEqual({ weekday: 7, time: '23:30' });
+  });
+
+  it('lunes 16/11/2026 03:00 UTC → lunes 00:00', () => {
+    expect(toArgentinaWeekdayAndTime(new Date('2026-11-16T03:00:00.000Z'))).toEqual({ weekday: 1, time: '00:00' });
   });
 });
