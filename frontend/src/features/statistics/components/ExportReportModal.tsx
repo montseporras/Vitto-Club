@@ -69,7 +69,7 @@ export function ExportReportModal({ month, onClose }: ExportReportModalProps) {
         <span className="text-xs font-bold tracking-[0.04em] text-[#7e3e20] uppercase">
           Secciones
         </span>
-        <Button type="button" variant="ghost" className="h-[30px] px-2.5 text-[13px]" onClick={toggleAll}>
+        <Button type="button" variant="ghost" size="sm" onClick={toggleAll}>
           {allSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
         </Button>
       </div>
@@ -78,7 +78,7 @@ export function ExportReportModal({ month, onClose }: ExportReportModalProps) {
         {REPORT_SECTIONS.map((section, index) => (
           <label
             key={section.value}
-            className="flex cursor-pointer items-center gap-2.5 border-b border-[#fbe6d4] bg-white px-3.5 py-2.5 text-[15px] last:border-b-0"
+            className="flex cursor-pointer items-center gap-2.5 bg-white even:bg-[#fdf3e9] px-3.5 py-2.5 text-[15px] last:border-b-0"
           >
             <input
               ref={index === 0 ? firstCheckbox : undefined}
@@ -112,6 +112,7 @@ export function ExportReportModal({ month, onClose }: ExportReportModalProps) {
           Cancelar
         </Button>
         <Button
+          loading={download.isPending}
           type="button"
           onClick={onDownload}
           disabled={noneSelected || download.isPending}

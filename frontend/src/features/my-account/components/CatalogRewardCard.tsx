@@ -54,7 +54,8 @@ export function CatalogRewardCard({ reward, balance, onRedeem }: CatalogRewardCa
         <span title={negative ? NEGATIVE_BALANCE_TITLE : undefined} className="mt-1 block">
           <Button
             type="button"
-            className="h-9 w-full text-xs"
+            size="sm"
+            className="w-full"
             disabled={!canRedeem}
             onClick={() => onRedeem(reward)}
           >

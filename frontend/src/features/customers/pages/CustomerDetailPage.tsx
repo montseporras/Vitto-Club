@@ -310,7 +310,7 @@ function ConsumptionsTab({
               </TableCell>
               <TableCell className="text-right">
                 {/* Detalle del consumo (US-23), en un modal */}
-                <Button
+                <Button size="sm"
                   type="button"
                   variant="secondary"
                   onClick={() => setOpenCode(consumption.code)}
@@ -416,6 +416,7 @@ function MovementsTab({ customerId }: { customerId: number }) {
             <Button
               type="button"
               variant="secondary"
+              size="sm"
               disabled={page <= 1 || movements.isFetching}
               onClick={() => setPage((current) => current - 1)}
             >
@@ -424,6 +425,7 @@ function MovementsTab({ customerId }: { customerId: number }) {
             <Button
               type="button"
               variant="secondary"
+              size="sm"
               disabled={page >= totalPages || movements.isFetching}
               onClick={() => setPage((current) => current + 1)}
             >

@@ -8,7 +8,12 @@ import { ImagePicker } from '@/shared/components/forms/ImagePicker'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Badge } from '@/shared/components/ui/Badge'
+import { SubmitHint } from '@/shared/components/forms/SubmitHint'
 import { Button } from '@/shared/components/ui/Button'
+import { DeleteButton } from '@/shared/components/ui/DeleteButton'
+import { Switch } from '@/shared/components/ui/Switch'
+import { useMissingFields } from '@/shared/hooks/useMissingFields'
+import { useUndoableAction } from '@/shared/hooks/useUndoableAction'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
 import { DatePicker } from '@/shared/components/ui/DatePicker'
@@ -53,6 +58,13 @@ const PHOTO_NOT_UPLOADED = 'La recompensa se guardó, pero no se pudo subir la f
 type RewardCreateModalProps = {
   onClose: () => void
   rewardId?: number
+  /** Duplicar: abre "Crear" con los datos de esta recompensa (sin la foto) y el nombre "(copia)". */
+  duplicateFromId?: number
+  /**
+   * Eliminar: la pantalla del listado oculta la recompensa y ofrece "Deshacer" antes de mandar la
+   * baja. Si no se pasa, se elimina al confirmar.
+   */
+  onDeleteRequested?: (reward: Reward) => void
 }
 
 function RewardDialog({
@@ -109,7 +121,12 @@ function rewardStatusVariant(reward: Reward) {
   return 'neutral'
 }
 
-export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps) {
+export function RewardCreateModal({
+  onClose,
+  rewardId,
+  duplicateFromId,
+  onDeleteRequested,
+}: RewardCreateModalProps) {
   const [serverError, setServerError] = useState<{ messages: string[] } | null>(null)
   const [actionError, setActionError] = useState<ApiError | null>(null)
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false)
@@ -124,6 +141,11 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
   const isEditing = currentId !== undefined
   const rewardQuery = useAdminReward(currentId)
   const reward = rewardQuery.data
+  const sourceQuery = useAdminReward(isEditing ? undefined : duplicateFromId)
+  const source = sourceQuery.data
+  const runUndoable = useUndoableAction()
+  // El interruptor cambia al instante; mientras se confirma (o se puede deshacer) manda este valor
+  const [optimisticActive, setOptimisticActive] = useState<boolean | null>(null)
   const schema = useMemo(
     () =>
       createRewardSchema(today, {
@@ -158,7 +180,7 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
       expiresAt: '',
       noExpiry: false,
     },
-    mode: 'onTouched',
+    mode: 'onChange',
   })
 
   useEffect(() => {
@@ -173,6 +195,20 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
       noExpiry: reward.expiresAt === null,
     })
   }, [reward, reset])
+
+  // Duplicar: los datos de la recompensa original, con "(copia)" en el nombre. La foto no se copia.
+  useEffect(() => {
+    if (!source) return
+    reset({
+      name: `${source.name} (copia)`.slice(0, 80),
+      description: source.description ?? '',
+      points: String(source.points),
+      stock: source.stock === null ? '' : String(source.stock),
+      unlimitedStock: source.stock === null,
+      expiresAt: source.expiresAt ?? '',
+      noExpiry: source.expiresAt === null,
+    })
+  }, [source, reset])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -300,44 +336,78 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
     onClose()
   }
 
+  // Interruptor encendido: se activa al instante, sin "Guardar"
   const activate = () => {
     if (currentId === undefined) return
     setServerError(null)
+    setOptimisticActive(true)
     activateMutation.mutate(currentId, {
       onSuccess: ({ reward: activatedReward }) => {
+        setOptimisticActive(null)
         showToast(
           activatedReward.status === 'DISABLED'
-            ? 'Se activó, pero quedó deshabilitada porque no tiene stock o está vencida. Reponé el stock o extendé la fecha.'
-            : 'Recompensa activada.',
+            ? 'Recompensa activada, pero sin stock o vencida: los clientes no la ven hasta que la repongas.'
+            : 'Recompensa activada',
         )
-        onClose()
       },
-      onError: setServerError,
+      onError: (error) => {
+        setOptimisticActive(null)
+        setServerError(error)
+      },
     })
   }
 
-  const confirmDeactivate = () => {
+  // Interruptor apagado: se ve al instante y hay unos segundos para deshacer antes de mandarlo
+  const deactivateWithUndo = () => {
     if (currentId === undefined) return
-    setActionError(null)
-    deactivateMutation.mutate(currentId, {
-      onSuccess: ({ rejectedRedemptions }) => {
-        const rejectedMessage =
-          rejectedRedemptions > 0
-            ? ` Se rechazaron ${rejectedRedemptions} canjes confirmados.`
-            : ''
-        showToast(`Recompensa desactivada.${rejectedMessage}`)
-        onClose()
+    const id = currentId
+    setServerError(null)
+    setOptimisticActive(false)
+    runUndoable({
+      message: 'Recompensa desactivada',
+      undoneMessage: 'La recompensa sigue activa',
+      commit: async () => {
+        const { rejectedRedemptions } = await deactivateMutation.mutateAsync(id)
+        setOptimisticActive(null)
+        if (rejectedRedemptions > 0) {
+          showToast(`Recompensa desactivada. Se rechazaron ${rejectedRedemptions} canjes confirmados.`)
+        }
       },
-      onError: setActionError,
+      onUndo: () => setOptimisticActive(null),
+      onError: () => setOptimisticActive(null),
     })
+  }
+
+  const onToggleActive = (next: boolean) => {
+    if (!reward) return
+    if (next) {
+      activate()
+    } else if ((reward.confirmedCount ?? 0) > 0) {
+      // Desactivar rechaza los canjes confirmados: eso se avisa antes
+      setActionError(null)
+      setDeactivateDialogOpen(true)
+    } else {
+      deactivateWithUndo()
+    }
+  }
+
+  const confirmDeactivate = () => {
+    setDeactivateDialogOpen(false)
+    deactivateWithUndo()
   }
 
   const confirmDelete = () => {
     if (currentId === undefined) return
     setActionError(null)
+    if (onDeleteRequested && reward) {
+      setDeleteDialogOpen(false)
+      onDeleteRequested(reward)
+      onClose()
+      return
+    }
     deleteMutation.mutate(currentId, {
       onSuccess: () => {
-        showToast('Recompensa eliminada.')
+        showToast('Recompensa eliminada')
         onClose()
       },
       onError: setActionError,
@@ -353,6 +423,13 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
   const formErrorMessages = serverError?.messages ?? []
   const unlimitedStock = useWatch({ control, name: 'unlimitedStock' })
   const noExpiry = useWatch({ control, name: 'noExpiry' })
+  // Qué falta para poder guardar: el stock y el vencimiento solo si no se marcó "sin límite" / "no vence"
+  const missing = useMissingFields(
+    control,
+    { name: 'Nombre', description: 'Descripción', points: 'Puntos', stock: 'Stock', expiresAt: 'Vencimiento' },
+    ['description', ...(unlimitedStock ? (['stock'] as const) : []), ...(noExpiry ? (['expiresAt'] as const) : [])],
+  )
+  const isActiveOn = optimisticActive ?? reward?.status !== 'INACTIVE'
   const isPending =
     createMutation.isPending ||
     updateMutation.isPending ||
@@ -361,7 +438,11 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
     deleteMutation.isPending ||
     uploadPhotoMutation.isPending ||
     deletePhotoMutation.isPending
-  const title = isEditing ? 'Editar recompensa' : 'Crear recompensa'
+  const title = isEditing
+    ? 'Editar recompensa'
+    : duplicateFromId !== undefined
+      ? 'Duplicar recompensa'
+      : 'Crear recompensa'
 
   if (isEditing && rewardQuery.isPending) {
     return (
@@ -418,12 +499,29 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
         {isEditing && reward && (
           <div className="mt-1 mb-3 flex flex-wrap items-center gap-2 text-[13px] text-[#5c5249]">
             <span>Estado:</span>
-            <Badge variant={rewardStatusVariant(reward)} className="normal-case tracking-normal">
-              {rewardStatusLabel(reward)}
-            </Badge>
+            {/* Mientras el interruptor espera (o se puede deshacer), el estado ya muestra el cambio */}
+            {optimisticActive === null ? (
+              <Badge variant={rewardStatusVariant(reward)} className="normal-case tracking-normal">
+                {rewardStatusLabel(reward)}
+              </Badge>
+            ) : (
+              <Badge variant={optimisticActive ? 'success' : 'danger'} className="normal-case tracking-normal">
+                {optimisticActive ? 'Activa' : 'Inactiva'}
+              </Badge>
+            )}
             <span>
               · Canjes confirmados: <strong>{reward.confirmedCount ?? 0}</strong>
             </span>
+            {/* Activar o desactivar se aplica al instante, sin el botón "Guardar" */}
+            <Switch
+              className="ml-auto"
+              checked={isActiveOn}
+              onChange={onToggleActive}
+              label={`Recompensa ${reward.name} activa`}
+              onText="Activa"
+              offText="Inactiva"
+              pending={activateMutation.isPending}
+            />
           </div>
         )}
 
@@ -441,7 +539,7 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
 
           {/* US-34: foto con vista previa, "Elegir imagen" y "Quitar" (S5 §3.5.2) */}
           <ImagePicker
-            label="Foto que verán los clientes"
+            label="Foto que ven los clientes"
             photoUrl={reward?.photoUrl ?? null}
             previewAlt="Foto de la recompensa"
             placeholder={
@@ -591,51 +689,35 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
 
         <div className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-[#fbe6d4] pt-3">
           {isEditing && reward ? (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={isPending}
-                onClick={() => {
-                  if (reward.status === 'INACTIVE') {
-                    activate()
-                  } else {
-                    setServerError(null)
-                    setActionError(null)
-                    setDeactivateDialogOpen(true)
-                  }
-                }}
-              >
-                {reward.status === 'INACTIVE' ? 'Activar' : 'Desactivar'}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={isPending}
-                className="text-[#b3261e]"
-                onClick={() => {
-                  setServerError(null)
-                  setActionError(null)
-                  setDeleteDialogOpen(true)
-                }}
-              >
-                Eliminar
-              </Button>
-            </div>
+            <DeleteButton
+              type="button"
+              variant="ghost"
+              disabled={isPending}
+              onClick={() => {
+                setServerError(null)
+                setActionError(null)
+                setDeleteDialogOpen(true)
+              }}
+            />
           ) : (
             <span />
           )}
+          {missing.length > 0 && <SubmitHint id="reward-missing" missing={missing} />}
           <div className="ml-auto flex flex-wrap gap-2">
             <Button
               type="button"
               variant="secondary"
               onClick={onClose}
               disabled={isPending}
-              className="h-10"
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isPending} className="h-10">
+            <Button
+              type="submit"
+              loading={isPending}
+              disabled={isPending || missing.length > 0}
+              aria-describedby={missing.length > 0 ? 'reward-missing' : undefined}
+            >
               {isPending
                 ? 'Guardando…'
                 : isEditing
@@ -685,6 +767,7 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
                 Cancelar
               </Button>
               <Button
+                loading={deactivateMutation.isPending}
                 type="button"
                 disabled={deactivateMutation.isPending}
                 onClick={confirmDeactivate}
@@ -706,8 +789,8 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
         >
           <div className="grid gap-4">
             <p className="text-[15px] text-[#3b2a20]">
-              ¿Eliminar <strong>{reward.name}</strong>? Va a dejar de aparecer en el catálogo y no
-              se puede deshacer.
+              ¿Eliminar <strong>{reward.name}</strong>? Va a dejar de aparecer en el catálogo. Si te
+              equivocás, tenés unos segundos para deshacerlo.
             </p>
             {(reward.confirmedCount ?? 0) > 0 && (
               <Alert variant="error">
@@ -733,13 +816,13 @@ export function RewardCreateModal({ onClose, rewardId }: RewardCreateModalProps)
               >
                 Cancelar
               </Button>
-              <Button
+              <DeleteButton
+                loading={deleteMutation.isPending}
                 type="button"
+                variant="danger"
                 disabled={deleteMutation.isPending}
                 onClick={confirmDelete}
-              >
-                Eliminar
-              </Button>
+              />
             </div>
           </div>
         </RewardDialog>

@@ -39,6 +39,8 @@ export function EditMessageModal({ message, birthdayBonusPoints, onAccept, onClo
   } = useForm<MessageFormValues>({
     resolver: zodResolver(messageSchema(message.type)),
     defaultValues: { subject: message.subject, body: message.body },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   })
 
   const subject = useWatch({ control, name: 'subject' }) ?? ''

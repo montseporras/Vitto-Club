@@ -1,6 +1,8 @@
 // Recompensas del Inicio del Cliente: las primeras 5 del catálogo y, al final, "Ver catálogo completo",
 // que abre la pestaña Canjes en Catálogo. Reemplaza a la tarjeta "Recompensas" de US-39 (CA-39.6), a
 // pedido de Denise. "Canjear" abre "Confirmar canje" (US-40), igual que en el Catálogo.
+import { ICONS } from '@/shared/components/ui/icons'
+import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useMyCatalog, type CatalogReward } from '@/features/rewards'
@@ -55,12 +57,15 @@ export function RewardsPreview({ catalogUrl, myRedemptionsUrl }: RewardsPreviewP
           ))}
         </ul>
       ) : (
-        <StatusText className="rounded-xl border border-dashed border-orange-200 px-3 py-5 text-center">
-          No hay recompensas disponibles por ahora.
-        </StatusText>
+        <EmptyState
+          compact
+          icon={ICONS.gift}
+          title="El catálogo está vacío por ahora"
+          description="Seguí sumando puntos: cuando haya recompensas, las vas a ver acá."
+        />
       )}
 
-      <Link to={catalogUrl} className={cn(buttonVariants(), 'justify-self-center text-xs')}>
+      <Link to={catalogUrl} className={cn(buttonVariants({ size: 'sm' }), 'justify-self-center')}>
         Ver catálogo completo
       </Link>
 

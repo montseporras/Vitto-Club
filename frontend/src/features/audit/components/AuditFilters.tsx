@@ -124,6 +124,7 @@ export function AuditFilters({
           id="audit-document-number"
           className={looseInputClass}
           placeholder="30111222"
+          inputMode={filters.documentType === 'DNI' ? 'numeric' : 'text'}
           maxLength={20}
           value={filters.documentNumber}
           onChange={(event) => onChange({ documentNumber: event.target.value })}

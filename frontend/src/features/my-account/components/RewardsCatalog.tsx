@@ -1,6 +1,8 @@
 // Catálogo de recompensas del Cliente (US-39, CA-39.2 a CA-39.5, contrato §3.5.1 y prototipo
 // ClienteCanjes → Catálogo): saldo, filtros, tarjetas y pie. "Canjear" abre "Confirmar canje"
 // (US-40) con la recompensa y el saldo que ya trajo el catálogo.
+import { ICONS } from '@/shared/components/ui/icons'
+import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { useState } from 'react'
 import { useMyCatalog, type CatalogFilter, type CatalogReward } from '@/features/rewards'
 import { StatusText } from '@/shared/components/feedback/StatusText'
@@ -77,7 +79,7 @@ export function RewardsCatalog({ onViewMyRedemptions }: RewardsCatalogProps) {
             type="button"
             variant={filter === option.value ? 'primary' : 'secondary'}
             aria-pressed={filter === option.value}
-            className="h-8 px-3 text-xs"
+            size="sm"
             onClick={() => setFilter(option.value)}
           >
             {option.label}
@@ -97,11 +99,29 @@ export function RewardsCatalog({ onViewMyRedemptions }: RewardsCatalogProps) {
           ))}
         </ul>
       ) : (
-        <StatusText className="rounded-xl border border-dashed border-orange-200 px-3 py-5 text-center">
-          {filter === 'EXPIRING_SOON'
-            ? 'No hay recompensas que venzan en los próximos 7 días.'
-            : 'No hay recompensas disponibles por ahora.'}
-        </StatusText>
+        filter === 'EXPIRING_SOON' ? (
+          <EmptyState
+            icon={ICONS.clock}
+            title="Nada vence esta semana"
+            description="Ninguna recompensa vence en los próximos 7 días. Elegí con calma."
+            action={
+              <Button type="button" variant="secondary" onClick={() => setFilter('ALL')}>
+                Ver todas las recompensas
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={ICONS.gift}
+            title="El catálogo está vacío por ahora"
+            description="Seguí sumando puntos con cada consumo: cuando haya recompensas, las vas a ver acá."
+            action={
+              <Button type="button" variant="secondary" onClick={onViewMyRedemptions}>
+                Ver mis canjes
+              </Button>
+            }
+          />
+        )
       )}
 
       <StatusText className="text-xs">

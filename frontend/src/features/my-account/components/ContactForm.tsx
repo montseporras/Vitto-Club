@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import type { ApiError } from '@/shared/api/ApiError'
 import { useToast } from '@/shared/components/feedback/useToast'
 import { FormField } from '@/shared/components/forms/FormField'
@@ -8,6 +8,7 @@ import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
 import { PasswordInput } from '@/shared/components/ui/PasswordInput'
+import { SplitDateInput } from '@/shared/components/ui/SplitDateInput'
 import { displayDateToIso, isoToDisplayDate } from '@/shared/lib/dates'
 import { useUpdateMyProfile } from '../api/my-account.queries'
 import {
@@ -21,7 +22,6 @@ import {
   type MyProfile,
   type UpdateMyProfileBody,
 } from '../types/my-account'
-import { BirthDateInput } from './BirthDateInput'
 import { ProfileSection } from './ProfileSection'
 
 type ContactField = keyof ContactFormValues
@@ -67,6 +67,8 @@ export function ContactForm({ profile }: { profile: MyProfile }) {
   } = useForm<ContactFormValues>({
     resolver: zodResolver(contactSchema(profile.email)),
     defaultValues: valuesOf(profile),
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   })
 
   // Después de guardar, el formulario arranca de los datos nuevos
@@ -136,7 +138,15 @@ export function ContactForm({ profile }: { profile: MyProfile }) {
           optional
           error={errors.phone?.message}
         >
-          <Input type="tel" inputMode="tel" autoComplete="tel" {...a11y('phone')} {...register('phone')} />
+          <Input
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            maxLength={30}
+            className="max-w-60"
+            {...a11y('phone')}
+            {...register('phone')}
+          />
         </FormField>
 
         <FormField
@@ -146,7 +156,13 @@ export function ContactForm({ profile }: { profile: MyProfile }) {
           error={errors.email?.message}
           hint="Este correo es el que usás para ingresar."
         >
-          <Input type="email" autoComplete="email" {...a11y('email', true)} {...register('email')} />
+          <Input
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            {...a11y('email', true)}
+            {...register('email')}
+          />
         </FormField>
 
         {emailChanged && (
@@ -171,7 +187,19 @@ export function ContactForm({ profile }: { profile: MyProfile }) {
           optional
           error={errors.dateOfBirth?.message}
         >
-          <BirthDateInput {...a11y('dateOfBirth')} {...register('dateOfBirth')} />
+          <Controller
+            control={control}
+            name="dateOfBirth"
+            render={({ field }) => (
+              <SplitDateInput
+                {...a11y('dateOfBirth')}
+                name={field.name}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
         </FormField>
 
         <div className="flex flex-wrap justify-end gap-2.5">
@@ -186,7 +214,7 @@ export function ContactForm({ profile }: { profile: MyProfile }) {
           >
             Cancelar
           </Button>
-          <Button type="submit" disabled={!hasChanges || updateProfile.isPending}>
+          <Button loading={updateProfile.isPending} type="submit" disabled={!hasChanges || updateProfile.isPending}>
             {updateProfile.isPending ? 'Guardando…' : 'Guardar cambios'}
           </Button>
         </div>

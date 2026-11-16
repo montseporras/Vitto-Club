@@ -11,7 +11,10 @@ import {
 } from '@/features/cashier'
 import { FormField } from '@/shared/components/forms/FormField'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
+import { SubmitHint } from '@/shared/components/forms/SubmitHint'
 import { Button } from '@/shared/components/ui/Button'
+import { DeleteButton } from '@/shared/components/ui/DeleteButton'
+import { useMissingFields } from '@/shared/hooks/useMissingFields'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
 import { Input } from '@/shared/components/ui/Input'
@@ -48,6 +51,8 @@ type CustomerDetailsModalProps = {
   onClose: () => void
   onDelete: () => void
   onSaved: () => void
+  /** Abre directo en modo edición (desde el menú de tres puntos). */
+  startEditing?: boolean
 }
 
 /** "Ver más" de Clientes: datos del cliente y, con Editar, el formulario (CA-CLI.3 y CA-CLI.4). */
@@ -56,14 +61,16 @@ export function CustomerDetailsModal({
   onClose,
   onDelete,
   onSaved,
+  startEditing = false,
 }: CustomerDetailsModalProps) {
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState(startEditing)
   const [noChanges, setNoChanges] = useState(false)
   const updateCustomer = useUpdateCustomerAdmin()
   const {
     register,
     handleSubmit,
     setError,
+    control,
     formState: { errors },
   } = useForm<UpdateCustomerFormInput, unknown, UpdateCustomerFormOutput>({
     resolver: zodResolver(updateCustomerSchema),
@@ -74,7 +81,7 @@ export function CustomerDetailsModal({
       phone: customer.phone ?? '',
       reason: '',
     },
-    mode: 'onTouched',
+    mode: 'onChange',
   })
 
   // Escape cierra el modal
@@ -123,6 +130,11 @@ export function CustomerDetailsModal({
       ? updateCustomer.error
       : undefined
   const documentLabel = DOCUMENT_TYPES[customer.documentType].label
+  const missing = useMissingFields(
+    control,
+    { firstName: 'Nombre', lastName: 'Apellido', phone: 'Teléfono', email: 'Mail', reason: 'Motivo del cambio' },
+    ['phone'],
+  )
 
   // Diálogo blanco, sin franjas de color, con la cruz en la esquina (prototipo: .dialog)
   return createPortal(
@@ -179,6 +191,7 @@ export function CustomerDetailsModal({
               >
                 <Input
                   id="customer-documentNumber"
+                  className="max-w-52"
                   value={customer.documentNumber}
                   disabled
                   readOnly
@@ -187,7 +200,15 @@ export function CustomerDetailsModal({
               </FormField>
 
               <FormField id="customer-phone" label="Teléfono" optional error={errors.phone?.message}>
-                <Input type="tel" inputMode="tel" autoComplete="off" {...a11y('phone')} {...register('phone')} />
+                <Input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="off"
+                  maxLength={30}
+                  className="max-w-60"
+                  {...a11y('phone')}
+                  {...register('phone')}
+                />
               </FormField>
 
               <FormField id="customer-email" label="Mail" error={errors.email?.message}>
@@ -202,8 +223,7 @@ export function CustomerDetailsModal({
 
               <FormField
                 id="customer-reason"
-                label="Motivo del cambio (obligatorio)"
-                hideRequiredMark
+                label="Motivo del cambio"
                 error={errors.reason?.message}
               >
                 <Input
@@ -244,16 +264,25 @@ export function CustomerDetailsModal({
             </p>
           )}
 
+          {editing && missing.length > 0 && (
+            <div className="mt-5">
+              <SubmitHint id="customer-edit-missing" missing={missing} />
+            </div>
+          )}
+
           {/* Eliminar a la izquierda; Cerrar y Editar (o Guardar cambios) a la derecha */}
           <div className="mt-6 flex flex-wrap items-center gap-2.5">
-            <Button type="button" variant="ghost" onClick={onDelete} className="mr-auto">
-              Eliminar
-            </Button>
+            <DeleteButton type="button" variant="ghost" onClick={onDelete} className="mr-auto" />
             <Button type="button" variant="secondary" onClick={onClose}>
               Cerrar
             </Button>
             {editing ? (
-              <Button type="submit" disabled={updateCustomer.isPending}>
+              <Button
+                loading={updateCustomer.isPending}
+                type="submit"
+                disabled={updateCustomer.isPending || missing.length > 0}
+                aria-describedby={missing.length > 0 ? 'customer-edit-missing' : undefined}
+              >
                 {updateCustomer.isPending ? 'Guardando…' : 'Guardar cambios'}
               </Button>
             ) : (

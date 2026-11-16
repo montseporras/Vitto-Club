@@ -141,6 +141,7 @@ export function ConfirmRedemptionFlow({
           Cancelar
         </Button>
         <Button
+          loading={confirm.isPending}
           type="button"
           className="flex-1"
           disabled={validation !== null || confirm.isPending}

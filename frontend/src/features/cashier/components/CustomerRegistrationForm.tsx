@@ -1,15 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ReactNode } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
 import { FormActions } from '@/shared/components/forms/FormActions'
 import { FormField } from '@/shared/components/forms/FormField'
 import { FormSection } from '@/shared/components/forms/FormSection'
 import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio'
+import { SubmitHint } from '@/shared/components/forms/SubmitHint'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
-import { DateInput } from '@/shared/components/ui/DateInput'
 import { Input } from '@/shared/components/ui/Input'
+import { SplitDateInput } from '@/shared/components/ui/SplitDateInput'
+import { useMissingFields } from '@/shared/hooks/useMissingFields'
 import { useCreateCustomer, type DocumentSearch } from '../api/cashier.queries'
 import {
   customerConflict,
@@ -98,7 +100,7 @@ export function CustomerRegistrationForm({
   } = useForm<CreateCustomerFormInput, unknown, CreateCustomerFormOutput>({
     resolver: zodResolver(createCustomerSchema),
     defaultValues: { ...INITIAL_VALUES, ...initialDocument },
-    mode: 'onTouched',
+    mode: 'onChange',
   })
   const createCustomer = useCreateCustomer()
 
@@ -145,6 +147,19 @@ export function CustomerRegistrationForm({
       ? createCustomer.error
       : undefined
   const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
+  // Qué falta para poder registrar: se dice arriba del botón, que queda apagado
+  const missing = useMissingFields(
+    control,
+    {
+      firstName: 'Nombre',
+      lastName: 'Apellido',
+      dateOfBirth: 'Fecha de nacimiento',
+      documentNumber: 'Número de documento',
+      email: 'Correo electrónico',
+      phone: 'Teléfono',
+    },
+    ['dateOfBirth', 'phone'],
+  )
 
   const feedback = (
     <>
@@ -205,9 +220,18 @@ export function CustomerRegistrationForm({
           optional
           error={errors.dateOfBirth?.message}
         >
-          <DateInput
-            {...a11y('dateOfBirth')}
-            {...register('dateOfBirth')}
+          <Controller
+            control={control}
+            name="dateOfBirth"
+            render={({ field }) => (
+              <SplitDateInput
+                {...a11y('dateOfBirth')}
+                name={field.name}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
           />
         </FormField>
       </FormSection>
@@ -233,6 +257,8 @@ export function CustomerRegistrationForm({
             inputMode={isDni ? 'numeric' : 'text'}
             placeholder="30111222"
             autoComplete="off"
+            maxLength={isDni ? 10 : 20}
+            className="max-w-52"
             {...a11y('documentNumber')}
             {...register('documentNumber')}
           />
@@ -266,13 +292,20 @@ export function CustomerRegistrationForm({
             inputMode="tel"
             placeholder="351 1234567"
             autoComplete="off"
+            maxLength={30}
+            className="max-w-60"
             {...a11y('phone')}
             {...register('phone')}
           />
         </FormField>
       </FormSection>
 
-      <FormActions message="Los campos marcados con * son obligatorios">
+      {missing.length > 0 && (
+        <div className="mt-6">
+          <SubmitHint id="customer-missing" missing={missing} />
+        </div>
+      )}
+      <FormActions className="mt-4">
         {onCancel && (
           <Button
             type="button"
@@ -285,9 +318,11 @@ export function CustomerRegistrationForm({
           </Button>
         )}
         <Button
+          loading={createCustomer.isPending}
           type="submit"
           size="lg"
-          disabled={createCustomer.isPending}
+          disabled={createCustomer.isPending || missing.length > 0}
+          aria-describedby={missing.length > 0 ? 'customer-missing' : undefined}
           className="w-full sm:w-auto"
         >
           {createCustomer.isPending ? 'Registrando…' : 'Registrar cliente'}

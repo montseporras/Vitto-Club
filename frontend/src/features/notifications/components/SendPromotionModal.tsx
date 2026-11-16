@@ -64,6 +64,8 @@ export function SendPromotionModal({ onClose }: SendPromotionModalProps) {
   } = useForm<SendPromotionFormValues>({
     resolver: zodResolver(sendPromotionSchema),
     defaultValues: EMPTY_FORM,
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   })
 
   const subject = useWatch({ control, name: 'subject' }) ?? ''
@@ -184,7 +186,7 @@ export function SendPromotionModal({ onClose }: SendPromotionModalProps) {
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={send.isPending}>
+          <Button loading={send.isPending} type="submit" disabled={send.isPending}>
             {when === 'SCHEDULED' ? 'Programar envío' : 'Enviar ahora'}
           </Button>
         </div>

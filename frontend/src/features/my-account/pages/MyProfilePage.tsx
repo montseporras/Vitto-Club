@@ -6,6 +6,7 @@ import { Alert } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
+import { cn } from '@/shared/lib/utils'
 import { buttonVariants } from '@/styles/ui'
 import { useMyProfile } from '../api/my-account.queries'
 import { ChangePasswordForm } from '../components/ChangePasswordForm'
@@ -32,7 +33,7 @@ export function MyProfilePage({ homePath }: MyProfilePageProps) {
           to={homePath}
           aria-label="Volver"
           title="Volver"
-          className={buttonVariants({ variant: 'secondary', className: 'w-10 px-0' })}
+          className={cn(buttonVariants({ variant: 'secondary' }), 'size-12 min-h-0 p-0')}
         >
           <Icon d={ICONS.arrowLeft} className="size-4" />
         </Link>

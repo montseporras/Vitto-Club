@@ -14,6 +14,7 @@ import { FormSection } from '@/shared/components/forms/FormSection';
 import { StatusText } from '@/shared/components/feedback/StatusText';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
+import { DeleteButton } from '@/shared/components/ui/DeleteButton';
 import { Input } from '@/shared/components/ui/Input';
 import { Select } from '@/shared/components/ui/Select';
 import { useUpdateEmployee } from '../api/employees.queries';
@@ -78,6 +79,8 @@ export function EditEmployeeForm({
       phone: employee.phone ?? '',
       role: employee.role,
     },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   });
 
   const updateEmployee = useUpdateEmployee(employee.id);
@@ -147,6 +150,8 @@ export function EditEmployeeForm({
             type="tel"
             inputMode="tel"
             autoComplete="off"
+            maxLength={30}
+            className="max-w-60"
             disabled={isReadOnly}
             {...a11y('phone')}
             {...register('phone')}
@@ -181,7 +186,7 @@ export function EditEmployeeForm({
         </FormActions>
       ) : (
         <FormActions>
-          <Button
+          <DeleteButton
             type="button"
             variant="ghost"
             size="lg"
@@ -189,11 +194,11 @@ export function EditEmployeeForm({
             className="sm:mr-auto"
           >
             Eliminar empleado
-          </Button>
+          </DeleteButton>
           <Button type="button" variant="secondary" size="lg" onClick={onCancel}>
             Cancelar
           </Button>
-          <Button type="submit" size="lg" disabled={updateEmployee.isPending}>
+          <Button loading={updateEmployee.isPending} type="submit" size="lg" disabled={updateEmployee.isPending}>
             {updateEmployee.isPending ? 'Guardando…' : 'Guardar'}
           </Button>
         </FormActions>

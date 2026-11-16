@@ -127,7 +127,7 @@ export function StatisticsPage() {
       actions={
         <div className="flex items-end gap-2.5">
           <PeriodSelectors selected={selected} today={today} onChange={changePeriod} />
-          <Button ref={exportButton} type="button" className="h-9" onClick={() => setExportOpen(true)}>
+          <Button ref={exportButton} type="button" onClick={() => setExportOpen(true)}>
             <Icon d={STATISTICS_ICONS.download} className="size-[18px]" />
             Exportar reporte PDF
           </Button>

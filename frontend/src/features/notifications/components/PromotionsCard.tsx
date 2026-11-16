@@ -94,16 +94,17 @@ export function PromotionsCard() {
             {sends.map((send) => (
               <li
                 key={send.id}
-                className="flex flex-wrap items-center justify-between gap-2.5 border-b border-[#fbe6d4] px-4 py-2.5 last:border-b-0"
+                className="flex flex-wrap items-center justify-between gap-2.5 even:bg-[#fdf3e9] px-4 py-2.5 last:border-b-0"
               >
                 <div className="min-w-[200px] flex-1">
                   <strong className="text-sm">{send.subject}</strong>
                   <p className="text-[13px] text-[#7a6e63]">{scheduledLine(send)}</p>
                 </div>
                 <Button
+                  loading={cancel.isPending && cancel.variables === send.id}
                   type="button"
                   variant="ghost"
-                  className="h-[34px] px-3 text-[13px]"
+                  size="sm"
                   disabled={cancel.isPending && cancel.variables === send.id}
                   onClick={() => cancelSend(send)}
                 >

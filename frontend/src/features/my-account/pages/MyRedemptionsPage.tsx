@@ -45,7 +45,8 @@ export function MyRedemptionsPage() {
             aria-pressed={view === option.value}
             onClick={() => changeView(option.value)}
             className={cn(
-              'flex-1 cursor-pointer rounded-full px-3 py-1.5 font-heading text-xs font-bold',
+              // 48 px de alto: en el celular el dedo no apunta como el cursor
+              'min-h-12 flex-1 cursor-pointer rounded-full px-3 py-2 font-heading text-sm font-bold transition-colors',
               'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700',
               view === option.value ? 'bg-accent-700 text-white' : 'text-accent-800',
             )}
@@ -58,7 +59,7 @@ export function MyRedemptionsPage() {
       {view === 'catalog' ? (
         <RewardsCatalog onViewMyRedemptions={() => changeView('mine')} />
       ) : (
-        <MyRedemptions onCancel={setCancelling} />
+        <MyRedemptions onCancel={setCancelling} onBrowseCatalog={() => changeView('catalog')} />
       )}
 
       {cancelling && (

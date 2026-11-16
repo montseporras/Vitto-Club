@@ -140,7 +140,7 @@ export function MessagesTab({ saved, draft, onDraftChange, children }: MessagesT
           {current.messages.map((message) => (
             <li
               key={message.type}
-              className="flex flex-wrap items-center justify-between gap-3 border-b border-[#fbe6d4] px-[18px] py-3.5 last:border-b-0"
+              className="flex flex-wrap items-center justify-between gap-3 even:bg-[#fdf3e9] px-[18px] py-3.5 last:border-b-0"
             >
               <div className="min-w-[220px] flex-1">
                 <strong className="text-[15px]">{NOTIFICATION_TYPES[message.type]}</strong>
@@ -165,7 +165,7 @@ export function MessagesTab({ saved, draft, onDraftChange, children }: MessagesT
           <Button type="button" variant="secondary" size="lg" disabled={!pending || update.isPending} onClick={discard}>
             Descartar
           </Button>
-          <Button type="button" size="lg" disabled={update.isPending} onClick={save}>
+          <Button loading={update.isPending} type="button" size="lg" disabled={update.isPending} onClick={save}>
             {update.isPending ? 'Guardando…' : 'Guardar cambios'}
           </Button>
         </div>

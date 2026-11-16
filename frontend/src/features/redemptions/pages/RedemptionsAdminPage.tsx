@@ -1,5 +1,7 @@
 // Pantalla Canjes del Administrador (US-45, contrato §3.12.3 y prototipo GestionCanjes): filtros
 // que se aplican con "Filtrar", tabla paginada con las filas que entran en la pantalla y modal con el detalle de cada canje.
+import { ICONS } from '@/shared/components/ui/icons'
+import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { useRef, useState } from 'react'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
@@ -105,9 +107,11 @@ export function RedemptionsAdminPage() {
           )}
 
           {data && !result.isError && data.items.length === 0 && (
-            <StatusText className="mt-1 rounded-2xl border border-dashed border-[#f6d0b1] px-4 py-7 text-center text-base text-[#5c5249]">
-              No hay canjes para los filtros seleccionados.
-            </StatusText>
+            <EmptyState
+              icon={ICONS.ticket}
+              title="No hay canjes con esos filtros"
+              description="Revisá el documento o el código, o probá con otro estado o rango de fechas."
+            />
           )}
         </div>
 

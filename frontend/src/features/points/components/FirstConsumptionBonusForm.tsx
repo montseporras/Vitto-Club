@@ -79,6 +79,8 @@ export function FirstConsumptionBonusForm({ bonus }: FirstConsumptionBonusFormPr
       bonusType: bonus?.bonusType ?? 'PERCENTAGE',
       bonusValue: bonus?.bonusValue,
     },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   });
 
   const updateBonus = useUpdateFirstConsumptionBonus();
@@ -144,6 +146,7 @@ export function FirstConsumptionBonusForm({ bonus }: FirstConsumptionBonusFormPr
 
       <FormActions>
         <Button
+          loading={updateBonus.isPending}
           type="submit"
           size="lg"
           disabled={!isDirty || updateBonus.isPending}

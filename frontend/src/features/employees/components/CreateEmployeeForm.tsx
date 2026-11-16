@@ -9,9 +9,11 @@ import { toApiError } from '@/shared/api/ApiError';
 import { FormActions } from '@/shared/components/forms/FormActions';
 import { FormField } from '@/shared/components/forms/FormField';
 import { FormSection } from '@/shared/components/forms/FormSection';
+import { SubmitHint } from '@/shared/components/forms/SubmitHint';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
+import { useMissingFields } from '@/shared/hooks/useMissingFields';
 import { Select } from '@/shared/components/ui/Select';
 import { generatePassword } from '@/shared/lib/password';
 import {
@@ -56,12 +58,16 @@ export function CreateEmployeeForm({
       email: '',
       role: 'CASHIER',
     },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   });
 
   // Contraseña del usuario: un formulario aparte, porque solo se valida si se
   // marca la casilla y la regla depende del mail que se está escribiendo.
   const passwordForm = useForm<AccountPasswordFormValues>({
     defaultValues: { password: generatePassword() },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   });
 
   const [withAccount, setWithAccount] = useState(false);
@@ -72,6 +78,13 @@ export function CreateEmployeeForm({
   const createEmployee = useCreateEmployee();
   const createAccount = useCreateEmployeeAccount();
   const email = useWatch({ control, name: 'email' });
+  const password = useWatch({ control: passwordForm.control, name: 'password' }) ?? '';
+  // Qué falta para poder guardar: se dice arriba del botón, que queda apagado
+  const missing = useMissingFields(
+    control,
+    { firstName: 'Nombre', lastName: 'Apellido', email: 'Mail', phone: 'Teléfono' },
+    ['phone'],
+  );
 
   // Valida la contraseña con la regla del mail actual y marca el error en su campo.
   const validPassword = (mail: string): string | null => {
@@ -212,6 +225,8 @@ export function CreateEmployeeForm({
             type="tel"
             inputMode="tel"
             autoComplete="off"
+            maxLength={30}
+            className="max-w-60"
             {...a11y('phone')}
             {...register('phone')}
           />
@@ -265,16 +280,29 @@ export function CreateEmployeeForm({
                 passwordForm.clearErrors('password');
               }}
               getPassword={() => passwordForm.getValues('password')}
+              password={password}
+              email={email.trim()}
             />
           </>
         )}
       </FormSection>
 
+      {missing.length > 0 && (
+        <div className="mt-6">
+          <SubmitHint id="employee-missing" missing={missing} />
+        </div>
+      )}
       <FormActions>
         <Button type="button" variant="secondary" size="lg" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="submit" size="lg" disabled={saving}>
+        <Button
+          loading={saving}
+          type="submit"
+          size="lg"
+          disabled={saving || missing.length > 0}
+          aria-describedby={missing.length > 0 ? 'employee-missing' : undefined}
+        >
           {createAccount.isPending
             ? 'Creando usuario…'
             : createEmployee.isPending

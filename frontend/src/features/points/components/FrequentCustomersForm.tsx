@@ -45,6 +45,8 @@ export function FrequentCustomersForm({ frequentCustomers }: FrequentCustomersFo
   } = useForm<FrequentCustomersFormValues>({
     resolver: zodResolver(frequentCustomersSchema),
     defaultValues: { minConsumptions: frequentCustomers.minConsumptions },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   });
 
   const update = useUpdateFrequentCustomers();
@@ -90,7 +92,7 @@ export function FrequentCustomersForm({ frequentCustomers }: FrequentCustomersFo
       </FormField>
 
       <FormActions>
-        <Button type="submit" size="lg" disabled={!isDirty || update.isPending}>
+        <Button loading={update.isPending} type="submit" size="lg" disabled={!isDirty || update.isPending}>
           {update.isPending ? 'Guardando…' : 'Guardar cambios'}
         </Button>
       </FormActions>

@@ -1,12 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ReactNode } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import type { ApiError } from '@/shared/api/ApiError'
 import { useToast } from '@/shared/components/feedback/useToast'
 import { FormField } from '@/shared/components/forms/FormField'
+import { PasswordChecklist } from '@/shared/components/forms/PasswordChecklist'
+import { SubmitHint } from '@/shared/components/forms/SubmitHint'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { PasswordInput } from '@/shared/components/ui/PasswordInput'
+import { useMissingFields } from '@/shared/hooks/useMissingFields'
 import { useChangeMyPassword } from '../api/my-account.queries'
 import {
   PASSWORD_MESSAGES,
@@ -59,11 +62,22 @@ export function ChangePasswordForm({
     handleSubmit,
     reset,
     setError,
+    control,
     formState: { errors },
   } = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema({ email, documentNumber })),
     defaultValues: EMPTY,
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   })
+
+  const [currentPassword, newPassword] = useWatch({ control, name: ['currentPassword', 'newPassword'] })
+  const missing = useMissingFields(control, {
+    currentPassword: 'Contraseña actual',
+    newPassword: 'Nueva contraseña',
+    confirmPassword: 'Confirmar nueva contraseña',
+  })
+  const missingId = `${idPrefix}-missing`
 
   // Errores del backend, siempre por `code` (propuesta de PERFIL, §8.2)
   const showServerError = (error: ApiError): boolean => {
@@ -116,30 +130,52 @@ export function ChangePasswordForm({
 
       {FIELDS.map(({ name, label, autoComplete }) => {
         const id = `${idPrefix}-${name}`
-        const hint = hints[name]
+        // La nueva contraseña muestra sus requisitos antes de escribir, en lugar de una ayuda
+        const rules =
+          name === 'newPassword' ? (
+            <PasswordChecklist
+              id={`${id}-rules`}
+              password={newPassword ?? ''}
+              email={email}
+              currentPassword={currentPassword ?? ''}
+              documentNumber={documentNumber}
+            />
+          ) : undefined
+        const hint = rules ? undefined : hints[name]
+        const describedBy = [errors[name] && `${id}-error`, hint && `${id}-hint`, rules && `${id}-rules`]
+          .filter(Boolean)
+          .join(' ')
         return (
           <FormField
             key={name}
             id={id}
             label={label}
             hideRequiredMark
-            error={errors[name]?.message}
+            // La nueva contraseña ya muestra sus requisitos: su error queda para lo que responde el servidor
+            error={rules && errors[name]?.type ? undefined : errors[name]?.message}
             hint={hint}
+            rules={rules}
           >
             <PasswordInput
               id={id}
               autoComplete={autoComplete}
               aria-invalid={errors[name] ? true : undefined}
-              aria-describedby={errors[name] ? `${id}-error` : hint ? `${id}-hint` : undefined}
+              aria-describedby={describedBy || undefined}
               {...register(name)}
             />
           </FormField>
         )
       })}
 
+      <SubmitHint id={missingId} missing={missing} />
       <div className="flex flex-wrap justify-end gap-2.5">
         {secondaryAction}
-        <Button type="submit" disabled={changePassword.isPending}>
+        <Button
+          loading={changePassword.isPending}
+          type="submit"
+          disabled={changePassword.isPending || missing.length > 0}
+          aria-describedby={missing.length > 0 ? missingId : undefined}
+        >
           {changePassword.isPending ? 'Cambiando…' : 'Cambiar contraseña'}
         </Button>
       </div>

@@ -1,4 +1,6 @@
 // Historial de consumos del Cliente (US-23): fecha, monto, puntos y estado de cada consumo.
+import { ICONS } from '@/shared/components/ui/icons'
+import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { toApiError } from '@/shared/api/ApiError';
 import { StatusText } from '@/shared/components/feedback/StatusText';
 import { Alert } from '@/shared/components/ui/Alert';
@@ -39,7 +41,11 @@ export function CustomerConsumptionHistory() {
       {isError && !data && <Alert>{toApiError(error).message}</Alert>}
 
       {data && consumptions.length === 0 && (
-        <StatusText>Todavía no tenés consumos.</StatusText>
+        <EmptyState
+          icon={ICONS.receipt}
+          title="Todavía no hay consumos"
+          description="La próxima vez que vengas, mostrá tu documento en la caja: tu consumo aparece acá con los puntos que sumaste."
+        />
       )}
 
       {consumptions.length > 0 && (

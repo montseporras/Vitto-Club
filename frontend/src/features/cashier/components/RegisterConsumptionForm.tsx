@@ -40,6 +40,8 @@ export function RegisterConsumptionForm({
   } = useForm<ConsumptionFormInput, unknown, ConsumptionFormOutput>({
     resolver: zodResolver(consumptionSchema),
     defaultValues: { amount: '' },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   })
 
   const rawAmount = useWatch({ control, name: 'amount' })
@@ -85,7 +87,7 @@ export function RegisterConsumptionForm({
               inputMode="decimal"
               placeholder="50.000"
               autoComplete="off"
-              className="h-11 text-sm"
+              maxLength={15}
               aria-invalid={errors.amount ? true : undefined}
               aria-describedby={errors.amount ? 'consumption-amount-error' : undefined}
               {...register('amount')}
@@ -107,7 +109,7 @@ export function RegisterConsumptionForm({
           aria-live="polite"
         >
           <p className="text-sm font-bold text-accent-800">
-            Se acreditarán {formatInteger(previewData.totalPoints)} puntos
+            Se acreditan {formatInteger(previewData.totalPoints)} puntos
             {previewData.bonusPoints > 0 &&
               ` (${formatInteger(previewData.points)} + ${formatInteger(previewData.bonusPoints)} de bonificación por primer consumo)`}
           </p>

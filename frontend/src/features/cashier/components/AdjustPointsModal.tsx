@@ -69,6 +69,8 @@ export function AdjustPointsModal({ customer, onClose }: AdjustPointsModalProps)
   } = useForm<AdjustPointsFormInput, unknown, AdjustPointsFormOutput>({
     resolver: zodResolver(adjustPointsSchema),
     defaultValues: { direction: 'ADD', points: '', reason: '' },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   })
 
   // Escape cierra el modal
@@ -237,7 +239,7 @@ export function AdjustPointsModal({ customer, onClose }: AdjustPointsModalProps)
               <Button type="button" variant="secondary" onClick={onClose}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={insufficient || adjust.isPending}>
+              <Button loading={adjust.isPending} type="submit" disabled={insufficient || adjust.isPending}>
                 {adjust.isPending ? 'Aplicando…' : 'Confirmar ajuste'}
               </Button>
             </div>

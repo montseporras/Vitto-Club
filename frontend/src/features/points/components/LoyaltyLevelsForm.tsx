@@ -58,6 +58,8 @@ export function LoyaltyLevelsForm({
   } = useForm<LoyaltyLevelsFormValues>({
     resolver: zodResolver(loyaltyLevelsSchema),
     defaultValues: toFormValues(configuration),
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   })
   const updateLevels = useUpdateLoyaltyLevels()
 
@@ -209,6 +211,7 @@ export function LoyaltyLevelsForm({
 
       <FormActions>
         <Button
+          loading={updateLevels.isPending}
           type="submit"
           size="lg"
           disabled={!isDirty || updateLevels.isPending}

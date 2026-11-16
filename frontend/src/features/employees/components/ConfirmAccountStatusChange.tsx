@@ -3,6 +3,7 @@
 // activo. Al dar de baja se cierran sus sesiones; al reactivar vuelve a
 // ingresar con la contraseña que tenía.
 import { toApiError } from '@/shared/api/ApiError';
+import { accountStatusErrorMessage, TEXTS, type StatusChange } from './account-status-messages';
 import { FormActions } from '@/shared/components/forms/FormActions';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
@@ -12,57 +13,12 @@ import {
 } from '../api/employees.queries';
 import type { Employee, EmployeeAccount } from '../types/employee';
 
-type StatusChange = 'deactivate' | 'reactivate';
-
 interface ConfirmAccountStatusChangeProps {
   change: StatusChange;
   employee: Employee;
   account: EmployeeAccount;
   onSuccess: () => void;
   onCancel: () => void;
-}
-
-const TEXTS = {
-  deactivate: {
-    question:
-      'Va a dejar de poder ingresar al sistema y se cierran sus sesiones abiertas. Después vas a poder activarla nuevamente.',
-    confirm: 'Desactivar cuenta',
-    pending: 'Desactivando…',
-    conflict: 'Esta cuenta ya estaba desactivada.',
-    failed: 'No se pudo desactivar la cuenta. Intentá nuevamente.',
-  },
-  reactivate: {
-    question: 'Va a poder volver a ingresar al sistema con la contraseña que tenía.',
-    confirm: 'Reactivar usuario',
-    pending: 'Reactivando…',
-    conflict:
-      'No se pudo reactivar: el usuario ya está activo o el empleado está dado de baja.',
-    failed: 'No se pudo reactivar el usuario. Intentá nuevamente.',
-  },
-} as const;
-
-// Contrato §3.11.4: al reactivar, el email lo usa otra cuenta activa.
-const EMAIL_IN_USE_MESSAGE =
-  'El mail de este usuario ya lo usa otra cuenta activa.';
-
-// Mensaje según la respuesta del backend
-// (PATCH /usuarios/:id/deactivate o /usuarios/:id/reactivate).
-function errorMessage(change: StatusChange, error: unknown): string {
-  const apiError = toApiError(error);
-  if (apiError.code === 'LAST_ADMIN') {
-    return 'No se puede desactivar: es el único administrador que puede ingresar al sistema.';
-  }
-  if (apiError.code === 'EMAIL_IN_USE') return EMAIL_IN_USE_MESSAGE;
-  switch (apiError.status) {
-    case undefined:
-      return apiError.message;
-    case 409:
-      return TEXTS[change].conflict;
-    case 404:
-      return 'El usuario ya no existe.';
-    default:
-      return TEXTS[change].failed;
-  }
 }
 
 export function ConfirmAccountStatusChange({
@@ -85,7 +41,7 @@ export function ConfirmAccountStatusChange({
     <div>
       {mutation.isError && (
         <Alert variant="error" className="mb-6">
-          {errorMessage(change, mutation.error)}
+          {accountStatusErrorMessage(change, mutation.error)}
         </Alert>
       )}
 
@@ -105,6 +61,7 @@ export function ConfirmAccountStatusChange({
           Cancelar
         </Button>
         <Button
+          loading={mutation.isPending}
           type="button"
           size="lg"
           onClick={() => mutation.mutate(account.id, { onSuccess })}

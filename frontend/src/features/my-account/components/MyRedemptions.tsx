@@ -1,5 +1,8 @@
 // Mis canjes del Cliente (US-45, contrato §3.12.1 y prototipo ClienteCanjes → Mis canjes):
 // filtros de estado, fecha y orden, y la lista de canjes con su cuenta regresiva.
+import { Button } from '@/shared/components/ui/Button'
+import { ICONS } from '@/shared/components/ui/icons'
+import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { useState } from 'react'
 import {
   useExpiryRefetch,
@@ -43,9 +46,11 @@ const DATE_OPTIONS = [
 type MyRedemptionsProps = {
   /** Abre el diálogo "Cancelar canje" (US-43). */
   onCancel?: (redemption: MyRedemption) => void
+  /** CTA del estado vacío: lleva al catálogo. */
+  onBrowseCatalog?: () => void
 }
 
-export function MyRedemptions({ onCancel }: MyRedemptionsProps) {
+export function MyRedemptions({ onCancel, onBrowseCatalog }: MyRedemptionsProps) {
   const [status, setStatus] = useState<RedemptionStatusGroup | ''>('')
   const [order, setOrder] = useState<'desc' | 'asc'>('desc')
   const [dateOption, setDateOption] = useState<DateOption>('any')
@@ -141,11 +146,41 @@ export function MyRedemptions({ onCancel }: MyRedemptionsProps) {
         </ul>
       )}
 
-      {items?.length === 0 && (
-        <StatusText className="rounded-xl border border-dashed border-orange-200 px-3 py-5 text-center">
-          {hasFilters ? 'No hay canjes para los filtros elegidos.' : 'Todavía no tenés canjes.'}
-        </StatusText>
-      )}
+      {items?.length === 0 &&
+        (hasFilters ? (
+          <EmptyState
+            icon={ICONS.filter}
+            title="Ningún canje coincide"
+            description="No hay canjes con ese estado o en esas fechas. Probá con otros filtros."
+            action={
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setStatus('')
+                  setDateOption('any')
+                  setFrom('')
+                  setTo('')
+                }}
+              >
+                Limpiar filtros
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={ICONS.ticket}
+            title="Tus puntos están esperando"
+            description="Todavía no canjeaste nada. Elegí una recompensa del catálogo y canjeala en un toque."
+            action={
+              onBrowseCatalog && (
+                <Button type="button" onClick={onBrowseCatalog}>
+                  Ver recompensas
+                </Button>
+              )
+            }
+          />
+        ))}
 
       <StatusText className="text-xs">
         Si un canje se cancela, se rechaza o vence, no se descuentan puntos. Lo podés volver a pedir si

@@ -112,7 +112,7 @@ export function CustomerActivityPanel({
             )}
 
             {movements.data && movements.data.items.length > 0 && (
-              <ul className="flex flex-col divide-y divide-accent-100">
+              <ul className="flex flex-col gap-0.5 [&>li]:rounded-lg [&>li]:px-2 [&>li:nth-child(even)]:bg-accent-50/70">
                 {movements.data.items.map((movement) => (
                   <li
                     key={movement.id}

@@ -56,6 +56,8 @@ export function PointsEquivalenceForm({
       baseAmount: equivalence?.baseAmount,
       pointsAwarded: equivalence?.pointsAwarded,
     },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   });
 
   const updateEquivalence = useUpdatePointsEquivalence();
@@ -148,6 +150,7 @@ export function PointsEquivalenceForm({
 
       <FormActions>
         <Button
+          loading={updateEquivalence.isPending}
           type="submit"
           size="lg"
           disabled={!isDirty || updateEquivalence.isPending}

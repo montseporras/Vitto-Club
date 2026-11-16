@@ -1,5 +1,6 @@
 // Sección "Consumos" del Administrador (US-23, contrato §3.3.1 y prototipo Consumos): tarjetas
 // con los totales, filtros que se aplican con "Filtrar", tabla paginada y "Ver" al detalle.
+import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { useRef, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { DOCUMENT_TYPES } from '@/domain/documents';
@@ -225,7 +226,7 @@ export function ConsumptionsPage() {
           </FilterCell>
 
           <FilterActions pending={hasPendingFilters}>
-            <Button type="submit" disabled={result.isFetching} className="h-9">
+            <Button type="submit" size="sm" disabled={result.isFetching}>
               <Icon d={ICONS.filter} className="size-[15px]" />
               Filtrar
             </Button>
@@ -286,7 +287,7 @@ export function ConsumptionsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
+                      <Button size="sm"
                         type="button"
                         variant="secondary"
                         onClick={() => setOpenCode(consumption.code)}
@@ -302,9 +303,11 @@ export function ConsumptionsPage() {
         )}
 
         {data && !result.isError && data.items.length === 0 && (
-          <StatusText className="mt-1 rounded-2xl border border-dashed border-[#f6d0b1] px-4 py-7 text-center text-base text-[#5c5249]">
-            No hay consumos para los filtros seleccionados
-          </StatusText>
+          <EmptyState
+            icon={ICONS.receipt}
+            title="No hay consumos con esos filtros"
+            description="Probá con otro rango de fechas, otro cliente o quitá el filtro de estado."
+          />
         )}
         </div>
 

@@ -5,6 +5,7 @@
 // Es la pantalla del prototipo dentro del modal de Configuración del Administrador;
 // el título y la descripción los muestra el encabezado de ese modal.
 import { useState } from 'react';
+import { EmptyState } from '@/shared/components/feedback/EmptyState';
 import { StatusText } from '@/shared/components/feedback/StatusText';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
@@ -158,13 +159,28 @@ export function EmployeesPage() {
           <EmployeesTable
             employees={employees}
             onSelectEmployee={setSelectedEmployee}
+            onDeleteEmployee={(employee) => {
+              setSelectedEmployee(employee);
+              setModalView('deactivate');
+            }}
           />
         ) : hasSearch ? (
-          <StatusText>
-            No se encontraron empleados que coincidan con la búsqueda.
-          </StatusText>
+          <EmptyState
+            icon={ICONS.search}
+            title="No encontramos empleados"
+            description="Nadie coincide con ese nombre. Revisá cómo lo escribiste o buscá por apellido."
+            action={
+              <Button type="button" variant="secondary" onClick={() => setSearch('')}>
+                Limpiar búsqueda
+              </Button>
+            }
+          />
         ) : (
-          <StatusText>Todavía no hay empleados registrados.</StatusText>
+          <EmptyState
+            icon={ICONS.users}
+            title="Todavía no hay empleados"
+            description="Registrá a tu equipo para que cada uno entre a la caja con su propio usuario."
+          />
         ))}
 
       <Button

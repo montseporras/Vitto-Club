@@ -51,6 +51,8 @@ export function PointsExpirationForm({ expiration }: PointsExpirationFormProps) 
     defaultValues: {
       pointsExpirationMonths: expiration.pointsExpirationMonths,
     },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   });
 
   const updateExpiration = useUpdatePointsExpiration();
@@ -106,6 +108,7 @@ export function PointsExpirationForm({ expiration }: PointsExpirationFormProps) 
 
       <FormActions>
         <Button
+          loading={updateExpiration.isPending}
           type="submit"
           size="lg"
           disabled={!isDirty || updateExpiration.isPending}
