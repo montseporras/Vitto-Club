@@ -12,13 +12,11 @@ import { appHeaderStyles, bottomNavStyles } from '@/styles/ui'
 const TABS = [
   { label: 'Inicio', to: PATHS.customer.root },
   { label: 'Historial', to: PATHS.customer.history },
+  { label: 'Misiones', to: PATHS.customer.missions },
 ] as const
 
-// Canjes (Sprint 4) ya está habilitada, después de las que son "Próximamente"
+// Canjes (Sprint 4) ya está habilitada.
 const REDEMPTIONS_TAB = { label: 'Canjes', to: PATHS.customer.redemptions } as const
-
-// Misiones es del Sprint 5: se ve, pero "Próximamente"
-const SOON_TABS = ['Misiones'] as const
 
 function TabItem({ tab }: { tab: { label: string; to: string } }) {
   return (
@@ -78,18 +76,6 @@ export function CustomerLayout() {
         <ul className={bottomNavStyles.list}>
           {TABS.map((tab) => (
             <TabItem key={tab.to} tab={tab} />
-          ))}
-          {SOON_TABS.map((label) => (
-            <li key={label}>
-              <span
-                aria-disabled="true"
-                title="Próximamente"
-                className={cn(bottomNavStyles.item, bottomNavStyles.itemSoon)}
-              >
-                {label}
-                <span className={bottomNavStyles.soon}>Próx.</span>
-              </span>
-            </li>
           ))}
           <TabItem tab={REDEMPTIONS_TAB} />
         </ul>

@@ -4,8 +4,10 @@ import type { Paginated } from '@/shared/types/pagination'
 import type {
   CompletedMission,
   CreateMissionBody,
+  MyCustomerMission,
   Mission,
   MissionListFilters,
+  StaffCustomerMission,
 } from '../types/mission'
 
 export const MISSIONS_PAGE_SIZE = 10
@@ -50,6 +52,32 @@ export async function getCompletedMissions(id: number): Promise<CompletedMission
 export async function createMission(body: CreateMissionBody): Promise<Mission> {
   try {
     const { data } = await http.post<Mission>('/misiones', body)
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function getMyMissions(period?: string): Promise<MyCustomerMission[]> {
+  try {
+    const { data } = await http.get<MyCustomerMission[]>('/customers/me/misiones', {
+      params: period ? { period } : undefined,
+    })
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function getCustomerMissions(
+  customerId: number,
+  period?: string,
+): Promise<StaffCustomerMission[]> {
+  try {
+    const { data } = await http.get<StaffCustomerMission[]>(
+      `/customers/${customerId}/misiones`,
+      { params: period ? { period } : undefined },
+    )
     return data
   } catch (error) {
     throw toApiError(error)

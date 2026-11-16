@@ -7,6 +7,8 @@ import type {
 } from '@/features/cashier'
 import type { Level } from '@/domain/levels'
 import type { Consumption } from '@/features/customers'
+import { addMonths, monthKeyInArgentina } from '@/features/missions'
+import type { MyCustomerMission, StaffCustomerMission } from '@/features/missions'
 import { API_URL } from '@/shared/api/http'
 import { accountFromRequest } from './auth.handlers'
 import { withLevelBenefits } from './level-benefits.seed'
@@ -261,6 +263,228 @@ function checkCustomerAccess(request: Request, id: string) {
   return { account, customer }
 }
 
+export function customerMissionPeriodFromRequest(request: Request) {
+  const requested = new URL(request.url).searchParams.get('period')
+  if (!requested) return monthKeyInArgentina()
+
+  const currentMonth = monthKeyInArgentina()
+  const match = /^(\d{4})-(\d{2})$/.exec(requested)
+  if (!match) return null
+  const monthNumber = Number(match[2])
+  if (
+    monthNumber < 1 ||
+    monthNumber > 12 ||
+    requested > currentMonth ||
+    requested < addMonths(currentMonth, -12)
+  ) {
+    return null
+  }
+  return requested
+}
+
+function monthEndDate(period: string) {
+  const [year, month] = period.split('-').map(Number)
+  return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
+}
+
+function monthTimestamp(period: string, day: number) {
+  const [year, month] = period.split('-').map(Number)
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  return new Date(Date.UTC(year, month - 1, Math.min(day, lastDay), 12)).toISOString()
+}
+
+function customerMission(
+  mission: Omit<StaffCustomerMission, 'endsAt' | 'period'>,
+  period: string,
+): StaffCustomerMission {
+  return { ...mission, period, endsAt: monthEndDate(period) }
+}
+
+export function customerMissionsFor(
+  customerId: number,
+  period: string,
+): StaffCustomerMission[] {
+  const currentMonth = monthKeyInArgentina()
+  if (customerId !== 1) return []
+
+  if (period === currentMonth) {
+    return [
+      customerMission(
+        {
+          id: 101,
+          mission: {
+            id: 1,
+            name: 'Vení 3 veces',
+            description: 'Sumá 3 consumos en el mes y ganá 50 puntos.',
+          },
+          objectiveType: 'CONSUMPTION_COUNT',
+          target: 3,
+          daysOfWeek: null,
+          timeFrom: null,
+          timeTo: null,
+          rewardPoints: 50,
+          progress: 2,
+          status: 'IN_PROGRESS',
+          completedAt: null,
+          claimedAt: null,
+          claimedBy: null,
+        },
+        period,
+      ),
+      customerMission(
+        {
+          id: 102,
+          mission: {
+            id: 2,
+            name: 'Merienda de los domingos',
+            description: null,
+          },
+          objectiveType: 'CONSUMPTION_AMOUNT',
+          target: 20_000,
+          daysOfWeek: [7],
+          timeFrom: '09:00',
+          timeTo: '13:00',
+          rewardPoints: null,
+          progress: 12_000,
+          status: 'IN_PROGRESS',
+          completedAt: null,
+          claimedAt: null,
+          claimedBy: null,
+        },
+        period,
+      ),
+      customerMission(
+        {
+          id: null,
+          mission: {
+            id: 3,
+            name: 'Venite los viernes',
+            description: 'Sumá 2 consumos en el horario indicado.',
+          },
+          objectiveType: 'CONSUMPTION_COUNT',
+          target: 2,
+          daysOfWeek: [5],
+          timeFrom: '12:00',
+          timeTo: '18:00',
+          rewardPoints: 25,
+          progress: 0,
+          status: 'IN_PROGRESS',
+          completedAt: null,
+          claimedAt: null,
+          claimedBy: null,
+        },
+        period,
+      ),
+      customerMission(
+        {
+          id: 104,
+          mission: {
+            id: 4,
+            name: 'Sumá $ 30.000',
+            description: null,
+          },
+          objectiveType: 'CONSUMPTION_AMOUNT',
+          target: 30_000,
+          daysOfWeek: null,
+          timeFrom: null,
+          timeTo: null,
+          rewardPoints: 70,
+          progress: 30_000,
+          status: 'COMPLETED',
+          completedAt: monthTimestamp(period, 12),
+          claimedAt: null,
+          claimedBy: null,
+        },
+        period,
+      ),
+    ]
+  }
+
+  if (period === addMonths(currentMonth, -1)) {
+    return [
+      customerMission(
+        {
+          id: 201,
+          mission: {
+            id: 5,
+            name: 'Vení 4 veces',
+            description: null,
+          },
+          objectiveType: 'CONSUMPTION_COUNT',
+          target: 4,
+          daysOfWeek: null,
+          timeFrom: null,
+          timeTo: null,
+          rewardPoints: 40,
+          progress: 3,
+          status: 'EXPIRED',
+          completedAt: null,
+          claimedAt: null,
+          claimedBy: null,
+        },
+        period,
+      ),
+      customerMission(
+        {
+          id: 202,
+          mission: {
+            id: 6,
+            name: 'Sumá 3 consumos',
+            description: null,
+          },
+          objectiveType: 'CONSUMPTION_COUNT',
+          target: 3,
+          daysOfWeek: null,
+          timeFrom: null,
+          timeTo: null,
+          rewardPoints: 50,
+          progress: 3,
+          status: 'CLAIMED',
+          completedAt: monthTimestamp(period, 20),
+          claimedAt: monthTimestamp(period, 30),
+          claimedBy: 'SYSTEM',
+        },
+        period,
+      ),
+      customerMission(
+        {
+          id: 203,
+          mission: {
+            id: 7,
+            name: 'Acumulá $ 20.000',
+            description: null,
+          },
+          objectiveType: 'CONSUMPTION_AMOUNT',
+          target: 20_000,
+          daysOfWeek: null,
+          timeFrom: null,
+          timeTo: null,
+          rewardPoints: null,
+          progress: 20_000,
+          status: 'COMPLETED',
+          completedAt: monthTimestamp(period, 15),
+          claimedAt: null,
+          claimedBy: null,
+        },
+        period,
+      ),
+    ]
+  }
+
+  return []
+}
+
+export function myCustomerMissionsFor(
+  customerId: number,
+  period: string,
+): MyCustomerMission[] {
+  return customerMissionsFor(customerId, period).map((mission) => ({
+    ...mission,
+    id: mission.id ?? 1000 + mission.mission.id,
+    canClaim: mission.status === 'COMPLETED' && mission.rewardPoints !== null,
+  }))
+}
+
 // ── Consumos del cliente (US-22, lo usa la ficha de CLI-ADM) ────────────────
 // Los mismos consumos que generan los movimientos de arriba. Equivalencia $1.000 = 10 pts.
 
@@ -326,6 +550,38 @@ const fold = (value: string) =>
 const LEVELS_API: Level[] = ['BRONZE', 'SILVER', 'GOLD']
 
 export const cashierHandlers = [
+  // US-33: ficha del cliente y panel de Caja (contrato §3.3.4).
+  http.get<{ id: string }>(
+    `${API_URL}/customers/:id/misiones`,
+    async ({ request, params }) => {
+      await delay(250)
+      const path = new URL(request.url).pathname
+      const account = accountFromRequest(request)
+      if (!account) {
+        return errorResponse(401, 'Token inválido o vencido.', path, 'UNAUTHENTICATED')
+      }
+      if (account.role === 'CUSTOMER') {
+        return errorResponse(403, 'No tenés permiso para realizar esta acción.', path, 'FORBIDDEN')
+      }
+      if (!/^\d+$/.test(params.id)) {
+        return errorResponse(400, 'Validation failed (numeric string is expected)', path)
+      }
+      const customer = customers.find((item) => item.id === Number(params.id))
+      if (!customer) return errorResponse(404, 'No existe el cliente.', path)
+      if (!customer.active) return HttpResponse.json([])
+
+      const period = customerMissionPeriodFromRequest(request)
+      if (!period) {
+        return errorResponse(
+          400,
+          'Elegí un mes de los últimos 12.',
+          path,
+        )
+      }
+      return HttpResponse.json(customerMissionsFor(customer.id, period))
+    },
+  ),
+
   // US-46: GET /api/customers/:id/puntos (contrato §3.4.1)
   http.get<{ id: string }>(`${API_URL}/customers/:id/puntos`, async ({ request, params }) => {
     await delay(250)

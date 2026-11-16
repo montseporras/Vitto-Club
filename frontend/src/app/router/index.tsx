@@ -56,7 +56,12 @@ export const router = createBrowserRouter([
         lazy: async () => {
           const { CustomerHomePage } = await import('@/features/my-account')
           return {
-            element: <CustomerHomePage redemptionsPath={PATHS.customer.redemptions} />,
+            element: (
+              <CustomerHomePage
+                redemptionsPath={PATHS.customer.redemptions}
+                missionsPath={PATHS.customer.missions}
+              />
+            ),
           }
         },
       },
@@ -66,6 +71,13 @@ export const router = createBrowserRouter([
         lazy: async () => {
           const { MyHistoryPage } = await import('@/features/my-account')
           return { Component: MyHistoryPage }
+        },
+      },
+      {
+        path: PATHS.customer.missions,
+        lazy: async () => {
+          const { MyMissionsPage } = await import('@/features/my-account')
+          return { Component: MyMissionsPage }
         },
       },
       {

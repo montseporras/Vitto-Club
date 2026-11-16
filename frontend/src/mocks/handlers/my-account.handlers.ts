@@ -5,7 +5,11 @@ import { delay, http, HttpResponse } from 'msw'
 import type { MyPoints, MyProfile } from '@/features/my-account'
 import { API_URL } from '@/shared/api/http'
 import { accounts, passwordOf, setPassword } from './auth.handlers'
-import { customers } from './cashier.handlers'
+import {
+  customerMissionPeriodFromRequest,
+  customers,
+  myCustomerMissionsFor,
+} from './cashier.handlers'
 import { withLevelBenefits } from './level-benefits.seed'
 
 const STATUS_NAMES: Record<number, string> = {
@@ -183,6 +187,22 @@ export const myAccountHandlers = [
     const summary = points[caller.customer.id] ?? emptyPoints(caller.customer.id)
     // El beneficio sale de la configuración vigente, no de los datos fijos del cliente
     return HttpResponse.json({ ...summary, level: withLevelBenefits(summary.level) })
+  }),
+
+  // US-33: al consultar el mes actual, el backend asigna las misiones que falten.
+  http.get(`${API_URL}/customers/me/misiones`, async ({ request }) => {
+    await delay(300)
+    const caller = requireCustomer(request)
+    if ('error' in caller) return caller.error
+    if (!caller.customer.active) {
+      return errorResponse(401, 'Unauthorized', request, 'UNAUTHENTICATED')
+    }
+
+    const period = customerMissionPeriodFromRequest(request)
+    if (!period) {
+      return errorResponse(400, 'Elegí un mes de los últimos 12.', request)
+    }
+    return HttpResponse.json(myCustomerMissionsFor(caller.customer.id, period))
   }),
 
   // §3.10.4: solo lo que cambia; con un error no se guarda nada

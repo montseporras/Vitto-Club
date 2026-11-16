@@ -4,6 +4,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { Link, useLocation } from 'react-router'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
 import { useSession } from '@/features/auth'
+import { useCustomerMissions } from '@/features/missions'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { FormField } from '@/shared/components/forms/FormField'
 import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio'
@@ -90,6 +91,7 @@ export function IdentifyCustomerPage({
   const customer = result.data && !result.isError && !inactive ? result.data : null
   // El saldo y el nivel salen de GET /customers/:id/puntos (CA-46.2)
   const points = useCustomerPoints(customer?.id ?? null)
+  const missions = useCustomerMissions(customer?.id ?? null)
 
   const onSearch = (data: FindCustomerFormOutput) => {
     const sameSearch =
@@ -237,7 +239,19 @@ export function IdentifyCustomerPage({
 
             {!loading && customer && points.data && session.user && (
               <div className="flex flex-col gap-6">
-                <CustomerPointsCard customer={customer} points={points.data} />
+                <CustomerPointsCard
+                  customer={customer}
+                  points={points.data}
+                  missionCount={missions.data?.filter((mission) => mission.status === 'IN_PROGRESS').length}
+                />
+                {missions.isError && (
+                  <Alert variant="error">
+                    <AlertMessages messages={missions.error.messages.length > 0
+                      ? missions.error.messages
+                      : [missions.error.message]}
+                    />
+                  </Alert>
+                )}
                 {registered ? (
                   <ConsumptionRegistered
                     result={registered}

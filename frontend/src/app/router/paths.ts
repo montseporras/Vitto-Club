@@ -7,6 +7,7 @@ export const PATHS = {
   customer: {
     root: '/mi-cuenta',
     history: '/mi-cuenta/historial',
+    missions: '/mi-cuenta/misiones',
     profile: '/mi-cuenta/perfil',
     redemptions: '/mi-cuenta/canjes',
   },

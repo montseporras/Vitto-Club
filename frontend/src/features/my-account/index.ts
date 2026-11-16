@@ -1,6 +1,7 @@
 // Barrel del feature my-account (vista del Cliente): lo único que otros módulos deben importar.
 export { CustomerHomePage } from './pages/CustomerHomePage'
 export { MyHistoryPage } from './pages/MyHistoryPage'
+export { MyMissionsPage } from './pages/MyMissionsPage'
 export { MyProfilePage } from './pages/MyProfilePage'
 export { MyRedemptionsPage } from './pages/MyRedemptionsPage'
 export { ConfirmRedemptionFlow } from './components/ConfirmRedemptionFlow'
