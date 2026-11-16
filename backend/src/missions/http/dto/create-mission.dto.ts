@@ -10,7 +10,7 @@ import {
   MissionRewardPointsValidator,
   MissionStartMonthValidator,
   MissionTargetValidator,
-  MissionTimeFromValidator,
+  MissionTimeFormatValidator,
   MissionTimeToValidator,
 } from '../validators/mission-fields.validators.js';
 
@@ -40,7 +40,7 @@ export class CreateMissionDto {
   daysOfWeek?: number[] | null;
 
   // HH:mm. Los dos o ninguno (lo controla timeTo)
-  @Validate(MissionTimeFromValidator)
+  @Validate(MissionTimeFormatValidator)
   timeFrom?: string | null;
 
   @Validate(MissionTimeToValidator)

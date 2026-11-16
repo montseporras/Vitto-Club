@@ -4,6 +4,9 @@ import {
   formatMissionReward,
   formatMissionValidity,
   missionCreatedEntry,
+  missionDeletedEntry,
+  missionUpdatedEntry,
+  type MissionAuditEditSnapshot,
 } from './audit-entries.js';
 import { assertValidAuditEntry, type AuditActor } from './audit-entry.js';
 
@@ -70,5 +73,80 @@ describe('missionCreatedEntry() — US-28', () => {
       ],
     });
     expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+});
+
+const snapshot: MissionAuditEditSnapshot = {
+  name: 'Vení 3 veces',
+  description: null,
+  objectiveType: 'CONSUMPTION_COUNT',
+  target: 3,
+  daysOfWeek: null,
+  timeFrom: null,
+  timeTo: null,
+  rewardPoints: 50,
+  startMonth: '2026-11',
+  endMonth: null,
+};
+
+describe('missionUpdatedEntry() — US-29', () => {
+  it('una fila por campo que cambió, en orden, y "Rige desde" al final; description con el nombre nuevo', () => {
+    const entry = missionUpdatedEntry(
+      admin,
+      snapshot,
+      {
+        ...snapshot,
+        name: 'Vení 5 veces',
+        description: 'Cinco consumos.',
+        target: 5,
+        daysOfWeek: [7],
+        rewardPoints: null,
+        endMonth: '2026-12',
+      },
+      '2026-12',
+    );
+
+    expect(entry).toEqual({
+      actor: admin,
+      module: 'MISSIONS',
+      action: 'MISSION_UPDATED',
+      description: 'Editó la misión "Vení 5 veces"',
+      details: [
+        { label: 'Nombre', value: 'Vení 3 veces → Vení 5 veces' },
+        { label: 'Descripción', value: '— → Cinco consumos.' },
+        { label: 'Objetivo', value: '3 consumos → 5 consumos' },
+        { label: 'Condición', value: 'Todos los días → los domingos' },
+        { label: 'Recompensa', value: '50 pts → Sin recompensa' },
+        { label: 'Vigencia', value: 'Desde noviembre 2026 → Noviembre 2026 – Diciembre 2026' },
+        { label: 'Rige desde', value: 'Diciembre 2026' },
+      ],
+    });
+    expect(() => assertValidAuditEntry(entry!)).not.toThrow();
+  });
+
+  it('sin "Rige desde" si rigió en el momento', () => {
+    const entry = missionUpdatedEntry(admin, snapshot, { ...snapshot, target: 4 }, null);
+    expect(entry?.details).toEqual([{ label: 'Objetivo', value: '3 consumos → 4 consumos' }]);
+  });
+
+  it('sin cambios → null (no se audita)', () => {
+    expect(missionUpdatedEntry(admin, snapshot, { ...snapshot }, null)).toBeNull();
+  });
+});
+
+describe('missionDeletedEntry() — US-29', () => {
+  it('"Vencidas" y "Reclamadas automáticamente" solo si n > 0', () => {
+    expect(missionDeletedEntry(admin, 'Vení 3 veces', 2, 1)).toEqual({
+      actor: admin,
+      module: 'MISSIONS',
+      action: 'MISSION_DELETED',
+      description: 'Dio de baja la misión "Vení 3 veces"',
+      details: [
+        { label: 'Vencidas', value: '2' },
+        { label: 'Reclamadas automáticamente', value: '1' },
+      ],
+    });
+    expect(missionDeletedEntry(admin, 'Vení 3 veces', 0, 0).details).toEqual([]);
+    expect(missionDeletedEntry(admin, 'Vení 3 veces', 3, 0).details).toEqual([{ label: 'Vencidas', value: '3' }]);
   });
 });

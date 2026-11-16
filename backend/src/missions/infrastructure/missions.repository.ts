@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import type { Mission as PrismaMissionRecord } from '@prisma/client';
 import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import type { Mission, MissionPendingChanges } from '../domain/mission.js';
+import type { MissionEditableState } from '../domain/mission-edit.js';
 import type { NewMission } from '../domain/new-mission.js';
 import {
   MissionListFilters,
@@ -68,10 +69,11 @@ export class MissionsPrismaRepository implements MissionRepository {
     return this.transactionRunner.client;
   }
 
-  async existsNotDeletedWithName(name: string): Promise<boolean> {
+  async existsNotDeletedWithName(name: string, exceptId?: number): Promise<boolean> {
     const rows = await this.prisma.$queryRaw<{ id: number }[]>`
       SELECT id FROM missions
       WHERE lower(trim(name)) = lower(trim(${name})) AND status <> 'DELETED'
+        AND id <> ${exceptId ?? 0}
       LIMIT 1
     `;
     return rows.length > 0;
@@ -92,6 +94,45 @@ export class MissionsPrismaRepository implements MissionRepository {
         endMonth: mission.endMonth ? fromMonth(mission.endMonth) : null,
       },
     });
+    return toDomain(record);
+  }
+
+  async findNotDeletedById(id: number): Promise<Mission | null> {
+    const record = await this.prisma.mission.findFirst({ where: { id, status: { not: 'DELETED' } } });
+    return record ? toDomain(record) : null;
+  }
+
+  async lockNotDeletedForUpdate(id: number): Promise<Mission | null> {
+    await this.prisma.$queryRaw`SELECT id FROM missions WHERE id = ${id} FOR UPDATE`;
+    return await this.findNotDeletedById(id);
+  }
+
+  async countCompleted(id: number, period: string): Promise<number> {
+    return (await this.countCompletedByMission([id], fromMonth(period))).get(id) ?? 0;
+  }
+
+  async update(id: number, state: MissionEditableState): Promise<Mission> {
+    const record = await this.prisma.mission.update({
+      where: { id },
+      data: {
+        name: state.name,
+        description: state.description,
+        objectiveType: state.objectiveType,
+        target: state.target,
+        daysOfWeek: state.daysOfWeek ?? [],
+        timeFrom: fromTime(state.timeFrom),
+        timeTo: fromTime(state.timeTo),
+        rewardPoints: state.rewardPoints,
+        startMonth: fromMonth(state.startMonth),
+        endMonth: state.endMonth ? fromMonth(state.endMonth) : null,
+        pendingChanges: state.pendingChanges ?? Prisma.DbNull,
+      },
+    });
+    return toDomain(record);
+  }
+
+  async markDeleted(id: number, now: Date): Promise<Mission> {
+    const record = await this.prisma.mission.update({ where: { id }, data: { status: 'DELETED', deletedAt: now } });
     return toDomain(record);
   }
 

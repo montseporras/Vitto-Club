@@ -1,10 +1,19 @@
 import { ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
 import { MISSION_OBJECTIVE_TYPES, type MissionObjectiveType } from '../../domain/mission.js';
+import {
+  MISSION_RULE_MESSAGES,
+  monthRangeRuleMessage,
+  targetRuleMessage,
+  timeRangeRuleMessage,
+} from '../../domain/mission-rules.js';
 
 // US-28 (§3.1.3): un validador por campo, para que cada caso dé un único mensaje (con varios
 // decoradores, un valor vacío devolvería todos los mensajes juntos), igual que en rewards. Los
-// textos son los del contrato, salvo los marcados (decisión de Jazmín: el contrato no los cita).
+// textos son los del contrato, salvo los marcados (decisión de Jazmín: el contrato no los cita). Las
+// reglas entre campos están en domain/mission-rules.ts, porque la edición (US-29) las aplica con los
+// valores combinados.
 export const MISSION_FIELD_MESSAGES = {
+  ...MISSION_RULE_MESSAGES,
   // No citado: el mismo que Recompensas
   required: 'Completá este campo.',
   nameRequired: 'El nombre es obligatorio.',
@@ -13,9 +22,6 @@ export const MISSION_FIELD_MESSAGES = {
   // No citado
   objectiveTypeInvalid: 'Elegí un tipo de objetivo válido.',
   targetPositive: 'Ingresá un objetivo mayor a 0.',
-  targetInteger: 'Ingresá un número entero.',
-  // No citado
-  targetDecimals: 'Ingresá un monto con hasta 2 decimales.',
   rewardPointsPositive: 'Ingresá puntos enteros mayores a 0.',
   rewardPointsMax: 'El máximo es 100.000 puntos.',
   daysEmpty: 'Elegí al menos un día o marcá «Todos los días».',
@@ -23,25 +29,13 @@ export const MISSION_FIELD_MESSAGES = {
   daysInvalid: 'Los días tienen que ser de 1 (lunes) a 7 (domingo), sin repetir.',
   // No citado
   timeInvalid: 'Ingresá la hora en formato HH:mm.',
-  timeBothOrNone: 'Completá las dos horas o ninguna.',
-  timeOrder: 'La hora de inicio tiene que ser anterior a la de fin.',
   // No citado
   monthInvalid: 'Ingresá el mes en formato AAAA-MM.',
-  endMonthBeforeStart: 'El mes de fin no puede ser anterior al de inicio.',
 } as const;
 
 export const MISSION_NAME_MAX = 80;
 export const MISSION_DESCRIPTION_MAX = 255;
 export const MISSION_REWARD_POINTS_MAX = 100_000;
-
-// §2.3: el máximo del objetivo depende de lo que mide
-export const MISSION_TARGET_MAX: Record<MissionObjectiveType, number> = {
-  CONSUMPTION_COUNT: 100,
-  CONSUMPTION_AMOUNT: 1_000_000,
-};
-
-// "El objetivo máximo es {máx}.", con punto de miles (decisión de Jazmín)
-export const targetMaxMessage = (max: number): string => `El objetivo máximo es ${max.toLocaleString('es-AR')}.`;
 
 type MessageFor = (value: unknown, object: Record<string, unknown>) => string | null;
 
@@ -53,6 +47,7 @@ const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 const isTime = (value: unknown): value is string => typeof value === 'string' && TIME_PATTERN.test(value);
 const isMonth = (value: unknown): value is string => typeof value === 'string' && MONTH_PATTERN.test(value);
+const timeOrNull = (value: unknown): string | null => (isTime(value) ? value : null);
 
 // El nombre ya llega recortado (@Transform en el DTO). Si no es texto, se trata como vacío.
 const nameMessage: MessageFor = (value) => {
@@ -74,22 +69,14 @@ const objectiveTypeMessage: MessageFor = (value) => {
   return null;
 };
 
-// Tiene que llegar como número JSON. El entero, los decimales y el máximo dependen de
-// objectiveType; si el tipo no es válido, solo se controla que sea mayor a 0 (el tipo ya da su
-// propio mensaje).
+// Tiene que llegar como número JSON. El entero, los decimales y el máximo dependen de objectiveType:
+// si el tipo no vino en el body o no es válido, solo se controla que sea mayor a 0 (al editar, el
+// resto lo controla el dominio con el tipo de la misión).
 const targetMessage: MessageFor = (value, object) => {
   if (isMissing(value) || value === '') return MISSION_FIELD_MESSAGES.required;
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return MISSION_FIELD_MESSAGES.targetPositive;
-
   const type = object.objectiveType;
-  if (!isObjectiveType(type)) return null;
-  if (type === 'CONSUMPTION_COUNT' && !Number.isInteger(value)) return MISSION_FIELD_MESSAGES.targetInteger;
-  // Con tolerancia: 0.29 * 100 da 28.999999999999996 en coma flotante
-  if (type === 'CONSUMPTION_AMOUNT' && Math.abs(value * 100 - Math.round(value * 100)) > 1e-6) {
-    return MISSION_FIELD_MESSAGES.targetDecimals;
-  }
-  if (value > MISSION_TARGET_MAX[type]) return targetMaxMessage(MISSION_TARGET_MAX[type]);
-  return null;
+  return isObjectiveType(type) ? targetRuleMessage(type, value) : null;
 };
 
 // Opcional: ausente o null = sin recompensa (RF-031)
@@ -118,16 +105,13 @@ const timeFormatMessage: MessageFor = (value) => {
   return isTime(value) ? null : MISSION_FIELD_MESSAGES.timeInvalid;
 };
 
-// timeTo además controla la franja: las dos o ninguna, y desde < hasta. Va en un solo campo para
-// que el mensaje no salga dos veces.
+// Al crear, timeTo además controla la franja: las dos o ninguna, y desde < hasta. Va en un solo
+// campo para que el mensaje no salga dos veces.
 const timeToMessage: MessageFor = (value, object) => {
   const format = timeFormatMessage(value, object);
   if (format) return format;
-  const from = object.timeFrom;
-  if (isMissing(from) !== isMissing(value)) return MISSION_FIELD_MESSAGES.timeBothOrNone;
-  // HH:mm: el orden de los textos es el de las horas
-  if (isTime(from) && isTime(value) && from >= value) return MISSION_FIELD_MESSAGES.timeOrder;
-  return null;
+  if (!isMissing(object.timeFrom) && !isTime(object.timeFrom)) return null;
+  return timeRangeRuleMessage(timeOrNull(object.timeFrom), timeOrNull(value));
 };
 
 // Que no sea anterior al mes actual lo valida el dominio (depende de la fecha)
@@ -140,9 +124,7 @@ const startMonthMessage: MessageFor = (value) => {
 const endMonthMessage: MessageFor = (value, object) => {
   if (isMissing(value)) return null;
   if (!isMonth(value)) return MISSION_FIELD_MESSAGES.monthInvalid;
-  const start = object.startMonth;
-  if (isMonth(start) && value < start) return MISSION_FIELD_MESSAGES.endMonthBeforeStart;
-  return null;
+  return isMonth(object.startMonth) ? monthRangeRuleMessage(object.startMonth, value) : null;
 };
 
 // Nest instancia cada constraint con `new`, sin argumentos: cada campo tiene su clase
@@ -188,14 +170,16 @@ export class MissionDaysOfWeekValidator extends SingleMessageValidator {
   protected readonly messageFor = daysOfWeekMessage;
 }
 
-@ValidatorConstraint({ name: 'missionTimeFrom', async: false })
-export class MissionTimeFromValidator extends SingleMessageValidator {
-  protected readonly messageFor = timeFormatMessage;
-}
-
 @ValidatorConstraint({ name: 'missionTimeTo', async: false })
 export class MissionTimeToValidator extends SingleMessageValidator {
   protected readonly messageFor = timeToMessage;
+}
+
+// Solo el formato HH:mm: timeFrom al crear, y las dos horas al editar (US-29), donde la franja la
+// controla el dominio con las horas combinadas (la otra puede no venir y estar guardada en la misión)
+@ValidatorConstraint({ name: 'missionTimeFormat', async: false })
+export class MissionTimeFormatValidator extends SingleMessageValidator {
+  protected readonly messageFor = timeFormatMessage;
 }
 
 @ValidatorConstraint({ name: 'missionStartMonth', async: false })

@@ -55,3 +55,41 @@ export function missionPhase(startMonth: string, endMonth: string | null, curren
   if (endMonth !== null && endMonth < currentMonth) return 'FINISHED';
   return 'RUNNING';
 }
+
+// "YYYY-MM" corrido `offset` meses (US-29: "rige desde el mes siguiente")
+export function shiftMonth(month: string, offset: number): string {
+  const [year, monthNumber] = month.split('-').map(Number);
+  return new Date(Date.UTC(year, monthNumber - 1 + offset, 1)).toISOString().slice(0, 7);
+}
+
+// Lo que la edición difiere al mes siguiente si la misión ya tiene clientes en el mes (S5-20) y lo que
+// cada asignación copia como snapshot
+export type MissionObjective = Pick<
+  Mission,
+  'objectiveType' | 'target' | 'daysOfWeek' | 'timeFrom' | 'timeTo' | 'rewardPoints'
+>;
+
+export function objectiveOf(source: MissionObjective): MissionObjective {
+  return {
+    objectiveType: source.objectiveType,
+    target: source.target,
+    daysOfWeek: source.daysOfWeek,
+    timeFrom: source.timeFrom,
+    timeTo: source.timeTo,
+    rewardPoints: source.rewardPoints,
+  };
+}
+
+const sameDays = (a: number[] | null, b: number[] | null): boolean =>
+  a === null || b === null ? a === b : a.length === b.length && a.every((day, index) => day === b[index]);
+
+export function sameObjective(a: MissionObjective, b: MissionObjective): boolean {
+  return (
+    a.objectiveType === b.objectiveType &&
+    a.target === b.target &&
+    sameDays(a.daysOfWeek, b.daysOfWeek) &&
+    a.timeFrom === b.timeFrom &&
+    a.timeTo === b.timeTo &&
+    a.rewardPoints === b.rewardPoints
+  );
+}

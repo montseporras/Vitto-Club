@@ -6,6 +6,7 @@ import {
   type MissionPhase,
   type MissionStatus,
 } from '../../domain/mission.js';
+import type { CompletedCustomerMission } from '../../domain/port/customer-mission.repository.js';
 
 // Tipo Mission de §3.1.1, en el orden del contrato
 export type MissionResponse = {
@@ -49,6 +50,37 @@ export class MissionResponseDto {
       completedCount,
       createdAt: mission.createdAt.toISOString(),
       updatedAt: mission.updatedAt.toISOString(),
+    };
+  }
+}
+
+// GET /misiones/:id/completadas (§3.1.7): una fila de "Clientes que la completaron"
+export type CompletedCustomerMissionResponse = {
+  customerMissionId: number;
+  customer: CompletedCustomerMission['customer'];
+  status: CompletedCustomerMission['status'];
+  completedAt: string;
+  claimedAt: string | null;
+  claimedBy: CompletedCustomerMission['claimedBy'];
+  rewardPoints: number | null;
+};
+
+export class CompletedCustomerMissionResponseDto {
+  static fromDomain(item: CompletedCustomerMission): CompletedCustomerMissionResponse {
+    return {
+      customerMissionId: item.customerMissionId,
+      customer: {
+        id: item.customer.id,
+        firstName: item.customer.firstName,
+        lastName: item.customer.lastName,
+        documentType: item.customer.documentType,
+        documentNumber: item.customer.documentNumber,
+      },
+      status: item.status,
+      completedAt: item.completedAt.toISOString(),
+      claimedAt: item.claimedAt ? item.claimedAt.toISOString() : null,
+      claimedBy: item.claimedBy,
+      rewardPoints: item.rewardPoints,
     };
   }
 }

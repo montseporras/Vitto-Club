@@ -1019,3 +1019,70 @@ export function missionCreatedEntry(actor: AuditActor, mission: MissionAuditSnap
     ],
   };
 }
+
+export type MissionAuditEditSnapshot = MissionAuditSnapshot & { description: string | null };
+
+// "Diciembre 2026", para "Rige desde"
+const formatMonthCapitalized = (month: string): string => capitalize(formatMonth(month));
+
+// MISSION_UPDATED (§3.14.2, US-29): una fila por campo que cambió, "{antes} → {después}", con los textos
+// del listado; vacío = "—". El objetivo, la condición y la recompensa se comparan contra lo que iba a regir
+// (el pendiente, si había). Al final, "Rige desde: {mes}" si el cambio quedó para el mes siguiente. La
+// description lleva el nombre nuevo. null si no cambió nada (no se audita). Etiquetas: decisión de Jazmín.
+export function missionUpdatedEntry(
+  actor: AuditActor,
+  before: MissionAuditEditSnapshot,
+  after: MissionAuditEditSnapshot,
+  appliesFrom: string | null,
+): AuditEntryInput | null {
+  const details = changedRows([
+    { label: 'Nombre', before: before.name, after: after.name },
+    { label: 'Descripción', before: orNone(before.description), after: orNone(after.description) },
+    {
+      label: 'Objetivo',
+      before: formatMissionObjective(before.objectiveType, before.target),
+      after: formatMissionObjective(after.objectiveType, after.target),
+    },
+    {
+      label: 'Condición',
+      before: formatMissionCondition(before.daysOfWeek, before.timeFrom, before.timeTo),
+      after: formatMissionCondition(after.daysOfWeek, after.timeFrom, after.timeTo),
+    },
+    { label: 'Recompensa', before: formatMissionReward(before.rewardPoints), after: formatMissionReward(after.rewardPoints) },
+    {
+      label: 'Vigencia',
+      before: formatMissionValidity(before.startMonth, before.endMonth),
+      after: formatMissionValidity(after.startMonth, after.endMonth),
+    },
+  ]);
+  if (appliesFrom !== null) details.push({ label: 'Rige desde', value: formatMonthCapitalized(appliesFrom) });
+  if (details.length === 0) return null;
+
+  return {
+    actor,
+    module: 'MISSIONS',
+    action: 'MISSION_UPDATED',
+    description: `Editó la misión "${after.name}"`,
+    details,
+  };
+}
+
+// MISSION_DELETED (§3.14.2, US-29): "Vencidas: {n}" y "Reclamadas automáticamente: {n}", cada una solo
+// si n > 0
+export function missionDeletedEntry(
+  actor: AuditActor,
+  missionName: string,
+  expired: number,
+  claimed: number,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'MISSIONS',
+    action: 'MISSION_DELETED',
+    description: `Dio de baja la misión "${missionName}"`,
+    details: [
+      ...(expired > 0 ? [{ label: 'Vencidas', value: formatNumber(expired) }] : []),
+      ...(claimed > 0 ? [{ label: 'Reclamadas automáticamente', value: formatNumber(claimed) }] : []),
+    ],
+  };
+}
