@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuditService } from '../../audit/application/audit.service.js';
 import { missionRewardClaimedEntry } from '../../audit/domain/audit-entries.js';
 import { PointsService } from '../../points/application/points.service.js';
@@ -9,6 +9,7 @@ import {
 } from '../domain/port/customer-mission.repository.js';
 import { TransactionRunner } from '../domain/port/transaction-runner.js';
 import { MISSION_NOT_FOUND_MESSAGE } from '../domain/mission.js';
+import { customerUnauthenticated } from './customer-unauthenticated.js';
 
 export type ClaimResult = { customerMission: CustomerMissionView; balanceAfter: number };
 
@@ -49,14 +50,7 @@ export class MissionsClaimService {
     if (!customer) throw new NotFoundException(MISSION_NOT_FOUND_MESSAGE);
     // §3.3.3: "Cliente dado de baja con token vivo: 401, como el resto de /customers/me" (decisión de
     // Jazmín: se sigue el contrato). El Sistema reclama igual: nunca se pierde una recompensa ganada.
-    if (claimedBy === 'CUSTOMER' && !customer.isActive) {
-      throw new UnauthorizedException({
-        statusCode: 401,
-        error: 'Unauthorized',
-        message: 'Authentication required',
-        code: 'UNAUTHENTICATED',
-      });
-    }
+    if (claimedBy === 'CUSTOMER' && !customer.isActive) throw customerUnauthenticated();
 
     const rejection = claimRejection(current.status, current.rewardPoints);
     if (rejection) throw new ConflictException({ message: rejection, code: MISSION_NOT_CLAIMABLE_CODE });

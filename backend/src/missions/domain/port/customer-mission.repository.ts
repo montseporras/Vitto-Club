@@ -92,4 +92,7 @@ export abstract class CustomerMissionRepository {
 
   // US-32: En progreso → Vencida con su motivo
   abstract expire(id: number, reason: string, now: Date): Promise<void>;
+
+  // US-33 (§3.3.2 y §3.3.4): las asignaciones del cliente en un mes YYYY-MM, en cualquier estado
+  abstract findForCustomerPeriod(customerId: number, period: string): Promise<CustomerMissionView[]>;
 }

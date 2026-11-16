@@ -217,4 +217,13 @@ export class CustomerMissionsPrismaRepository implements CustomerMissionReposito
       data: { status: 'EXPIRED', expiredAt: now, expirationReason: reason },
     });
   }
+
+  async findForCustomerPeriod(customerId: number, period: string): Promise<CustomerMissionView[]> {
+    const records = await this.prisma.customerMission.findMany({
+      where: { customerId, period: fromMonth(period) },
+      include: { mission: MISSION_SELECT },
+      orderBy: { id: 'asc' },
+    });
+    return records.map(toView);
+  }
 }
