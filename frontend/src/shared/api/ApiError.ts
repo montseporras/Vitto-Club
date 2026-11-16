@@ -19,7 +19,7 @@ export class ApiError extends Error {
     code?: string,
     details: ApiErrorDetail[] = [],
   ) {
-    super(messages[0] ?? 'Error inesperado')
+    super(messages[0] ?? 'Algo salió mal. Probá de nuevo.')
     this.name = 'ApiError'
     this.status = status
     this.messages = messages
@@ -33,7 +33,7 @@ export function toApiError(error: unknown): ApiError {
   if (axios.isAxiosError(error)) {
     if (!error.response) {
       return new ApiError(undefined, [
-        'No se pudo conectar con el servidor. Revisá la conexión e intentá de nuevo.',
+        'No hay conexión con el servidor. Revisá tu internet y probá de nuevo.',
       ])
     }
     const { message, code, details } = (error.response.data ?? {}) as {
@@ -49,5 +49,5 @@ export function toApiError(error: unknown): ApiError {
       Array.isArray(details) ? details : [],
     )
   }
-  return new ApiError(undefined, ['Error inesperado'])
+  return new ApiError(undefined, ['Algo salió mal. Probá de nuevo.'])
 }

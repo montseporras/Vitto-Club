@@ -124,3 +124,20 @@ export const bottomNavStyles = {
   itemSoon: 'cursor-default text-ink opacity-50',
   soon: 'text-[10px] font-bold uppercase tracking-wide',
 }
+
+/** Botón de tres puntos y su menú flotante (Editar · Duplicar · Eliminar). */
+export const actionsMenuStyles = {
+  trigger: [
+    'grid size-9 cursor-pointer place-items-center rounded-full text-accent-800 transition-[background-color,transform] duration-150',
+    'hover:bg-accent-100 active:scale-95',
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700',
+  ].join(' '),
+  triggerOpen: 'bg-accent-100',
+  menu: 'fixed z-[10040] grid animate-vitto-pop-in gap-0.5 rounded-xl border border-accent-100 bg-surface p-1.5 shadow-xl shadow-accent-900/15',
+  item: [
+    'flex min-h-10 w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 text-left text-sm font-semibold text-ink transition-colors',
+    'hover:bg-accent-50 focus-visible:bg-accent-50 focus-visible:outline-none',
+    'disabled:cursor-not-allowed disabled:opacity-50',
+  ].join(' '),
+  itemDanger: 'hover:bg-[#fdecea] hover:text-negative focus-visible:bg-[#fdecea] focus-visible:text-negative',
+}

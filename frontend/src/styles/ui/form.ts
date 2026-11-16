@@ -74,9 +74,10 @@ export const authFormStyles = {
   legend: 'mb-2 w-full border-b border-accent-100 pb-1',
   title: 'font-heading text-base font-bold text-accent-800',
   grid: 'grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-x-3 gap-y-4',
-  input: 'h-10 rounded-lg px-3 text-sm',
+  // En el celular, 48 px de alto para que el dedo no caiga en el campo de al lado
+  input: 'h-12 rounded-lg px-3 text-base sm:h-10 sm:text-sm',
   // Sin padding derecho: lo necesita el botón de mostrar la contraseña
-  passwordInput: 'h-10 rounded-lg pl-3 text-sm',
+  passwordInput: 'h-12 rounded-lg pl-3 text-base sm:h-10 sm:text-sm',
   note: 'mt-3 text-[13px] text-neutral-700',
   actions: 'mt-3.5 flex flex-wrap items-center justify-end gap-3 border-t border-accent-100 pt-3',
 }

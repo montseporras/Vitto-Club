@@ -41,11 +41,12 @@
   --color-neutral-800: #423a33;
   --color-neutral-900: #2b2520;
 
-  /* Playfair Display para títulos y Lora para texto, según el manual */
-  --font-sans: 'Lora', Georgia, serif;
+  /* Texto: DM Sans en lugar de la Lora del manual. Es una sans cálida y redondeada que cansa menos
+     en pantalla. Playfair Display queda solo para los títulos, para no perder la marca. */
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --font-heading: 'Playfair Display', Georgia, serif;
-  /* Números destacados (saldo, totales): DM Serif Display, como en el prototipo */
-  --font-number: 'DM Serif Display', Georgia, serif;
+  /* Números destacados (saldo, totales): la misma sans en negrita, con cifras de ancho fijo */
+  --font-number: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
 
   --radius: 10px;
 
@@ -59,6 +60,9 @@
   --animate-vitto-spin: vitto-spin 0.9s linear infinite;
   --animate-vitto-bar: vitto-bar 1.2s ease-out both;
   --animate-vitto-fade-in: vitto-fade-in 200ms ease-out both;
+  --animate-vitto-load: vitto-load 2.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  --animate-vitto-pop-in: vitto-pop-in 140ms ease-out both;
+  --animate-vitto-shrink: vitto-shrink 3.5s linear both;
 
   @keyframes vitto-bar {
     from {
@@ -66,6 +70,35 @@
     }
     to {
       width: 100%;
+    }
+  }
+  /* Relleno del botón mientras carga: avanza rápido al principio y se frena antes del final */
+  @keyframes vitto-load {
+    from {
+      width: 0%;
+    }
+    to {
+      width: 92%;
+    }
+  }
+  /* Cuenta regresiva del aviso con "Deshacer" */
+  @keyframes vitto-shrink {
+    from {
+      transform: scaleX(1);
+    }
+    to {
+      transform: scaleX(0);
+    }
+  }
+  /* Menú flotante (popover) */
+  @keyframes vitto-pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
   }
   @keyframes vitto-fade-in {
