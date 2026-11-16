@@ -10,6 +10,7 @@ import { clientStyles } from '@/styles/ui'
 import { CancelRedemptionDialog } from '../components/CancelRedemptionDialog'
 import { ClientPageHeader } from '../components/client/ClientUI'
 import { MyRedemptions } from '../components/MyRedemptions'
+import { ConfirmedRedemptionCode } from '../components/RedemptionCodeModal'
 import { CUSTOMER_PATHS, HISTORY_REDEMPTIONS_VIEW, HISTORY_VIEW_PARAM } from '../lib/paths'
 
 type View = 'consumptions' | 'redemptions'
@@ -24,6 +25,7 @@ export function MyHistoryPage() {
   const view: View =
     searchParams.get(HISTORY_VIEW_PARAM) === HISTORY_REDEMPTIONS_VIEW ? 'redemptions' : 'consumptions'
   const [cancelling, setCancelling] = useState<MyRedemption | null>(null)
+  const [showingCode, setShowingCode] = useState<MyRedemption | null>(null)
   const navigate = useNavigate()
 
   const changeView = (next: View) =>
@@ -58,7 +60,22 @@ export function MyHistoryPage() {
       {view === 'consumptions' ? (
         <CustomerConsumptionHistory />
       ) : (
-        <MyRedemptions onCancel={setCancelling} onBrowseCatalog={() => navigate(CUSTOMER_PATHS.rewards)} />
+        <MyRedemptions
+          onCancel={setCancelling}
+          onShowCode={setShowingCode}
+          onBrowseCatalog={() => navigate(CUSTOMER_PATHS.rewards)}
+        />
+      )}
+
+      {showingCode && (
+        <ConfirmedRedemptionCode
+          redemption={showingCode}
+          onClose={() => setShowingCode(null)}
+          onCancel={(redemption) => {
+            setShowingCode(null)
+            setCancelling(redemption)
+          }}
+        />
       )}
 
       {cancelling && (

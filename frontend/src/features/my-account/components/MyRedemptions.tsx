@@ -17,6 +17,9 @@ import { DateRangePicker } from '@/shared/components/ui/DateRangePicker'
 import { FilterSelect } from '@/shared/components/ui/FilterSelect'
 import { Label } from '@/shared/components/ui/Label'
 import { addDaysToIso, todayIsoInTimeZone } from '@/shared/lib/dates'
+import { cn } from '@/shared/lib/utils'
+import { clientStyles } from '@/styles/ui'
+import { FiltersToggle } from './client/ClientUI'
 import { MyRedemptionItem } from './MyRedemptionItem'
 
 const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires'
@@ -48,9 +51,13 @@ type MyRedemptionsProps = {
   onCancel?: (redemption: MyRedemption) => void
   /** CTA del estado vacío: lleva al catálogo. */
   onBrowseCatalog?: () => void
+  /** Abre la ventana con el código en grande de un canje Confirmado */
+  onShowCode?: (redemption: MyRedemption) => void
 }
 
-export function MyRedemptions({ onCancel, onBrowseCatalog }: MyRedemptionsProps) {
+export function MyRedemptions({ onCancel, onBrowseCatalog, onShowCode }: MyRedemptionsProps) {
+  // Los filtros quedan guardados detrás del botón "Filtros": la lista se ve como la de consumos
+  const [showFilters, setShowFilters] = useState(false)
   const [status, setStatus] = useState<RedemptionStatusGroup | ''>('')
   const [order, setOrder] = useState<'desc' | 'asc'>('desc')
   const [dateOption, setDateOption] = useState<DateOption>('any')
@@ -79,9 +86,20 @@ export function MyRedemptions({ onCancel, onBrowseCatalog }: MyRedemptionsProps)
     setTo('')
   }
 
+  const activeFilters = (status ? 1 : 0) + (dateOption !== 'any' ? 1 : 0) + (order !== 'desc' ? 1 : 0)
+
   return (
     <div className="grid gap-4">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex justify-end">
+        <FiltersToggle
+          open={showFilters}
+          activeCount={activeFilters}
+          controls="my-redemptions-filters"
+          onToggle={() => setShowFilters((current) => !current)}
+        />
+      </div>
+      {showFilters && (
+      <div id="my-redemptions-filters" className={cn(clientStyles.card, 'grid grid-cols-2 gap-2 p-4')}>
         <div>
           <Label htmlFor="my-redemptions-status">Estado</Label>
           <FilterSelect
@@ -124,6 +142,7 @@ export function MyRedemptions({ onCancel, onBrowseCatalog }: MyRedemptionsProps)
           </div>
         )}
       </div>
+      )}
 
       {result.isPending && <StatusText className="py-6 text-center">Cargando…</StatusText>}
 
@@ -134,13 +153,14 @@ export function MyRedemptions({ onCancel, onBrowseCatalog }: MyRedemptionsProps)
       )}
 
       {items && items.length > 0 && (
-        <ul className="grid gap-3">
+        <ul className={clientStyles.list}>
           {items.map((redemption) => (
             <MyRedemptionItem
               key={redemption.id}
               redemption={redemption}
               now={now}
               onCancel={onCancel}
+              onShowCode={onShowCode}
             />
           ))}
         </ul>

@@ -74,5 +74,9 @@ export const ICONS = {
   mail: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2ZM22 6l-10 7L2 6',
   sparkles: 'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9ZM19 3v4M21 5h-4M5 17v4M7 19H3',
   arrowRight: 'M5 12h14M12 5l7 7-7 7',
+  // Globo de chat con el tubo del teléfono (WhatsApp, sin el logo de la marca)
+  whatsapp:
+    'M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9ZM9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1',
+  sliders: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
   arrowsLeftRight: 'm8 3-4 4 4 4M4 7h16M16 21l4-4-4-4M20 17H4',
 } as const

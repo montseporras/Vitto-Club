@@ -32,10 +32,10 @@ export function MissionsPage() {
         />
       ) : (
         <>
-          <p className="-mt-3 text-center text-sm text-neutral-600">
+          <p className="text-sm text-neutral-600">
             Misiones del mes{endsAt && ` · Terminan el ${shortDate(endsAt)}`}
           </p>
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-2">
             {missions.data.map((mission) => (
               <li key={mission.id}>
                 <MissionCard mission={mission} detailed />

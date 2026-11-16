@@ -29,13 +29,20 @@ export const clientNavStyles = {
 
 /** Bloques que se repiten en las pantallas del Cliente. */
 export const clientStyles = {
-  page: 'mx-auto grid w-full max-w-xl gap-6 md:max-w-3xl lg:max-w-5xl',
-  // Título de la pantalla, centrado (con "Volver" a la izquierda si hay)
-  header: 'relative flex min-h-11 items-center justify-center',
-  title: 'font-heading text-2xl font-bold text-ink md:text-3xl',
+  page: 'mx-auto grid w-full max-w-xl grid-cols-[minmax(0,1fr)] gap-6 md:max-w-3xl lg:max-w-5xl',
+  // Encabezado de la pantalla: título a la izquierda, "Consultas y reservas" a la derecha y una
+  // línea naranja que lo separa del contenido
+  header:
+    'relative -mx-4 -mt-2 flex min-h-14 items-center gap-2 border-b-2 border-accent-200 px-4 pb-3 after:absolute after:-bottom-0.5 after:left-4 after:h-0.5 after:w-12 after:rounded-full after:bg-accent-700 md:mx-0 md:mt-0 md:px-0 md:after:left-0',
+  title: 'min-w-0 flex-1 truncate font-heading text-2xl font-bold text-ink md:text-3xl',
   back: [
-    'absolute left-0 grid size-11 cursor-pointer place-items-center rounded-full text-ink transition-colors',
+    '-ml-2 grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-ink transition-colors',
     'hover:bg-accent-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700',
+  ].join(' '),
+  // Botón chico de WhatsApp: se ve, pero no compite con el título
+  contact: [
+    'inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-accent-200 bg-surface px-2.5 text-[11px] font-bold whitespace-nowrap text-accent-800 shadow-sm transition-[background-color,transform] duration-150',
+    'hover:bg-accent-50 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700',
   ].join(' '),
   // Encabezado de una sección ("Recompensas disponibles")
   section: 'grid gap-3',

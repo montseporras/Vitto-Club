@@ -16,32 +16,68 @@ const STATUS_LOOK: Record<MyRedemption['status'], { icon: string; className: str
   EXPIRED: { icon: ICONS.clock, className: 'text-neutral-600' },
 }
 
-export function RedemptionRow({ redemption, photoUrl }: { redemption: MyRedemption; photoUrl: string | null }) {
-  const look = STATUS_LOOK[redemption.status]
+/** Estado del canje con su ícono (el color nunca va solo). */
+export function RedemptionStatusInline({ status }: { status: MyRedemption['status'] }) {
+  const look = STATUS_LOOK[status]
   return (
-    <li className={clientStyles.row}>
+    <span className={cn('flex shrink-0 items-center gap-1 text-xs font-bold', look.className)}>
+      <Icon d={look.icon} className="size-4" />
+      {REDEMPTION_STATUSES[status]}
+    </span>
+  )
+}
+
+/**
+ * Canje en la lista de "Mis canjes". Los Confirmados se pueden tocar: abren la ventana con el
+ * código en grande para mostrarlo en la caja.
+ */
+export function RedemptionRow({
+  redemption,
+  photoUrl,
+  onShowCode,
+}: {
+  redemption: MyRedemption
+  photoUrl: string | null
+  onShowCode?: (redemption: MyRedemption) => void
+}) {
+  const confirmed = redemption.status === 'CONFIRMED'
+  const content = (
+    <>
       <RewardImage
         photoUrl={photoUrl}
         className="size-12 rounded-xl"
         genericClassName="bg-accent-100 text-accent-700"
         iconClassName="size-6"
       />
-      <div className="min-w-0 flex-1">
-        <p className={clientStyles.rowTitle}>{redemption.reward.name}</p>
-        <p className={clientStyles.rowMeta}>
-          {shortDate(redemption.createdAt)}
-          {redemption.status === 'CONFIRMED' && (
-            <>
-              {' · '}
-              <span className="font-bold tracking-wider text-accent-800">{redemption.code}</span>
-            </>
-          )}
-        </p>
-      </div>
-      <span className={cn('flex shrink-0 items-center gap-1.5 text-sm font-semibold', look.className)}>
-        <Icon d={look.icon} className="size-5" />
-        {REDEMPTION_STATUSES[redemption.status]}
+      <span className="min-w-0 flex-1">
+        <span className={cn(clientStyles.rowTitle, 'block')}>{redemption.reward.name}</span>
+        {/* Fecha a la izquierda y estado a la derecha: el nombre queda con todo el ancho */}
+        <span className="mt-0.5 flex items-center justify-between gap-2">
+          <span className={cn(clientStyles.rowMeta, 'whitespace-nowrap')}>{shortDate(redemption.createdAt)}</span>
+          <RedemptionStatusInline status={redemption.status} />
+        </span>
+        {confirmed && onShowCode && (
+          <span className="mt-0.5 block text-xs font-semibold text-accent-700">Tocá para ver el código</span>
+        )}
       </span>
+      {confirmed && onShowCode && <Icon d={ICONS.chevronRight} className={clientStyles.chevron} />}
+    </>
+  )
+
+  return (
+    <li className="even:bg-accent-50/60">
+      {confirmed && onShowCode ? (
+        <button
+          type="button"
+          onClick={() => onShowCode(redemption)}
+          aria-label={`Ver el código del canje de ${redemption.reward.name}`}
+          className={cn(clientStyles.rowLink, 'even:bg-transparent')}
+        >
+          {content}
+        </button>
+      ) : (
+        <div className={cn(clientStyles.row, 'even:bg-transparent')}>{content}</div>
+      )}
     </li>
   )
 }

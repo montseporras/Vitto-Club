@@ -160,19 +160,22 @@ export function LogoutDialog({ onCancel }: LogoutDialogProps) {
               autoFocus
               onClick={onCancel}
               disabled={phase === 'leaving'}
-              className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full border border-accent-300 bg-accent-100 px-4 text-sm font-bold text-accent-900 shadow-md shadow-accent-800/15 transition-colors hover:bg-accent-200"
+              className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full border border-accent-300 bg-accent-100 px-3 text-sm leading-tight font-bold whitespace-nowrap text-accent-900 shadow-md shadow-accent-800/15 transition-colors hover:bg-accent-200 sm:px-4"
             >
-              <Icon d={ICONS.close} className="size-4" />
-              Permanecer acá
+              {/* En el celular no entra el ícono: queda el texto solo, en una línea */}
+              <Icon d={ICONS.close} className="hidden size-4 sm:block" />
+              <span className="sm:hidden">Quedarme</span>
+              <span className="hidden sm:inline">Permanecer acá</span>
             </button>
             <button
               type="button"
               onClick={() => void confirm()}
               disabled={phase === 'leaving'}
-              className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-accent-700 px-4 text-sm font-bold text-white shadow-lg shadow-accent-700/30 transition-colors hover:bg-accent-800"
+              className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-accent-700 px-3 text-sm leading-tight font-bold whitespace-nowrap text-white shadow-lg shadow-accent-700/30 transition-colors hover:bg-accent-800 sm:px-4"
             >
-              <Icon d={ICONS.logOut} className="size-4" />
-              Sí, cerrar sesión
+              <Icon d={ICONS.logOut} className="hidden size-4 sm:block" />
+              <span className="sm:hidden">Cerrar sesión</span>
+              <span className="hidden sm:inline">Sí, cerrar sesión</span>
             </button>
           </div>
 

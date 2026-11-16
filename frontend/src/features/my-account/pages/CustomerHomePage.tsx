@@ -18,7 +18,7 @@ import { NegativeBalanceNotice } from '../components/NegativeBalanceNotice'
 import { RedemptionToUseCard } from '../components/RedemptionToUseCard'
 import { CUSTOMER_PATHS, historyRedemptionsPath } from '../lib/paths'
 
-// En el celular se ven 3; desde la compu, 4 (la cuarta se oculta en pantallas chicas)
+// Cuatro recompensas: dos filas de dos en el celular, una fila de cuatro desde tablet
 const PREVIEW_COUNT = 4
 
 export function CustomerHomePage() {
@@ -60,9 +60,9 @@ export function CustomerHomePage() {
             description="Seguí sumando puntos: cuando haya recompensas, las vas a ver acá."
           />
         ) : (
-          <ul className="grid grid-cols-3 gap-3 lg:grid-cols-4">
-            {catalog.data.items.slice(0, PREVIEW_COUNT).map((reward, index) => (
-              <li key={reward.id} className={index === 3 ? 'hidden lg:block' : undefined}>
+          <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {catalog.data.items.slice(0, PREVIEW_COUNT).map((reward) => (
+              <li key={reward.id}>
                 <RewardTile reward={reward} className="h-full" />
               </li>
             ))}

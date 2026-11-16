@@ -4,12 +4,9 @@
 // recompensa elegida y su saldo.
 import { useState } from 'react'
 import {
-  countdownText,
-  isExpiringSoon,
   RewardSummary,
   useConfirmMyRedemption,
   useEscapeKey,
-  useNow,
   type ConfirmedRedemption,
 } from '@/features/redemptions'
 import type { Reward } from '@/features/rewards'
@@ -17,7 +14,7 @@ import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { Modal } from '@/shared/components/ui/Modal'
 import { formatInteger } from '@/shared/lib/numbers'
-import { cn } from '@/shared/lib/utils'
+import { RedemptionCodeModal } from './RedemptionCodeModal'
 
 type ConfirmRedemptionFlowProps = {
   /** La recompensa que eligió el Cliente en el catálogo */
@@ -46,42 +43,21 @@ function ConfirmedStep({
   onBackToCatalog: () => void
   onViewMyRedemptions: () => void
 }) {
-  const now = useNow(1000)
-  useEscapeKey(onBackToCatalog)
-  const expired = new Date(redemption.expiresAt).getTime() <= now
-
   return (
-    <Modal title="¡Canje confirmado!" onClose={onBackToCatalog} className="max-w-sm">
-      <div className="text-center">
-        <p className="text-sm text-neutral-700">
-          {redemption.reward.name} · {formatInteger(redemption.reward.points)} pts
-        </p>
-        <div className="mt-3 rounded-2xl border-2 border-dashed border-orange-400 bg-white p-3">
-          <p className="text-3xl font-extrabold tracking-[0.22em] text-accent-800">
-            {redemption.code}
-          </p>
-          <p
-            className={cn(
-              'text-sm font-bold',
-              expired || isExpiringSoon(redemption.expiresAt, now)
-                ? 'text-red-700'
-                : 'text-olive-800',
-            )}
-          >
-            {countdownText(redemption.expiresAt, now)}
-          </p>
-        </div>
-        <p className="mt-3 text-sm">Presentá este código en caja.</p>
-      </div>
-      <div className="mt-5 flex gap-2">
-        <Button type="button" variant="secondary" className="flex-1" onClick={onBackToCatalog}>
-          Volver al catálogo
-        </Button>
-        <Button type="button" className="flex-1" onClick={onViewMyRedemptions}>
-          Ver mis canjes
-        </Button>
-      </div>
-    </Modal>
+    <RedemptionCodeModal
+      redemption={redemption}
+      onClose={onBackToCatalog}
+      actions={
+        <>
+          <Button type="button" variant="secondary" className="flex-1 px-4 whitespace-nowrap" onClick={onBackToCatalog}>
+            Volver al catálogo
+          </Button>
+          <Button type="button" className="flex-1 px-4 whitespace-nowrap" onClick={onViewMyRedemptions}>
+            Ver mis canjes
+          </Button>
+        </>
+      }
+    />
   )
 }
 
@@ -137,7 +113,7 @@ export function ConfirmRedemptionFlow({
       )}
 
       <div className="mt-5 flex gap-2">
-        <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
+        <Button type="button" variant="secondary" className="flex-1 px-4 whitespace-nowrap" onClick={onClose}>
           Cancelar
         </Button>
         <Button

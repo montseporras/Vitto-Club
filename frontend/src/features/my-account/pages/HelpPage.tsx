@@ -1,11 +1,12 @@
 // Mi perfil → Ayuda (diseño V2): preguntas frecuentes sobre el programa, con las reglas del
 // contrato, y cómo comunicarse con el local.
-import { INSTAGRAM_URL } from '@/features/auth'
+import { INSTAGRAM_URL, useSession } from '@/features/auth'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
 import { cn } from '@/shared/lib/utils'
 import { clientStyles } from '@/styles/ui'
 import { ClientPageHeader } from '../components/client/ClientUI'
+import { whatsappUrl } from '../lib/contact'
 import { CUSTOMER_PATHS } from '../lib/paths'
 
 const QUESTIONS = [
@@ -37,6 +38,8 @@ const QUESTIONS = [
 ]
 
 export function HelpPage() {
+  const session = useSession()
+  const firstName = session.status === 'authenticated' ? session.user.firstName : null
   return (
     <div className={cn(clientStyles.page, 'md:max-w-2xl lg:max-w-2xl')}>
       <ClientPageHeader title="Ayuda" backTo={CUSTOMER_PATHS.profile} />
@@ -60,11 +63,20 @@ export function HelpPage() {
 
       <section className={cn(clientStyles.card, 'grid justify-items-center gap-3 rounded-3xl p-6 text-center')}>
         <p className="font-heading text-xl font-bold text-ink">¿Te quedó alguna duda?</p>
-        <p className="text-sm text-neutral-600">Escribinos por Instagram o consultá en el local.</p>
-        <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer" className={clientStyles.outlineLink}>
-          <Icon d={ICONS.instagram} className="size-5" />
-          Escribinos por Instagram
-        </a>
+        <p className="text-sm text-neutral-600">
+          Escribinos por Instagram, WhatsApp o consultá en el local.
+        </p>
+        <div className="grid w-full max-w-xs gap-2.5">
+          <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer" className={clientStyles.outlineLink}>
+            <Icon d={ICONS.instagram} className="size-5" />
+            Escribinos por Instagram
+          </a>
+          {/* Abre WhatsApp con el mensaje ya escrito: "Hola, soy {nombre} y me gustaría..." */}
+          <a href={whatsappUrl(firstName)} target="_blank" rel="noreferrer" className={clientStyles.outlineLink}>
+            <Icon d={ICONS.whatsapp} className="size-5 text-[#1e9e55]" />
+            Consultanos por WhatsApp
+          </a>
+        </div>
       </section>
     </div>
   )

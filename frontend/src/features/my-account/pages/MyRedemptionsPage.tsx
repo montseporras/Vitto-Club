@@ -1,26 +1,30 @@
 // "Mis canjes" del Cliente (diseño V2): las misiones del mes con su avance (S5 §3.3.2) y los
 // últimos canjes (US-45). "Ver historial" abre el Historial en la pestaña Canjes, con todos los
 // canjes, los filtros y la opción de cancelar.
+import { useState } from 'react'
 import { Link } from 'react-router'
-import { useMyRedemptions } from '@/features/redemptions'
+import { useMyRedemptions, type MyRedemption } from '@/features/redemptions'
 import { useMyCatalog } from '@/features/rewards'
 import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert } from '@/shared/components/ui/Alert'
-import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
 import { clientStyles } from '@/styles/ui'
 import { useMyMissions } from '../api/my-account.queries'
+import { CancelRedemptionDialog } from '../components/CancelRedemptionDialog'
 import { ClientPageHeader, SectionHeader } from '../components/client/ClientUI'
+import { ConfirmedRedemptionCode } from '../components/RedemptionCodeModal'
 import { MissionCard } from '../components/client/MissionCard'
 import { RedemptionRow } from '../components/client/RedemptionRow'
 import { CUSTOMER_PATHS, historyRedemptionsPath } from '../lib/paths'
 
 const RECENT_COUNT = 5
-const MISSIONS_PREVIEW = 3
+const MISSIONS_PREVIEW = 2
 const RECENT_FILTERS = { order: 'desc' } as const
 
 export function MyRedemptionsPage() {
+  const [showingCode, setShowingCode] = useState<MyRedemption | null>(null)
+  const [cancelling, setCancelling] = useState<MyRedemption | null>(null)
   const missions = useMyMissions()
   const redemptions = useMyRedemptions(RECENT_FILTERS)
   // Las fotos salen del catálogo: el canje guarda solo el nombre y los puntos de la recompensa
@@ -43,13 +47,8 @@ export function MyRedemptionsPage() {
             icon={ICONS.target}
             title="Misiones disponibles"
             action={
-              <Link
-                to={CUSTOMER_PATHS.missions}
-                aria-label="Ver todas las misiones"
-                title="Ver todas las misiones"
-                className={clientStyles.iconLink}
-              >
-                <Icon d={ICONS.externalLink} className="size-5" />
+              <Link to={CUSTOMER_PATHS.missions} className={clientStyles.outlineLink}>
+                Ver todas
               </Link>
             }
           />
@@ -109,12 +108,27 @@ export function MyRedemptionsPage() {
                   key={redemption.id}
                   redemption={redemption}
                   photoUrl={photoOf(redemption.reward.id)}
+                  onShowCode={setShowingCode}
                 />
               ))}
             </ul>
           )}
         </section>
       </div>
+
+      {showingCode && (
+        <ConfirmedRedemptionCode
+          redemption={showingCode}
+          onClose={() => setShowingCode(null)}
+          onCancel={(redemption) => {
+            setShowingCode(null)
+            setCancelling(redemption)
+          }}
+        />
+      )}
+      {cancelling && (
+        <CancelRedemptionDialog redemption={cancelling} onClose={() => setCancelling(null)} />
+      )}
     </div>
   )
 }
