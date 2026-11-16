@@ -32,7 +32,7 @@ import {
   monthLabel,
   objectiveLabel,
 } from '../lib/mission-presentation'
-import type { MissionListOrder, MissionPhase } from '../types/mission'
+import type { Mission, MissionListOrder, MissionPhase } from '../types/mission'
 
 const PHASE_OPTIONS = [
   { value: '', label: 'Todas' },
@@ -53,6 +53,7 @@ export function MissionsAdminPage() {
   const [page, setPage] = useState(1)
   const [creating, setCreating] = useState(false)
   const [missionId, setMissionId] = useState<number | null>(null)
+  const [editingMission, setEditingMission] = useState<Mission | null>(null)
   const createButtonRef = useRef<HTMLButtonElement>(null)
   const detailTriggerRef = useRef<HTMLTableRowElement | null>(null)
   const query = useDebounce(search.trim(), 300)
@@ -71,6 +72,16 @@ export function MissionsAdminPage() {
 
   const closeDetail = () => {
     setMissionId(null)
+    window.requestAnimationFrame(() => detailTriggerRef.current?.focus())
+  }
+
+  const editMission = (mission: Mission) => {
+    setMissionId(null)
+    setEditingMission(mission)
+  }
+
+  const closeEdit = () => {
+    setEditingMission(null)
     window.requestAnimationFrame(() => detailTriggerRef.current?.focus())
   }
 
@@ -258,8 +269,19 @@ export function MissionsAdminPage() {
       </AdminPanel>
 
       {creating && <MissionCreateModal onClose={closeCreate} />}
+      {editingMission && (
+        <MissionCreateModal
+          key={editingMission.id}
+          mission={editingMission}
+          onClose={closeEdit}
+        />
+      )}
       {missionId !== null && (
-        <MissionDetailModal missionId={missionId} onClose={closeDetail} />
+        <MissionDetailModal
+          missionId={missionId}
+          onClose={closeDetail}
+          onEdit={editMission}
+        />
       )}
     </Page>
   )

@@ -7,6 +7,7 @@ import { useModalEscape } from '@/shared/hooks/useModalEscape'
 import { isoToDisplayDateTime } from '@/shared/lib/dates'
 import { formatInteger } from '@/shared/lib/numbers'
 import { useMission, useMissionCompletions } from '../api/missions.queries'
+import type { Mission } from '../types/mission'
 import {
   completedMissionStatusLabel,
   conditionLabel,
@@ -22,9 +23,10 @@ import {
 type MissionDetailModalProps = {
   missionId: number
   onClose: () => void
+  onEdit: (mission: Mission) => void
 }
 
-export function MissionDetailModal({ missionId, onClose }: MissionDetailModalProps) {
+export function MissionDetailModal({ missionId, onClose, onEdit }: MissionDetailModalProps) {
   const mission = useMission(missionId)
   const completions = useMissionCompletions(missionId)
   useModalEscape(onClose)
@@ -168,10 +170,15 @@ export function MissionDetailModal({ missionId, onClose }: MissionDetailModalPro
           </section>
         </>
       )}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
         <Button type="button" variant="secondary" autoFocus onClick={onClose}>
           Cerrar
         </Button>
+        {missionData && (
+          <Button type="button" onClick={() => onEdit(missionData)}>
+            Editar misión
+          </Button>
+        )}
       </div>
     </Modal>
   )

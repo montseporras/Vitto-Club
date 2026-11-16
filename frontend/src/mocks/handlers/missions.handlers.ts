@@ -5,6 +5,7 @@ import type {
   Mission,
   MissionListOrder,
   MissionPhase,
+  UpdateMissionBody,
 } from '@/features/missions'
 import { addMonths, monthKeyInArgentina } from '@/features/missions'
 import { API_URL } from '@/shared/api/http'
@@ -113,6 +114,10 @@ function activeMission(id: number) {
   return missionSeeds.find((mission) => mission.id === id && mission.status !== 'DELETED')
 }
 
+function missionHasAssignmentsThisMonth(id: number) {
+  return id === 1
+}
+
 function validRole(request: Request, path: string) {
   const account = accountFromRequest(request)
   if (!account) {
@@ -166,6 +171,16 @@ function isMissionDays(value: unknown): value is number[] | null {
 
 function isNullableString(value: unknown): value is string | null {
   return value === null || typeof value === 'string'
+}
+
+function sameDays(left: number[] | null, right: number[] | null) {
+  if (left === null || right === null) return left === right
+  const sortedLeft = left.slice().sort((a, b) => a - b)
+  const sortedRight = right.slice().sort((a, b) => a - b)
+  return (
+    sortedLeft.length === sortedRight.length &&
+    sortedLeft.every((day, index) => day === sortedRight[index])
+  )
 }
 
 export const missionsHandlers = [
@@ -399,6 +414,252 @@ export const missionsHandlers = [
     }
     missionSeeds.unshift(mission)
     return HttpResponse.json(mission, { status: 201 })
+  }),
+
+  http.patch(`${API_URL}/misiones/:id`, async ({ params, request }) => {
+    await delay(300)
+    const path = new URL(request.url).pathname
+    const roleError = validRole(request, path)
+    if (roleError) return roleError
+
+    const mission = activeMission(Number(params.id))
+    if (!mission) return errorResponse(404, 'No existe la misión.', path)
+
+    const bodyValue: unknown = await request.json()
+    if (!isRecord(bodyValue)) {
+      return errorResponse(400, 'El cuerpo de la solicitud no es válido.', path)
+    }
+
+    const allowedFields = [
+      'name',
+      'description',
+      'objectiveType',
+      'target',
+      'daysOfWeek',
+      'timeFrom',
+      'timeTo',
+      'rewardPoints',
+      'startMonth',
+      'endMonth',
+    ]
+    const extraField = Object.keys(bodyValue).find((field) => !allowedFields.includes(field))
+    if (extraField) {
+      return errorResponse(400, `property ${extraField} should not exist`, path)
+    }
+    if (Object.keys(bodyValue).length === 0) {
+      return errorResponse(400, 'Modificá al menos un dato.', path)
+    }
+
+    const body = bodyValue as UpdateMissionBody
+    let name = mission.name
+    let description = mission.description
+    let startMonth = mission.startMonth
+    let endMonth = mission.endMonth
+    if (Object.hasOwn(body, 'name')) {
+      if (typeof body.name !== 'string' || !body.name.trim()) {
+        return errorResponse(400, 'El nombre es obligatorio.', path)
+      }
+      if (body.name.trim().length > 80) {
+        return errorResponse(400, 'El nombre no puede superar los 80 caracteres.', path)
+      }
+      const duplicate = missionSeeds.some(
+        (item) =>
+          item.id !== mission.id &&
+          item.status !== 'DELETED' &&
+          item.name.trim().toLocaleLowerCase('es-AR') ===
+            body.name?.trim().toLocaleLowerCase('es-AR'),
+      )
+      if (duplicate) {
+        return errorResponse(
+          409,
+          'Ya existe una misión con ese nombre.',
+          path,
+          'MISSION_NAME_IN_USE',
+        )
+      }
+      name = body.name.trim()
+    }
+
+    if (Object.hasOwn(body, 'description')) {
+      if (typeof body.description !== 'string') {
+        return errorResponse(400, 'description must be a string', path)
+      }
+      if (body.description.length > 255) {
+        return errorResponse(400, 'La descripción no puede superar los 255 caracteres.', path)
+      }
+      description = body.description.trim() || null
+    }
+
+    const effective = mission.pendingChanges ?? mission
+    const nextObjectiveType = body.objectiveType ?? effective.objectiveType
+    const nextTarget = body.target ?? effective.target
+    const nextDays = Object.hasOwn(body, 'daysOfWeek')
+      ? body.daysOfWeek ?? null
+      : effective.daysOfWeek
+    const nextTimeFrom = Object.hasOwn(body, 'timeFrom')
+      ? body.timeFrom ?? null
+      : effective.timeFrom
+    const nextTimeTo = Object.hasOwn(body, 'timeTo') ? body.timeTo ?? null : effective.timeTo
+    const nextRewardPoints = Object.hasOwn(body, 'rewardPoints')
+      ? body.rewardPoints ?? null
+      : effective.rewardPoints
+
+    if (
+      Object.hasOwn(body, 'objectiveType') &&
+      !isMissionObjectiveType(body.objectiveType)
+    ) {
+      return errorResponse(400, 'objectiveType must be a valid enum value', path)
+    }
+    if (Object.hasOwn(body, 'target')) {
+      if (typeof body.target !== 'number' || body.target <= 0) {
+        return errorResponse(400, 'Ingresá un objetivo mayor a 0.', path)
+      }
+      const maximum = nextObjectiveType === 'CONSUMPTION_COUNT' ? 100 : 1_000_000
+      if (body.target > maximum) {
+        return errorResponse(400, `El objetivo máximo es ${maximum.toLocaleString('es-AR')}.`, path)
+      }
+      if (nextObjectiveType === 'CONSUMPTION_COUNT' && !Number.isInteger(body.target)) {
+        return errorResponse(400, 'Ingresá un número entero.', path)
+      }
+    }
+    if (
+      Object.hasOwn(body, 'daysOfWeek') &&
+      !isMissionDays(body.daysOfWeek)
+    ) {
+      return errorResponse(400, 'Elegí al menos un día o marcá «Todos los días».', path)
+    }
+    if (
+      !isNullableString(nextTimeFrom) ||
+      !isNullableString(nextTimeTo) ||
+      Boolean(nextTimeFrom) !== Boolean(nextTimeTo)
+    ) {
+      return errorResponse(400, 'Completá las dos horas o ninguna.', path)
+    }
+    if (
+      typeof nextTimeFrom === 'string' &&
+      typeof nextTimeTo === 'string' &&
+      nextTimeFrom >= nextTimeTo
+    ) {
+      return errorResponse(400, 'La hora de inicio tiene que ser anterior a la de fin.', path)
+    }
+    if (
+      Object.hasOwn(body, 'rewardPoints') &&
+      body.rewardPoints !== null &&
+      (typeof body.rewardPoints !== 'number' ||
+        !Number.isInteger(body.rewardPoints) ||
+        body.rewardPoints < 1)
+    ) {
+      return errorResponse(400, 'Ingresá puntos enteros mayores a 0.', path)
+    }
+    if (typeof body.rewardPoints === 'number' && body.rewardPoints > 100_000) {
+      return errorResponse(400, 'El máximo es 100.000 puntos.', path)
+    }
+
+    if (Object.hasOwn(body, 'startMonth')) {
+      if (typeof body.startMonth !== 'string' || !isValidMonth(body.startMonth)) {
+        return errorResponse(400, 'El mes de inicio no puede ser anterior al mes actual.', path)
+      }
+      if (
+        mission.startMonth <= currentMonth &&
+        body.startMonth !== mission.startMonth
+      ) {
+        return errorResponse(
+          400,
+          'La misión ya empezó: no se puede cambiar el mes de inicio.',
+          path,
+        )
+      }
+      startMonth = body.startMonth
+    }
+
+    if (Object.hasOwn(body, 'endMonth')) {
+      if (!isNullableString(body.endMonth)) {
+        return errorResponse(400, 'El mes de fin no puede ser anterior al de inicio.', path)
+      }
+      if (
+        typeof body.endMonth === 'string' &&
+        (!isValidMonth(body.endMonth) || body.endMonth < startMonth)
+      ) {
+        return errorResponse(400, 'El mes de fin no puede ser anterior al de inicio.', path)
+      }
+      endMonth = body.endMonth
+    }
+
+    mission.name = name
+    mission.description = description
+    mission.startMonth = startMonth
+    mission.endMonth = endMonth
+
+    const objectiveChanged =
+      (Object.hasOwn(body, 'objectiveType') &&
+        nextObjectiveType !== effective.objectiveType) ||
+      (Object.hasOwn(body, 'target') && nextTarget !== effective.target) ||
+      (Object.hasOwn(body, 'daysOfWeek') && !sameDays(nextDays, effective.daysOfWeek)) ||
+      (Object.hasOwn(body, 'timeFrom') && nextTimeFrom !== effective.timeFrom) ||
+      (Object.hasOwn(body, 'timeTo') && nextTimeTo !== effective.timeTo) ||
+      (Object.hasOwn(body, 'rewardPoints') && nextRewardPoints !== effective.rewardPoints)
+
+    let appliesFrom: string | null = null
+    if (objectiveChanged && missionHasAssignmentsThisMonth(mission.id)) {
+      appliesFrom = addMonths(currentMonth, 1)
+      mission.pendingChanges = {
+        appliesFrom,
+        objectiveType: nextObjectiveType,
+        target: nextTarget,
+        daysOfWeek: nextDays,
+        timeFrom: nextTimeFrom,
+        timeTo: nextTimeTo,
+        rewardPoints: nextRewardPoints,
+      }
+    } else if (objectiveChanged) {
+      mission.objectiveType = nextObjectiveType
+      mission.target = nextTarget
+      mission.daysOfWeek = nextDays
+      mission.timeFrom = nextTimeFrom
+      mission.timeTo = nextTimeTo
+      mission.rewardPoints = nextRewardPoints
+      mission.pendingChanges = null
+    }
+
+    mission.phase = getPhase(mission)
+    mission.updatedAt = new Date().toISOString()
+    return HttpResponse.json({ mission: { ...mission }, appliesFrom })
+  }),
+
+  http.patch(`${API_URL}/misiones/:id/eliminar`, async ({ params, request }) => {
+    await delay(300)
+    const path = new URL(request.url).pathname
+    const roleError = validRole(request, path)
+    if (roleError) return roleError
+
+    const mission = activeMission(Number(params.id))
+    if (!mission) return errorResponse(404, 'No existe la misión.', path)
+
+    const assignedInProgress = missionHasAssignmentsThisMonth(mission.id) ? 1 : 0
+    const completedWithReward =
+      mission.id === 1
+        ? completedSeed.filter(
+            (completion) =>
+              completion.status === 'COMPLETED' && completion.rewardPoints !== null,
+          )
+        : []
+    const claimedAt = new Date().toISOString()
+    for (const completion of completedWithReward) {
+      const index = completedSeed.indexOf(completion)
+      completedSeed[index] = {
+        ...completion,
+        status: 'CLAIMED',
+        claimedAt,
+        claimedBy: 'SYSTEM',
+      }
+    }
+
+    mission.status = 'DELETED'
+    mission.updatedAt = claimedAt
+    return HttpResponse.json({
+      expired: assignedInProgress,
+      claimed: completedWithReward.length,
+    })
   }),
 
   http.get(`${API_URL}/misiones/:id/completadas`, async ({ params, request }) => {

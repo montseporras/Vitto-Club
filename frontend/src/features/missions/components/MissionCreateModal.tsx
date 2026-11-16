@@ -12,7 +12,11 @@ import { Textarea } from '@/shared/components/ui/Textarea'
 import { useToast } from '@/shared/components/feedback/useToast'
 import { useModalEscape } from '@/shared/hooks/useModalEscape'
 import { toApiError } from '@/shared/api/ApiError'
-import { useCreateMission } from '../api/missions.queries'
+import {
+  useCreateMission,
+  useDeleteMission,
+  useUpdateMission,
+} from '../api/missions.queries'
 import {
   addMonths,
   conditionLabel,
@@ -20,6 +24,7 @@ import {
   monthLabel,
   MISSION_WEEK_DAYS,
 } from '../lib/mission-presentation'
+import type { Mission, UpdateMissionBody } from '../types/mission'
 import {
   createMissionSchema,
   type CreateMissionFormInput,
@@ -52,14 +57,90 @@ function a11yError(id: string, message: string | undefined) {
 
 type MissionCreateModalProps = {
   onClose: () => void
+  mission?: Mission
 }
 
-export function MissionCreateModal({ onClose }: MissionCreateModalProps) {
+function missionFormValues(mission: Mission | null, currentMonth: string): CreateMissionFormInput {
+  const pending = mission?.pendingChanges
+  const objectiveType = pending ? pending.objectiveType : mission?.objectiveType
+  const target = pending ? pending.target : mission?.target
+  const daysOfWeek = pending ? pending.daysOfWeek : mission?.daysOfWeek
+  const timeFrom = pending ? pending.timeFrom : mission?.timeFrom
+  const timeTo = pending ? pending.timeTo : mission?.timeTo
+  const rewardPoints = pending ? pending.rewardPoints : mission?.rewardPoints
+
+  return {
+    name: mission?.name ?? '',
+    description: mission?.description ?? '',
+    objectiveType: objectiveType ?? 'CONSUMPTION_COUNT',
+    target: target === undefined ? '' : String(target),
+    allDays: daysOfWeek === null || daysOfWeek === undefined,
+    daysOfWeek: daysOfWeek ?? [],
+    timeFrom: timeFrom ?? '',
+    timeTo: timeTo ?? '',
+    rewardPointsInput: rewardPoints === null || rewardPoints === undefined ? '' : String(rewardPoints),
+    noReward: rewardPoints === null,
+    startMonth: mission?.startMonth ?? currentMonth,
+    endMonth: mission?.endMonth ?? '',
+    repeats: mission?.endMonth === null || mission === null,
+  }
+}
+
+function sameDays(left: number[] | null, right: number[] | null) {
+  if (left === null || right === null) return left === right
+  const sortedLeft = left.slice().sort((a, b) => a - b)
+  const sortedRight = right.slice().sort((a, b) => a - b)
+  return (
+    sortedLeft.length === sortedRight.length &&
+    sortedLeft.every((day, index) => day === sortedRight[index])
+  )
+}
+
+function updateBodyFromForm(values: CreateMissionFormOutput, mission: Mission): UpdateMissionBody {
+  const pending = mission.pendingChanges
+  const current = {
+    objectiveType: pending ? pending.objectiveType : mission.objectiveType,
+    target: pending ? pending.target : mission.target,
+    daysOfWeek: pending ? pending.daysOfWeek : mission.daysOfWeek,
+    timeFrom: pending ? pending.timeFrom : mission.timeFrom,
+    timeTo: pending ? pending.timeTo : mission.timeTo,
+    rewardPoints: pending ? pending.rewardPoints : mission.rewardPoints,
+  }
+  const body: UpdateMissionBody = {}
+
+  if (values.name !== mission.name) body.name = values.name
+  if (values.description !== (mission.description ?? '')) body.description = values.description
+  if (values.objectiveType !== current.objectiveType) body.objectiveType = values.objectiveType
+  if (values.target !== current.target) body.target = values.target
+  if (!sameDays(values.daysOfWeek, current.daysOfWeek)) body.daysOfWeek = values.daysOfWeek
+  if (values.timeFrom !== current.timeFrom) body.timeFrom = values.timeFrom
+  if (values.timeTo !== current.timeTo) body.timeTo = values.timeTo
+  if (values.rewardPoints !== current.rewardPoints) body.rewardPoints = values.rewardPoints
+  if (values.startMonth !== mission.startMonth) body.startMonth = values.startMonth
+  if (values.endMonth !== mission.endMonth) body.endMonth = values.endMonth
+
+  return body
+}
+
+export function MissionCreateModal({ onClose, mission: initialMission }: MissionCreateModalProps) {
   const [step, setStep] = useState<1 | 2>(1)
   const [serverMessages, setServerMessages] = useState<string[] | null>(null)
+  const [deleteMessages, setDeleteMessages] = useState<string[] | null>(null)
+  const [currentMission, setCurrentMission] = useState<Mission | null>(initialMission ?? null)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deferredNotice, setDeferredNotice] = useState<string | null>(null)
   const currentMonth = monthKeyInArgentina()
-  const schema = useMemo(() => createMissionSchema(currentMonth), [currentMonth])
+  const lockedStartMonth =
+    currentMission && currentMission.startMonth <= currentMonth
+      ? currentMission.startMonth
+      : null
+  const schema = useMemo(
+    () => createMissionSchema(currentMonth, lockedStartMonth),
+    [currentMonth, lockedStartMonth],
+  )
   const createMutation = useCreateMission()
+  const updateMutation = useUpdateMission()
+  const deleteMutation = useDeleteMission()
   const toast = useToast()
   const {
     register,
@@ -67,27 +148,14 @@ export function MissionCreateModal({ onClose }: MissionCreateModalProps) {
     setError,
     clearErrors,
     setValue,
+    reset,
     trigger,
     control,
     formState: { errors, isSubmitting },
   } = useForm<CreateMissionFormInput, unknown, CreateMissionFormOutput>({
     resolver: zodResolver(schema),
     mode: 'onTouched',
-    defaultValues: {
-      name: '',
-      description: '',
-      objectiveType: 'CONSUMPTION_COUNT',
-      target: '',
-      allDays: true,
-      daysOfWeek: [],
-      timeFrom: '',
-      timeTo: '',
-      rewardPointsInput: '',
-      noReward: false,
-      startMonth: currentMonth,
-      endMonth: '',
-      repeats: true,
-    },
+    defaultValues: missionFormValues(currentMission, currentMonth),
   })
   const allDays = useWatch({ control, name: 'allDays' })
   const daysOfWeek = useWatch({ control, name: 'daysOfWeek' })
@@ -99,9 +167,33 @@ export function MissionCreateModal({ onClose }: MissionCreateModalProps) {
   const timeFrom = useWatch({ control, name: 'timeFrom' })
   const timeTo = useWatch({ control, name: 'timeTo' })
   const startOptions = useMemo(() => monthOptions(currentMonth), [currentMonth])
+  const availableStartOptions = useMemo(() => {
+    if (
+      currentMission &&
+      currentMission.startMonth < currentMonth &&
+      !startOptions.some((option) => option.value === currentMission.startMonth)
+    ) {
+      return [
+        {
+          value: currentMission.startMonth,
+          label: monthLabel(currentMission.startMonth, true),
+        },
+        ...startOptions,
+      ]
+    }
+    return startOptions
+  }, [currentMission, currentMonth, startOptions])
   const endOptions = useMemo(() => monthOptions(startMonth || currentMonth), [currentMonth, startMonth])
 
-  useModalEscape(onClose)
+  const closeModal = () => {
+    if (confirmingDelete) {
+      setConfirmingDelete(false)
+      return
+    }
+    onClose()
+  }
+
+  useModalEscape(closeModal)
 
   const goToRewardStep = async () => {
     setServerMessages(null)
@@ -120,7 +212,23 @@ export function MissionCreateModal({ onClose }: MissionCreateModalProps) {
   const save = async (data: CreateMissionFormOutput) => {
     setServerMessages(null)
     try {
-      await createMutation.mutateAsync(data)
+      if (currentMission) {
+        const result = await updateMutation.mutateAsync({
+          id: currentMission.id,
+          body: updateBodyFromForm(data, currentMission),
+        })
+        setCurrentMission(result.mission)
+        reset(missionFormValues(result.mission, currentMonth))
+        if (result.appliesFrom) {
+          setDeferredNotice(
+            `Los cambios del objetivo y la recompensa se aplican desde ${monthLabel(result.appliesFrom)}. Este mes sigue igual para los clientes.`,
+          )
+          toast('Misión guardada.')
+          return
+        }
+      } else {
+        await createMutation.mutateAsync(data)
+      }
       toast('Misión guardada.')
       onClose()
     } catch (error) {
@@ -159,6 +267,18 @@ export function MissionCreateModal({ onClose }: MissionCreateModalProps) {
     }
   }
 
+  const deleteMission = async () => {
+    if (!currentMission) return
+    setDeleteMessages(null)
+    try {
+      await deleteMutation.mutateAsync(currentMission.id)
+      toast('Misión eliminada.')
+      onClose()
+    } catch (error) {
+      setDeleteMessages(toApiError(error).messages)
+    }
+  }
+
   const onInvalid = () => {
     if (
       errors.name ||
@@ -173,11 +293,54 @@ export function MissionCreateModal({ onClose }: MissionCreateModalProps) {
 
   return (
     <Modal
-      title="Crear misión mensual"
-      onClose={onClose}
-      className="max-w-[640px] overflow-y-auto"
+      title={
+        confirmingDelete
+          ? 'Eliminar misión'
+          : currentMission
+            ? 'Editar misión'
+            : 'Crear misión mensual'
+      }
+      onClose={closeModal}
+      className={`${confirmingDelete ? 'max-w-[460px]' : 'max-w-[640px]'} overflow-y-auto`}
       bodyClassName="space-y-4"
     >
+      {confirmingDelete ? (
+        <div className="space-y-4">
+          {deleteMessages && (
+            <Alert variant="error">
+              No se pudo eliminar la misión.
+              <AlertMessages messages={deleteMessages} />
+            </Alert>
+          )}
+          <p className="text-[15px]">
+            ¿Eliminar la misión &quot;<strong>{currentMission?.name}</strong>&quot;? Los clientes que
+            la tienen en progreso este mes la pierden. Los que ya la completaron reciben su
+            recompensa.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={deleteMutation.isPending}
+              onClick={() => setConfirmingDelete(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="button" disabled={deleteMutation.isPending} onClick={deleteMission}>
+              Eliminar
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+      {deferredNotice && (
+        <div
+          role="status"
+          className="rounded-xl border border-[#f6d0b1] bg-[#fffaf5] px-3 py-2 text-sm text-[#5c5249]"
+        >
+          {deferredNotice}
+        </div>
+      )}
       <div
         className="flex flex-wrap items-center gap-2 text-xs font-bold text-[#7e3e20]"
         aria-label={`Paso ${step} de 2`}
@@ -471,12 +634,18 @@ export function MissionCreateModal({ onClose }: MissionCreateModalProps) {
                 >
                   <Select
                     id="mission-start-month"
-                    options={startOptions}
+                    options={availableStartOptions}
+                    disabled={lockedStartMonth !== null}
                     {...a11yError('mission-start-month', errors.startMonth?.message)}
                     {...register('startMonth', {
                       onChange: () => clearErrors('endMonth'),
                     })}
                   />
+                  {lockedStartMonth && (
+                    <p className="mt-1 text-xs text-[#7a6e63]">
+                      La misión ya empezó: no se puede cambiar el mes de inicio.
+                    </p>
+                  )}
                 </FormField>
                 <FormField
                   id="mission-end-month"
@@ -507,16 +676,39 @@ export function MissionCreateModal({ onClose }: MissionCreateModalProps) {
             </section>
 
             <div className="flex flex-wrap justify-end gap-2 pt-2">
+              {currentMission && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="mr-auto"
+                  onClick={() => {
+                    setDeleteMessages(null)
+                    setConfirmingDelete(true)
+                  }}
+                >
+                  Eliminar
+                </Button>
+              )}
               <Button type="button" variant="secondary" onClick={() => setStep(1)}>
                 Atrás
               </Button>
-              <Button type="submit" disabled={isSubmitting || createMutation.isPending}>
+              <Button
+                type="submit"
+                disabled={
+                  isSubmitting ||
+                  createMutation.isPending ||
+                  updateMutation.isPending ||
+                  deleteMutation.isPending
+                }
+              >
                 Guardar misión
               </Button>
             </div>
           </div>
         )}
       </form>
+        </>
+      )}
     </Modal>
   )
 }

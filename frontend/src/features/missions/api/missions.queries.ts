@@ -9,14 +9,19 @@ import type { Paginated } from '@/shared/types/pagination'
 import type {
   CompletedMission,
   CreateMissionBody,
+  DeleteMissionResponse,
   Mission,
   MissionListFilters,
+  UpdateMissionBody,
+  UpdateMissionResponse,
 } from '../types/mission'
 import {
   createMission,
+  deleteMission,
   getCompletedMissions,
   getMission,
   listMissions,
+  updateMission,
 } from './missions.api'
 import { missionsKeys } from './missions.keys'
 
@@ -61,6 +66,34 @@ export const useCreateMission = () => {
     mutationFn: createMission,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: missionsKeys.lists() })
+    },
+  })
+}
+
+export const useUpdateMission = () => {
+  const queryClient = useQueryClient()
+  return useMutation<
+    UpdateMissionResponse,
+    ApiError,
+    { id: number; body: UpdateMissionBody }
+  >({
+    mutationFn: ({ id, body }) => updateMission(id, body),
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: missionsKeys.lists() })
+      void queryClient.invalidateQueries({ queryKey: missionsKeys.detail(variables.id) })
+      void queryClient.invalidateQueries({ queryKey: missionsKeys.completions(variables.id) })
+    },
+  })
+}
+
+export const useDeleteMission = () => {
+  const queryClient = useQueryClient()
+  return useMutation<DeleteMissionResponse, ApiError, number>({
+    mutationFn: deleteMission,
+    onSuccess: (_data, id) => {
+      void queryClient.invalidateQueries({ queryKey: missionsKeys.lists() })
+      void queryClient.invalidateQueries({ queryKey: missionsKeys.detail(id) })
+      void queryClient.invalidateQueries({ queryKey: missionsKeys.completions(id) })
     },
   })
 }

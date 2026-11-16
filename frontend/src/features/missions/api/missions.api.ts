@@ -4,8 +4,11 @@ import type { Paginated } from '@/shared/types/pagination'
 import type {
   CompletedMission,
   CreateMissionBody,
+  DeleteMissionResponse,
   Mission,
   MissionListFilters,
+  UpdateMissionBody,
+  UpdateMissionResponse,
 } from '../types/mission'
 
 export const MISSIONS_PAGE_SIZE = 10
@@ -50,6 +53,27 @@ export async function getCompletedMissions(id: number): Promise<CompletedMission
 export async function createMission(body: CreateMissionBody): Promise<Mission> {
   try {
     const { data } = await http.post<Mission>('/misiones', body)
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function updateMission(
+  id: number,
+  body: UpdateMissionBody,
+): Promise<UpdateMissionResponse> {
+  try {
+    const { data } = await http.patch<UpdateMissionResponse>(`/misiones/${id}`, body)
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function deleteMission(id: number): Promise<DeleteMissionResponse> {
+  try {
+    const { data } = await http.patch<DeleteMissionResponse>(`/misiones/${id}/eliminar`)
     return data
   } catch (error) {
     throw toApiError(error)

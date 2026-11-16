@@ -19,7 +19,10 @@ function parseRewardPoints(value: string) {
   return Number(trimmed)
 }
 
-export function createMissionSchema(currentMonth: string) {
+export function createMissionSchema(
+  currentMonth: string,
+  lockedStartMonth?: string | null,
+) {
   return z
     .object({
       name: z.string(),
@@ -111,7 +114,13 @@ export function createMissionSchema(currentMonth: string) {
         })
       }
 
-      if (values.startMonth < currentMonth) {
+      if (lockedStartMonth && values.startMonth !== lockedStartMonth) {
+        context.addIssue({
+          code: 'custom',
+          path: ['startMonth'],
+          message: 'La misión ya empezó: no se puede cambiar el mes de inicio.',
+        })
+      } else if (!lockedStartMonth && values.startMonth < currentMonth) {
         context.addIssue({
           code: 'custom',
           path: ['startMonth'],

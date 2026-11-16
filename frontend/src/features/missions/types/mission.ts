@@ -59,6 +59,18 @@ export type CreateMissionBody = {
   endMonth: string | null
 }
 
+export type UpdateMissionBody = Partial<CreateMissionBody>
+
+export type UpdateMissionResponse = {
+  mission: Mission
+  appliesFrom: string | null
+}
+
+export type DeleteMissionResponse = {
+  expired: number
+  claimed: number
+}
+
 export type CompletedMissionCustomer = {
   id: number
   firstName: string
