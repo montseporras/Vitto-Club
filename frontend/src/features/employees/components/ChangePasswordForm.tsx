@@ -4,7 +4,7 @@
 // muestra una única vez para pasársela al empleado.
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toApiError } from '@/shared/api/ApiError';
 import { FormActions } from '@/shared/components/forms/FormActions';
 import { FormField } from '@/shared/components/forms/FormField';
@@ -53,6 +53,7 @@ export function ChangePasswordForm({
   const updatePassword = useUpdateAccountPassword(account.id);
 
   const {
+    control,
     register,
     handleSubmit,
     setValue,
@@ -61,7 +62,10 @@ export function ChangePasswordForm({
   } = useForm<AccountPasswordFormValues>({
     resolver: zodResolver(accountPasswordSchema(employee.email)),
     defaultValues: { password: generatePassword() },
-  });
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
+  });  const password = useWatch({ control, name: 'password' }) ?? '';
+
 
   const onSubmit = handleSubmit(({ password }) => {
     updatePassword.mutate(
@@ -109,12 +113,15 @@ export function ChangePasswordForm({
 
         <PasswordField
           label="Nueva contraseña"
-          error={errors.password?.message}
+          // Los requisitos se ven en la lista: el error queda para lo que responde el servidor
+          error={errors.password?.type ? undefined : errors.password?.message}
           registration={register('password')}
           onRegenerate={() =>
             setValue('password', generatePassword(), { shouldValidate: true })
           }
           getPassword={() => getValues('password')}
+          password={password}
+          email={employee.email}
         />
       </FormSection>
 
@@ -122,7 +129,7 @@ export function ChangePasswordForm({
         <Button type="button" variant="secondary" size="lg" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="submit" size="lg" disabled={updatePassword.isPending}>
+        <Button loading={updatePassword.isPending} type="submit" size="lg" disabled={updatePassword.isPending}>
           {updatePassword.isPending ? 'Guardando…' : 'Cambiar contraseña'}
         </Button>
       </FormActions>

@@ -7,18 +7,21 @@ interface HorizontalBarProps {
   color: string;
   /** Alto en px (10 para la barra principal, 6 para las secundarias). */
   height?: number;
+  /** 'sm' (por defecto): esquinas chicas, más sobrio. 'full': extremos redondos. */
+  radius?: 'full' | 'sm';
 }
 
-export function HorizontalBar({ percent, color, height = 8 }: HorizontalBarProps) {
+export function HorizontalBar({ percent, color, height = 8, radius = 'sm' }: HorizontalBarProps) {
+  const rounded = radius === 'sm' ? 'rounded-sm' : 'rounded-full';
   const width = percent > 0 ? Math.max(2, Math.min(100, Math.round(percent))) : 0;
   return (
     <div
       aria-hidden="true"
-      className="overflow-hidden rounded-full bg-[#fdebe2]"
+      className={`overflow-hidden ${rounded} bg-[#fdebe2]`}
       style={{ height }}
     >
       <div
-        className="h-full min-w-0.5 rounded-full"
+        className={`h-full min-w-0.5 ${rounded}`}
         style={{ width: `${width}%`, backgroundColor: color, minWidth: width > 0 ? 2 : 0 }}
       />
     </div>

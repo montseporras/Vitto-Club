@@ -1,13 +1,18 @@
-// Un canje en Mis canjes (US-45, CA-45.3, contrato §3.12.1). Los Confirmados se muestran abiertos,
-// con el código grande. Nunca se muestra qué empleado resolvió el canje.
+// Un canje en el Historial (US-45, CA-45.3, contrato §3.12.1), con la misma forma que un consumo:
+// una fila chica y, con la flecha, el detalle. Un Confirmado muestra "Ver código" (abre la ventana
+// con el código en grande) y "Cancelar canje". Nunca se muestra qué empleado resolvió el canje.
 import { useState } from 'react'
 import {
   expiresInText,
   isExpiringSoon,
-  RedemptionStatusBadge,
   splitDateTime,
   type MyRedemption,
 } from '@/features/redemptions'
+import { Icon } from '@/shared/components/ui/Icon'
+import { ICONS } from '@/shared/components/ui/icons'
+import { clientStyles } from '@/styles/ui'
+import { shortDate } from '../lib/client-format'
+import { RedemptionStatusInline } from './client/RedemptionRow'
 import { Button } from '@/shared/components/ui/Button'
 import { isoToDisplayDateTime } from '@/shared/lib/dates'
 import { formatInteger } from '@/shared/lib/numbers'
@@ -18,6 +23,8 @@ type MyRedemptionItemProps = {
   now: number
   /** Abre la ventana "Cancelar canje" (US-43). */
   onCancel?: (redemption: MyRedemption) => void
+  /** Abre la ventana con el código en grande */
+  onShowCode?: (redemption: MyRedemption) => void
 }
 
 // Líneas del detalle de los canjes que ya no están Confirmados
@@ -39,80 +46,70 @@ function resolvedNotes(redemption: MyRedemption) {
   }
 }
 
-export function MyRedemptionItem({ redemption, now, onCancel }: MyRedemptionItemProps) {
+export function MyRedemptionItem({ redemption, now, onCancel, onShowCode }: MyRedemptionItemProps) {
   const confirmed = redemption.status === 'CONFIRMED'
-  // Hasta que el Cliente lo toque, los Confirmados están abiertos y el resto cerrado
-  const [toggled, setToggled] = useState<boolean | null>(null)
-  const open = toggled ?? confirmed
+  const [open, setOpen] = useState(false)
   const detailId = `redemption-${redemption.id}-detail`
 
   return (
-    <li
-      className={cn(
-        'grid gap-1 rounded-2xl border-2 bg-white px-4 py-3',
-        confirmed ? 'border-orange-400' : 'border-orange-200',
-      )}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <strong className="text-sm">{redemption.reward.name}</strong>
-        <RedemptionStatusBadge status={redemption.status} />
-      </div>
-      <p className="text-xs text-muted-foreground">
-        <span className="font-number font-normal lining-nums tabular-nums text-sm">
-          {isoToDisplayDateTime(redemption.createdAt)} · {formatInteger(redemption.reward.points)} pts
+    <li className="even:bg-accent-50/60">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={detailId}
+        onClick={() => setOpen((current) => !current)}
+        className={cn(clientStyles.rowLink, 'even:bg-transparent')}
+      >
+        <span
+          aria-hidden="true"
+          className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent-100 text-accent-700"
+        >
+          <Icon d={ICONS.ticket} className="size-6" />
         </span>
-      </p>
+        <span className="min-w-0 flex-1">
+          <span className={cn(clientStyles.rowTitle, 'block')}>{redemption.reward.name}</span>
+          {/* Fecha y puntos a la izquierda, estado a la derecha: el nombre queda con todo el ancho */}
+          <span className="mt-0.5 flex items-center justify-between gap-2">
+            <span className={cn(clientStyles.rowMeta, 'whitespace-nowrap tabular-nums')}>
+              {shortDate(redemption.createdAt)} · {formatInteger(redemption.reward.points)} pts
+            </span>
+            <RedemptionStatusInline status={redemption.status} />
+          </span>
+        </span>
+        <Icon
+          d={ICONS.chevronRight}
+          className={cn(clientStyles.chevron, 'transition-transform duration-200', open && 'rotate-90')}
+        />
+      </button>
 
       {open && (
-        <div id={detailId} className="mt-1 grid gap-1 border-t border-orange-100 pt-2">
+        <div id={detailId} className="grid gap-2 px-4 pb-4 pl-[4.75rem] text-sm">
+          <p className="text-neutral-600">Pedido el {isoToDisplayDateTime(redemption.createdAt)}</p>
           {confirmed ? (
             <>
-              <div className="rounded-xl border border-dashed border-orange-400 bg-orange-50 px-3 py-2 text-center">
-                <p className="text-2xl font-extrabold tracking-[0.18em] text-accent-800">
-                  {redemption.code}
-                </p>
-                <p
-                  className={cn(
-                    'text-xs font-bold',
-                    isExpiringSoon(redemption.expiresAt, now) ? 'text-red-700' : 'text-olive-800',
-                  )}
-                >
-                  {expiresInText(redemption.expiresAt, now)}
-                </p>
-                <p className="text-xs">Presentá este código en caja.</p>
-              </div>
-              {redemption.canCancel && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="self-start"
-                  onClick={() => onCancel?.(redemption)}
-                >
-                  Cancelar canje
+              <p>
+                Código <strong className="tracking-wider text-accent-800">{redemption.code}</strong>
+                {' · '}
+                <span className={cn('font-semibold', isExpiringSoon(redemption.expiresAt, now) ? 'text-red-700' : 'text-olive-800')}>
+                  {expiresInText(redemption.expiresAt, now).toLowerCase()}
+                </span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" size="sm" onClick={() => onShowCode?.(redemption)}>
+                  Ver código
                 </Button>
-              )}
+                {redemption.canCancel && (
+                  <Button type="button" size="sm" variant="ghost" onClick={() => onCancel?.(redemption)}>
+                    Cancelar canje
+                  </Button>
+                )}
+              </div>
             </>
           ) : (
-            resolvedNotes(redemption).map((note) => (
-              <p key={note} className="text-sm">
-                {note}
-              </p>
-            ))
+            resolvedNotes(redemption).map((note) => <p key={note}>{note}</p>)
           )}
         </div>
       )}
-
-      <Button
-        type="button"
-        variant="ghost"
-        size="md"
-        aria-expanded={open}
-        aria-controls={detailId}
-        className="mt-1 w-full text-xs"
-        onClick={() => setToggled(!open)}
-      >
-        {open ? 'Ocultar detalle ▴' : 'Ver detalle ▾'}
-      </Button>
     </li>
   )
 }

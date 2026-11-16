@@ -50,18 +50,34 @@ export const router = createBrowserRouter([
         ),
       }
     },
+    // Vista del Cliente con el diseño "App Fidelización V2": Inicio, Mis canjes, Recompensas y
+    // Mi perfil, cada una con sus pantallas internas
     children: [
       {
-        // US-19: Inicio del Cliente. US-39: sus tarjetas llevan a la pestaña Canjes
+        // US-19 y US-39: Inicio (saludo, nivel, promos y recompensas)
         index: true,
         lazy: async () => {
           const { CustomerHomePage } = await import('@/features/my-account')
-          return {
-            element: <CustomerHomePage redemptionsPath={PATHS.customer.redemptions} />,
-          }
+          return { Component: CustomerHomePage }
         },
       },
-      // Historial: consumos (US-23) y puntos (US-26), uno por vez con el control "Consumos / Puntos"
+      // Detalle de una promoción del carrusel del Inicio
+      {
+        path: PATHS.customer.promotion,
+        lazy: async () => {
+          const { PromotionPage } = await import('@/features/my-account')
+          return { Component: PromotionPage }
+        },
+      },
+      // Mis canjes: misiones del mes (S5 §3.3.2) y últimos canjes (US-45)
+      {
+        path: PATHS.customer.redemptions,
+        lazy: async () => {
+          const { MyRedemptionsPage } = await import('@/features/my-account')
+          return { Component: MyRedemptionsPage }
+        },
+      },
+      // Historial: consumos (US-23) y canjes (US-45, US-43)
       {
         path: PATHS.customer.history,
         lazy: async () => {
@@ -69,19 +85,68 @@ export const router = createBrowserRouter([
           return { Component: MyHistoryPage }
         },
       },
+      // Misiones del mes (S5 §3.3.2)
       {
-        // Pestaña Canjes: Catálogo (US-39) y Mis canjes (US-45)
-        path: PATHS.customer.redemptions,
+        path: PATHS.customer.missions,
         lazy: async () => {
-          const { MyRedemptionsPage } = await import('@/features/my-account')
-          return { Component: MyRedemptionsPage }
+          const { MissionsPage } = await import('@/features/my-account')
+          return { Component: MissionsPage }
         },
       },
+      // Recompensas: catálogo (US-39)
+      {
+        path: PATHS.customer.rewards,
+        lazy: async () => {
+          const { RewardsPage } = await import('@/features/my-account')
+          return { Component: RewardsPage }
+        },
+      },
+      // Detalle de una recompensa y "Canjear recompensa" (US-40)
+      {
+        path: PATHS.customer.rewardDetail,
+        lazy: async () => {
+          const { RewardDetailPage } = await import('@/features/my-account')
+          return { Component: RewardDetailPage }
+        },
+      },
+      // Mi perfil: menú
       {
         path: PATHS.customer.profile,
         lazy: async () => {
           const { MyProfilePage } = await import('@/features/my-account')
-          return { element: <MyProfilePage homePath={PATHS.customer.root} /> }
+          return { Component: MyProfilePage }
+        },
+      },
+      // Mis datos, contacto y contraseña (§3.10.3 a §3.11.1)
+      {
+        path: PATHS.customer.profileData,
+        lazy: async () => {
+          const { ProfileDataPage } = await import('@/features/my-account')
+          return { Component: ProfileDataPage }
+        },
+      },
+      // Mi nivel: nivel, saldo, vencimientos y movimientos (US-19, US-26)
+      {
+        path: PATHS.customer.profileLevel,
+        lazy: async () => {
+          const { MyLevelPage } = await import('@/features/my-account')
+          return { Component: MyLevelPage }
+        },
+      },
+      // Qué avisos llegan por mail (S5 §2.4)
+      {
+        path: PATHS.customer.profileNotifications,
+        lazy: async () => {
+          const { NotificationsInfoPage } = await import('@/features/my-account')
+          return { Component: NotificationsInfoPage }
+        },
+      },
+      // Preguntas frecuentes y contacto
+      {
+        path: PATHS.customer.profileHelp,
+        lazy: async () => {
+          const { HelpPage } = await import('@/features/my-account')
+          return { Component: HelpPage }
         },
       },
     ],

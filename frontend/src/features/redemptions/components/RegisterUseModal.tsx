@@ -144,6 +144,7 @@ export function RegisterUseModal({
         {/* Con un error, el canje ya no se puede usar desde esta ventana */}
         {!error && (
           <Button
+            loading={register.isPending}
             type="button"
             disabled={register.isPending}
             onClick={() => register.mutate(redemption.code, { onSuccess: () => onUsed?.() })}

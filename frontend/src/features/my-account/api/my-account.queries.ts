@@ -8,6 +8,7 @@ import type {
 } from '../types/my-account'
 import {
   changeMyPassword,
+  getMyMissions,
   getMyPoints,
   getMyProfile,
   updateMyProfile,
@@ -22,6 +23,10 @@ export const useMyProfile = () =>
 
 export const useMyPoints = () =>
   useQuery({ queryKey: myAccountKeys.points(), queryFn: getMyPoints })
+
+/** Misiones del mes del Cliente (S5 §3.3.2). Las muestran "Mis canjes" y "Misiones". */
+export const useMyMissions = () =>
+  useQuery({ queryKey: myAccountKeys.missions(), queryFn: getMyMissions })
 
 /**
  * Guarda los datos de contacto. Si cambió el correo, cambió también el de

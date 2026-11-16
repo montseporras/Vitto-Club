@@ -1,11 +1,15 @@
 import { useRef, useState } from 'react'
+import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { StatusText } from '@/shared/components/feedback/StatusText'
+import { ActionsMenu } from '@/shared/components/ui/ActionsMenu'
 import { AdminPanel } from '@/shared/components/ui/AdminPanel'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Button } from '@/shared/components/ui/Button'
+import { DeleteButton } from '@/shared/components/ui/DeleteButton'
+import { Modal } from '@/shared/components/ui/Modal'
+import { FilterBar, FilterCell } from '@/shared/components/ui/FilterBar'
 import { FilterSelect } from '@/shared/components/ui/FilterSelect'
-import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
 import { Input } from '@/shared/components/ui/Input'
 import { Page } from '@/shared/components/ui/Page'
@@ -18,14 +22,15 @@ import {
   TableRow,
 } from '@/shared/components/ui/Table'
 import { useDebounce } from '@/shared/hooks/useDebounce'
-import { useClampPage, useRowsThatFit } from '@/shared/hooks/useRowsThatFit'
+import { useUndoableAction } from '@/shared/hooks/useUndoableAction'
+import { useClampPage } from '@/shared/hooks/useRowsThatFit'
+import { TABLE_PAGE_SIZE } from '@/shared/lib/pagination'
 import { isoToDisplayDate } from '@/shared/lib/dates'
 import { formatInteger } from '@/shared/lib/numbers'
-import { REWARDS_PAGE_SIZE } from '../api/rewards.api'
-import { useAdminRewards } from '../api/rewards.queries'
+import { useAdminRewards, useDeleteReward } from '../api/rewards.queries'
 import { RewardCreateModal } from '../components/RewardCreateModal'
 import { RewardImage } from '../components/RewardImage'
-import type { RewardListOrder, RewardListStatus } from '../types/reward'
+import type { Reward, RewardListOrder, RewardListStatus } from '../types/reward'
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todas' },
@@ -63,12 +68,42 @@ export function RewardsAdminPage() {
   const [page, setPage] = useState(1)
   const [creating, setCreating] = useState(false)
   const [editingRewardId, setEditingRewardId] = useState<number | null>(null)
+  const [duplicatingId, setDuplicatingId] = useState<number | null>(null)
+  // Eliminar una recompensa con canjes confirmados pide confirmación: se rechazan
+  const [confirmingDelete, setConfirmingDelete] = useState<Pick<Reward, 'id' | 'name' | 'confirmedCount'> | null>(null)
+  // Recompensas eliminadas que esperan la ventana para deshacer: no se muestran
+  const [hiddenIds, setHiddenIds] = useState<ReadonlySet<number>>(new Set())
+  const deleteReward = useDeleteReward()
+  const runUndoable = useUndoableAction()
+
+  const deleteWithUndo = (reward: Pick<Reward, 'id'>) => {
+    const { id } = reward
+    setHiddenIds((current) => new Set(current).add(id))
+    const show = () =>
+      setHiddenIds((current) => {
+        const next = new Set(current)
+        next.delete(id)
+        return next
+      })
+    runUndoable({
+      message: 'Recompensa eliminada',
+      undoneMessage: 'Listo, la recompensa sigue en el catálogo',
+      commit: () => deleteReward.mutateAsync(id),
+      onUndo: show,
+      onError: show,
+    })
+  }
+
+  const requestDelete = (reward: Pick<Reward, 'id' | 'name' | 'confirmedCount'>) => {
+    if ((reward.confirmedCount ?? 0) > 0) setConfirmingDelete(reward)
+    else deleteWithUndo(reward)
+  }
   const query = useDebounce(search.trim(), 300)
 
   // Filas por página: las que entran en la pantalla (ajustes S5-57)
   const areaRef = useRef<HTMLDivElement>(null)
   const pagerRef = useRef<HTMLElement>(null)
-  const limit = useRowsThatFit({ areaRef, pagerRef, initial: REWARDS_PAGE_SIZE })
+  const limit = TABLE_PAGE_SIZE
 
   const rewards = useAdminRewards({ q: query, status, order, page, limit })
   const data = rewards.data
@@ -78,21 +113,15 @@ export function RewardsAdminPage() {
     <Page className="max-w-none">
       <AdminPanel
         title="Catálogo de recompensas"
-        subtitle="Hacé clic en una recompensa para editarla, desactivarla o eliminarla."
+        subtitle="Hacé clic en una recompensa para editarla, o usá ⋮ para duplicarla o eliminarla."
         actions={
           <Button type="button" onClick={() => setCreating(true)}>
             + Crear recompensa
           </Button>
         }
       >
-        <div className="flex flex-wrap items-stretch rounded-xl border border-[#f6d0b1] bg-white">
-          <div className="flex min-w-0 flex-[1.4_1_220px] flex-col justify-center gap-0.5 px-3.5 py-2">
-            <label
-              htmlFor="reward-search"
-              className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#7e3e20]"
-            >
-              Buscar
-            </label>
+        <FilterBar onSubmit={(event) => event.preventDefault()} aria-label="Filtros de recompensas">
+          <FilterCell label="Buscar" htmlFor="reward-search" flex="1.4 1 220px" divider={false}>
             <Input
               id="reward-search"
               type="search"
@@ -105,32 +134,20 @@ export function RewardsAdminPage() {
                 setPage(1)
               }}
             />
-          </div>
-          <div className="flex min-w-0 flex-[1_1_180px] flex-col justify-center gap-0.5 border-l border-[#f6d0b1] px-3.5 py-2">
-            <label
-              htmlFor="reward-status"
-              className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#7e3e20]"
-            >
-              Estado
-            </label>
+          </FilterCell>
+          <FilterCell label="Estado" htmlFor="reward-status" flex="1 1 180px">
             <FilterSelect
               id="reward-status"
               variant="bar"
               value={status}
               options={STATUS_OPTIONS}
               onChange={(value) => {
-  setStatus(value as RewardListStatus | '')
-  setPage(1)
-}}
+                setStatus(value as RewardListStatus | '')
+                setPage(1)
+              }}
             />
-          </div>
-          <div className="flex min-w-0 flex-[1_1_180px] flex-col justify-center gap-0.5 border-l border-[#f6d0b1] px-3.5 py-2">
-            <label
-              htmlFor="reward-order"
-              className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#7e3e20]"
-            >
-              Orden
-            </label>
+          </FilterCell>
+          <FilterCell label="Orden" htmlFor="reward-order" flex="1 1 180px">
             <FilterSelect
               id="reward-order"
               variant="bar"
@@ -141,8 +158,8 @@ export function RewardsAdminPage() {
                 setPage(1)
               }}
             />
-          </div>
-        </div>
+          </FilterCell>
+        </FilterBar>
 
         <div ref={areaRef} className="mt-5" aria-live="polite">
           {rewards.isPending && <StatusText>Cargando recompensas…</StatusText>}
@@ -155,9 +172,37 @@ export function RewardsAdminPage() {
           )}
 
           {data && !rewards.isError && data.items.length === 0 && (
-            <StatusText className="mt-1 rounded-2xl border border-dashed border-[#f6d0b1] px-4 py-7 text-center text-base text-[#5c5249]">
-              No hay recompensas para los filtros seleccionados.
-            </StatusText>
+            query || status ? (
+              <EmptyState
+                icon={ICONS.search}
+                title="No hay recompensas con esos filtros"
+                description="Ninguna recompensa coincide con la búsqueda o el estado elegido."
+                action={
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setSearch('')
+                      setStatus('')
+                      setPage(1)
+                    }}
+                  >
+                    Limpiar filtros
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState
+                icon={ICONS.gift}
+                title="Todavía no hay recompensas"
+                description="Los clientes canjean sus puntos por lo que cargues acá. Empezá por algo simple, como un café."
+                action={
+                  <Button type="button" onClick={() => setCreating(true)}>
+                    + Crear recompensa
+                  </Button>
+                }
+              />
+            )
           )}
 
           {data && !rewards.isError && data.items.length > 0 && (
@@ -171,13 +216,13 @@ export function RewardsAdminPage() {
                   <TableHeaderCell>Vencimiento</TableHeaderCell>
                   <TableHeaderCell className="text-right">Canjes confirmados</TableHeaderCell>
                   <TableHeaderCell>Estado</TableHeaderCell>
-                  <TableHeaderCell className="w-7">
-                    <span className="sr-only">Abrir recompensa</span>
+                  <TableHeaderCell className="w-12">
+                    <span className="sr-only">Acciones</span>
                   </TableHeaderCell>
                 </tr>
               </TableHead>
               <tbody>
-                {data.items.map((reward) => (
+                {data.items.filter((reward) => !hiddenIds.has(reward.id)).map((reward) => (
                   <TableRow
                     key={reward.id}
                     interactive
@@ -222,8 +267,15 @@ export function RewardsAdminPage() {
                         {rewardStatusLabel(reward.status, reward.disabledReason)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-[#a8532a]" aria-hidden="true">
-                      <Icon d={ICONS.chevronRight} className="size-4" />
+                    <TableCell className="py-1">
+                      <ActionsMenu
+                        label={`Acciones de ${reward.name}`}
+                        items={[
+                          { label: 'Editar', icon: ICONS.pencil, onSelect: () => setEditingRewardId(reward.id) },
+                          { label: 'Duplicar', icon: ICONS.copy, onSelect: () => setDuplicatingId(reward.id) },
+                          { label: 'Eliminar', danger: true, onSelect: () => requestDelete(reward) },
+                        ]}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -245,11 +297,37 @@ export function RewardsAdminPage() {
       </AdminPanel>
 
       {creating && <RewardCreateModal onClose={() => setCreating(false)} />}
+      {duplicatingId !== null && (
+        <RewardCreateModal duplicateFromId={duplicatingId} onClose={() => setDuplicatingId(null)} />
+      )}
       {editingRewardId !== null && (
         <RewardCreateModal
           rewardId={editingRewardId}
           onClose={() => setEditingRewardId(null)}
+          onDeleteRequested={deleteWithUndo}
         />
+      )}
+      {confirmingDelete && (
+        <Modal title="Eliminar recompensa" onClose={() => setConfirmingDelete(null)} className="max-w-md">
+          <p>
+            ¿Eliminar <strong>{confirmingDelete.name}</strong>? Hay {confirmingDelete.confirmedCount}{' '}
+            canjes confirmados que se van a rechazar. Si te equivocás, tenés unos segundos para
+            deshacerlo.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-end gap-2.5">
+            <Button type="button" variant="secondary" autoFocus onClick={() => setConfirmingDelete(null)}>
+              Cancelar
+            </Button>
+            <DeleteButton
+              type="button"
+              variant="danger"
+              onClick={() => {
+                deleteWithUndo(confirmingDelete)
+                setConfirmingDelete(null)
+              }}
+            />
+          </div>
+        </Modal>
       )}
     </Page>
   )

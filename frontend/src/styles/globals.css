@@ -1,6 +1,25 @@
 @import 'tailwindcss';
 @import './theme.css';
 
+/*
+ * Caja y Administración (clase vc-staff en sus layouts): los dígitos de los títulos.
+ * Playfair Display dibuja los dígitos "de antes" (el 7 baja, el 2 queda chico) y se mezclan raro con
+ * los códigos y los montos. 'Vitto Heading' solo cubre los dígitos (U+0030–0039), con DM Sans, la
+ * letra del texto; el resto de los caracteres cae en Playfair. Se aplica solo dentro de vc-staff:
+ * la vista del Cliente conserva los títulos tal cual.
+ */
+@font-face {
+  font-family: 'Vitto Heading';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZOIHQ.woff2) format('woff2');
+  unicode-range: U+0030-0039;
+}
+.vc-staff {
+  --font-heading: 'Vitto Heading', 'Playfair Display', Georgia, serif;
+}
+
 @layer base {
   body {
     @apply bg-bg font-sans text-text antialiased;
@@ -12,5 +31,139 @@
   h4 {
     @apply font-heading font-bold;
     text-wrap: balance;
+  }
+}
+
+/*
+ * Tablas en pantallas chicas (< 768 px): cada fila pasa a ser una tarjeta con la información completa,
+ * una línea por dato con su título a la izquierda. El título sale del encabezado de la columna: lo
+ * copia Table.tsx en el atributo data-label de cada celda.
+ */
+@media (max-width: 47.9375rem) {
+  .vc-cards-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+  .vc-cards,
+  .vc-cards tbody {
+    display: block;
+    min-width: 0;
+    width: 100%;
+    white-space: normal;
+  }
+  /* El encabezado se oculta a la vista pero sigue leyéndose con lector de pantalla */
+  .vc-cards thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .vc-cards tr {
+    display: block;
+    margin-bottom: 0.75rem;
+    padding: 0.25rem 0.875rem;
+    border: 1px solid #f0d9c4;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(126, 62, 32, 0.06);
+  }
+  .vc-cards tr:last-child {
+    margin-bottom: 0;
+  }
+  .vc-cards td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+    padding: 0.5rem 0;
+    border: 0;
+    border-bottom: 1px dashed #f0d9c4;
+    text-align: right;
+    white-space: normal;
+  }
+  .vc-cards td:last-child {
+    border-bottom: 0;
+  }
+  .vc-cards td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    max-width: 45%;
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #7a3a1d;
+  }
+  /* Celdas sin título (botones de acción, detalle desplegado): a todo el ancho */
+  .vc-cards td:not([data-label]) {
+    justify-content: flex-end;
+  }
+  .vc-cards td[colspan] {
+    display: block;
+    padding: 0;
+    text-align: left;
+  }
+}
+
+/*
+ * Barras de desplazamiento de Caja y Administración (clase vc-staff): finas, redondeadas y con los
+ * colores de la marca, en vez de la gris del navegador. La de la página entera también, mientras
+ * haya un layout vc-staff abierto. Chrome y Edge usan ::-webkit-scrollbar; Firefox, las propiedades
+ * estándar. La vista del Cliente no se toca.
+ */
+html:has(.vc-staff),
+.vc-staff,
+.vc-staff * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-accent-300) transparent;
+}
+@supports selector(::-webkit-scrollbar) {
+  html:has(.vc-staff),
+  .vc-staff,
+  .vc-staff * {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+  html:has(.vc-staff)::-webkit-scrollbar,
+  .vc-staff::-webkit-scrollbar,
+  .vc-staff *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  html:has(.vc-staff)::-webkit-scrollbar-track,
+  .vc-staff::-webkit-scrollbar-track,
+  .vc-staff *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  html:has(.vc-staff)::-webkit-scrollbar-thumb,
+  .vc-staff::-webkit-scrollbar-thumb,
+  .vc-staff *::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-color: var(--color-accent-300);
+    background-clip: padding-box;
+  }
+  html:has(.vc-staff)::-webkit-scrollbar-thumb:hover,
+  .vc-staff::-webkit-scrollbar-thumb:hover,
+  .vc-staff *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-accent-500);
+    background-clip: padding-box;
+  }
+  /* Sin las flechitas de los costados */
+  html:has(.vc-staff)::-webkit-scrollbar-button,
+  .vc-staff::-webkit-scrollbar-button,
+  .vc-staff *::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+  html:has(.vc-staff)::-webkit-scrollbar-corner,
+  .vc-staff::-webkit-scrollbar-corner,
+  .vc-staff *::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }

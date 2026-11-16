@@ -1,5 +1,6 @@
 // Llamadas al backend de recompensas: Administración, mostrador y catálogo del Cliente.
 // Las usan los hooks de rewards.queries.ts.
+import { TABLE_PAGE_SIZE } from '@/shared/lib/pagination'
 import { toApiError } from '@/shared/api/ApiError'
 import { http } from '@/shared/api/http'
 import type { Paginated } from '@/shared/types/pagination'
@@ -19,7 +20,7 @@ import type {
 } from '../types/reward'
 
 // Filas por página si la pantalla no puede calcular cuántas entran.
-export const REWARDS_PAGE_SIZE = 10
+export const REWARDS_PAGE_SIZE = TABLE_PAGE_SIZE
 
 /** Recompensas del Administrador (§3.2.1). */
 export async function listAdminRewards({

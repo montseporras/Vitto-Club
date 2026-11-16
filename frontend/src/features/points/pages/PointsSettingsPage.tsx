@@ -25,7 +25,7 @@ export function PointsSettingsPage() {
   const { data: bonus, isLoading, isError, refetch } = useFirstConsumptionBonus();
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* RF-014. Guardar no recalcula los movimientos ya registrados. */}
       <StatusText>
         Los cambios se aplican a las operaciones futuras. Los movimientos ya
@@ -35,7 +35,7 @@ export function PointsSettingsPage() {
       {/* RF-09. Cada configuración de puntos tiene su propia Card. */}
       <Card compact>
         <CardTitle>Equivalencia de puntos</CardTitle>
-        <StatusText className="mt-0.5 mb-3 text-sm">
+        <StatusText className="mt-0.5 mb-2.5 text-[13px]">
           Cantidad de puntos que suma el cliente según el monto de cada consumo.
         </StatusText>
 
@@ -62,11 +62,35 @@ export function PointsSettingsPage() {
         {equivalence.data !== undefined && !equivalence.isError && (
           <PointsEquivalenceForm equivalence={equivalence.data} />
         )}
+
+        {/* RF-010. La vigencia de los puntos es otra opción de la misma tarjeta. */}
+        <div className="mt-3 border-t border-accent-200 pt-3">
+          {expiration.isLoading && <StatusText>Cargando vigencia…</StatusText>}
+
+          {expiration.isError && (
+            <Alert variant="error">
+              <p>
+                No se pudo cargar la vigencia.{' '}
+                <button
+                  type="button"
+                  onClick={() => void expiration.refetch()}
+                  className="cursor-pointer font-semibold underline underline-offset-2"
+                >
+                  Reintentar
+                </button>
+              </p>
+            </Alert>
+          )}
+
+          {expiration.data && !expiration.isError && (
+            <PointsExpirationForm expiration={expiration.data} />
+          )}
+        </div>
       </Card>
 
       <Card compact>
         <CardTitle>Niveles</CardTitle>
-        <StatusText className="mt-0.5 mb-3 text-sm">
+        <StatusText className="mt-0.5 mb-2.5 text-[13px]">
           El nivel del cliente se calcula según los puntos que acumuló por
           consumos a lo largo del tiempo.
         </StatusText>
@@ -96,7 +120,7 @@ export function PointsSettingsPage() {
       {/* US-51 (S5-22): mínimo de consumos de un cliente frecuente. */}
       <Card compact>
         <CardTitle>Clientes frecuentes</CardTitle>
-        <StatusText className="mt-0.5 mb-3 text-sm">
+        <StatusText className="mt-0.5 mb-2.5 text-[13px]">
           Un cliente es frecuente si tiene al menos{' '}
           {frequent.data?.minConsumptions ?? '…'} consumos en el período. Se usa en
           Estadísticas y reportes.
@@ -124,39 +148,10 @@ export function PointsSettingsPage() {
         )}
       </Card>
 
-      {/* RF-010. */}
-      <Card compact>
-        <CardTitle>Vigencia de los puntos</CardTitle>
-        <StatusText className="mt-0.5 mb-3 text-sm">
-          Meses que los puntos permanecen disponibles desde que se acreditan.
-        </StatusText>
-
-        {expiration.isLoading && <StatusText>Cargando vigencia…</StatusText>}
-
-        {expiration.isError && (
-          <Alert variant="error">
-            <p>
-              No se pudo cargar la vigencia.{' '}
-              <button
-                type="button"
-                onClick={() => void expiration.refetch()}
-                className="cursor-pointer font-semibold underline underline-offset-2"
-              >
-                Reintentar
-              </button>
-            </p>
-          </Alert>
-        )}
-
-        {expiration.data && !expiration.isError && (
-          <PointsExpirationForm expiration={expiration.data} />
-        )}
-      </Card>
-
       {/* RF-011. */}
       <Card compact>
         <CardTitle>Bonificación por primer consumo</CardTitle>
-        <StatusText className="mt-0.5 mb-3 text-sm">
+        <StatusText className="mt-0.5 mb-2.5 text-[13px]">
           Puntos adicionales que recibe el cliente en su primer consumo
           registrada, además de los que le corresponden normalmente.
         </StatusText>

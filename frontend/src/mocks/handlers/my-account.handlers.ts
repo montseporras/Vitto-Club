@@ -2,7 +2,7 @@
 // formato de error que el backend (contrato §3.10 y §3.11, y la §8 de
 // CAMBIOS_PROPUESTOS_AL_CONTRATO_PERFIL.md en la rama backend-maga).
 import { delay, http, HttpResponse } from 'msw'
-import type { MyPoints, MyProfile } from '@/features/my-account'
+import type { MyMission, MyPoints, MyProfile } from '@/features/my-account'
 import { API_URL } from '@/shared/api/http'
 import { accounts, passwordOf, setPassword } from './auth.handlers'
 import { customers } from './cashier.handlers'
@@ -168,7 +168,86 @@ const extraFields = (body: Record<string, unknown>, allowed: string[]) =>
     .filter((key) => !allowed.includes(key))
     .map((key) => `property ${key} should not exist`)
 
+
+// ── Misiones del Cliente (S5 §3.3.2) ────────────────────────────────────────────────────────
+// Lo mínimo para la vista del Cliente: cuando se mergee US-33 (Misiones), su mock reemplaza a este.
+function currentPeriod() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(new Date())
+  const year = Number(parts.find((p) => p.type === 'year')?.value)
+  const month = Number(parts.find((p) => p.type === 'month')?.value)
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  const mm = String(month).padStart(2, '0')
+  return { period: `${year}-${mm}`, endsAt: `${year}-${mm}-${String(lastDay).padStart(2, '0')}` }
+}
+
+function missionsOf(customerId: number): MyMission[] {
+  // Martín (cliente 2) todavía no tiene misiones: sirve para ver el estado vacío
+  if (customerId === 2) return []
+  const { period, endsAt } = currentPeriod()
+  const base = {
+    period,
+    endsAt,
+    timeFrom: null,
+    timeTo: null,
+    completedAt: null,
+    claimedAt: null,
+    claimedBy: null,
+  } as const
+  return [
+    {
+      ...base,
+      id: 101,
+      mission: { id: 1, name: 'Disfrutá 5 meriendas', description: 'Sumá 5 consumos a la tarde.' },
+      objectiveType: 'CONSUMPTION_COUNT',
+      target: 5,
+      progress: 3,
+      daysOfWeek: null,
+      timeFrom: '16:00',
+      timeTo: '20:00',
+      rewardPoints: 150,
+      status: 'IN_PROGRESS',
+      canClaim: false,
+    },
+    {
+      ...base,
+      id: 102,
+      mission: { id: 2, name: 'Pedí 3 pizzas', description: 'Tres consumos un viernes.' },
+      objectiveType: 'CONSUMPTION_COUNT',
+      target: 3,
+      progress: 1,
+      daysOfWeek: [5],
+      rewardPoints: 100,
+      status: 'IN_PROGRESS',
+      canClaim: false,
+    },
+    {
+      ...base,
+      id: 103,
+      mission: { id: 3, name: 'Gastá $ 30.000 en el mes', description: null },
+      objectiveType: 'CONSUMPTION_AMOUNT',
+      target: 30000,
+      progress: 30000,
+      daysOfWeek: null,
+      rewardPoints: null,
+      status: 'COMPLETED',
+      completedAt: new Date().toISOString(),
+      canClaim: false,
+    },
+  ]
+}
+
 export const myAccountHandlers = [
+  http.get(`${API_URL}/customers/me/misiones`, async ({ request }) => {
+    await delay(300)
+    const caller = requireCustomer(request)
+    if ('error' in caller) return caller.error
+    return HttpResponse.json(missionsOf(caller.customer.id))
+  }),
+
   http.get(`${API_URL}/customers/me`, async ({ request }) => {
     await delay(300)
     const caller = requireCustomer(request)

@@ -3,11 +3,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { toApiError } from '@/shared/api/ApiError';
-import { FormActions } from '@/shared/components/forms/FormActions';
-import { FormField } from '@/shared/components/forms/FormField';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
+import { Label } from '@/shared/components/ui/Label';
+import { formFieldStyles } from '@/styles/ui';
 import { useUpdateFrequentCustomers } from '../api/points.queries';
 import {
   frequentCustomersSchema,
@@ -45,6 +45,8 @@ export function FrequentCustomersForm({ frequentCustomers }: FrequentCustomersFo
   } = useForm<FrequentCustomersFormValues>({
     resolver: zodResolver(frequentCustomersSchema),
     defaultValues: { minConsumptions: frequentCustomers.minConsumptions },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   });
 
   const update = useUpdateFrequentCustomers();
@@ -61,39 +63,43 @@ export function FrequentCustomersForm({ frequentCustomers }: FrequentCustomersFo
   return (
     <form onSubmit={onSubmit} noValidate>
       {update.isError && (
-        <Alert variant="error" className="mb-6">
+        <Alert variant="error" className="mb-2.5">
           {errorMessage(update.error)}
         </Alert>
       )}
 
       {showSuccess && (
-        <Alert variant="success" className="mb-6">
+        <Alert variant="success" className="mb-2.5">
           Mínimo de cliente frecuente guardado.
         </Alert>
       )}
 
-      <FormField
-        id="minConsumptions"
-        label="Mínimo de consumos"
-        error={errors.minConsumptions?.message}
-      >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <Label htmlFor="minConsumptions">Mínimo de consumos</Label>
         <Input
           id="minConsumptions"
           type="text"
           inputMode="numeric"
           autoComplete="off"
-          className="w-40"
+          className="h-10 w-24"
           aria-invalid={errors.minConsumptions ? true : undefined}
           aria-describedby={errors.minConsumptions ? 'minConsumptions-error' : undefined}
           {...register('minConsumptions', { valueAsNumber: true })}
         />
-      </FormField>
-
-      <FormActions>
-        <Button type="submit" size="lg" disabled={!isDirty || update.isPending}>
-          {update.isPending ? 'Guardando…' : 'Guardar cambios'}
+        <Button
+          loading={update.isPending}
+          type="submit"
+          className="ml-auto h-10"
+          disabled={!isDirty || update.isPending}
+        >
+          {update.isPending ? 'Guardando…' : 'Guardar'}
         </Button>
-      </FormActions>
+      </div>
+      {errors.minConsumptions && (
+        <p id="minConsumptions-error" className={formFieldStyles.error}>
+          {errors.minConsumptions.message}
+        </p>
+      )}
     </form>
   );
 }

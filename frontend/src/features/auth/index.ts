@@ -12,3 +12,4 @@ export {
 } from './session'
 export type { AuthResponse, AuthUser } from './types/auth'
 export type { RegisterCustomerBody } from './types/register'
+export { INSTAGRAM_URL } from './logout-copy'

@@ -16,6 +16,7 @@ import { Modal } from '@/shared/components/ui/Modal'
 import { Select } from '@/shared/components/ui/Select'
 import { Textarea } from '@/shared/components/ui/Textarea'
 import { useModalEscape } from '@/shared/hooks/useModalEscape'
+import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard'
 import { argentinaDateTimeInputValue, argentinaDateTimeToIso, isoToDisplayDateTime } from '@/shared/lib/dates'
 import { formatInteger } from '@/shared/lib/numbers'
 import { usePromotionRecipients, useSendPromotion } from '../api/promotions.queries'
@@ -52,7 +53,6 @@ function sendErrorMessages(error: unknown): string[] {
 type SendPromotionModalProps = { onClose: () => void }
 
 export function SendPromotionModal({ onClose }: SendPromotionModalProps) {
-  useModalEscape(onClose)
   const toast = useToast()
   const send = useSendPromotion()
 
@@ -60,11 +60,18 @@ export function SendPromotionModal({ onClose }: SendPromotionModalProps) {
     register,
     handleSubmit,
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<SendPromotionFormValues>({
     resolver: zodResolver(sendPromotionSchema),
     defaultValues: EMPTY_FORM,
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   })
+  // Cerrar con cambios sin guardar (cruz, Cancelar o Escape) pregunta antes
+  const { guard, dialog: unsavedDialog } = useUnsavedChangesGuard(isDirty)
+  const requestClose = guard(onClose)
+  useModalEscape(requestClose)
+
 
   const subject = useWatch({ control, name: 'subject' }) ?? ''
   const body = useWatch({ control, name: 'body' }) ?? ''
@@ -98,7 +105,7 @@ export function SendPromotionModal({ onClose }: SendPromotionModalProps) {
   })
 
   return (
-    <Modal title="Enviar promoción" onClose={onClose} className="max-w-[640px]">
+    <Modal title="Enviar promoción" onClose={requestClose} className="max-w-[640px]">
       <form onSubmit={onSubmit} noValidate className="space-y-3">
         {send.isError && (
           <Alert variant="error">
@@ -181,14 +188,15 @@ export function SendPromotionModal({ onClose }: SendPromotionModalProps) {
         />
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={requestClose}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={send.isPending}>
+          <Button loading={send.isPending} type="submit" disabled={send.isPending}>
             {when === 'SCHEDULED' ? 'Programar envío' : 'Enviar ahora'}
           </Button>
         </div>
       </form>
+      {unsavedDialog}
     </Modal>
   )
 }

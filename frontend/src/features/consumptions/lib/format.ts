@@ -19,3 +19,17 @@ export const formatAmount = (amount: number) =>
     minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
     maximumFractionDigits: 2,
   })}`;
+
+const shortDateFormat = new Intl.DateTimeFormat('es-AR', {
+  timeZone: 'America/Argentina/Buenos_Aires',
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
+// ISO UTC → '12 nov 2026' (hora de Argentina), para la vista del Cliente.
+export const formatShortDate = (iso: string) => {
+  const parts = shortDateFormat.formatToParts(new Date(iso));
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? '';
+  return `${get('day')} ${get('month').replace('.', '')} ${get('year')}`;
+};

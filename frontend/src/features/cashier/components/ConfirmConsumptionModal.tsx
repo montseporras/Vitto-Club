@@ -70,7 +70,7 @@ export function ConfirmConsumptionModal({
       {data && (
         <div className="rounded-2xl border border-accent-200 bg-accent-50/60 px-5 py-3.5">
           <p className="text-base font-bold text-accent-800">
-            Se acreditarán {formatInteger(data.totalPoints)} puntos
+            Se acreditan {formatInteger(data.totalPoints)} puntos
             {data.bonusPoints > 0 &&
               ` (${formatInteger(data.points)} + ${formatInteger(data.bonusPoints)} de bonificación por primer consumo)`}
           </p>
@@ -121,6 +121,7 @@ export function ConfirmConsumptionModal({
           Cancelar
         </Button>
         <Button
+          loading={create.isPending}
           type="button"
           size="lg"
           disabled={!data || create.isPending}

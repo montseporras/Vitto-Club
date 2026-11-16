@@ -5,6 +5,7 @@ import { useState, type ReactNode } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 import { FormActions } from '@/shared/components/forms/FormActions';
 import { FormField } from '@/shared/components/forms/FormField';
+import { PasswordChecklist } from '@/shared/components/forms/PasswordChecklist';
 import { FormSection } from '@/shared/components/forms/FormSection';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
@@ -18,6 +19,9 @@ interface PasswordFieldProps {
   registration: UseFormRegisterReturn<'password'>;
   onRegenerate: () => void;
   getPassword: () => string;
+  /** Valor actual y mail de la cuenta: para mostrar en vivo qué requisitos se cumplen. */
+  password: string;
+  email: string;
 }
 
 // Contraseña generada y editable, con botones para generar otra y copiarla.
@@ -27,22 +31,24 @@ export function PasswordField({
   registration,
   onRegenerate,
   getPassword,
+  password,
+  email,
 }: PasswordFieldProps) {
   return (
     <FormField
       id="password"
       label={label}
       error={error}
-      hint="Entre 8 y 64 caracteres. No puede ser igual al mail."
+      rules={<PasswordChecklist id="password-rules" password={password} email={email} />}
     >
       <div className="flex gap-2">
         <Input
           id="password"
           autoComplete="new-password"
           spellCheck={false}
-          className="font-mono"
+          className="tracking-wider tabular-nums"
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? 'password-error' : 'password-hint'}
+          aria-describedby={error ? 'password-error password-rules' : 'password-rules'}
           {...registration}
         />
         <Button
@@ -51,7 +57,7 @@ export function PasswordField({
           onClick={onRegenerate}
           aria-label="Generar otra contraseña"
           title="Generar otra contraseña"
-          className="h-auto shrink-0"
+          className="h-auto min-h-0 shrink-0 px-3.5 py-0"
         >
           <Icon d={ICONS.reload} className="size-4" />
         </Button>
@@ -98,7 +104,7 @@ export function IssuedCredentials({
               id="password-emitida"
               value={password}
               readOnly
-              className="font-mono"
+              className="tracking-wider tabular-nums"
               aria-describedby="password-emitida-hint"
             />
             <CopyButton text={password} />
@@ -137,7 +143,7 @@ function CopyButton({ text }: { text: string | (() => string) }) {
       onClick={() => void copy()}
       aria-label="Copiar contraseña"
       title="Copiar contraseña"
-      className="h-auto shrink-0"
+      className="h-auto min-h-0 shrink-0 px-3.5 py-0"
     >
       <Icon d={copied ? ICONS.check : ICONS.copy} className="size-4" />
       <span aria-live="polite" className="sr-only">

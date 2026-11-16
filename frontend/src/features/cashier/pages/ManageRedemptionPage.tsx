@@ -82,6 +82,8 @@ export function ManageRedemptionPage() {
                 id="redemption-code"
                 autoFocus
                 autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
                 maxLength={12}
                 placeholder="K7MP2X"
                 value={input}
@@ -93,7 +95,7 @@ export function ManageRedemptionPage() {
                 aria-describedby={inputError ? 'redemption-code-error' : undefined}
                 className="uppercase tracking-[0.08em]"
               />
-              <Button type="submit" size="lg" disabled={loading} className="shrink-0 px-5">
+              <Button type="submit" loading={loading} disabled={loading} className="min-h-12 shrink-0 px-6 py-0">
                 <Icon d={ICONS.search} />
                 Buscar
               </Button>
