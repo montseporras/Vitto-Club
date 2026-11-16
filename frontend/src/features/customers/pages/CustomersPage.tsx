@@ -72,14 +72,14 @@ export function CustomersPage() {
   const [message, setMessage] = useState<string | null>(null)
 
   // Filas por página: las que entran en la pantalla (ajustes S5-57). Debajo de la tabla quedan
-  // el botón "+ Registrar cliente" (24 + 52 px) y, si hay, el mensaje de éxito (16 + 18 px).
+  // el botón "+ Registrar cliente" (24 + 48 px) y, si hay, el mensaje de éxito (16 + 18 px).
   const areaRef = useRef<HTMLDivElement>(null)
   const pagerRef = useRef<HTMLElement>(null)
   const limit = useRowsThatFit({
     areaRef,
     pagerRef,
     initial: CUSTOMERS_PAGE_SIZE,
-    extraBelow: 76 + (message ? 34 : 0),
+    extraBelow: 72 + (message ? 34 : 0),
   })
   const customers = useCustomers({ documentType, documentNumber, level, page, limit })
   useClampPage(page, setPage, customers.data?.total, customers.data?.limit)

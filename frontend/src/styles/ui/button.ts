@@ -30,10 +30,12 @@ export const buttonVariants = cva(
       size: {
         // Acciones dentro de tablas, filtros y barras de herramientas: el tamaño completo no entra
         sm: 'h-9 px-4 text-sm',
-        // Tamaño estándar en web y celular: 32 px a los costados, 18 px arriba y abajo, texto de 16 px
-        md: 'min-h-13 px-8 py-[18px] text-base leading-4',
-        // RNF-1/RNF-2: botones grandes en la pantalla de caja (36 × 20 px, texto de 18 px)
-        lg: 'min-h-15 px-9 py-5 text-lg leading-5',
+        // Tamaño estándar en web y celular: 24 px a los costados y 16 px arriba y abajo (48 px de
+        // alto, el mínimo cómodo para el dedo), texto de 16 px
+        md: 'min-h-12 px-6 py-4 text-base leading-4',
+        // RNF-1/RNF-2: botones grandes en la pantalla de caja. Tope: 32 px a los costados y 18 px
+        // arriba y abajo (52 px de alto), texto de 16 px
+        lg: 'min-h-13 px-8 py-[18px] text-base leading-4',
       },
     },
     defaultVariants: { variant: 'primary', size: 'md' },
