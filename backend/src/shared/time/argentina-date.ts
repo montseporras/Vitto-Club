@@ -21,3 +21,12 @@ export function toArgentinaParts(date: Date): { year: number; month: number; day
 export function argentinaMonthStart(year: number, month: number): Date {
   return new Date(Date.UTC(year, month - 1, 1, ARGENTINA_OFFSET_HOURS));
 }
+
+// Misiones (S5 §3.2, US-30): día de la semana (1 = lunes … 7 = domingo) y hora "HH:mm" de un instante,
+// en hora de Argentina, para la condición de días y franja horaria
+export function toArgentinaWeekdayAndTime(date: Date): { weekday: number; time: string } {
+  const shifted = new Date(date.getTime() - ARGENTINA_OFFSET_HOURS * 60 * 60 * 1000);
+  const weekday = shifted.getUTCDay() === 0 ? 7 : shifted.getUTCDay();
+  const time = `${String(shifted.getUTCHours()).padStart(2, '0')}:${String(shifted.getUTCMinutes()).padStart(2, '0')}`;
+  return { weekday, time };
+}

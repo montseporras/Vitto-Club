@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../audit/audit.module.js';
+import { MissionsProgressService } from './application/missions-progress.service.js';
 import { MissionsService } from './application/missions.service.js';
 import { CustomerMissionRepository } from './domain/port/customer-mission.repository.js';
 import { MissionRepository } from './domain/port/mission.repository.js';
@@ -11,6 +12,8 @@ import { MissionsPrismaRepository } from './infrastructure/missions.repository.j
 // fin de mes). Cada historia agrega sus operaciones (US-28 a US-33).
 // US-28: GET y POST /misiones. La auditoría (MISSION_CREATED) usa AuditModule, que no importa
 // ningún módulo de negocio, así que no se arma un ciclo.
+// US-30: MissionsProgressService (asignación y avance) se exporta para consumptions, que lo llama
+// dentro de la transacción de POST /consumos y de la anulación.
 // Dependencias, sin ciclos: `consumptions` va a importar `missions` para el avance (US-30), nunca al
 // revés: `missions` recibe { customerId, consumptionId, amount, createdAt }. `missions` usa `points`
 // para acreditar (PointsService.acreditarBonificacion); `points` no importa `missions`.
@@ -19,8 +22,10 @@ import { MissionsPrismaRepository } from './infrastructure/missions.repository.j
   controllers: [MissionsController],
   providers: [
     MissionsService,
+    MissionsProgressService,
     { provide: MissionRepository, useClass: MissionsPrismaRepository },
     { provide: CustomerMissionRepository, useClass: CustomerMissionsPrismaRepository },
   ],
+  exports: [MissionsProgressService],
 })
 export class MissionsModule {}

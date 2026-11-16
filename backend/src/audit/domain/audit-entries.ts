@@ -1086,3 +1086,23 @@ export function missionDeletedEntry(
     ],
   };
 }
+
+// MISSION_COMPLETED (§3.14.2, US-30): actor Sistema, con el cliente afectado. Misión · Objetivo (el del
+// snapshot) · Período ("Noviembre 2026"). Valores: decisión de Jazmín.
+export function missionCompletedEntry(
+  customer: AffectedCustomerSnapshot,
+  mission: { name: string; objectiveType: MissionAuditSnapshot['objectiveType']; target: number; period: string },
+): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'MISSIONS',
+    action: 'MISSION_COMPLETED',
+    description: `Completó la misión "${mission.name}" de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    details: [
+      { label: 'Misión', value: mission.name },
+      { label: 'Objetivo', value: formatMissionObjective(mission.objectiveType, mission.target) },
+      { label: 'Período', value: formatMonthCapitalized(mission.period) },
+    ],
+  };
+}

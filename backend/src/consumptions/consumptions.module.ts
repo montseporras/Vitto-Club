@@ -9,14 +9,17 @@ import { CustomerConsumptionsController } from './http/customer-consumptions.con
 import { CustomersModule } from '../customers/customers.module.js';
 import { EmployeesModule } from '../employees/employees.module.js';
 import { LoyaltyModule } from '../loyalty/loyalty.module.js';
+import { MissionsModule } from '../missions/missions.module.js';
 import { PointsModule } from '../points/points.module.js';
 import { PrismaTransactionRunner } from '../prisma/prisma-transaction-runner.js';
 
 // Registrado en AppModule (ver app.module.ts). register()/anular() escriben el consumo, los
 // puntos (PointsService) y la auditoría (AuditService, CONSUMPTION_REGISTERED/CONSUMPTION_VOIDED)
 // en la misma transacción. audit no importa a consumptions: la dependencia va en un solo sentido.
+// US-30: también el avance de las misiones (MissionsProgressService), en la misma transacción.
+// consumptions ──> missions; missions no importa consumptions.
 @Module({
-  imports: [AuditModule, CustomersModule, EmployeesModule, LoyaltyModule, PointsModule],
+  imports: [AuditModule, CustomersModule, EmployeesModule, LoyaltyModule, MissionsModule, PointsModule],
   controllers: [ConsumptionsController, CustomerConsumptionsController],
   providers: [
     ConsumptionsService,

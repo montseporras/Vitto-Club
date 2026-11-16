@@ -45,4 +45,7 @@ export abstract class MissionRepository {
 
   // DELETED (final) con su fecha de baja: libera el nombre (índice parcial missions_active_name_key)
   abstract markDeleted(id: number, now: Date): Promise<Mission>;
+
+  // US-30 (§3.2): las misiones en curso en un mes YYYY-MM (ACTIVE y el mes dentro de su vigencia)
+  abstract findRunningInMonth(month: string): Promise<Mission[]>;
 }

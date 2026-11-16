@@ -136,6 +136,19 @@ export class MissionsPrismaRepository implements MissionRepository {
     return toDomain(record);
   }
 
+  async findRunningInMonth(month: string): Promise<Mission[]> {
+    const current = fromMonth(month);
+    const records = await this.prisma.mission.findMany({
+      where: {
+        status: 'ACTIVE',
+        startMonth: { lte: current },
+        OR: [{ endMonth: null }, { endMonth: { gte: current } }],
+      },
+      orderBy: { id: 'asc' },
+    });
+    return records.map(toDomain);
+  }
+
   // §3.1.2. La fase se filtra con el mes actual (§2.2): RUNNING = empezó y no terminó; UPCOMING =
   // empieza más adelante; FINISHED = su último mes ya pasó.
   async list(filters: MissionListFilters): Promise<MissionListResult> {
