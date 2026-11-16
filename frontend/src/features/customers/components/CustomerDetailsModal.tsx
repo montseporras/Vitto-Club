@@ -15,6 +15,7 @@ import { SubmitHint } from '@/shared/components/forms/SubmitHint'
 import { Button } from '@/shared/components/ui/Button'
 import { DeleteButton } from '@/shared/components/ui/DeleteButton'
 import { useMissingFields } from '@/shared/hooks/useMissingFields'
+import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
 import { Input } from '@/shared/components/ui/Input'
@@ -71,7 +72,7 @@ export function CustomerDetailsModal({
     handleSubmit,
     setError,
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<UpdateCustomerFormInput, unknown, UpdateCustomerFormOutput>({
     resolver: zodResolver(updateCustomerSchema),
     defaultValues: {
@@ -84,14 +85,18 @@ export function CustomerDetailsModal({
     mode: 'onChange',
   })
 
+  // Cerrar con cambios sin guardar (cruz, Cerrar o Escape) pregunta antes
+  const { guard, dialog: unsavedDialog } = useUnsavedChangesGuard(editing && isDirty)
+  const requestClose = guard(onClose)
+
   // Escape cierra el modal
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') requestClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [requestClose])
 
   const onSubmit = (data: UpdateCustomerFormOutput) => {
     const changes = buildChanges(customer, data)
@@ -147,7 +152,7 @@ export function CustomerDetailsModal({
       <div className={cn(modalStyles.panel, 'relative max-w-3xl overflow-y-auto p-6 sm:p-8')}>
         <button
           type="button"
-          onClick={onClose}
+          onClick={requestClose}
           aria-label="Cerrar"
           title="Cerrar"
           className={modalStyles.closeIcon}
@@ -273,7 +278,7 @@ export function CustomerDetailsModal({
           {/* Eliminar a la izquierda; Cerrar y Editar (o Guardar cambios) a la derecha */}
           <div className="mt-6 flex flex-wrap items-center gap-2.5">
             <DeleteButton type="button" variant="ghost" onClick={onDelete} className="mr-auto" />
-            <Button type="button" variant="secondary" onClick={onClose}>
+            <Button type="button" variant="secondary" onClick={requestClose}>
               Cerrar
             </Button>
             {editing ? (
@@ -293,6 +298,7 @@ export function CustomerDetailsModal({
           </div>
         </form>
       </div>
+      {unsavedDialog}
     </div>,
     document.body,
   )

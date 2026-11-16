@@ -14,6 +14,7 @@ import { DeleteButton } from '@/shared/components/ui/DeleteButton'
 import { Switch } from '@/shared/components/ui/Switch'
 import { useMissingFields } from '@/shared/hooks/useMissingFields'
 import { useUndoableAction } from '@/shared/hooks/useUndoableAction'
+import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
 import { DatePicker } from '@/shared/components/ui/DatePicker'
@@ -210,6 +211,10 @@ export function RewardCreateModal({
     })
   }, [source, reset])
 
+  // Cerrar con cambios sin guardar (cruz, Cancelar o Escape) pregunta antes
+  const { guard, dialog: unsavedDialog } = useUnsavedChangesGuard(isDirty || photoChange !== null)
+  const requestClose = guard(onClose)
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
@@ -220,12 +225,12 @@ export function RewardCreateModal({
         setDeactivateDialogOpen(false)
         setActionError(null)
       } else {
-        onClose()
+        requestClose()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [deactivateDialogOpen, deleteDialogOpen, onClose])
+  }, [deactivateDialogOpen, deleteDialogOpen, requestClose])
 
   const descriptionLength = useWatch({ control, name: 'description' })?.length ?? 0
 
@@ -485,7 +490,7 @@ export function RewardCreateModal({
       >
         <button
           type="button"
-          onClick={onClose}
+          onClick={requestClose}
           aria-label="Cerrar"
           title="Cerrar"
           className={modalStyles.closeIcon}
@@ -707,7 +712,7 @@ export function RewardCreateModal({
             <Button
               type="button"
               variant="secondary"
-              onClick={onClose}
+              onClick={requestClose}
               disabled={isPending}
             >
               Cancelar
@@ -728,6 +733,7 @@ export function RewardCreateModal({
         </div>
       </form>
       </div>
+      {unsavedDialog}
       {deactivateDialogOpen && reward && (
         <RewardDialog
           title="Desactivar recompensa"

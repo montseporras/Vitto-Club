@@ -40,3 +40,14 @@ export const passwordChecklistStyles = {
   iconDone: 'bg-olive text-white',
   icon: 'size-3',
 }
+
+/** Aviso "Tenés cambios sin guardar": por encima de cualquier modal. */
+export const unsavedDialogStyles = {
+  overlay: 'fixed inset-0 z-[10030] flex animate-vitto-fade-in items-center justify-center bg-black/45 p-4',
+  panel:
+    'flex w-full max-w-sm animate-vitto-modal-in flex-col items-center gap-2 rounded-3xl bg-surface px-6 pt-7 pb-6 text-center shadow-2xl shadow-accent-900/30',
+  icon: 'mb-1 grid size-12 place-items-center rounded-full bg-accent-100 text-accent-700',
+  title: 'font-heading text-xl font-bold text-ink',
+  description: 'text-sm text-neutral-700',
+  actions: 'mt-4 flex w-full flex-col gap-2',
+}

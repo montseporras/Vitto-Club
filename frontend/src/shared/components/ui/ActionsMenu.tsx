@@ -118,7 +118,7 @@ export function ActionsMenu({ items, label, className }: ActionsMenuProps) {
         }}
         onKeyDown={(event) => event.stopPropagation()}
       >
-        <Icon d={ICONS.moreVertical} className="size-5" />
+        <Icon d={ICONS.moreHorizontal} className="size-5" />
       </button>
       {open &&
         createPortal(
@@ -136,7 +136,11 @@ export function ActionsMenu({ items, label, className }: ActionsMenuProps) {
             onKeyDown={onMenuKeyDown}
             onClick={(event) => event.stopPropagation()}
           >
-            {items.map((item) => (
+            {items.map((item, index) => [
+              // Las acciones destructivas van separadas del resto por una línea
+              item.danger && index > 0 && !items[index - 1].danger && (
+                <hr key={`${item.label}-separator`} role="separator" className={actionsMenuStyles.separator} />
+              ),
               <button
                 key={item.label}
                 type="button"
@@ -152,13 +156,13 @@ export function ActionsMenu({ items, label, className }: ActionsMenuProps) {
                 }}
               >
                 {item.danger ? (
-                  <TrashIcon />
+                  <TrashIcon className="text-neutral-500" />
                 ) : item.icon ? (
                   <Icon d={item.icon} className="size-4" />
                 ) : null}
                 {item.label}
-              </button>
-            ))}
+              </button>,
+            ])}
           </div>,
           document.body,
         )}

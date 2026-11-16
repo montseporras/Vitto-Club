@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
 import { FormActions } from '@/shared/components/forms/FormActions'
@@ -12,6 +12,7 @@ import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
 import { SplitDateInput } from '@/shared/components/ui/SplitDateInput'
 import { useMissingFields } from '@/shared/hooks/useMissingFields'
+import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard'
 import { useCreateCustomer, type DocumentSearch } from '../api/cashier.queries'
 import {
   customerConflict,
@@ -58,6 +59,8 @@ type CustomerRegistrationFormProps = {
   showSuccess?: boolean
   /** Con él, la botonera suma "Cancelar" (Nuevo cliente de Caja, prototipo v2). */
   onCancel?: () => void
+  /** Avisa si hay datos cargados sin guardar (ej. para preguntar antes de cerrar el modal). */
+  onDirtyChange?: (dirty: boolean) => void
   /**
    * Cómo se ubican los avisos (éxito y error) respecto del formulario. Por defecto, uno abajo
    * del otro; "Nuevo cliente" de Caja pone los avisos arriba de la tarjeta.
@@ -85,6 +88,7 @@ export function CustomerRegistrationForm({
   onCreated,
   showSuccess = true,
   onCancel,
+  onDirtyChange,
   layout = defaultLayout,
 }: CustomerRegistrationFormProps) {
   const {
@@ -96,13 +100,20 @@ export function CustomerRegistrationForm({
     trigger,
     getValues,
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CreateCustomerFormInput, unknown, CreateCustomerFormOutput>({
     resolver: zodResolver(createCustomerSchema),
     defaultValues: { ...INITIAL_VALUES, ...initialDocument },
     mode: 'onChange',
   })
   const createCustomer = useCreateCustomer()
+
+  // Cancelar con datos cargados pregunta antes de descartarlos
+  const { guard, dialog: unsavedDialog } = useUnsavedChangesGuard(isDirty)
+  const requestCancel = onCancel ? guard(onCancel) : undefined
+  useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
 
   const onSubmit = (data: CreateCustomerFormOutput) => {
     createCustomer.mutate(data, {
@@ -311,7 +322,7 @@ export function CustomerRegistrationForm({
             type="button"
             variant="secondary"
             size="lg"
-            onClick={onCancel}
+            onClick={requestCancel}
             className="w-full sm:w-auto"
           >
             Cancelar
@@ -328,6 +339,7 @@ export function CustomerRegistrationForm({
           {createCustomer.isPending ? 'Registrando…' : 'Registrar cliente'}
         </Button>
       </FormActions>
+      {unsavedDialog}
     </form>
   )
 

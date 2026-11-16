@@ -2,7 +2,7 @@
 // paso se crea su usuario (SCRUM-21): primero POST /empleados y, con el id que
 // devuelve, POST /usuarios. Al final se muestran las credenciales una sola vez.
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { EMPLOYEE_ROLES } from '@/domain/roles';
 import { toApiError } from '@/shared/api/ApiError';
@@ -32,6 +32,8 @@ import { IssuedCredentials, PasswordField } from './AccountPassword';
 interface CreateEmployeeFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  /** Avisa si hay datos cargados sin guardar (para preguntar antes de cerrar). */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 const ROLE_OPTIONS = Object.entries(EMPLOYEE_ROLES).map(([value, label]) => ({
@@ -42,13 +44,14 @@ const ROLE_OPTIONS = Object.entries(EMPLOYEE_ROLES).map(([value, label]) => ({
 export function CreateEmployeeForm({
   onSuccess,
   onCancel,
+  onDirtyChange,
 }: CreateEmployeeFormProps) {
   const {
     register,
     handleSubmit,
     setError,
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CreateEmployeeFormValues>({
     resolver: zodResolver(createEmployeeSchema),
     defaultValues: {
@@ -61,6 +64,10 @@ export function CreateEmployeeForm({
     // Valida mientras se escribe: el error aparece en el campo, no todos al final
     mode: 'onChange',
   });
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
 
   // Contraseña del usuario: un formulario aparte, porque solo se valida si se
   // marca la casilla y la regla depende del mail que se está escribiendo.

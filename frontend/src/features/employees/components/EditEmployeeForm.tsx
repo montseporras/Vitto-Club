@@ -4,6 +4,7 @@
 // las acciones sobre él se piden con onAccountAction.
 // Un empleado dado de baja no se puede editar (el backend responde 409): sus
 // datos se muestran en modo sólo lectura.
+import { useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { EMPLOYEE_ROLES } from '@/domain/roles';
@@ -34,6 +35,8 @@ interface EditEmployeeFormProps {
   onCancel: () => void;
   onRequestDeactivation: () => void;
   onAccountAction: (action: AccountAction) => void;
+  /** Avisa si hay datos cargados sin guardar (para preguntar antes de cerrar). */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 const ROLE_OPTIONS = Object.entries(EMPLOYEE_ROLES).map(([value, label]) => ({
@@ -62,6 +65,7 @@ export function EditEmployeeForm({
   employee,
   onSuccess,
   onCancel,
+  onDirtyChange,
   onRequestDeactivation,
   onAccountAction,
 }: EditEmployeeFormProps) {
@@ -70,7 +74,7 @@ export function EditEmployeeForm({
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<EditEmployeeFormValues>({
     resolver: zodResolver(editEmployeeSchema),
     defaultValues: {
@@ -82,6 +86,10 @@ export function EditEmployeeForm({
     // Valida mientras se escribe: el error aparece en el campo, no todos al final
     mode: 'onChange',
   });
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
 
   const updateEmployee = useUpdateEmployee(employee.id);
 

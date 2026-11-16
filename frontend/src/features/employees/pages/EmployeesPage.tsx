@@ -14,6 +14,7 @@ import { ICONS } from '@/shared/components/ui/icons';
 import { Modal } from '@/shared/components/ui/Modal';
 import { useModalEscape } from '@/shared/hooks/useModalEscape';
 import { useDebounce } from '@/shared/hooks/useDebounce';
+import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard';
 import { useEmployees } from '../api/employees.queries';
 import { EmployeeSearch } from '../components/EmployeeSearch';
 import { ChangePasswordForm } from '../components/ChangePasswordForm';
@@ -60,11 +61,22 @@ export function EmployeesPage() {
   const closeEdit = () => {
     setSelectedEmployee(null);
     setModalView('edit');
+    setFormDirty(false);
+  };
+  const closeCreate = () => {
+    setCreating(false);
+    setFormDirty(false);
   };
 
+  // Cerrar el alta o la edición con datos sin guardar (cruz, Cancelar o Escape) pregunta antes
+  const [formDirty, setFormDirty] = useState(false);
+  const { guard, dialog: unsavedDialog } = useUnsavedChangesGuard(formDirty);
+  const requestCloseCreate = guard(closeCreate);
+  const requestCloseEdit = guard(closeEdit);
+
   // Escape cierra el modal que esté arriba (A4-13)
-  useModalEscape(() => setCreating(false), creating);
-  useModalEscape(closeEdit, selectedEmployee !== null);
+  useModalEscape(requestCloseCreate, creating);
+  useModalEscape(requestCloseEdit, selectedEmployee !== null);
 
   const hasSearch = term !== '';
 
@@ -118,7 +130,8 @@ export function EmployeesPage() {
       <EditEmployeeForm
         employee={employee}
         onSuccess={closeEdit}
-        onCancel={closeEdit}
+        onCancel={requestCloseEdit}
+        onDirtyChange={setFormDirty}
         onRequestDeactivation={() => setModalView('deactivate')}
         onAccountAction={setModalView}
       />
@@ -194,17 +207,18 @@ export function EmployeesPage() {
       </Button>
 
       {creating && (
-        <Modal title="Crear empleado" onClose={() => setCreating(false)}>
+        <Modal title="Crear empleado" onClose={requestCloseCreate}>
           <CreateEmployeeForm
-            onSuccess={() => setCreating(false)}
-            onCancel={() => setCreating(false)}
+            onSuccess={closeCreate}
+            onCancel={requestCloseCreate}
+            onDirtyChange={setFormDirty}
           />
         </Modal>
       )}
 
       {selectedEmployee && (
         <Modal
-          onClose={closeEdit}
+          onClose={requestCloseEdit}
           title={
             modalView !== 'edit'
               ? MODAL_TITLES[modalView]
@@ -216,6 +230,7 @@ export function EmployeesPage() {
           {renderEmployeeModal(selectedEmployee)}
         </Modal>
       )}
+      {unsavedDialog}
     </div>
   );
 }
