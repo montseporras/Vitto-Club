@@ -1,82 +1,86 @@
+// Mi perfil del Cliente (diseño V2): foto, nombre y mail, y un menú que abre cada sección:
+// Mis datos, Mi nivel, Notificaciones y Ayuda. Al final, "Cerrar sesión".
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { LogoutDialog, useSession } from '@/features/auth'
+import { LogoutDialog } from '@/features/auth'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert } from '@/shared/components/ui/Alert'
-import { Button } from '@/shared/components/ui/Button'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
 import { cn } from '@/shared/lib/utils'
-import { buttonVariants } from '@/styles/ui'
+import { clientStyles } from '@/styles/ui'
 import { useMyProfile } from '../api/my-account.queries'
-import { ChangePasswordForm } from '../components/ChangePasswordForm'
-import { ContactForm } from '../components/ContactForm'
-import { MyDataSection } from '../components/MyDataSection'
-import { ProfileSection } from '../components/ProfileSection'
-import { ProgramStatusSection } from '../components/ProgramStatusSection'
+import { ClientPageHeader } from '../components/client/ClientUI'
+import { CUSTOMER_PATHS } from '../lib/paths'
 
-type MyProfilePageProps = {
-  /** Adónde lleva "Volver": el Inicio del Cliente (§3.10.3). */
-  homePath: string
-}
+const MENU = [
+  { label: 'Mis datos', to: CUSTOMER_PATHS.profileData, icon: ICONS.user },
+  { label: 'Mi nivel', to: CUSTOMER_PATHS.profileLevel, icon: ICONS.star },
+  { label: 'Notificaciones', to: CUSTOMER_PATHS.profileNotifications, icon: ICONS.bell },
+  { label: 'Ayuda', to: CUSTOMER_PATHS.profileHelp, icon: ICONS.help },
+] as const
 
-/** Mi perfil del Cliente (§3.10.3 a §3.10.5 y §3.11.1). */
-export function MyProfilePage({ homePath }: MyProfilePageProps) {
-  const session = useSession()
+const menuItem = cn(
+  clientStyles.card,
+  'flex min-h-16 w-full items-center gap-4 px-5 text-left text-lg font-semibold transition-[transform,box-shadow,background-color] duration-150',
+  'hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700',
+)
+
+export function MyProfilePage() {
   const profile = useMyProfile()
   const [confirmingLogout, setConfirmingLogout] = useState(false)
 
   return (
-    <div className="mx-auto w-full max-w-xl">
-      <div className="mb-6 flex items-center gap-3">
-        <Link
-          to={homePath}
-          aria-label="Volver"
-          title="Volver"
-          className={cn(buttonVariants({ variant: 'secondary' }), 'size-12 min-h-0 p-0')}
-        >
-          <Icon d={ICONS.arrowLeft} className="size-4" />
-        </Link>
-        <h2 className="text-2xl leading-tight text-ink">Mi perfil</h2>
-      </div>
+    <div className={cn(clientStyles.page, 'md:max-w-xl lg:max-w-xl')}>
+      <ClientPageHeader title="Mi perfil" />
 
-      <div className="rounded-3xl border border-accent-200 bg-surface px-5 py-6 shadow-sm sm:px-8">
+      <div className="grid justify-items-center gap-1 text-center">
+        <span
+          aria-hidden="true"
+          className="mb-2 grid size-28 place-items-center rounded-full bg-gradient-to-br from-accent-500 to-accent-700 text-white shadow-lg shadow-accent-800/25 ring-4 ring-white"
+        >
+          <Icon d={ICONS.user} className="size-14" />
+        </span>
         {profile.isPending ? (
           <StatusText>Cargando…</StatusText>
         ) : profile.isError ? (
           <Alert variant="error">{profile.error.message}</Alert>
         ) : (
           <>
-            <MyDataSection profile={profile.data} />
-            <ContactForm profile={profile.data} />
-            <ProgramStatusSection />
-            <ProfileSection title="Cambiar contraseña">
-              <ChangePasswordForm
-                idPrefix="profile-password"
-                email={session.user?.email ?? profile.data.email}
-                documentNumber={profile.data.documentNumber}
-                hints={{
-                  newPassword:
-                    'Entre 8 y 64 caracteres. No puede ser tu mail ni tu número de documento.',
-                }}
-              />
-            </ProfileSection>
+            <p className="font-heading text-2xl font-bold text-ink">
+              {profile.data.firstName} {profile.data.lastName}
+            </p>
+            <p className="text-neutral-600">{profile.data.email}</p>
           </>
         )}
-
-        {/* Al final del perfil (§3.10.3): se puede cerrar sesión aunque el perfil no cargue */}
-        <div className="mt-7 border-t border-accent-100 pt-7">
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full"
-            onClick={() => setConfirmingLogout(true)}
-          >
-            <Icon d={ICONS.logOut} className="size-4" />
-            Cerrar sesión
-          </Button>
-        </div>
       </div>
+
+      <nav aria-label="Mi perfil">
+        <ul className="grid gap-3">
+          {MENU.map((item) => (
+            <li key={item.to}>
+              <Link to={item.to} className={cn(menuItem, 'group text-ink')}>
+                <Icon d={item.icon} className="size-6 shrink-0" />
+                <span className="flex-1">{item.label}</span>
+                <Icon
+                  d={ICONS.chevronRight}
+                  className="size-5 text-neutral-500 transition-transform group-hover:translate-x-0.5"
+                />
+              </Link>
+            </li>
+          ))}
+          <li>
+            <button
+              type="button"
+              onClick={() => setConfirmingLogout(true)}
+              className={cn(menuItem, 'cursor-pointer text-negative hover:bg-[#fdecea]')}
+            >
+              <Icon d={ICONS.logOut} className="size-6 shrink-0" />
+              Cerrar sesión
+            </button>
+          </li>
+        </ul>
+      </nav>
 
       {confirmingLogout && <LogoutDialog onCancel={() => setConfirmingLogout(false)} />}
     </div>

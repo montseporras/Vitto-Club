@@ -1,70 +1,120 @@
-// Pestaña Canjes del Cliente (prototipo ClienteCanjes): el control "Mis canjes / Catálogo" alterna
-// entre Mis canjes (US-45) y el catálogo de recompensas (US-39). Por defecto abre Mis canjes; con
-// `?vista=catalogo` abre el Catálogo ("Ver catálogo completo" del Inicio).
-// "Cancelar canje" abre el diálogo de US-43.
-import { useState } from 'react'
-import { useSearchParams } from 'react-router'
-import type { MyRedemption } from '@/features/redemptions'
-import { cn } from '@/shared/lib/utils'
-import { CancelRedemptionDialog } from '../components/CancelRedemptionDialog'
-import { MyRedemptions } from '../components/MyRedemptions'
-import { RewardsCatalog } from '../components/RewardsCatalog'
-import { CATALOG_REDEMPTIONS_VIEW, REDEMPTIONS_VIEW_PARAM } from '../components/redemptions-view'
+// "Mis canjes" del Cliente (diseño V2): las misiones del mes con su avance (S5 §3.3.2) y los
+// últimos canjes (US-45). "Ver historial" abre el Historial en la pestaña Canjes, con todos los
+// canjes, los filtros y la opción de cancelar.
+import { Link } from 'react-router'
+import { useMyRedemptions } from '@/features/redemptions'
+import { useMyCatalog } from '@/features/rewards'
+import { EmptyState } from '@/shared/components/feedback/EmptyState'
+import { StatusText } from '@/shared/components/feedback/StatusText'
+import { Alert } from '@/shared/components/ui/Alert'
+import { Icon } from '@/shared/components/ui/Icon'
+import { ICONS } from '@/shared/components/ui/icons'
+import { clientStyles } from '@/styles/ui'
+import { useMyMissions } from '../api/my-account.queries'
+import { ClientPageHeader, SectionHeader } from '../components/client/ClientUI'
+import { MissionCard } from '../components/client/MissionCard'
+import { RedemptionRow } from '../components/client/RedemptionRow'
+import { CUSTOMER_PATHS, historyRedemptionsPath } from '../lib/paths'
 
-type View = 'catalog' | 'mine'
-
-const VIEWS: { value: View; label: string }[] = [
-  { value: 'mine', label: 'Mis canjes' },
-  { value: 'catalog', label: 'Catálogo' },
-]
+const RECENT_COUNT = 5
+const MISSIONS_PREVIEW = 3
+const RECENT_FILTERS = { order: 'desc' } as const
 
 export function MyRedemptionsPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const view: View =
-    searchParams.get(REDEMPTIONS_VIEW_PARAM) === CATALOG_REDEMPTIONS_VIEW ? 'catalog' : 'mine'
-  // Canje que el Cliente está por cancelar (diálogo "Cancelar canje")
-  const [cancelling, setCancelling] = useState<MyRedemption | null>(null)
+  const missions = useMyMissions()
+  const redemptions = useMyRedemptions(RECENT_FILTERS)
+  // Las fotos salen del catálogo: el canje guarda solo el nombre y los puntos de la recompensa
+  const catalog = useMyCatalog('ALL')
+  const photoOf = (rewardId: number) =>
+    catalog.data?.items.find((reward) => reward.id === rewardId)?.photoUrl ?? null
 
-  const changeView = (next: View) =>
-    setSearchParams(
-      next === 'catalog' ? { [REDEMPTIONS_VIEW_PARAM]: CATALOG_REDEMPTIONS_VIEW } : {},
-      { replace: true },
-    )
+  // Primero las que se pueden seguir sumando
+  const activeMissions = (missions.data ?? []).filter((mission) => mission.status !== 'EXPIRED')
+  const recent = redemptions.data?.items.slice(0, RECENT_COUNT) ?? []
 
   return (
-    <div className="mx-auto grid w-full max-w-xl gap-4">
-      <div
-        role="group"
-        aria-label="Canjes"
-        className="flex rounded-full border border-orange-200 bg-white p-0.75"
-      >
-        {VIEWS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={view === option.value}
-            onClick={() => changeView(option.value)}
-            className={cn(
-              // 48 px de alto: en el celular el dedo no apunta como el cursor
-              'min-h-12 flex-1 cursor-pointer rounded-full px-3 py-2 font-heading text-sm font-bold transition-colors',
-              'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700',
-              view === option.value ? 'bg-accent-700 text-white' : 'text-accent-800',
-            )}
-          >
-            {option.label}
-          </button>
-        ))}
+    <div className={clientStyles.page}>
+      <ClientPageHeader title="Mis canjes" />
+
+      <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+        <section aria-labelledby="missions-title" className={clientStyles.section}>
+          <SectionHeader
+            id="missions-title"
+            icon={ICONS.target}
+            title="Misiones disponibles"
+            action={
+              <Link
+                to={CUSTOMER_PATHS.missions}
+                aria-label="Ver todas las misiones"
+                title="Ver todas las misiones"
+                className={clientStyles.iconLink}
+              >
+                <Icon d={ICONS.externalLink} className="size-5" />
+              </Link>
+            }
+          />
+          {missions.isPending ? (
+            <StatusText className="py-4 text-center">Cargando…</StatusText>
+          ) : missions.isError ? (
+            <Alert variant="error">No pudimos cargar tus misiones.</Alert>
+          ) : activeMissions.length === 0 ? (
+            <EmptyState
+              compact
+              icon={ICONS.target}
+              title="No hay misiones este mes"
+              description="¡Volvé pronto! Cuando haya una nueva, la vas a ver acá con tu avance."
+            />
+          ) : (
+            <ul className="grid gap-3">
+              {activeMissions.slice(0, MISSIONS_PREVIEW).map((mission) => (
+                <li key={mission.id}>
+                  <MissionCard mission={mission} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section aria-labelledby="recent-redemptions-title" className={clientStyles.section}>
+          <SectionHeader
+            id="recent-redemptions-title"
+            icon={ICONS.ticket}
+            title="Mis canjes"
+            action={
+              <Link to={historyRedemptionsPath()} className={clientStyles.outlineLink}>
+                Ver historial
+              </Link>
+            }
+          />
+          {redemptions.isPending ? (
+            <StatusText className="py-4 text-center">Cargando…</StatusText>
+          ) : redemptions.isError ? (
+            <Alert variant="error">No pudimos cargar tus canjes.</Alert>
+          ) : recent.length === 0 ? (
+            <EmptyState
+              compact
+              icon={ICONS.ticket}
+              title="Tus puntos están esperando"
+              description="Todavía no canjeaste nada. Elegí una recompensa y canjeala en un toque."
+              action={
+                <Link to={CUSTOMER_PATHS.rewards} className={clientStyles.outlineLink}>
+                  Ver recompensas
+                </Link>
+              }
+            />
+          ) : (
+            <ul className={clientStyles.list}>
+              {recent.map((redemption) => (
+                <RedemptionRow
+                  key={redemption.id}
+                  redemption={redemption}
+                  photoUrl={photoOf(redemption.reward.id)}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
-
-      {view === 'catalog' ? (
-        <RewardsCatalog onViewMyRedemptions={() => changeView('mine')} />
-      ) : (
-        <MyRedemptions onCancel={setCancelling} onBrowseCatalog={() => changeView('catalog')} />
-      )}
-
-      {cancelling && (
-        <CancelRedemptionDialog redemption={cancelling} onClose={() => setCancelling(null)} />
-      )}
     </div>
   )
 }
