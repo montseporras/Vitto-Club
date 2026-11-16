@@ -4,6 +4,7 @@ import { FormField } from '@/shared/components/forms/FormField'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
+import { cn } from '@/shared/lib/utils'
 import { useDebounce } from '@/shared/hooks/useDebounce'
 import { formatInteger, formatMoney } from '@/shared/lib/numbers'
 import { consumptionError } from '../api/consumption-errors'
@@ -50,11 +51,11 @@ export function RegisterConsumptionForm({
   const parsed = parseAmount(rawAmount)
   const validAmount = 'amount' in parsed ? parsed.amount : null
   const debouncedAmount = useDebounce(validAmount, 300)
-  const preview = useConsumptionPreview(customerId, debouncedAmount)
-  const previewData =
-    preview.data && validAmount !== null && preview.data.amount === validAmount
-      ? preview.data
-      : null
+  const preview = useConsumptionPreview(customerId, debouncedAmount, true)
+  // Con un monto válido se muestra la última vista previa, aunque sea de otro monto: el recuadro no
+  // desaparece mientras se recalcula, solo se atenúa (recalculating). Sin monto válido, se oculta.
+  const previewData = validAmount !== null ? (preview.data ?? null) : null
+  const recalculating = previewData !== null && previewData.amount !== validAmount
   const previewError = validAmount !== null && preview.isError ? preview.error : null
   const error = previewError ? consumptionError(previewError) : null
 
@@ -105,8 +106,12 @@ export function RegisterConsumptionForm({
 
       {previewData && (
         <div
-          className="mt-5 rounded-2xl border border-accent-200 bg-accent-50/60 px-5 py-3.5"
+          className={cn(
+            'mt-5 rounded-2xl border border-accent-200 bg-accent-50/60 px-5 py-3.5 transition-opacity duration-150',
+            recalculating && 'opacity-60',
+          )}
           aria-live="polite"
+          aria-busy={recalculating || undefined}
         >
           <p className="text-sm font-bold text-accent-800">
             Se acreditan {formatInteger(previewData.totalPoints)} puntos
@@ -115,6 +120,12 @@ export function RegisterConsumptionForm({
           </p>
           <p className="text-[13px] text-ink">
             Saldo resultante: <strong>{formatInteger(previewData.balanceAfter)} pts</strong>
+            {recalculating && (
+              <span className="ml-2 inline-flex items-center gap-1.5 text-xs text-neutral-600">
+                <span className="size-3 rounded-full border-2 border-accent-200 border-t-accent-700 motion-safe:animate-vitto-spin" />
+                Recalculando…
+              </span>
+            )}
           </p>
         </div>
       )}

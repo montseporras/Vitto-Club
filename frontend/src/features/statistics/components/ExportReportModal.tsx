@@ -60,7 +60,7 @@ export function ExportReportModal({ month, onClose }: ExportReportModalProps) {
     );
 
   return (
-    <Modal title="Exportar reporte PDF" onClose={onClose} className="max-w-[460px]">
+    <Modal title="Exportar reporte PDF" onClose={onClose} className="max-w-[460px] rounded-lg">
       <p className="text-sm text-[#5c5249]">
         Elegí las secciones que van en el reporte de <strong>{monthLabel(month)}</strong>.
       </p>
@@ -69,16 +69,16 @@ export function ExportReportModal({ month, onClose }: ExportReportModalProps) {
         <span className="text-xs font-bold tracking-[0.04em] text-[#7e3e20] uppercase">
           Secciones
         </span>
-        <Button type="button" variant="ghost" size="sm" onClick={toggleAll}>
+        <Button type="button" variant="ghost" className="h-[30px] rounded px-2.5 text-[13px]" onClick={toggleAll}>
           {allSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-[#f6d0b1]">
+      <div className="overflow-hidden rounded-md border border-[#f6d0b1]">
         {REPORT_SECTIONS.map((section, index) => (
           <label
             key={section.value}
-            className="flex cursor-pointer items-center gap-2.5 bg-white even:bg-[#fdf3e9] px-3.5 py-2.5 text-[15px] last:border-b-0"
+            className="flex cursor-pointer items-center gap-2.5 border-b border-[#fbe6d4] bg-white px-3.5 py-2.5 text-[15px] last:border-b-0"
           >
             <input
               ref={index === 0 ? firstCheckbox : undefined}
@@ -108,12 +108,13 @@ export function ExportReportModal({ month, onClose }: ExportReportModalProps) {
       )}
 
       <FormActions>
-        <Button type="button" variant="secondary" onClick={onClose}>
+        <Button type="button" variant="secondary" className="rounded" onClick={onClose}>
           Cancelar
         </Button>
         <Button
-          loading={download.isPending}
           type="button"
+          className="rounded"
+          loading={download.isPending}
           onClick={onDownload}
           disabled={noneSelected || download.isPending}
           aria-describedby={noneSelected ? 'export-report-error' : undefined}

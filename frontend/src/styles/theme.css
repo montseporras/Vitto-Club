@@ -47,6 +47,8 @@
   --font-heading: 'Playfair Display', Georgia, serif;
   /* Números destacados (saldo, totales): la misma sans en negrita, con cifras de ancho fijo */
   --font-number: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  /* Números de Estadísticas y reportes: sans de cifras parejas, más formal */
+  --font-stats: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   --radius: 10px;
 
@@ -58,12 +60,24 @@
   --animate-vitto-steam: vitto-steam 2.8s ease-in-out infinite;
   --animate-vitto-rise: vitto-rise 450ms ease-out both;
   --animate-vitto-spin: vitto-spin 0.9s linear infinite;
+  --animate-vitto-tip: vitto-tip 2s ease-out forwards;
   --animate-vitto-bar: vitto-bar 1.2s ease-out both;
   --animate-vitto-fade-in: vitto-fade-in 200ms ease-out both;
   --animate-vitto-load: vitto-load 2.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
   --animate-vitto-pop-in: vitto-pop-in 140ms ease-out both;
   --animate-vitto-shrink: vitto-shrink 3.5s linear both;
 
+  @keyframes vitto-tip {
+    0%,
+    75% {
+      visibility: visible;
+      opacity: 1;
+    }
+    100% {
+      visibility: hidden;
+      opacity: 0;
+    }
+  }
   @keyframes vitto-bar {
     from {
       width: 0%;

@@ -11,6 +11,7 @@ import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Button } from '@/shared/components/ui/Button'
 import { Card, CardTitle } from '@/shared/components/ui/Card'
 import { Input } from '@/shared/components/ui/Input'
+import { SoonBadge } from '@/shared/components/ui/SoonBadge'
 import { useUpdateMessagesConfiguration } from '../api/notifications.queries'
 import { draftFrom, sameDraft, type MessagesDraft } from '../lib/messages-draft'
 import { AUTOMATIC_WHEN, NOTIFICATION_TYPES } from '../lib/notification-labels'
@@ -144,6 +145,7 @@ export function MessagesTab({ saved, draft, onDraftChange, children }: MessagesT
             >
               <div className="min-w-[220px] flex-1">
                 <strong className="text-[15px]">{NOTIFICATION_TYPES[message.type]}</strong>
+                {message.type === 'MISSION' && <SoonBadge className="ml-2 rounded align-middle" />}
                 <p className="text-[13px] text-[#7a6e63]">{AUTOMATIC_WHEN[message.type]}</p>
                 <p className="mt-0.5 text-[13px] text-[#2b1a10]">Asunto: {message.subject}</p>
               </div>

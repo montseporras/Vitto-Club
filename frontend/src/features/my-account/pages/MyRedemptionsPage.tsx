@@ -9,6 +9,8 @@ import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert } from '@/shared/components/ui/Alert'
 import { ICONS } from '@/shared/components/ui/icons'
+import { SoonBadge } from '@/shared/components/ui/SoonBadge'
+import { FEATURES } from '@/shared/lib/features'
 import { clientStyles } from '@/styles/ui'
 import { useMyMissions } from '../api/my-account.queries'
 import { CancelRedemptionDialog } from '../components/CancelRedemptionDialog'
@@ -22,18 +24,71 @@ const RECENT_COUNT = 5
 const MISSIONS_PREVIEW = 2
 const RECENT_FILTERS = { order: 'desc' } as const
 
+// Diseño de las misiones, guardado para cuando se habiliten (FEATURES.missions)
+function MissionsPreviewSection() {
+  const missions = useMyMissions()
+  // Primero las que se pueden seguir sumando
+  const activeMissions = (missions.data ?? []).filter((mission) => mission.status !== 'EXPIRED')
+
+  return (
+    <section aria-labelledby="missions-title" className={clientStyles.section}>
+      <SectionHeader
+        id="missions-title"
+        icon={ICONS.target}
+        title="Misiones disponibles"
+        action={
+          <Link to={CUSTOMER_PATHS.missions} className={clientStyles.outlineLink}>
+            Ver todas
+          </Link>
+        }
+      />
+      {missions.isPending ? (
+        <StatusText className="py-4 text-center">Cargando…</StatusText>
+      ) : missions.isError ? (
+        <Alert variant="error">No pudimos cargar tus misiones.</Alert>
+      ) : activeMissions.length === 0 ? (
+        <EmptyState
+          compact
+          icon={ICONS.target}
+          title="No hay misiones este mes"
+          description="¡Volvé pronto! Cuando haya una nueva, la vas a ver acá con tu avance."
+        />
+      ) : (
+        <ul className="grid gap-3">
+          {activeMissions.slice(0, MISSIONS_PREVIEW).map((mission) => (
+            <li key={mission.id}>
+              <MissionCard mission={mission} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+function MissionsSoonSection() {
+  return (
+    <section aria-labelledby="missions-title" className={clientStyles.section}>
+      <SectionHeader id="missions-title" icon={ICONS.target} title="Misiones disponibles" action={<SoonBadge />} />
+      <EmptyState
+        compact
+        icon={ICONS.target}
+        title="Próximamente"
+        description="Muy pronto vas a poder completar misiones del mes y sumar puntos extra."
+      />
+    </section>
+  )
+}
+
 export function MyRedemptionsPage() {
   const [showingCode, setShowingCode] = useState<MyRedemption | null>(null)
   const [cancelling, setCancelling] = useState<MyRedemption | null>(null)
-  const missions = useMyMissions()
   const redemptions = useMyRedemptions(RECENT_FILTERS)
   // Las fotos salen del catálogo: el canje guarda solo el nombre y los puntos de la recompensa
   const catalog = useMyCatalog('ALL')
   const photoOf = (rewardId: number) =>
     catalog.data?.items.find((reward) => reward.id === rewardId)?.photoUrl ?? null
 
-  // Primero las que se pueden seguir sumando
-  const activeMissions = (missions.data ?? []).filter((mission) => mission.status !== 'EXPIRED')
   const recent = redemptions.data?.items.slice(0, RECENT_COUNT) ?? []
 
   return (
@@ -41,38 +96,7 @@ export function MyRedemptionsPage() {
       <ClientPageHeader title="Mis canjes" />
 
       <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-        <section aria-labelledby="missions-title" className={clientStyles.section}>
-          <SectionHeader
-            id="missions-title"
-            icon={ICONS.target}
-            title="Misiones disponibles"
-            action={
-              <Link to={CUSTOMER_PATHS.missions} className={clientStyles.outlineLink}>
-                Ver todas
-              </Link>
-            }
-          />
-          {missions.isPending ? (
-            <StatusText className="py-4 text-center">Cargando…</StatusText>
-          ) : missions.isError ? (
-            <Alert variant="error">No pudimos cargar tus misiones.</Alert>
-          ) : activeMissions.length === 0 ? (
-            <EmptyState
-              compact
-              icon={ICONS.target}
-              title="No hay misiones este mes"
-              description="¡Volvé pronto! Cuando haya una nueva, la vas a ver acá con tu avance."
-            />
-          ) : (
-            <ul className="grid gap-3">
-              {activeMissions.slice(0, MISSIONS_PREVIEW).map((mission) => (
-                <li key={mission.id}>
-                  <MissionCard mission={mission} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        {FEATURES.missions ? <MissionsPreviewSection /> : <MissionsSoonSection />}
 
         <section aria-labelledby="recent-redemptions-title" className={clientStyles.section}>
           <SectionHeader

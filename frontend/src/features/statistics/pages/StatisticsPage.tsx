@@ -7,7 +7,6 @@ import { StatusText } from '@/shared/components/feedback/StatusText';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
 import { Icon } from '@/shared/components/ui/Icon';
-import { AdminPanel } from '@/shared/components/ui/AdminPanel';
 import { formatInteger } from '@/shared/lib/numbers';
 import {
   useClientsStatistics,
@@ -115,25 +114,45 @@ export function StatisticsPage() {
   }
 
   return (
-    <AdminPanel
-      title="Estadísticas y reportes"
-      titleSuffix={
-        <span className="inline-flex items-center rounded-full bg-[#fde4d8] px-2.5 py-[3px] text-xs font-semibold whitespace-nowrap text-[#8a3d1c]">
-          Período: {monthLabel(month)}
-          {isCurrentMonth(selected, today) && ' (mes en curso)'}
-        </span>
-      }
-      subtitle="Elegí el mes y el año para ver los números del programa."
-      actions={
-        <div className="flex items-end gap-2.5">
-          <PeriodSelectors selected={selected} today={today} onChange={changePeriod} />
-          <Button ref={exportButton} type="button" onClick={() => setExportOpen(true)}>
-            <Icon d={STATISTICS_ICONS.download} className="size-[18px]" />
-            Exportar reporte PDF
-          </Button>
-        </div>
-      }
-    >
+    <section className="flex min-h-[calc(100svh-8rem)] w-full flex-col gap-3.5">
+      {/* Encabezado: título, período, selectores y pestañas en una sola tarjeta */}
+      <div className="rounded-lg border border-[#eee6dd] bg-[#fdfbf9] px-5 pt-5 pb-3 shadow-[0_1px_3px_rgba(126,62,32,0.08),0_10px_24px_-14px_rgba(126,62,32,0.18)]">
+        <header className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="mb-2 flex flex-wrap items-center gap-3">
+              <h2 className="text-xl leading-tight font-extrabold text-[#5a2a14]">
+                Estadísticas y reportes
+              </h2>
+              <span className="inline-flex items-center rounded border border-[#efdfd2] bg-[#fdf0e8] px-2.5 py-[3px] text-xs font-semibold whitespace-nowrap text-[#8a3d1c]">
+                Período: {monthLabel(month)}
+                {isCurrentMonth(selected, today) && ' (mes en curso)'}
+              </span>
+            </div>
+            <p className="text-[13px] text-[#7a6e63]">
+              Elegí el mes y el año para ver los números del programa.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-end gap-2.5">
+            <PeriodSelectors selected={selected} today={today} onChange={changePeriod} />
+            <Button
+              ref={exportButton}
+              type="button"
+              className="h-9 rounded bg-[#8e3f1d] shadow-none hover:bg-[#7a3418] max-sm:w-full"
+              onClick={() => setExportOpen(true)}
+            >
+              <Icon d={STATISTICS_ICONS.download} className="size-[18px]" />
+              Exportar reporte PDF
+            </Button>
+          </div>
+        </header>
+
+        {tabs && !isError && !isLoading && clients.data && (
+          <div className="mt-4 border-t border-[#f1ebe4] pt-3">
+            <StatisticsTabs tabs={tabs} selected={tab} onSelect={setTab} />
+          </div>
+        )}
+      </div>
+
       {isError ? (
         <Alert variant="error">
           <p>
@@ -150,35 +169,32 @@ export function StatisticsPage() {
       ) : isLoading || !tabs || !clients.data ? (
         <StatusText>Cargando…</StatusText>
       ) : (
-        <div className="flex flex-1 flex-col">
-          <StatisticsTabs tabs={tabs} selected={tab} onSelect={setTab} />
-          <div
-            id="statistics-panel"
-            role="tabpanel"
-            aria-labelledby={`statistics-tab-${tab}`}
-            className="flex flex-1 flex-col"
-          >
-            {tab === 'clients' && (
-              <ClientsTab
-                data={clients.data}
-                month={month}
-                conversionMonth={conversionMonth}
-                onSelectConversionMonth={setConversionMonth}
-              />
-            )}
-            {tab === 'consumptions' && consumptions.data && (
-              <ConsumptionsTab data={consumptions.data} />
-            )}
-            {tab === 'points' && points.data && (
-              <PointsTab data={points.data} selected={selected} today={today} />
-            )}
-            {tab === 'program' && program.data && (
-              <ProgramTab data={program.data} selected={selected} today={today} />
-            )}
-          </div>
+        <div
+          id="statistics-panel"
+          role="tabpanel"
+          aria-labelledby={`statistics-tab-${tab}`}
+          className="flex flex-1 flex-col"
+        >
+          {tab === 'clients' && (
+            <ClientsTab
+              data={clients.data}
+              month={month}
+              conversionMonth={conversionMonth}
+              onSelectConversionMonth={setConversionMonth}
+            />
+          )}
+          {tab === 'consumptions' && consumptions.data && (
+            <ConsumptionsTab data={consumptions.data} />
+          )}
+          {tab === 'points' && points.data && (
+            <PointsTab data={points.data} selected={selected} today={today} />
+          )}
+          {tab === 'program' && program.data && (
+            <ProgramTab data={program.data} selected={selected} today={today} />
+          )}
         </div>
       )}
       {exportOpen && <ExportReportModal month={month} onClose={closeExport} />}
-    </AdminPanel>
+    </section>
   );
 }

@@ -80,7 +80,7 @@ export function AdminLayout() {
   const [activeSection, setActiveSection] = useState<Section>(SECTIONS[0]);
 
   return (
-    <div className="flex min-h-svh flex-col">
+    <div className="vc-staff flex min-h-svh flex-col">
       <AppHeader area="Administración" showBack={false}>
         {/* El Administrador también opera el mostrador: acceso directo a lo que ve el Cajero */}
         <Link to={PATHS.cashier.root} className={appHeaderStyles.action}>
@@ -104,15 +104,15 @@ export function AdminLayout() {
       </AppHeader>
 
       {/* Igual que el mostrador: el menú pegado a la izquierda y el contenido en el espacio que sobra */}
-      <div className="flex w-full flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:gap-8 lg:py-8">
-        <aside className="lg:shrink-0">
+      <div className="flex w-full flex-1 gap-3 px-4 py-6 sm:gap-5 sm:px-6 lg:gap-8 lg:py-8">
+        <aside className="shrink-0">
           <SideNav
             label="Opciones de administración"
             title="Menú de administración"
             items={NAV}
             storageKey="vitto:menu-admin"
             collapsibleFrom="(min-width: 64rem)"
-            className="lg:sticky lg:top-24"
+            className="sticky top-24"
           />
         </aside>
 

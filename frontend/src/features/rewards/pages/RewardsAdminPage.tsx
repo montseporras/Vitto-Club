@@ -8,6 +8,7 @@ import { Badge } from '@/shared/components/ui/Badge'
 import { Button } from '@/shared/components/ui/Button'
 import { DeleteButton } from '@/shared/components/ui/DeleteButton'
 import { Modal } from '@/shared/components/ui/Modal'
+import { FilterBar, FilterCell } from '@/shared/components/ui/FilterBar'
 import { FilterSelect } from '@/shared/components/ui/FilterSelect'
 import { ICONS } from '@/shared/components/ui/icons'
 import { Input } from '@/shared/components/ui/Input'
@@ -119,14 +120,8 @@ export function RewardsAdminPage() {
           </Button>
         }
       >
-        <div className="flex flex-wrap items-stretch rounded-xl border border-[#f6d0b1] bg-white">
-          <div className="flex min-w-0 flex-[1.4_1_220px] flex-col justify-center gap-0.5 px-3.5 py-2">
-            <label
-              htmlFor="reward-search"
-              className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#7e3e20]"
-            >
-              Buscar
-            </label>
+        <FilterBar onSubmit={(event) => event.preventDefault()} aria-label="Filtros de recompensas">
+          <FilterCell label="Buscar" htmlFor="reward-search" flex="1.4 1 220px" divider={false}>
             <Input
               id="reward-search"
               type="search"
@@ -139,32 +134,20 @@ export function RewardsAdminPage() {
                 setPage(1)
               }}
             />
-          </div>
-          <div className="flex min-w-0 flex-[1_1_180px] flex-col justify-center gap-0.5 border-l border-[#f6d0b1] px-3.5 py-2">
-            <label
-              htmlFor="reward-status"
-              className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#7e3e20]"
-            >
-              Estado
-            </label>
+          </FilterCell>
+          <FilterCell label="Estado" htmlFor="reward-status" flex="1 1 180px">
             <FilterSelect
               id="reward-status"
               variant="bar"
               value={status}
               options={STATUS_OPTIONS}
               onChange={(value) => {
-  setStatus(value as RewardListStatus | '')
-  setPage(1)
-}}
+                setStatus(value as RewardListStatus | '')
+                setPage(1)
+              }}
             />
-          </div>
-          <div className="flex min-w-0 flex-[1_1_180px] flex-col justify-center gap-0.5 border-l border-[#f6d0b1] px-3.5 py-2">
-            <label
-              htmlFor="reward-order"
-              className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#7e3e20]"
-            >
-              Orden
-            </label>
+          </FilterCell>
+          <FilterCell label="Orden" htmlFor="reward-order" flex="1 1 180px">
             <FilterSelect
               id="reward-order"
               variant="bar"
@@ -175,8 +158,8 @@ export function RewardsAdminPage() {
                 setPage(1)
               }}
             />
-          </div>
-        </div>
+          </FilterCell>
+        </FilterBar>
 
         <div ref={areaRef} className="mt-5" aria-live="polite">
           {rewards.isPending && <StatusText>Cargando recompensas…</StatusText>}
