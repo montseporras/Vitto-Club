@@ -1,7 +1,8 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { toArgentinaDateString } from '../../shared/time/argentina-date.js';
 import { resolveCompletedPeriod } from '../domain/completed-period.js';
-import type { Mission } from '../domain/mission.js';
+import { MissionsClaimService } from './missions-claim.service.js';
+import { MISSION_NOT_FOUND_MESSAGE, type Mission } from '../domain/mission.js';
 import {
   EMPTY_EDIT_MESSAGE,
   isEmptyEdit,
@@ -27,8 +28,9 @@ export const MISSION_NAME_IN_USE = {
   code: 'MISSION_NAME_IN_USE',
 } as const;
 
-// §3.1.4 a §3.1.7: una dada de baja tampoco existe para el Administrador. Sin code (§5).
-export const MISSION_NOT_FOUND_MESSAGE = 'No existe la misión.';
+// §3.1.4 a §3.1.7: una dada de baja tampoco existe para el Administrador. Vive en el dominio para que
+// MissionsClaimService lo use sin importar este archivo (evita una importación circular).
+export { MISSION_NOT_FOUND_MESSAGE };
 
 // §3.1.5: el motivo de las asignaciones que vencen al dar de baja la misión
 export const DELETED_MISSION_EXPIRATION_REASON = 'Misión dada de baja';
@@ -49,6 +51,7 @@ export class MissionsService {
   constructor(
     private readonly missionRepository: MissionRepository,
     private readonly customerMissionRepository: CustomerMissionRepository,
+    private readonly claims: MissionsClaimService,
   ) {}
 
   // US-28 (§3.1.3): crea la misión en ACTIVE. Corre dentro de la transacción de quien llama (el
@@ -99,8 +102,9 @@ export class MissionsService {
   }
 
   // US-29 (§3.1.5, S5-20). Corre dentro de la transacción de quien llama (AuditService.capture): bloquea
-  // la misión, vence las En progreso del mes con "Misión dada de baja" y la pasa a DELETED. Las
-  // Completadas sin recompensa quedan igual. Una dada de baja o que no existe da 404, también si se
+  // la misión, vence las En progreso del mes con "Misión dada de baja", reclama solas las Completadas con
+  // recompensa y la pasa a DELETED. Las Completadas sin recompensa quedan igual. Los
+  // MISSION_REWARD_CLAIMED quedan antes que el MISSION_DELETED, que escribe quien llama al final. Una dada de baja o que no existe da 404, también si se
   // elimina dos veces (CA-29.6).
   async delete(id: number, now: Date = new Date()): Promise<MissionDeletionResult> {
     const current = await this.missionRepository.lockNotDeletedForUpdate(id);
@@ -113,10 +117,14 @@ export class MissionsService {
       DELETED_MISSION_EXPIRATION_REASON,
       now,
     );
-    // PENDIENTE de US-31 (opción b, decisión de Jazmín): las Completadas con recompensa del mes se
-    // tienen que reclamar solas acá (Sistema), con reclamar(customerMission, por) de US-31 y un
-    // MISSION_REWARD_CLAIMED por cada una. Mientras no exista, quedan Completadas y claimed es 0.
-    const claimed = 0;
+    // S5-5 y S5-20: nadie pierde una recompensa ganada. Las Completadas con recompensa del mes se
+    // reclaman solas (Sistema, "Reclamada por: Automático"), cada una con su MISSION_REWARD_CLAIMED, con
+    // reclamar() de US-31 (se completó en la rama de US-31, a pedido de Jazmín).
+    const completedWithReward = await this.customerMissionRepository.lockCompletedWithReward(id, currentMonth);
+    for (const customerMissionId of completedWithReward) {
+      await this.claims.reclamar(customerMissionId, 'SYSTEM', { now });
+    }
+    const claimed = completedWithReward.length;
 
     const mission = await this.missionRepository.markDeleted(id, now);
     return { mission, expired, claimed };

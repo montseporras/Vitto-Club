@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import type { CustomerMission as PrismaCustomerMissionRecord } from '@prisma/client';
 import { PrismaTransactionRunner } from '../../prisma/prisma-transaction-runner.js';
 import type { MissionObjective } from '../domain/mission.js';
+import type { ClaimedBy } from '../domain/mission-claim.js';
 import {
   CompletedCustomerMission,
   CustomerMissionRepository,
+  CustomerMissionView,
   InProgressCustomerMission,
+  MissionCustomer,
 } from '../domain/port/customer-mission.repository.js';
 
 // period es DATE (día 1 del mes): se guarda como la medianoche UTC de ese día
@@ -17,6 +21,32 @@ const fromTime = (time: string | null): Date | null => (time ? new Date(`1970-01
 // claimed_by solo admite CUSTOMER o SYSTEM (CHECK de §3.15)
 const toClaimedBy = (value: string | null): CompletedCustomerMission['claimedBy'] =>
   value === 'CUSTOMER' || value === 'SYSTEM' ? value : null;
+
+type RecordWithMission = PrismaCustomerMissionRecord & {
+  mission: { id: number; name: string; description: string | null };
+};
+
+const MISSION_SELECT = { select: { id: true, name: true, description: true } } as const;
+
+function toView(record: RecordWithMission): CustomerMissionView {
+  return {
+    id: record.id,
+    mission: record.mission,
+    customerId: record.customerId,
+    period: record.period.toISOString().slice(0, 7),
+    objectiveType: record.objectiveType,
+    target: record.target.toNumber(),
+    daysOfWeek: record.daysOfWeek.length === 0 ? null : record.daysOfWeek,
+    timeFrom: toTime(record.timeFrom),
+    timeTo: toTime(record.timeTo),
+    rewardPoints: record.rewardPoints,
+    progress: record.progress.toNumber(),
+    status: record.status,
+    completedAt: record.completedAt,
+    claimedAt: record.claimedAt,
+    claimedBy: toClaimedBy(record.claimedBy),
+  };
+}
 
 // BASE-5: implementación de Prisma de CustomerMissionRepository. Usa el client de
 // PrismaTransactionRunner para participar de la transacción ambiente, igual que los demás módulos.
@@ -122,6 +152,40 @@ export class CustomerMissionsPrismaRepository implements CustomerMissionReposito
     await this.prisma.customerMission.update({
       where: { id },
       data: completedAt ? { progress, status: 'COMPLETED', completedAt } : { progress },
+    });
+  }
+
+  async lockById(id: number): Promise<CustomerMissionView | null> {
+    await this.prisma.$queryRaw`SELECT id FROM customer_missions WHERE id = ${id} FOR UPDATE`;
+    const record = await this.prisma.customerMission.findUnique({ where: { id }, include: { mission: MISSION_SELECT } });
+    return record ? toView(record) : null;
+  }
+
+  // Los CHECK de §3.15 piden claimed_at y claimed_by solo en CLAIMED
+  async markClaimed(id: number, by: ClaimedBy, now: Date): Promise<CustomerMissionView> {
+    const record = await this.prisma.customerMission.update({
+      where: { id },
+      data: { status: 'CLAIMED', claimedAt: now, claimedBy: by },
+      include: { mission: MISSION_SELECT },
+    });
+    return toView(record);
+  }
+
+  async lockCompletedWithReward(missionId: number, period: string): Promise<number[]> {
+    const rows = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM customer_missions
+      WHERE mission_id = ${missionId} AND period = ${fromMonth(period)}
+        AND status = 'COMPLETED' AND reward_points IS NOT NULL
+      ORDER BY id
+      FOR UPDATE
+    `;
+    return rows.map((row) => row.id);
+  }
+
+  async findCustomer(customerId: number): Promise<MissionCustomer | null> {
+    return await this.prisma.customer.findUnique({
+      where: { id: customerId },
+      select: { id: true, firstName: true, lastName: true, documentType: true, documentNumber: true, isActive: true },
     });
   }
 }

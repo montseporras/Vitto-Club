@@ -93,3 +93,6 @@ export function sameObjective(a: MissionObjective, b: MissionObjective): boolean
     a.rewardPoints === b.rewardPoints
   );
 }
+
+// §3.1.4 a §3.1.7 y §3.3.3: una dada de baja (o una asignación ajena) tampoco existe. Sin code (§5).
+export const MISSION_NOT_FOUND_MESSAGE = 'No existe la misión.';

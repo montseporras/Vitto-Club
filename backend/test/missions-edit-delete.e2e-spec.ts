@@ -115,6 +115,7 @@ describe('Detalle, editar y dar de baja misiones (e2e)', () => {
     await prisma.employee.deleteMany();
     await prisma.customerStatusChange.deleteMany();
     await prisma.customer.deleteMany();
+    await prisma.loyaltyProgramConfiguration.deleteMany();
   }
 
   const newAuditRows = () =>
@@ -567,7 +568,11 @@ describe('Detalle, editar y dar de baja misiones (e2e)', () => {
   });
 
   describe('PATCH /api/misiones/:id/eliminar — CA-29.4', () => {
-    it('En progreso del mes → Vencida "Misión dada de baja"; las demás quedan; { expired, claimed }', async () => {
+    it('En progreso del mes → Vencida; Completada con recompensa → Reclamada (Sistema); { expired, claimed }', async () => {
+      // El reclamo automático acredita puntos: hace falta la configuración vigente
+      await prisma.loyaltyProgramConfiguration.create({
+        data: { version: 1, baseAmount: 1000, pointsAwarded: 10, silverMinPoints: 300, goldMinPoints: 800, isActive: true },
+      });
       const mission = await seedMission();
       const customers = await Promise.all([1, 2, 3, 4, 5, 6].map(() => seedCustomer()));
       const inProgress = await Promise.all(
@@ -591,7 +596,7 @@ describe('Detalle, editar y dar de baja misiones (e2e)', () => {
 
       const res = await asAdmin.patch(`/${mission.id}/eliminar`).expect(200);
 
-      expect(res.body).toEqual({ expired: 2, claimed: 0 });
+      expect(res.body).toEqual({ expired: 2, claimed: 1 });
       for (const { id } of inProgress) {
         const expired = await prisma.customerMission.findUniqueOrThrow({ where: { id } });
         expect(expired).toMatchObject({ status: 'EXPIRED', expirationReason: 'Misión dada de baja' });
@@ -601,24 +606,36 @@ describe('Detalle, editar y dar de baja misiones (e2e)', () => {
         where: { id: { in: [completedWithReward.id, completedWithoutReward.id, claimed.id, previous.id] } },
         orderBy: { id: 'asc' },
       });
-      // Opción b (decisión de Jazmín): la Completada con recompensa queda Completada hasta que exista
-      // el reclamo de US-31
-      expect(statuses.map((item) => item.status)).toEqual(['COMPLETED', 'COMPLETED', 'CLAIMED', 'IN_PROGRESS']);
+      // S5-5: la Completada con recompensa se reclama sola (Sistema); la sin recompensa queda Completada
+      expect(statuses.map((item) => item.status)).toEqual(['CLAIMED', 'COMPLETED', 'CLAIMED', 'IN_PROGRESS']);
+      expect(statuses[0].claimedBy).toBe('SYSTEM');
+      const movements = await prisma.pointsMovement.findMany({ where: { type: 'MISSION_REWARD' } });
+      expect(movements.map((movement) => [movement.customerId, movement.points, movement.customerMissionId])).toEqual([
+        [customers[2].id, 50, completedWithReward.id],
+      ]);
 
       const saved = await prisma.mission.findUniqueOrThrow({ where: { id: mission.id } });
       expect(saved.status).toBe('DELETED');
       expect(saved.deletedAt).toBeInstanceOf(Date);
 
       const rows = await newAuditRows();
-      expect(rows).toHaveLength(1);
+      expect(rows.map((row) => row.actionCode)).toEqual(['MISSION_REWARD_CLAIMED', 'MISSION_DELETED']);
       expect(rows[0]).toMatchObject({
+        actorType: 'SYSTEM',
+        affectedCustomerId: customers[2].id,
+        details: expect.arrayContaining([{ label: 'Reclamada por', value: 'Automático' }]),
+      });
+      expect(rows[1]).toMatchObject({
         actorType: 'EMPLOYEE',
         actorAccountId: admin.account.id,
         module: 'MISSIONS',
         actionCode: 'MISSION_DELETED',
         description: 'Dio de baja la misión "Vení 3 veces"',
         affectedCustomerId: null,
-        details: [{ label: 'Vencidas', value: '2' }],
+        details: [
+          { label: 'Vencidas', value: '2' },
+          { label: 'Reclamadas automáticamente', value: '1' },
+        ],
       });
     });
 

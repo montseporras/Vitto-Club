@@ -134,8 +134,8 @@ export class MissionsController {
   }
 
   // PATCH /api/misiones/:id/eliminar -> CA-29.4 a CA-29.6 (§3.1.5). Sin body. En una sola transacción:
-  // las En progreso del mes vencen, la misión pasa a DELETED y se audita MISSION_DELETED. El reclamo
-  // automático de las Completadas con recompensa queda para US-31 (ver MissionsService.delete).
+  // las En progreso del mes vencen, las Completadas con recompensa se reclaman solas (cada una con su
+  // MISSION_REWARD_CLAIMED), la misión pasa a DELETED y se audita MISSION_DELETED.
   @Patch(':id/eliminar')
   async delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserData) {
     const result = await this.auditService.capture(

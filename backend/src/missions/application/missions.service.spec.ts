@@ -3,6 +3,7 @@ import { DomainError } from '../domain/errors/domain.error.js';
 import type { Mission } from '../domain/mission.js';
 import { CustomerMissionRepository } from '../domain/port/customer-mission.repository.js';
 import { MissionRepository } from '../domain/port/mission.repository.js';
+import { MissionsClaimService } from './missions-claim.service.js';
 import {
   currentArgentinaMonth,
   DELETED_MISSION_EXPIRATION_REASON,
@@ -48,12 +49,15 @@ function setup(options: { nameInUse?: boolean; found?: Mission | null; hasAssign
     existsForPeriod: jest.fn().mockResolvedValue(options.hasAssignments ?? false),
     expireInProgress: jest.fn().mockResolvedValue(2),
     findCompleted: jest.fn().mockResolvedValue([]),
+    lockCompletedWithReward: jest.fn().mockResolvedValue([]),
   };
+  const claims = { reclamar: jest.fn().mockResolvedValue({}) };
   const service = new MissionsService(
     missions as unknown as MissionRepository,
     customerMissions as unknown as CustomerMissionRepository,
+    claims as unknown as MissionsClaimService,
   );
-  return { missions, customerMissions, service };
+  return { missions, customerMissions, claims, service };
 }
 
 const input = {
@@ -180,22 +184,29 @@ describe('MissionsService.update (§3.1.4)', () => {
 });
 
 describe('MissionsService.delete (§3.1.5)', () => {
-  it('vence las En progreso del mes con "Misión dada de baja" y la da de baja', async () => {
-    const { missions, customerMissions, service } = setup();
+  it('vence las En progreso del mes, reclama solas las Completadas con recompensa y la da de baja', async () => {
+    const { missions, customerMissions, claims, service } = setup();
+    customerMissions.lockCompletedWithReward.mockResolvedValue([41, 42]);
 
     const result = await service.delete(1, NOW);
 
     expect(missions.lockNotDeletedForUpdate).toHaveBeenCalledWith(1);
     expect(customerMissions.expireInProgress).toHaveBeenCalledWith(1, '2026-11', DELETED_MISSION_EXPIRATION_REASON, NOW);
+    expect(customerMissions.lockCompletedWithReward).toHaveBeenCalledWith(1, '2026-11');
+    expect(claims.reclamar.mock.calls).toEqual([
+      [41, 'SYSTEM', { now: NOW }],
+      [42, 'SYSTEM', { now: NOW }],
+    ]);
     expect(missions.markDeleted).toHaveBeenCalledWith(1, NOW);
-    expect(result).toMatchObject({ expired: 2, claimed: 0 });
+    expect(result).toMatchObject({ expired: 2, claimed: 2 });
   });
 
   it('no existe o ya está dada de baja → 404 sin tocar nada', async () => {
-    const { customerMissions, missions, service } = setup({ found: null });
+    const { customerMissions, missions, claims, service } = setup({ found: null });
 
     await expect(service.delete(1, NOW)).rejects.toBeInstanceOf(NotFoundException);
     expect(customerMissions.expireInProgress).not.toHaveBeenCalled();
+    expect(claims.reclamar).not.toHaveBeenCalled();
     expect(missions.markDeleted).not.toHaveBeenCalled();
   });
 });

@@ -2,6 +2,8 @@
 // las operaciones que necesita. US-29: saber si la misión tiene clientes en un mes, vencer las En
 // progreso al darla de baja y listar quiénes la completaron. US-30: asignar y llevar el avance.
 import type { MissionObjective } from '../mission.js';
+import type { ClaimedBy, CustomerMissionStatus } from '../mission-claim.js';
+import type { AffectedCustomerSnapshot } from '../../../audit/domain/audit-entries.js';
 
 // US-30: una asignación En progreso, con su snapshot (S5-20)
 export type InProgressCustomerMission = MissionObjective & {
@@ -9,6 +11,24 @@ export type InProgressCustomerMission = MissionObjective & {
   missionId: number;
   progress: number;
 };
+
+// US-31: una asignación completa, para reclamar y para responder el tipo CustomerMission (§3.3.1)
+export type CustomerMissionView = MissionObjective & {
+  id: number;
+  mission: { id: number; name: string; description: string | null };
+  customerId: number;
+  // YYYY-MM
+  period: string;
+  progress: number;
+  status: CustomerMissionStatus;
+  completedAt: Date | null;
+  claimedAt: Date | null;
+  claimedBy: ClaimedBy | null;
+};
+
+// US-31: el cliente de la asignación, leído por Prisma (missions no importa customers), para saber si
+// está dado de baja y para el bloque "Cliente afectado" de la auditoría
+export type MissionCustomer = AffectedCustomerSnapshot & { isActive: boolean };
 
 export type CompletedCustomerMission = {
   customerMissionId: number;
@@ -50,4 +70,15 @@ export abstract class CustomerMissionRepository {
 
   // US-30: guarda el avance; `completedAt` la pasa a COMPLETED
   abstract saveProgress(id: number, progress: number, completedAt: Date | null): Promise<void>;
+
+  // US-31 (§3.3.3): bloquea la asignación (SELECT … FOR UPDATE). null si no existe
+  abstract lockById(id: number): Promise<CustomerMissionView | null>;
+
+  // US-31: Reclamada con claimedAt y claimedBy
+  abstract markClaimed(id: number, by: ClaimedBy, now: Date): Promise<CustomerMissionView>;
+
+  // US-29 (§3.1.5): las Completadas con recompensa de la misión en el mes, bloqueadas, para reclamarlas solas
+  abstract lockCompletedWithReward(missionId: number, period: string): Promise<number[]>;
+
+  abstract findCustomer(customerId: number): Promise<MissionCustomer | null>;
 }

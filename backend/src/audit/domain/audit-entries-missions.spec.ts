@@ -4,7 +4,9 @@ import {
   formatMissionReward,
   formatMissionValidity,
   missionCreatedEntry,
+  missionCompletedEntry,
   missionDeletedEntry,
+  missionRewardClaimedEntry,
   missionUpdatedEntry,
   type MissionAuditEditSnapshot,
 } from './audit-entries.js';
@@ -148,5 +150,56 @@ describe('missionDeletedEntry() — US-29', () => {
     });
     expect(missionDeletedEntry(admin, 'Vení 3 veces', 0, 0).details).toEqual([]);
     expect(missionDeletedEntry(admin, 'Vení 3 veces', 3, 0).details).toEqual([{ label: 'Vencidas', value: '3' }]);
+  });
+});
+
+const customer = { id: 7, firstName: 'Martín', lastName: 'Gómez', documentType: 'DNI' as const, documentNumber: '41987654' };
+
+describe('missionCompletedEntry() — US-30', () => {
+  it('Sistema, con el cliente afectado: Misión · Objetivo · Período', () => {
+    const entry = missionCompletedEntry(customer, { name: 'Vení 3 veces', objectiveType: 'CONSUMPTION_COUNT', target: 3, period: '2026-11' });
+    expect(entry).toMatchObject({
+      actor: { type: 'SYSTEM' },
+      module: 'MISSIONS',
+      action: 'MISSION_COMPLETED',
+      description: 'Completó la misión "Vení 3 veces" de Martín Gómez',
+      affectedCustomer: { customerId: 7, name: 'Martín Gómez', documentType: 'DNI', documentNumber: '41987654' },
+      details: [
+        { label: 'Misión', value: 'Vení 3 veces' },
+        { label: 'Objetivo', value: '3 consumos' },
+        { label: 'Período', value: 'Noviembre 2026' },
+      ],
+    });
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+});
+
+describe('missionRewardClaimedEntry() — US-31', () => {
+  it('siempre Sistema: Misión · Puntos otorgados · Saldo resultante · Reclamada por', () => {
+    const entry = missionRewardClaimedEntry(customer, { missionName: 'Vení 3 veces', points: 50, balanceAfter: 1550, claimedBy: 'CUSTOMER' });
+    expect(entry).toMatchObject({
+      actor: { type: 'SYSTEM' },
+      module: 'MISSIONS',
+      action: 'MISSION_REWARD_CLAIMED',
+      description: 'Reclamó la recompensa de la misión "Vení 3 veces" de Martín Gómez',
+      affectedCustomer: { customerId: 7 },
+      details: [
+        { label: 'Misión', value: 'Vení 3 veces' },
+        { label: 'Puntos otorgados', value: '50 pts' },
+        { label: 'Saldo resultante', value: '1.550 pts' },
+        { label: 'Reclamada por', value: 'Cliente' },
+      ],
+    });
+    expect(() => assertValidAuditEntry(entry)).not.toThrow();
+  });
+
+  it('automático; saldo negativo si había deuda', () => {
+    const entry = missionRewardClaimedEntry(customer, { missionName: 'X', points: 50, balanceAfter: -350, claimedBy: 'SYSTEM' });
+    expect(entry.details).toEqual(
+      expect.arrayContaining([
+        { label: 'Saldo resultante', value: '-350 pts' },
+        { label: 'Reclamada por', value: 'Automático' },
+      ]),
+    );
   });
 });

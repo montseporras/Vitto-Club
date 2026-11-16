@@ -1106,3 +1106,25 @@ export function missionCompletedEntry(
     ],
   };
 }
+
+// MISSION_REWARD_CLAIMED (§3.14.2, US-31): siempre a nombre del Sistema, también cuando reclama el
+// Cliente (el Cliente nunca es actor). Misión · Puntos otorgados · Saldo resultante · Reclamada por:
+// Cliente / Automático. Valores: decisión de Jazmín (el saldo con formatNumber, "-350 pts" si queda deuda).
+export function missionRewardClaimedEntry(
+  customer: AffectedCustomerSnapshot,
+  claim: { missionName: string; points: number; balanceAfter: number; claimedBy: 'CUSTOMER' | 'SYSTEM' },
+): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'MISSIONS',
+    action: 'MISSION_REWARD_CLAIMED',
+    description: `Reclamó la recompensa de la misión "${claim.missionName}" de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    details: [
+      { label: 'Misión', value: claim.missionName },
+      { label: 'Puntos otorgados', value: `${formatNumber(claim.points)} pts` },
+      { label: 'Saldo resultante', value: `${formatNumber(claim.balanceAfter)} pts` },
+      { label: 'Reclamada por', value: claim.claimedBy === 'CUSTOMER' ? 'Cliente' : 'Automático' },
+    ],
+  };
+}
