@@ -149,6 +149,37 @@ export class MissionsPrismaRepository implements MissionRepository {
     return records.map(toDomain);
   }
 
+  // Una por una, con FOR UPDATE: una edición de US-29 que llegue a la vez espera y lee el resultado
+  async applyPendingChanges(month: string): Promise<number> {
+    const rows = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM missions
+      WHERE status <> 'DELETED' AND pending_changes IS NOT NULL
+        AND pending_changes->>'appliesFrom' <= ${month}
+      ORDER BY id
+      FOR UPDATE
+    `;
+    let applied = 0;
+    for (const { id } of rows) {
+      const record = await this.prisma.mission.findUniqueOrThrow({ where: { id } });
+      const pending = toDomain(record).pendingChanges;
+      if (!pending) continue;
+      await this.prisma.mission.update({
+        where: { id },
+        data: {
+          objectiveType: pending.objectiveType,
+          target: pending.target,
+          daysOfWeek: pending.daysOfWeek ?? [],
+          timeFrom: fromTime(pending.timeFrom),
+          timeTo: fromTime(pending.timeTo),
+          rewardPoints: pending.rewardPoints,
+          pendingChanges: Prisma.DbNull,
+        },
+      });
+      applied += 1;
+    }
+    return applied;
+  }
+
   // §3.1.2. La fase se filtra con el mes actual (§2.2): RUNNING = empezó y no terminó; UPCOMING =
   // empieza más adelante; FINISHED = su último mes ya pasó.
   async list(filters: MissionListFilters): Promise<MissionListResult> {

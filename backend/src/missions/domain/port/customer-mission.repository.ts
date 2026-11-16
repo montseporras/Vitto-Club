@@ -81,4 +81,15 @@ export abstract class CustomerMissionRepository {
   abstract lockCompletedWithReward(missionId: number, period: string): Promise<number[]>;
 
   abstract findCustomer(customerId: number): Promise<MissionCustomer | null>;
+
+  // US-32 (§3.4): las asignaciones de meses ya terminados (period < `currentMonth`, YYYY-MM) que el
+  // proceso de fin de mes tiene que resolver: En progreso, y Completadas con recompensa
+  abstract findPendingBefore(currentMonth: string): Promise<{ id: number; period: string }[]>;
+
+  // US-32: bloquea la asignación con FOR UPDATE SKIP LOCKED. null si otra transacción la tiene (la
+  // resuelve esa) o si ya no existe
+  abstract lockForExpiration(id: number): Promise<CustomerMissionView | null>;
+
+  // US-32: En progreso → Vencida con su motivo
+  abstract expire(id: number, reason: string, now: Date): Promise<void>;
 }

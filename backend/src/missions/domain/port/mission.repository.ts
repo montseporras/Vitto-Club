@@ -48,4 +48,8 @@ export abstract class MissionRepository {
 
   // US-30 (§3.2): las misiones en curso en un mes YYYY-MM (ACTIVE y el mes dentro de su vigencia)
   abstract findRunningInMonth(month: string): Promise<Mission[]>;
+
+  // US-32 (§3.4): aplica a la misión los pendingChanges que ya rigen (appliesFrom <= `month`, YYYY-MM):
+  // el objetivo pendiente pasa a ser el vigente y pendingChanges queda en null. Devuelve cuántas cambió.
+  abstract applyPendingChanges(month: string): Promise<number>;
 }

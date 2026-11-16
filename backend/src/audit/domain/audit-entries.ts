@@ -1128,3 +1128,22 @@ export function missionRewardClaimedEntry(
     ],
   };
 }
+
+// MISSIONS_EXPIRED (§3.14.2, US-32): una por corrida del proceso de fin de mes, a nombre del Sistema.
+// Período · Misiones vencidas · Recompensas reclamadas automáticamente, siempre las tres filas (decisión de
+// Jazmín). Si la corrida resolvió más de un mes, "Período" los nombra a todos: "Octubre 2026, Noviembre
+// 2026" (decisión de Jazmín).
+export function missionsExpiredEntry(run: { periods: string[]; expired: number; claimed: number }): AuditEntryInput {
+  const periods = [...new Set(run.periods)].sort().map(formatMonthCapitalized).join(', ');
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'MISSIONS',
+    action: 'MISSIONS_EXPIRED',
+    description: 'Venció las misiones del mes',
+    details: [
+      { label: 'Período', value: periods },
+      { label: 'Misiones vencidas', value: formatNumber(run.expired) },
+      { label: 'Recompensas reclamadas automáticamente', value: formatNumber(run.claimed) },
+    ],
+  };
+}

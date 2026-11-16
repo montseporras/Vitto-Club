@@ -188,4 +188,33 @@ export class CustomerMissionsPrismaRepository implements CustomerMissionReposito
       select: { id: true, firstName: true, lastName: true, documentType: true, documentNumber: true, isActive: true },
     });
   }
+
+  async findPendingBefore(currentMonth: string): Promise<{ id: number; period: string }[]> {
+    const records = await this.prisma.customerMission.findMany({
+      where: {
+        period: { lt: fromMonth(currentMonth) },
+        OR: [{ status: 'IN_PROGRESS' }, { status: 'COMPLETED', rewardPoints: { not: null } }],
+      },
+      select: { id: true, period: true },
+      orderBy: [{ period: 'asc' }, { id: 'asc' }],
+    });
+    return records.map((record) => ({ id: record.id, period: record.period.toISOString().slice(0, 7) }));
+  }
+
+  async lockForExpiration(id: number): Promise<CustomerMissionView | null> {
+    const rows = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM customer_missions WHERE id = ${id} FOR UPDATE SKIP LOCKED
+    `;
+    if (rows.length === 0) return null;
+    const record = await this.prisma.customerMission.findUnique({ where: { id }, include: { mission: MISSION_SELECT } });
+    return record ? toView(record) : null;
+  }
+
+  // Los CHECK de §3.15 piden expired_at y expiration_reason solo en EXPIRED
+  async expire(id: number, reason: string, now: Date): Promise<void> {
+    await this.prisma.customerMission.update({
+      where: { id },
+      data: { status: 'EXPIRED', expiredAt: now, expirationReason: reason },
+    });
+  }
 }
