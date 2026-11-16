@@ -27,7 +27,7 @@ export function PointsKpiCard({
   return (
     <div
       title={tooltip}
-      className="min-w-0 bg-[#fdfbf9] px-5 py-4 [@media(max-height:820px)]:py-2.5"
+      className="min-w-0 rounded-lg border border-[#eee6dd] bg-[#fdfbf9] shadow-[0_1px_3px_rgba(126,62,32,0.08),0_10px_24px_-14px_rgba(126,62,32,0.18)] px-5 py-4 [@media(max-height:820px)]:py-2.5"
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span

@@ -114,7 +114,7 @@ export function StatisticsPage() {
   }
 
   return (
-    <section className="flex w-full flex-col gap-3.5">
+    <section className="flex min-h-[calc(100svh-8rem)] w-full flex-col gap-3.5">
       {/* Encabezado: título, período, selectores y pestañas en una sola tarjeta */}
       <div className="rounded-lg border border-[#eee6dd] bg-[#fdfbf9] px-5 pt-5 pb-3 shadow-[0_1px_3px_rgba(126,62,32,0.08),0_10px_24px_-14px_rgba(126,62,32,0.18)]">
         <header className="flex flex-wrap items-start justify-between gap-3">

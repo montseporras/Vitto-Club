@@ -33,7 +33,7 @@ export function ClientsKpiCard({
   return (
     <div
       title={tooltip}
-      className="min-w-0 bg-[#fdfbf9] px-5 py-4 [@media(max-height:820px)]:py-2.5"
+      className="min-w-0 rounded-lg border border-[#eee6dd] bg-[#fdfbf9] shadow-[0_1px_3px_rgba(126,62,32,0.08),0_10px_24px_-14px_rgba(126,62,32,0.18)] px-5 py-4 [@media(max-height:820px)]:py-2.5"
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-[10.5px] font-bold tracking-[0.06em] text-[#8a3d1c] uppercase">

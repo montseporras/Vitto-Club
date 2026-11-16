@@ -40,7 +40,7 @@ export function ConsumptionsTab({ data }: { data: ConsumptionsStatistics }) {
 
   return (
     <div className="mt-3.5 flex flex-1 flex-col gap-3.5">
-      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-[#eee6dd] bg-[#eee6dd] shadow-[0_1px_3px_rgba(126,62,32,0.08),0_10px_24px_-14px_rgba(126,62,32,0.18)] min-[900px]:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3.5 min-[900px]:grid-cols-2">
         <StatTile
           label="Consumos"
           value={formatInteger(data.total.count)}

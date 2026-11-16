@@ -10,7 +10,7 @@ interface StatTileProps {
 
 export function StatTile({ label, value, help, color }: StatTileProps) {
   return (
-    <div className="relative bg-[#fdfbf9] py-4 pr-5 pl-6 [@media(max-height:820px)]:py-2.5">
+    <div className="relative overflow-hidden rounded-lg border border-[#eee6dd] bg-[#fdfbf9] shadow-[0_1px_3px_rgba(126,62,32,0.08),0_10px_24px_-14px_rgba(126,62,32,0.18)] py-4 pr-5 pl-6 [@media(max-height:820px)]:py-2.5">
       <span
         aria-hidden="true"
         className="absolute inset-y-0 left-0 w-1.5"

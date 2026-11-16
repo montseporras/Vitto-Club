@@ -17,7 +17,7 @@ export function TopRewardsCard({ topRewards, redemptionsUsed }: TopRewardsCardPr
   const used = formatInteger(redemptionsUsed);
 
   return (
-    <section className="min-w-0 rounded-lg border border-[#eee6dd] bg-[#fdfbf9] px-5 py-4 shadow-[0_1px_3px_rgba(126,62,32,0.08),0_10px_24px_-14px_rgba(126,62,32,0.18)] [@media(max-height:820px)]:px-[18px] [@media(max-height:820px)]:py-2">
+    <section className="min-w-0 flex-1 rounded-lg border border-[#eee6dd] bg-[#fdfbf9] px-5 py-4 shadow-[0_1px_3px_rgba(126,62,32,0.08),0_10px_24px_-14px_rgba(126,62,32,0.18)] [@media(max-height:820px)]:px-[18px] [@media(max-height:820px)]:py-2">
       <div className="flex flex-wrap items-start justify-between gap-2 border-b border-[#f1ebe4] pb-3">
         <div>
           <h3 className="text-lg leading-tight font-bold text-[#2b1a10] [@media(max-height:820px)]:text-base">
