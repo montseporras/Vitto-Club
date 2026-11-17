@@ -163,7 +163,10 @@ export class RewardsPrismaRepository implements RewardRepository {
     const [records, total] = await Promise.all([
       this.prisma.reward.findMany({
         where,
-        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+        orderBy:
+          filters.order === 'OLDEST'
+            ? [{ createdAt: 'asc' }, { id: 'asc' }]
+            : [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: (filters.page - 1) * filters.limit,
         take: filters.limit,
       }),

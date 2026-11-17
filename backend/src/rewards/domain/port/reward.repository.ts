@@ -7,10 +7,15 @@ import type { RewardStatusState } from '../reward-status-change.js';
 export const LISTABLE_REWARD_STATUSES = ['ACTIVE', 'DISABLED', 'INACTIVE'] as const;
 export type ListableRewardStatus = (typeof LISTABLE_REWARD_STATUSES)[number];
 
+// S5-45: el filtro "Orden" del listado, por fecha de alta. Más recientes es el valor por defecto.
+export const REWARD_LIST_ORDERS = ['RECENT', 'OLDEST'] as const;
+export type RewardListOrder = (typeof REWARD_LIST_ORDERS)[number];
+
 export type RewardListFilters = {
   // Parte del nombre, sin distinguir mayúsculas ni tildes
   q?: string;
   status?: ListableRewardStatus;
+  order: RewardListOrder;
   page: number;
   limit: number;
 };
@@ -56,7 +61,7 @@ export abstract class RewardRepository {
   // US-34: la guarda en ACTIVE
   abstract create(reward: NewReward): Promise<Reward>;
 
-  // US-34 (§3.2.1): nunca devuelve DELETED. Orden updatedAt desc. `now` decide qué canjes
+  // US-34 (§3.2.1): nunca devuelve DELETED. Orden por fecha de alta (S5-45). `now` decide qué canjes
   // CONFIRMED siguen vigentes.
   abstract list(filters: RewardListFilters, now: Date): Promise<RewardListResult>;
 

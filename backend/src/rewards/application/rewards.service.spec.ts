@@ -364,7 +364,7 @@ describe('RewardsService', () => {
   });
 
   it('list pasa los filtros y la hora al repositorio', async () => {
-    const filters = { q: 'cafe', status: 'ACTIVE' as const, page: 2, limit: 10 };
+    const filters = { q: 'cafe', status: 'ACTIVE' as const, order: 'RECENT' as const, page: 2, limit: 10 };
 
     await service.list(filters, NOW);
 

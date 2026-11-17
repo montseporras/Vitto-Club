@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
-import { LISTABLE_REWARD_STATUSES } from '../../domain/port/reward.repository.js';
-import type { ListableRewardStatus } from '../../domain/port/reward.repository.js';
+import { LISTABLE_REWARD_STATUSES, REWARD_LIST_ORDERS } from '../../domain/port/reward.repository.js';
+import type { ListableRewardStatus, RewardListOrder } from '../../domain/port/reward.repository.js';
 
 // GET /recompensas (§3.2.1). Sin status = todas menos DELETED; status=DELETED → 400. Mensajes por
 // defecto de class-validator, como GET /consumos (decisión de Jazmín: el contrato no los cita).
@@ -14,6 +14,11 @@ export class ListRewardsQueryDto {
   @IsOptional()
   @IsIn(LISTABLE_REWARD_STATUSES)
   status?: ListableRewardStatus;
+
+  // S5-45: por fecha de alta. Sin `order` = más recientes primero
+  @IsOptional()
+  @IsIn(REWARD_LIST_ORDERS)
+  order: RewardListOrder = 'RECENT';
 
   @IsOptional()
   @Type(() => Number)
