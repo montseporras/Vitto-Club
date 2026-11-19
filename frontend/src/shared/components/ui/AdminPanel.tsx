@@ -28,7 +28,7 @@ export function AdminPanel({
   return (
     <section
       className={cn(
-        'flex min-h-[calc(100svh-8rem)] w-full flex-col rounded-[18px] border border-[#f0d9c4] bg-white p-[22px] shadow-[0_10px_24px_-18px_rgba(122,58,29,0.45)]',
+        'flex min-h-[calc(100svh-8rem)] w-full flex-col rounded-[18px] border border-[#f0d9c4] bg-white p-4 shadow-[0_10px_24px_-18px_rgba(122,58,29,0.45)] sm:p-[22px]',
         className,
       )}
     >

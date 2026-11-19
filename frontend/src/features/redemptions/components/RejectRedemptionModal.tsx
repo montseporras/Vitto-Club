@@ -56,6 +56,8 @@ export function RejectRedemptionModal({ redemption, customer, onClose }: RejectR
   } = useForm<RejectRedemptionFormInput, unknown, RejectRedemptionFormOutput>({
     resolver: zodResolver(rejectRedemptionSchema),
     defaultValues: { reason: '' },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   })
 
   const pickChip = (label: string) => {
@@ -110,7 +112,7 @@ export function RejectRedemptionModal({ redemption, customer, onClose }: RejectR
               type="button"
               variant={chip === label ? 'primary' : 'secondary'}
               aria-pressed={chip === label}
-              className="h-8 px-3 text-xs"
+              size="sm"
               onClick={() => pickChip(label)}
             >
               {label}
@@ -146,7 +148,7 @@ export function RejectRedemptionModal({ redemption, customer, onClose }: RejectR
             Volver
           </Button>
           {!finalError && (
-            <Button type="submit" disabled={reject.isPending}>
+            <Button loading={reject.isPending} type="submit" disabled={reject.isPending}>
               Rechazar
             </Button>
           )}

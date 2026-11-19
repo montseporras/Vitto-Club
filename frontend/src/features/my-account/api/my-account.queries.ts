@@ -10,6 +10,7 @@ import type {
 import {
   changeMyPassword,
   claimMissionReward,
+  getMyMissions,
   getMyPoints,
   getMyProfile,
   updateMyProfile,
@@ -33,6 +34,13 @@ export const useClaimMissionReward = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: myAccountKeys.all }),
   })
 }
+
+/** Misiones del mes del Cliente (S5 §3.3.2). Las muestran "Mis canjes" y "Misiones". */
+export const useMyMissions = (period?: string) =>
+  useQuery({
+    queryKey: myAccountKeys.missions(period),
+    queryFn: () => getMyMissions(period),
+  })
 
 /**
  * Guarda los datos de contacto. Si cambió el correo, cambió también el de

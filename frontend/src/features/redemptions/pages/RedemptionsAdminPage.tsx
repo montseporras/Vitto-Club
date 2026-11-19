@@ -1,13 +1,15 @@
 // Pantalla Canjes del Administrador (US-45, contrato §3.12.3 y prototipo GestionCanjes): filtros
 // que se aplican con "Filtrar", tabla paginada con las filas que entran en la pantalla y modal con el detalle de cada canje.
+import { ICONS } from '@/shared/components/ui/icons'
+import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { useRef, useState } from 'react'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { AdminPanel } from '@/shared/components/ui/AdminPanel'
 import { Page } from '@/shared/components/ui/Page'
 import { RangePagination } from '@/shared/components/ui/Pagination'
-import { useClampPage, useRowsThatFit } from '@/shared/hooks/useRowsThatFit'
-import { REDEMPTIONS_PAGE_SIZE } from '../api/redemptions.api'
+import { useClampPage } from '@/shared/hooks/useRowsThatFit'
+import { TABLE_PAGE_SIZE } from '@/shared/lib/pagination'
 import { useRedemptions } from '../api/redemptions.queries'
 import { AdminRedemptionFilters } from '../components/AdminRedemptionFilters'
 import { AdminRedemptionsTable } from '../components/AdminRedemptionsTable'
@@ -47,7 +49,7 @@ export function RedemptionsAdminPage() {
   // Filas por página: las que entran en la pantalla (ajustes S5-57)
   const areaRef = useRef<HTMLDivElement>(null)
   const pagerRef = useRef<HTMLElement>(null)
-  const limit = useRowsThatFit({ areaRef, pagerRef, initial: REDEMPTIONS_PAGE_SIZE })
+  const limit = TABLE_PAGE_SIZE
   const result = useRedemptions(filters, page, limit)
   useClampPage(page, setPage, result.data?.total, result.data?.limit)
   const now = useExpiryRefetch(result.data?.items, result.refetch)
@@ -105,9 +107,11 @@ export function RedemptionsAdminPage() {
           )}
 
           {data && !result.isError && data.items.length === 0 && (
-            <StatusText className="mt-1 rounded-2xl border border-dashed border-[#f6d0b1] px-4 py-7 text-center text-base text-[#5c5249]">
-              No hay canjes para los filtros seleccionados.
-            </StatusText>
+            <EmptyState
+              icon={ICONS.ticket}
+              title="No hay canjes con esos filtros"
+              description="Revisá el documento o el código, o probá con otro estado o rango de fechas."
+            />
           )}
         </div>
 

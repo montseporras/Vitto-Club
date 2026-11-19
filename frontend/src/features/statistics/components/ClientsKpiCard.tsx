@@ -33,24 +33,24 @@ export function ClientsKpiCard({
   return (
     <div
       title={tooltip}
-      className="min-w-0 rounded-2xl border border-[#f6e4da] bg-white px-5 py-4 [@media(max-height:820px)]:py-2.5"
+      className="min-w-0 rounded-lg border border-[#eee6dd] bg-[#fdfbf9] shadow-[0_1px_3px_rgba(126,62,32,0.08),0_10px_24px_-14px_rgba(126,62,32,0.18)] px-5 py-4 [@media(max-height:820px)]:py-2.5"
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-[10.5px] font-bold tracking-[0.06em] text-[#8a3d1c] uppercase">
           {title}
         </span>
-        <span className="grid size-8 place-items-center rounded-full bg-[#fde4d8]">
+        <span className="grid size-8 place-items-center rounded bg-[#efe7de]">
           <Icon d={icon} className="size-4" style={{ color: iconColor }} />
         </span>
       </div>
       {/* Todos los números de la pantalla: misma letra, en negrita y con cifras del mismo ancho */}
-      <div className="mt-1 text-[38px] leading-[1.1] font-bold tracking-[-0.01em] text-[#2b1a10] tabular-nums [@media(max-height:820px)]:text-[34px]">
+      <div className="mt-1 text-[30px] leading-[1.1] font-bold tracking-[-0.01em] text-[#2b1a10] font-stats tabular-nums [@media(max-height:820px)]:text-[26px]">
         {value}
       </div>
       <div className="mt-0.5 text-sm font-semibold text-[#8a3d1c]">{label}</div>
       <hr className="my-2.5 border-t border-[#f3e4da] [@media(max-height:820px)]:my-1" />
       {helpAsChip ? (
-        <span className="inline-flex items-center rounded-full bg-[#fde4d8] px-2.5 py-[3px] text-[11px] font-semibold text-[#8a3d1c]">
+        <span className="inline-flex items-center rounded bg-[#efe7de] px-2.5 py-[3px] text-[11px] font-semibold text-[#5c4033]">
           {help}
         </span>
       ) : (

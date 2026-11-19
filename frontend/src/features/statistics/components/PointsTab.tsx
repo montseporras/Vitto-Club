@@ -49,7 +49,7 @@ export function PointsTab({ data, selected, today }: PointsTabProps) {
       current: data.redeemed,
       before: previous.redeemed,
       help: `${formatPercent(percentOf(data.redeemed, credited))} de lo acreditado`,
-      dotColor: '#1b7f8c',
+      dotColor: '#589ea6',
       textColor: '#1b7f8c',
       pillBackground: '#dff0f2',
     },
@@ -58,7 +58,7 @@ export function PointsTab({ data, selected, today }: PointsTabProps) {
       current: data.expired,
       before: previous.expired,
       help: 'Lotes que vencieron en el mes',
-      dotColor: '#d4ae3a',
+      dotColor: '#ceb17c',
       textColor: '#9a7a17',
       pillBackground: '#f8f0d4',
     },
@@ -67,7 +67,7 @@ export function PointsTab({ data, selected, today }: PointsTabProps) {
       current: data.voided,
       before: previous.voided,
       help: 'Restados al anular consumos',
-      dotColor: '#e07a5f',
+      dotColor: '#c96856',
       textColor: '#c0573c',
       pillBackground: '#fbe3dc',
     },
@@ -75,7 +75,7 @@ export function PointsTab({ data, selected, today }: PointsTabProps) {
 
   return (
     <div className="mt-3.5 flex flex-1 flex-col gap-3.5 [@media(max-height:820px)]:mt-2.5 [@media(max-height:820px)]:gap-2.5">
-      <div className="grid grid-cols-2 gap-3.5 min-[1000px]:grid-cols-4 [@media(max-height:820px)]:gap-2.5">
+      <div className="grid grid-cols-1 gap-3.5 min-[520px]:grid-cols-2 min-[1000px]:grid-cols-4 [@media(max-height:820px)]:gap-2.5">
         {cards.map((card) => (
           <PointsKpiCard
             key={card.label}

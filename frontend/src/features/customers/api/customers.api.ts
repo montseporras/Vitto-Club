@@ -1,3 +1,4 @@
+import { TABLE_PAGE_SIZE } from '@/shared/lib/pagination'
 import { toApiError } from '@/shared/api/ApiError'
 import { http } from '@/shared/api/http'
 import type { Paginated } from '@/shared/types/pagination'
@@ -10,7 +11,7 @@ import type {
 } from '../types/customers'
 
 /** Clientes por página si la pantalla no puede calcular cuántos entran (contrato §3.8.1). */
-export const CUSTOMERS_PAGE_SIZE = 20
+export const CUSTOMERS_PAGE_SIZE = TABLE_PAGE_SIZE
 
 export async function listCustomers({
   documentType,

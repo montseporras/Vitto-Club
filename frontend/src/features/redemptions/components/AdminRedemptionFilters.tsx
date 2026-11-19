@@ -82,6 +82,7 @@ export function AdminRedemptionFilters({
           value={draft.documentNumber}
           maxLength={20}
           placeholder={draft.documentType === 'PASSPORT' ? 'AAB123456' : '38.456.123'}
+          inputMode={draft.documentType === 'PASSPORT' ? 'text' : 'numeric'}
           className={filterControlClass}
           onChange={(event) => update('documentNumber', event.target.value)}
         />
@@ -93,6 +94,7 @@ export function AdminRedemptionFilters({
           value={draft.code}
           maxLength={10}
           placeholder="K7MP2X"
+          autoCapitalize="characters"
           className={`${filterControlClass} uppercase`}
           onChange={(event) => update('code', event.target.value.toUpperCase())}
         />
@@ -143,7 +145,7 @@ export function AdminRedemptionFilters({
       </FilterCell>
 
       <FilterActions pending={hasPending}>
-        <Button type="submit" disabled={busy} className="h-9">
+        <Button type="submit" size="sm" disabled={busy}>
           <Icon d={ICONS.filter} className="size-[15px]" />
           Filtrar
         </Button>

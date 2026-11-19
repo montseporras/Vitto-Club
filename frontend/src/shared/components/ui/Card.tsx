@@ -14,7 +14,7 @@ export function Card({ className, compact, ...props }: CardProps) {
   return (
     <CardDensityContext.Provider value={compact ? 'compact' : 'default'}>
       <article
-        className={cn(cardStyles, compact && 'px-5 py-4 sm:px-5 sm:py-4', className)}
+        className={cn(cardStyles, compact && 'px-5 py-3.5 sm:px-5 sm:py-3.5', className)}
         {...props}
       />
     </CardDensityContext.Provider>
@@ -23,5 +23,5 @@ export function Card({ className, compact, ...props }: CardProps) {
 
 export function CardTitle({ className, ...props }: ComponentProps<'h3'>) {
   const compact = useContext(CardDensityContext) === 'compact'
-  return <h3 className={cn(cardTitleStyles, compact && 'text-xl', className)} {...props} />
+  return <h3 className={cn(cardTitleStyles, compact && 'font-sans text-lg font-bold', className)} {...props} />
 }

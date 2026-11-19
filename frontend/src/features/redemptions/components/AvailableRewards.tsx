@@ -39,7 +39,7 @@ export function AvailableRewards({ balance, onRedeem }: AvailableRewardsProps) {
   }
 
   return (
-    <ul className="flex flex-col divide-y divide-accent-100">
+    <ul className="flex flex-col gap-0.5 [&>li]:rounded-lg [&>li]:px-2 [&>li:nth-child(even)]:bg-accent-50/70">
       {affordable.map((reward) => (
         <li key={reward.id} className="flex items-center justify-between gap-3 py-2">
           <span>

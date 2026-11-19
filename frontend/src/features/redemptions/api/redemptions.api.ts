@@ -1,6 +1,7 @@
 // Este archivo hace las llamadas al backend de canjes: consultar (US-45, contrato §3.12),
 // confirmar (US-40, §3.7.1), usar (US-42, §3.9.1) y rechazar o cancelar (US-43, §3.10). Lo usan
 // los hooks de redemptions.queries.ts; las pantallas no lo llaman directo.
+import { TABLE_PAGE_SIZE } from '@/shared/lib/pagination'
 import { toApiError } from '@/shared/api/ApiError'
 import { http } from '@/shared/api/http'
 import type {
@@ -21,7 +22,7 @@ export const MY_REDEMPTIONS_LIMIT = 100
 
 // Filas por página de la pantalla Canjes del Administrador si no se puede calcular cuántas
 // entran en su alto (ajustes S5-57; antes §3.12.3: 10)
-export const REDEMPTIONS_PAGE_SIZE = 10
+export const REDEMPTIONS_PAGE_SIZE = TABLE_PAGE_SIZE
 
 // Mis canjes del Cliente (§3.12.1)
 export async function getMyRedemptions(

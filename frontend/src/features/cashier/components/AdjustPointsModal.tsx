@@ -14,6 +14,7 @@ import { ICONS } from '@/shared/components/ui/icons'
 import { Input } from '@/shared/components/ui/Input'
 import { Textarea } from '@/shared/components/ui/Textarea'
 import { formatInteger, formatSignedInteger } from '@/shared/lib/numbers'
+import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard'
 import { cn } from '@/shared/lib/utils'
 import { cardStyles, modalStyles, pointsToneStyles } from '@/styles/ui'
 import { useAdjustPoints, useCustomerPoints } from '../api/cashier.queries'
@@ -65,20 +66,26 @@ export function AdjustPointsModal({ customer, onClose }: AdjustPointsModalProps)
     setValue,
     clearErrors,
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<AdjustPointsFormInput, unknown, AdjustPointsFormOutput>({
     resolver: zodResolver(adjustPointsSchema),
     defaultValues: { direction: 'ADD', points: '', reason: '' },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   })
+
+  // Cerrar con datos cargados (cruz, Cancelar o Escape) pregunta antes
+  const { guard, dialog: unsavedDialog } = useUnsavedChangesGuard(isDirty)
+  const requestClose = guard(onClose)
 
   // Escape cierra el modal
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') requestClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [requestClose])
 
   const direction = useWatch({ control, name: 'direction' })
   const typedPoints = useWatch({ control, name: 'points' }).trim()
@@ -126,7 +133,7 @@ export function AdjustPointsModal({ customer, onClose }: AdjustPointsModalProps)
       <div className={cn(modalStyles.panel, 'relative max-w-3xl overflow-y-auto p-6 sm:p-8')}>
         <button
           type="button"
-          onClick={onClose}
+          onClick={requestClose}
           aria-label="Cerrar"
           title="Cerrar"
           className={modalStyles.closeIcon}
@@ -234,16 +241,17 @@ export function AdjustPointsModal({ customer, onClose }: AdjustPointsModalProps)
             )}
 
             <div className="mt-2 flex flex-wrap justify-end gap-2.5">
-              <Button type="button" variant="secondary" onClick={onClose}>
+              <Button type="button" variant="secondary" onClick={requestClose}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={insufficient || adjust.isPending}>
+              <Button loading={adjust.isPending} type="submit" disabled={insufficient || adjust.isPending}>
                 {adjust.isPending ? 'Aplicando…' : 'Confirmar ajuste'}
               </Button>
             </div>
           </form>
         )}
       </div>
+      {unsavedDialog}
     </div>,
     document.body,
   )

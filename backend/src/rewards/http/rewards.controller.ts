@@ -45,7 +45,7 @@ export class RewardsController {
   async list(@Query() query: ListRewardsQueryDto) {
     const now = new Date();
     const result = await this.rewardsService.list(
-      { q: query.q, status: query.status, page: query.page, limit: query.limit },
+      { q: query.q, status: query.status, order: query.order, page: query.page, limit: query.limit },
       now,
     );
     const today = toArgentinaDateString(now);

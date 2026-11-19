@@ -84,3 +84,17 @@ export type CustomerEmailChangeRequestedEvent = {
 // de la cookie refresh_token del pedido (la sesión que sigue abierta); sin cookie, se cierran todas.
 export const ACCOUNT_PASSWORD_CHANGED = 'account.password-changed';
 export type AccountPasswordChangedEvent = { accountId: number; currentRefreshToken?: string };
+
+// Lo emite missions cuando un consumo completa una misión (US-30, contrato S5 §3.2). EXCEPCIÓN a la
+// regla 1: se publica DESPUÉS del commit (lo llama ConsumptionsService cuando terminó la transacción),
+// porque dispara el correo MISSION de US-50 y un correo nunca deshace un consumo (§3.8.3). Si el
+// listener falla, el consumo ya quedó. `period` en YYYY-MM; rewardPoints = snapshot (null = sin recompensa).
+export const MISSION_COMPLETED = 'mission.completed';
+export type MissionCompletedEvent = {
+  customerMissionId: number;
+  missionId: number;
+  customerId: number;
+  missionName: string;
+  rewardPoints: number | null;
+  period: string;
+};
