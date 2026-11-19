@@ -52,6 +52,7 @@ export function CancelRedemptionDialog({ redemption, onClose }: CancelRedemption
         </Button>
         {!error && (
           <Button
+            loading={cancel.isPending}
             type="button"
             className="flex-1"
             disabled={cancel.isPending}

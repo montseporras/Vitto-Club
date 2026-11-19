@@ -27,6 +27,10 @@ import { DomainError as PointsDomainError } from '../../points/domain/errors/dom
 import { buildMovementDateRange, parseCustomerSearch } from '../../points/domain/movement-filters.js';
 import type { CustomerSearch, MovementDateRange } from '../../points/domain/movement-filters.js';
 import { PointsService } from '../../points/application/points.service.js';
+import {
+  MissionsProgressService,
+  type CompletedMission,
+} from '../../missions/application/missions-progress.service.js';
 
 export type PreviewInput = { customerId: number; amount: number };
 
@@ -57,6 +61,8 @@ export type RegisterResult = {
   levelBefore: Level;
   levelAfter: Level;
   levelUp: boolean;
+  // US-30 (§3.2): las misiones que este consumo completó
+  completedMissions: CompletedMission[];
 };
 
 export type VoidInput = {
@@ -127,6 +133,7 @@ export class ConsumptionsService {
     private readonly pointsService: PointsService,
     private readonly auditService: AuditService,
     private readonly transactionRunner: TransactionRunner,
+    private readonly missionsProgress: MissionsProgressService,
   ) {}
 
   // CA-21.1: vista previa. Nunca escribe nada.
@@ -244,8 +251,10 @@ export class ConsumptionsService {
 
   // CA-21.5: registrar, en una sola transacción. El servidor decide fecha/puntos/
   // responsable/equivalencia (CA-21.6): nada de eso lo recibe este método del DTO.
+  // US-30 (§3.2): el avance de las misiones va en la misma transacción, después de acreditar y de
+  // auditar el consumo; mission.completed se publica recién después del commit.
   async register(input: RegisterInput): Promise<RegisterResult> {
-    return await this.transactionRunner.run(async () => {
+    const result = await this.transactionRunner.run(async (): Promise<RegisterResult> => {
       const customer = await this.customersService.findById(input.customerId);
       this.assertCustomerActive(customer);
 
@@ -302,6 +311,14 @@ export class ConsumptionsService {
         ),
       );
 
+      const completedMissions = await this.missionsProgress.registrarAvance({
+        customerId: input.customerId,
+        consumptionId: saved.getId() as number,
+        amount: saved.getAmount(),
+        createdAt: saved.getCreatedAt(),
+        customer: toAffectedCustomer(customer),
+      });
+
       return {
         consumption: saved,
         balanceBefore: credit.balanceBefore,
@@ -309,8 +326,11 @@ export class ConsumptionsService {
         levelBefore: credit.levelBefore,
         levelAfter: credit.levelAfter,
         levelUp: credit.levelBefore !== credit.levelAfter,
+        completedMissions,
       };
     });
+    await this.missionsProgress.publicarCompletadas(result.completedMissions);
+    return result;
   }
 
   // CA-22.4 a CA-22.9: anular. El orden de chequeos importa: "ya anulado" (409) se evalúa
@@ -361,6 +381,13 @@ export class ConsumptionsService {
         consumptionId: consumption.getId() as number,
         totalPoints: consumption.getTotalPoints(),
         performedBy: { accountId: input.actor.accountId, name: voidedByName },
+      });
+
+      // US-30 (S5-21): resta el avance en las misiones del mismo mes que sigan En progreso
+      await this.missionsProgress.revertirAvance({
+        customerId: consumption.getCustomerId(),
+        amount: consumption.getAmount(),
+        createdAt: consumption.getCreatedAt(),
       });
 
       // CA-22.7: el actor es el empleado que anula. El cliente se lee para el bloque

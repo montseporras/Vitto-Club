@@ -67,9 +67,18 @@ export function SideNav({
   )
   const matches = useMediaQuery(collapsibleFrom ?? 'all')
   const canCollapse = collapsibleFrom ? matches : true
-  const collapsed = canCollapse && collapsedPref
+  // Debajo de lg (tablet y celular) el menú queda al costado pero cerrado, solo con los íconos:
+  // se abre con el botón y flota sobre el contenido, sin achicarlo
+  const wide = useMediaQuery('(min-width: 64rem)')
+  const drawer = !wide
+  const [open, setOpen] = useState(false)
+  const collapsed = drawer ? !open : canCollapse && collapsedPref
 
   const toggle = () => {
+    if (drawer) {
+      setOpen(!open)
+      return
+    }
     setCollapsedPref(!collapsed)
     saveCollapsed(storageKey, !collapsed)
   }
@@ -91,16 +100,20 @@ export function SideNav({
     </>
   )
 
-  return (
+  const nav = (
     <nav
       aria-label={label}
-      className={cn(sideNavVariants({ size, collapsed }), className)}
+      className={cn(
+        sideNavVariants({ size, collapsed }),
+        className,
+        drawer && (open ? sideNavStyles.drawerOpen : sideNavStyles.drawerClosed),
+      )}
     >
       <div className={cn(sideNavStyles.header, collapsed && sideNavStyles.headerCollapsed)}>
         <p className={cn(sideNavStyles.title, collapsed && sideNavStyles.titleCollapsed)}>
           {title}
         </p>
-        {canCollapse && (
+        {(canCollapse || drawer) && (
           <button
             type="button"
             onClick={toggle}
@@ -114,7 +127,7 @@ export function SideNav({
         )}
       </div>
 
-      <ul className={sideNavStyles.list}>
+      <ul className={sideNavStyles.list} onClick={() => setOpen(false)}>
         {items.map((item) => (
           <li key={item.id} className={sideNavStyles.entry}>
             {'disabled' in item ? (
@@ -179,5 +192,22 @@ export function SideNav({
         ))}
       </ul>
     </nav>
+  )
+
+  if (!drawer) return nav
+
+  // El lugar del menú cerrado queda reservado: al abrirlo flota encima del contenido
+  return (
+    <div className="relative h-full w-14 shrink-0">
+      {open && (
+        <button
+          type="button"
+          aria-label="Cerrar menú"
+          className={sideNavStyles.drawerBackdrop}
+          onClick={() => setOpen(false)}
+        />
+      )}
+      {nav}
+    </div>
   )
 }

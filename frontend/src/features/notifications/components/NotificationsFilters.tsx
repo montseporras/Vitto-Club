@@ -97,7 +97,7 @@ export function NotificationsFilters({ filters, onChange }: NotificationsFilters
       </FilterCell>
 
       <div className="flex items-center border-l border-[#f6d0b1] px-3.5 py-2">
-        <Button type="button" variant="ghost" className="h-[34px] px-3 text-[13px]" onClick={() => onChange(EMPTY_NOTIFICATIONS_FILTERS)}>
+        <Button type="button" variant="ghost" size="sm" onClick={() => onChange(EMPTY_NOTIFICATIONS_FILTERS)}>
           Limpiar filtros
         </Button>
       </div>

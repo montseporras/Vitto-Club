@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, keepPreviousData, useQueryClient } from '@tanstack/react-query'
 import type { ApiError } from '@/shared/api/ApiError'
 import type { Customer, CreateCustomerBody } from '../types/customer'
 import type { Paginated } from '@/shared/types/pagination'
@@ -92,6 +92,8 @@ export const useAdjustPoints = (customerId: number) => {
 export const useConsumptionPreview = (
   customerId: number | null,
   amount: number | null,
+  /** Mientras se pide la vista previa del monto nuevo, sigue disponible la del monto anterior. */
+  keepPrevious = false,
 ) =>
   useQuery<ConsumptionPreview, ApiError>({
     queryKey: cashierKeys.consumptionPreview(customerId ?? 0, amount ?? 0),
@@ -102,6 +104,7 @@ export const useConsumptionPreview = (
     // El saldo y la equivalencia pueden cambiar: no se reutiliza una vista previa vieja
     staleTime: 0,
     gcTime: 0,
+    ...(keepPrevious ? { placeholderData: keepPreviousData } : {}),
   })
 
 /** Registra el consumo (US-21). Después refresca saldo, nivel y movimientos del cliente. */

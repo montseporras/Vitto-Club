@@ -58,7 +58,7 @@ export const customerFieldsSchema = z.object({
       if (!/^\d{2}\/\d{2}\/\d{4}$/.test(text)) {
         ctx.addIssue({
           code: 'custom',
-          message: 'Completá la fecha (DD/MM/AAAA) o dejala vacía',
+          message: 'Completá día, mes y año, o dejá la fecha vacía',
         })
         return z.NEVER
       }

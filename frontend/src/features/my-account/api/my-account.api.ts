@@ -1,5 +1,6 @@
 import { toApiError } from '@/shared/api/ApiError'
 import { http } from '@/shared/api/http'
+import type { MyMission } from '../types/missions'
 import type {
   ChangePasswordBody,
   ClaimMissionRewardResult,
@@ -58,6 +59,16 @@ export async function claimMissionReward(customerMissionId: number) {
 export async function changeMyPassword(body: ChangePasswordBody) {
   try {
     await http.patch('/mi-cuenta/password', body)
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+/** GET /customers/me/misiones (S5 §3.3.2): las misiones del mes actual, sin paginado. */
+export async function getMyMissions() {
+  try {
+    const res = await http.get<MyMission[]>('/customers/me/misiones')
+    return res.data
   } catch (error) {
     throw toApiError(error)
   }

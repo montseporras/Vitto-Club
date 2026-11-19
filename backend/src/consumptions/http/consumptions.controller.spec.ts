@@ -67,6 +67,10 @@ describe('ConsumptionsController', () => {
         levelBefore: 'BRONZE',
         levelAfter: 'SILVER',
         levelUp: true,
+        // US-30: id = la asignación; name = la misión; rewardPoints = snapshot
+        completedMissions: [
+          { customerMissionId: 41, missionId: 3, customerId: 101, missionName: 'Vení 3 veces', rewardPoints: 50, period: '2026-11' },
+        ],
       });
 
       const result = await controller.register(
@@ -90,6 +94,7 @@ describe('ConsumptionsController', () => {
       });
       expect(result.balanceAfter).toBe(500);
       expect(result.levelUp).toBe(true);
+      expect(result.completedMissions).toEqual([{ id: 41, name: 'Vení 3 veces', rewardPoints: 50 }]);
     });
   });
 

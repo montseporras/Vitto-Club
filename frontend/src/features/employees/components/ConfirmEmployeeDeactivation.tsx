@@ -4,6 +4,7 @@ import { toApiError } from '@/shared/api/ApiError';
 import { FormActions } from '@/shared/components/forms/FormActions';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
+import { DeleteButton } from '@/shared/components/ui/DeleteButton';
 import { useDeactivateEmployee } from '../api/employees.queries';
 import type { Employee } from '../types/employee';
 
@@ -67,14 +68,16 @@ export function ConfirmEmployeeDeactivation({
         <Button type="button" variant="secondary" size="lg" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button
+        <DeleteButton
+          loading={deactivateEmployee.isPending}
           type="button"
+          variant="danger"
           size="lg"
           onClick={handleConfirm}
           disabled={deactivateEmployee.isPending || noRetry}
         >
           {deactivateEmployee.isPending ? 'Eliminando…' : 'Eliminar empleado'}
-        </Button>
+        </DeleteButton>
       </FormActions>
     </div>
   );

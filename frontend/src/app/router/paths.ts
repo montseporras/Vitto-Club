@@ -1,15 +1,12 @@
 import type { Role } from '@/domain/roles'
+import { CUSTOMER_PATHS } from '@/shared/lib/customer-paths'
 
 export const PATHS = {
   login: '/login',
   register: '/registro',
   loggedOut: '/sesion-cerrada',
-  customer: {
-    root: '/mi-cuenta',
-    history: '/mi-cuenta/historial',
-    profile: '/mi-cuenta/perfil',
-    redemptions: '/mi-cuenta/canjes',
-  },
+  // Vista del Cliente: las rutas viven en shared/lib/customer-paths.ts (las usa también el feature)
+  customer: CUSTOMER_PATHS,
   cashier: {
     root: '/caja',
     customer: '/caja/cliente',

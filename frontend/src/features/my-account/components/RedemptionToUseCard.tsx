@@ -36,7 +36,7 @@ export function RedemptionToUseCard({ myRedemptionsUrl }: RedemptionToUseCardPro
           {others > 0 && ` (y ${others} más)`}
         </span>
       </p>
-      <Link to={myRedemptionsUrl} className={cn(buttonVariants(), 'shrink-0 text-xs')}>
+      <Link to={myRedemptionsUrl} className={cn(buttonVariants({ size: 'sm' }), 'shrink-0')}>
         Ver código
       </Link>
     </div>
