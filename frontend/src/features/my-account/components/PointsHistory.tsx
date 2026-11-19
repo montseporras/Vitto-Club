@@ -1,3 +1,4 @@
+import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { useState } from 'react'
 import { Alert } from '@/shared/components/ui/Alert'
 import { Badge } from '@/shared/components/ui/Badge'
@@ -66,9 +67,11 @@ export function PointsHistory() {
       )}
 
       {data && !result.isError && data.items.length === 0 && (
-        <StatusText className="rounded-xl border border-dashed p-6 text-center">
-          Todavía no tenés movimientos.
-        </StatusText>
+        <EmptyState
+          icon={ICONS.coins}
+          title="Tu alcancía está esperando"
+          description="Cada consumo en La Vitto te suma puntos. Mostrá tu documento en la caja y empezá a juntar."
+        />
       )}
 
       {data && !result.isError && data.items.length > 0 && (

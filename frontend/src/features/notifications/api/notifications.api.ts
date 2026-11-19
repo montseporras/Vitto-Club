@@ -1,5 +1,6 @@
 // Este archivo hace las llamadas al backend de Notificaciones (US-14, contrato S5 §3.6 y §3.8).
 // Lo usan los hooks de notifications.queries.ts; las pantallas no lo llaman directo.
+import { TABLE_PAGE_SIZE } from '@/shared/lib/pagination'
 import { http } from '@/shared/api/http'
 import type {
   MessagesConfiguration,
@@ -13,7 +14,7 @@ const MESSAGES_URL = '/configuracion/mensajes'
 const NOTIFICATIONS_URL = '/notificaciones'
 
 // §3.8.4: paginado de a 20
-export const NOTIFICATIONS_PAGE_SIZE = 20
+export const NOTIFICATIONS_PAGE_SIZE = TABLE_PAGE_SIZE
 
 // §3.6.1
 export async function getMessagesConfiguration(): Promise<MessagesConfiguration> {

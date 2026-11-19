@@ -18,6 +18,11 @@ import { LoyaltyProgramConfiguration } from '../../loyalty/domain/loyalty-progra
 import { LoyaltyService } from '../../loyalty/application/loyalty.service.js';
 import type { AuditEntryInput } from '../../audit/domain/audit-entry.js';
 import { AuditService } from '../../audit/application/audit.service.js';
+import {
+  MissionsProgressService,
+  type CompletedMission,
+  type ConsumptionForMissions,
+} from '../../missions/application/missions-progress.service.js';
 import { PointsService, AcreditarInput, AcreditarResult, RevertirInput, BalanceMutationResult, PointsSummary } from '../../points/application/points.service.js';
 
 // --- Fakes en memoria, mismo criterio que el resto del repo. ---
@@ -215,6 +220,30 @@ class FakeAuditService {
   }
 }
 
+// US-30: registra las llamadas al avance de misiones y en qué orden se publican las completadas
+class FakeMissionsProgressService {
+  readonly calls: string[] = [];
+  readonly registered: ConsumptionForMissions[] = [];
+  readonly reverted: { customerId: number; amount: number; createdAt: Date }[] = [];
+  completed: CompletedMission[] = [];
+  failure: Error | null = null;
+
+  async registrarAvance(input: ConsumptionForMissions): Promise<CompletedMission[]> {
+    this.calls.push('registrarAvance');
+    this.registered.push(input);
+    if (this.failure) throw this.failure;
+    return this.completed;
+  }
+
+  async publicarCompletadas(completed: CompletedMission[]): Promise<void> {
+    this.calls.push(`publicarCompletadas:${completed.length}`);
+  }
+
+  async revertirAvance(input: { customerId: number; amount: number; createdAt: Date }): Promise<void> {
+    this.reverted.push(input);
+  }
+}
+
 const ACTIVE_CUSTOMER = Customer.reconstruct({
   id: 101,
   firstName: 'Carolina',
@@ -252,6 +281,7 @@ describe('ConsumptionsService', () => {
   let loyaltyService: FakeLoyaltyService;
   let pointsService: FakePointsService;
   let auditService: FakeAuditService;
+  let missionsProgress: FakeMissionsProgressService;
   let service: ConsumptionsService;
 
   beforeEach(() => {
@@ -264,6 +294,7 @@ describe('ConsumptionsService', () => {
     loyaltyService = new FakeLoyaltyService();
     pointsService = new FakePointsService();
     auditService = new FakeAuditService();
+    missionsProgress = new FakeMissionsProgressService();
 
     service = new ConsumptionsService(
       repository,
@@ -273,6 +304,7 @@ describe('ConsumptionsService', () => {
       pointsService as unknown as PointsService,
       auditService as unknown as AuditService,
       new PassthroughTransactionRunner(),
+      missionsProgress as unknown as MissionsProgressService,
     );
   });
 
@@ -685,6 +717,65 @@ describe('ConsumptionsService', () => {
       const result = await service.listMine({ customerId: 555, page: 1, limit: 20 });
 
       expect(result.items).toEqual([]);
+    });
+  });
+
+  describe('misiones (US-30, §3.2)', () => {
+    const completed: CompletedMission = {
+      customerMissionId: 41,
+      missionId: 3,
+      customerId: 101,
+      missionName: 'Vení 3 veces',
+      rewardPoints: 50,
+      period: '2026-11',
+    };
+
+    it('registra el avance con el consumo guardado y el cliente, y devuelve completedMissions', async () => {
+      missionsProgress.completed = [completed];
+
+      const result = await service.register({ customerId: 101, amount: 1550, registeredBy: { accountId: 12, employeeId: 12 } });
+
+      expect(missionsProgress.registered).toEqual([
+        {
+          customerId: 101,
+          consumptionId: result.consumption.getId(),
+          amount: 1550,
+          createdAt: result.consumption.getCreatedAt(),
+          customer: expect.objectContaining({ id: 101 }),
+        },
+      ]);
+      expect(result.completedMissions).toEqual([completed]);
+    });
+
+    it('publica las completadas después de la transacción, no antes', async () => {
+      missionsProgress.completed = [completed];
+
+      await service.register({ customerId: 101, amount: 1550, registeredBy: { accountId: 12, employeeId: 12 } });
+
+      expect(missionsProgress.calls).toEqual(['registrarAvance', 'publicarCompletadas:1']);
+    });
+
+    it('si el avance falla, el registro falla y no publica nada', async () => {
+      missionsProgress.failure = new Error('falla el avance');
+
+      await expect(
+        service.register({ customerId: 101, amount: 1550, registeredBy: { accountId: 12, employeeId: 12 } }),
+      ).rejects.toThrow('falla el avance');
+      expect(missionsProgress.calls).toEqual(['registrarAvance']);
+    });
+
+    it('anular revierte el avance con el monto y la fecha del consumo', async () => {
+      const registered = await service.register({ customerId: 101, amount: 1550, registeredBy: { accountId: 12, employeeId: 12 } });
+
+      await service.anular({
+        code: registered.consumption.getCode() as string,
+        reason: 'Error de carga',
+        actor: { accountId: 12, role: 'ADMIN', employeeId: 12 },
+      });
+
+      expect(missionsProgress.reverted).toEqual([
+        { customerId: 101, amount: 1550, createdAt: registered.consumption.getCreatedAt() },
+      ]);
     });
   });
 });

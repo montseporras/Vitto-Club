@@ -4,7 +4,8 @@ import { Alert } from '@/shared/components/ui/Alert'
 import { AdminPanel } from '@/shared/components/ui/AdminPanel'
 import { Page } from '@/shared/components/ui/Page'
 import { RangePagination } from '@/shared/components/ui/Pagination'
-import { useClampPage, useRowsThatFit } from '@/shared/hooks/useRowsThatFit'
+import { useClampPage } from '@/shared/hooks/useRowsThatFit'
+import { TABLE_PAGE_SIZE } from '@/shared/lib/pagination'
 import { addDaysToIso, todayIsoInTimeZone } from '@/shared/lib/dates'
 import { useAuditActors, useAuditEntries } from '../api/audit.queries'
 import { AuditFilters } from '../components/AuditFilters'
@@ -75,7 +76,7 @@ export function AuditPage() {
   // Filas por página: las que entran en la pantalla (ajustes S5-57)
   const areaRef = useRef<HTMLDivElement>(null)
   const pagerRef = useRef<HTMLElement>(null)
-  const limit = useRowsThatFit({ areaRef, pagerRef, initial: 10 })
+  const limit = TABLE_PAGE_SIZE
   const params = useMemo(() => queryParams(filters, page, limit), [filters, page, limit])
   const entries = useAuditEntries(params)
   useClampPage(page, setPage, entries.data?.total, entries.data?.limit)

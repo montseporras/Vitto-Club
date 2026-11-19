@@ -3,4 +3,5 @@ export const myAccountKeys = {
   all: ['my-account'] as const,
   profile: () => [...myAccountKeys.all, 'profile'] as const,
   points: () => [...myAccountKeys.all, 'points'] as const,
+  missions: () => [...myAccountKeys.all, 'missions'] as const,
 }

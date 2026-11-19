@@ -1,5 +1,8 @@
 // Mis canjes del Cliente (US-45, contrato §3.12.1 y prototipo ClienteCanjes → Mis canjes):
 // filtros de estado, fecha y orden, y la lista de canjes con su cuenta regresiva.
+import { Button } from '@/shared/components/ui/Button'
+import { ICONS } from '@/shared/components/ui/icons'
+import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { useState } from 'react'
 import {
   useExpiryRefetch,
@@ -14,6 +17,9 @@ import { DateRangePicker } from '@/shared/components/ui/DateRangePicker'
 import { FilterSelect } from '@/shared/components/ui/FilterSelect'
 import { Label } from '@/shared/components/ui/Label'
 import { addDaysToIso, todayIsoInTimeZone } from '@/shared/lib/dates'
+import { cn } from '@/shared/lib/utils'
+import { clientStyles } from '@/styles/ui'
+import { FiltersToggle } from './client/ClientUI'
 import { MyRedemptionItem } from './MyRedemptionItem'
 
 const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires'
@@ -43,9 +49,15 @@ const DATE_OPTIONS = [
 type MyRedemptionsProps = {
   /** Abre el diálogo "Cancelar canje" (US-43). */
   onCancel?: (redemption: MyRedemption) => void
+  /** CTA del estado vacío: lleva al catálogo. */
+  onBrowseCatalog?: () => void
+  /** Abre la ventana con el código en grande de un canje Confirmado */
+  onShowCode?: (redemption: MyRedemption) => void
 }
 
-export function MyRedemptions({ onCancel }: MyRedemptionsProps) {
+export function MyRedemptions({ onCancel, onBrowseCatalog, onShowCode }: MyRedemptionsProps) {
+  // Los filtros quedan guardados detrás del botón "Filtros": la lista se ve como la de consumos
+  const [showFilters, setShowFilters] = useState(false)
   const [status, setStatus] = useState<RedemptionStatusGroup | ''>('')
   const [order, setOrder] = useState<'desc' | 'asc'>('desc')
   const [dateOption, setDateOption] = useState<DateOption>('any')
@@ -74,9 +86,20 @@ export function MyRedemptions({ onCancel }: MyRedemptionsProps) {
     setTo('')
   }
 
+  const activeFilters = (status ? 1 : 0) + (dateOption !== 'any' ? 1 : 0) + (order !== 'desc' ? 1 : 0)
+
   return (
     <div className="grid gap-4">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex justify-end">
+        <FiltersToggle
+          open={showFilters}
+          activeCount={activeFilters}
+          controls="my-redemptions-filters"
+          onToggle={() => setShowFilters((current) => !current)}
+        />
+      </div>
+      {showFilters && (
+      <div id="my-redemptions-filters" className={cn(clientStyles.card, 'grid grid-cols-2 gap-2 p-4')}>
         <div>
           <Label htmlFor="my-redemptions-status">Estado</Label>
           <FilterSelect
@@ -119,6 +142,7 @@ export function MyRedemptions({ onCancel }: MyRedemptionsProps) {
           </div>
         )}
       </div>
+      )}
 
       {result.isPending && <StatusText className="py-6 text-center">Cargando…</StatusText>}
 
@@ -129,23 +153,54 @@ export function MyRedemptions({ onCancel }: MyRedemptionsProps) {
       )}
 
       {items && items.length > 0 && (
-        <ul className="grid gap-3">
+        <ul className={clientStyles.list}>
           {items.map((redemption) => (
             <MyRedemptionItem
               key={redemption.id}
               redemption={redemption}
               now={now}
               onCancel={onCancel}
+              onShowCode={onShowCode}
             />
           ))}
         </ul>
       )}
 
-      {items?.length === 0 && (
-        <StatusText className="rounded-xl border border-dashed border-orange-200 px-3 py-5 text-center">
-          {hasFilters ? 'No hay canjes para los filtros elegidos.' : 'Todavía no tenés canjes.'}
-        </StatusText>
-      )}
+      {items?.length === 0 &&
+        (hasFilters ? (
+          <EmptyState
+            icon={ICONS.filter}
+            title="Ningún canje coincide"
+            description="No hay canjes con ese estado o en esas fechas. Probá con otros filtros."
+            action={
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setStatus('')
+                  setDateOption('any')
+                  setFrom('')
+                  setTo('')
+                }}
+              >
+                Limpiar filtros
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={ICONS.ticket}
+            title="Tus puntos están esperando"
+            description="Todavía no canjeaste nada. Elegí una recompensa del catálogo y canjeala en un toque."
+            action={
+              onBrowseCatalog && (
+                <Button type="button" onClick={onBrowseCatalog}>
+                  Ver recompensas
+                </Button>
+              )
+            }
+          />
+        ))}
 
       <StatusText className="text-xs">
         Si un canje se cancela, se rechaza o vence, no se descuentan puntos. Lo podés volver a pedir si

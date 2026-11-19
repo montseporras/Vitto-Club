@@ -61,6 +61,8 @@ export function VoidConsumptionModal({
   } = useForm<VoidConsumptionFormInput, unknown, VoidConsumptionFormOutput>({
     resolver: zodResolver(voidConsumptionSchema),
     defaultValues: { reason: '' },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   })
 
   // Los diálogos se cierran con Escape
@@ -202,7 +204,7 @@ export function VoidConsumptionModal({
           <Button type="button" variant="secondary" size="lg" onClick={onClose}>
             Volver
           </Button>
-          <Button type="submit" size="lg" disabled={voidMutation.isPending}>
+          <Button loading={voidMutation.isPending} type="submit" size="lg" disabled={voidMutation.isPending}>
             Confirmar anulación
           </Button>
         </FormActions>

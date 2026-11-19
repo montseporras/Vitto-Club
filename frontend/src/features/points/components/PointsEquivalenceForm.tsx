@@ -3,10 +3,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { toApiError } from '@/shared/api/ApiError';
-import { FormActions } from '@/shared/components/forms/FormActions';
 import { Alert } from '@/shared/components/ui/Alert';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
+import { InfoHint } from '@/shared/components/ui/InfoHint';
 import { Label } from '@/shared/components/ui/Label';
 import { formFieldStyles, labelStyles } from '@/styles/ui';
 import { useUpdatePointsEquivalence } from '../api/points.queries';
@@ -56,6 +56,8 @@ export function PointsEquivalenceForm({
       baseAmount: equivalence?.baseAmount,
       pointsAwarded: equivalence?.pointsAwarded,
     },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   });
 
   const updateEquivalence = useUpdatePointsEquivalence();
@@ -78,13 +80,13 @@ export function PointsEquivalenceForm({
   return (
     <form onSubmit={onSubmit} noValidate>
       {updateEquivalence.isError && (
-        <Alert variant="error" className="mb-6">
+        <Alert variant="error" className="mb-2.5">
           {errorMessage(updateEquivalence.error)}
         </Alert>
       )}
 
       {showSuccess && (
-        <Alert variant="success" className="mb-6">
+        <Alert variant="success" className="mb-2.5">
           Equivalencia de puntos guardada. Aplica a las operaciones futuras.
         </Alert>
       )}
@@ -99,7 +101,7 @@ export function PointsEquivalenceForm({
           min={0.01}
           step={0.01}
           autoComplete="off"
-          className="w-40"
+          className="h-10 w-32"
           aria-invalid={errors.baseAmount ? true : undefined}
           aria-describedby={
             errors.baseAmount ? 'baseAmount-error' : 'points-equivalence-hint'
@@ -115,7 +117,7 @@ export function PointsEquivalenceForm({
           min={1}
           step={1}
           autoComplete="off"
-          className="w-28"
+          className="h-10 w-24"
           aria-invalid={errors.pointsAwarded ? true : undefined}
           aria-describedby={
             errors.pointsAwarded
@@ -125,10 +127,20 @@ export function PointsEquivalenceForm({
           {...register('pointsAwarded', { valueAsNumber: true })}
         />
         <span className={labelStyles}>puntos</span>
+        <InfoHint label="Ayuda sobre la equivalencia">{HINT}</InfoHint>
+
+        <Button
+          loading={updateEquivalence.isPending}
+          type="submit"
+          className="ml-auto h-10"
+          disabled={!isDirty || updateEquivalence.isPending}
+        >
+          {updateEquivalence.isPending ? 'Guardando…' : 'Guardar'}
+        </Button>
       </div>
 
       {/* Un mensaje por campo con error; si no hay errores, la ayuda. */}
-      <div className="mt-2 space-y-1">
+      <div className="mt-1.5 space-y-1">
         {errors.baseAmount && (
           <p id="baseAmount-error" className={formFieldStyles.error}>
             {errors.baseAmount.message}
@@ -139,22 +151,14 @@ export function PointsEquivalenceForm({
             {errors.pointsAwarded.message}
           </p>
         )}
+        {/* La ayuda se ve con el "?"; acá queda solo para los lectores de pantalla */}
         {!hasErrors && (
-          <p id="points-equivalence-hint" className={formFieldStyles.hint}>
+          <p id="points-equivalence-hint" className="sr-only">
             {HINT}
           </p>
         )}
       </div>
 
-      <FormActions>
-        <Button
-          type="submit"
-          size="lg"
-          disabled={!isDirty || updateEquivalence.isPending}
-        >
-          {updateEquivalence.isPending ? 'Guardando…' : 'Guardar'}
-        </Button>
-      </FormActions>
     </form>
   );
 }

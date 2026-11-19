@@ -1,6 +1,6 @@
 // Pestaña "Registrarme" (US-58 · RF-064): el formulario con el que una persona crea su propia cuenta de Cliente.
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Navigate } from 'react-router'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_VALUES } from '@/domain/documents'
 import {
@@ -9,13 +9,17 @@ import {
   REJECTED_FIELD_MESSAGE,
 } from '@/features/cashier'
 import { FormField } from '@/shared/components/forms/FormField'
+import { PasswordChecklist } from '@/shared/components/forms/PasswordChecklist'
 import { SegmentedRadio } from '@/shared/components/forms/SegmentedRadio'
+import { SubmitHint } from '@/shared/components/forms/SubmitHint'
 import { Alert } from '@/shared/components/ui/Alert'
 import { AuthShell } from '@/shared/components/ui/AuthShell'
 import { Button } from '@/shared/components/ui/Button'
-import { DateInput } from '@/shared/components/ui/DateInput'
 import { Input } from '@/shared/components/ui/Input'
 import { PasswordInput } from '@/shared/components/ui/PasswordInput'
+import { SplitDateInput } from '@/shared/components/ui/SplitDateInput'
+import { useMissingFields } from '@/shared/hooks/useMissingFields'
+import { cn } from '@/shared/lib/utils'
 import { authFormStyles } from '@/styles/ui'
 import { useLogin, useRegisterCustomer } from '../api/auth.queries'
 import { AuthFormSection } from '../components/AuthFormSection'
@@ -66,7 +70,7 @@ export function RegisterPage() {
   } = useForm<RegisterFormInput, unknown, RegisterFormOutput>({
     resolver: zodResolver(registerSchema),
     defaultValues: INITIAL_VALUES,
-    mode: 'onTouched',
+    mode: 'onChange',
   })
   const session = useSession()
   const registerCustomer = useRegisterCustomer()
@@ -112,7 +116,25 @@ export function RegisterPage() {
       ? registerCustomer.error
       : undefined
   const isDni = useWatch({ control, name: 'documentType' }) === 'DNI'
+  const [password, email, documentNumber] = useWatch({
+    control,
+    name: ['password', 'email', 'documentNumber'],
+  })
   const submitting = registerCustomer.isPending || login.isPending
+  // Qué falta para poder crear la cuenta: se dice arriba del botón, que queda apagado
+  const missing = useMissingFields(
+    control,
+    {
+      firstName: 'Nombre',
+      lastName: 'Apellido',
+      dateOfBirth: 'Fecha de nacimiento',
+      documentNumber: 'Número de documento',
+      email: 'Mail',
+      phone: 'Teléfono',
+      password: 'Contraseña',
+    },
+    ['dateOfBirth', 'phone'],
+  )
 
   // Con sesión (recién creada o ya abierta) va a la pantalla de su rol ("/")
   if (session.status === 'authenticated') {
@@ -185,10 +207,19 @@ export function RegisterPage() {
             optional
             error={errors.dateOfBirth?.message}
           >
-            <DateInput
-              className={authFormStyles.input}
-              {...a11y('dateOfBirth')}
-              {...register('dateOfBirth')}
+            <Controller
+              control={control}
+              name="dateOfBirth"
+              render={({ field }) => (
+                <SplitDateInput
+                  {...a11y('dateOfBirth')}
+                  inputClassName={authFormStyles.input}
+                  name={field.name}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
+              )}
             />
           </FormField>
         </AuthFormSection>
@@ -216,7 +247,8 @@ export function RegisterPage() {
               inputMode={isDni ? 'numeric' : 'text'}
               placeholder="30111222"
               autoComplete="off"
-              className={authFormStyles.input}
+              maxLength={isDni ? 10 : 20}
+              className={cn(authFormStyles.input, 'max-w-48')}
               {...a11y('documentNumber')}
               {...register('documentNumber')}
             />
@@ -224,6 +256,7 @@ export function RegisterPage() {
         </AuthFormSection>
 
         <AuthFormSection title="Contacto">
+          <div className="col-span-full">
           <FormField
             id="email"
             label="Mail"
@@ -239,6 +272,7 @@ export function RegisterPage() {
               {...register('email')}
             />
           </FormField>
+          </div>
 
           <FormField
             id="phone"
@@ -250,7 +284,8 @@ export function RegisterPage() {
               type="tel"
               inputMode="tel"
               autoComplete="tel"
-              className={authFormStyles.input}
+              maxLength={20}
+              className={cn(authFormStyles.input, 'max-w-56')}
               {...a11y('phone')}
               {...register('phone')}
             />
@@ -263,15 +298,26 @@ export function RegisterPage() {
               id="password"
               label="Contraseña"
               hideRequiredMark
-              hint="Entre 8 y 64 caracteres."
-              error={errors.password?.message}
+              // Las reglas ya se ven en la lista de requisitos: el error del campo queda solo
+              // para lo que responde el servidor
+              error={errors.password?.type ? undefined : errors.password?.message}
+              rules={
+                <PasswordChecklist
+                  id="password-rules"
+                  password={password ?? ''}
+                  email={email ?? ''}
+                  documentNumber={documentNumber}
+                />
+              }
             >
               <PasswordInput
                 autoComplete="new-password"
                 className={authFormStyles.passwordInput}
                 {...a11y('password')}
                 aria-describedby={
-                  errors.password ? 'password-error' : 'password-hint'
+                  errors.password && !errors.password.type
+                    ? 'password-error password-rules'
+                    : 'password-rules'
                 }
                 {...register('password')}
               />
@@ -284,7 +330,14 @@ export function RegisterPage() {
         </p>
 
         <div className={authFormStyles.actions}>
-          <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
+          <SubmitHint id="register-missing" missing={missing} />
+          <Button
+            loading={submitting}
+            type="submit"
+            disabled={submitting || missing.length > 0}
+            aria-describedby={missing.length > 0 ? 'register-missing' : undefined}
+            className="w-full sm:w-auto"
+          >
             {registerCustomer.isPending
               ? 'Creando cuenta…'
               : login.isPending

@@ -29,24 +29,24 @@ export function NewClientsConversion({
   return (
     <section
       aria-labelledby="conversion-title"
-      className="flex flex-1 flex-col rounded-2xl border border-[#f6e4da] bg-white px-[22px] py-[18px] shadow-[0_1px_2px_rgba(126,62,32,0.05)] [@media(max-height:820px)]:py-2.5"
+      className="flex flex-1 flex-col rounded-lg border border-[#eee6dd] bg-[#fdfbf9] px-[22px] py-[18px] shadow-[0_1px_3px_rgba(126,62,32,0.08),0_10px_24px_-14px_rgba(126,62,32,0.18)] [@media(max-height:820px)]:py-2.5"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f8ebe3] pb-3.5 [@media(max-height:820px)]:pb-2">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#fde4d8]">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f1ebe4] pb-3.5 [@media(max-height:820px)]:pb-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="grid size-10 shrink-0 place-items-center rounded-md bg-[#efe7de]">
             <Icon d={STATISTICS_ICONS.userCheck} className="size-5 text-[#a9532b]" />
           </span>
           <h3 id="conversion-title" className="text-[19px] leading-tight font-bold text-[#2b1a10]">
             Conversión de clientes nuevos · {monthLabel(current.month)}
           </h3>
-          <span className="inline-flex items-center rounded-full bg-[#fde4d8] px-2.5 py-[3px] text-[11px] font-semibold whitespace-nowrap text-[#8a3d1c]">
+          <span className="inline-flex items-center rounded bg-[#efe7de] px-2.5 py-[3px] text-[11px] font-semibold whitespace-nowrap text-[#5c4033]">
             ≥ {minConsumptions} consumos
           </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-[#7a6e63]">Período analizado:</span>
-          <div className="flex gap-0.5 rounded-[10px] bg-[#fdf3ee] p-[3px]">
+          <div className="flex max-w-full gap-0.5 overflow-x-auto rounded bg-[#f6f2ed] p-[3px]">
             {last6Months.map((item) => {
               const selected = item.month === current.month;
               return (
@@ -57,10 +57,10 @@ export function NewClientsConversion({
                   title={`${monthLabel(item.month)}: ${formatInteger(item.newFrequent)} de ${formatInteger(item.new)} nuevos (${conversionPercent(item.newFrequent, item.new)} %)`}
                   onClick={() => onSelectMonth(item.month)}
                   className={cn(
-                    'cursor-pointer rounded-lg px-2.5 py-1 text-xs',
+                    'cursor-pointer rounded px-2.5 py-1 text-xs',
                     selected
-                      ? 'bg-[#a9532b] font-bold text-white'
-                      : 'text-[#5c4033] hover:bg-[#fde4d8]',
+                      ? 'bg-[#8e3f1d] font-bold text-white'
+                      : 'text-[#5c4033] hover:bg-[#efe7de]',
                   )}
                 >
                   {shortMonthLabel(item.month)}
@@ -73,7 +73,7 @@ export function NewClientsConversion({
 
       <div className="flex flex-1 flex-col justify-center py-3 [@media(max-height:820px)]:py-1">
         <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1">
-          <span className="text-[46px] leading-none font-bold tracking-[-0.01em] text-[#8a3d1c] tabular-nums">
+          <span className="text-[46px] leading-none font-bold tracking-[-0.01em] text-[#8a3d1c] font-stats tabular-nums">
             {conversionPercent(current.newFrequent, current.new)}
             <span className="ml-0.5 text-[28px]">%</span>
           </span>

@@ -122,7 +122,7 @@ export function Last24hConsumptions({
                       {/* A pedido de Denise: si no puede anular, no se muestra el botón (el contrato lo pedía deshabilitado, con tooltip) */}
                       {consumption.status === 'REGISTERED' &&
                         consumption.canVoid && (
-                          <Button
+                          <Button size="sm"
                             type="button"
                             onClick={() => setVoiding(consumption)}
                             className="bg-red-200 text-red-800 shadow-none hover:bg-red-300 active:bg-red-400"
