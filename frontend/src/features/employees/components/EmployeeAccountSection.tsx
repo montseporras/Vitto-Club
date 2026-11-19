@@ -2,12 +2,19 @@
 // estado ofrece crearlo (SCRUM-21), cambiarle la contraseña (SCRUM-24), darlo
 // de baja o reactivarlo (SCRUM-27). Cada acción abre su propia vista en el
 // modal (onAction).
+import { useState } from 'react';
+import { useToast } from '@/shared/components/feedback/useToast';
 import { FormSection } from '@/shared/components/forms/FormSection';
+import { Alert } from '@/shared/components/ui/Alert';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Button } from '@/shared/components/ui/Button';
 import { Icon } from '@/shared/components/ui/Icon';
 import { ICONS } from '@/shared/components/ui/icons';
+import { Switch } from '@/shared/components/ui/Switch';
+import { useUndoableAction } from '@/shared/hooks/useUndoableAction';
+import { useDeactivateAccount, useReactivateAccount } from '../api/employees.queries';
 import type { Employee, EmployeeAccount } from '../types/employee';
+import { accountStatusErrorMessage } from './account-status-messages';
 
 export type AccountAction =
   | 'createAccount'
@@ -37,12 +44,67 @@ export function EmployeeAccountSection({
   onAction,
 }: EmployeeAccountSectionProps) {
   const { account, isActive } = employee;
+  const deactivate = useDeactivateAccount();
+  const reactivate = useReactivateAccount();
+  const runUndoable = useUndoableAction();
+  const showToast = useToast();
+  // El interruptor se aplica al instante: este valor manda hasta que el listado se actualiza
+  const [activeOverride, setActiveOverride] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const shownAccount = account && { ...account, active: activeOverride ?? account.active };
+
+  const toggleAccount = (next: boolean) => {
+    if (!account) return;
+    setError(null);
+    if (next) {
+      setActiveOverride(true);
+      reactivate.mutate(account.id, {
+        onSuccess: () => showToast('Usuario reactivado'),
+        onError: (mutationError) => {
+          setActiveOverride(null);
+          setError(accountStatusErrorMessage('reactivate', mutationError));
+        },
+      });
+      return;
+    }
+    // Desactivar cierra sus sesiones: hay unos segundos para deshacer antes de mandarlo
+    setActiveOverride(false);
+    runUndoable({
+      message: 'Usuario desactivado',
+      undoneMessage: 'El usuario sigue activo',
+      commit: () => deactivate.mutateAsync(account.id),
+      onUndo: () => setActiveOverride(null),
+      onError: (mutationError) => {
+        setActiveOverride(null);
+        setError(accountStatusErrorMessage('deactivate', mutationError));
+      },
+    });
+  };
 
   return (
     <FormSection step={step} title="Usuario del sistema">
       <div className="flex flex-col items-start gap-3">
-        <AccountBadge account={account} />
-        <p className="text-sm text-neutral-600">{description(employee)}</p>
+        <AccountBadge account={shownAccount} />
+        <p className="text-sm text-neutral-600">
+          {description({ ...employee, account: shownAccount })}
+        </p>
+        {error && (
+          <Alert variant="error" className="w-full">
+            {error}
+          </Alert>
+        )}
+
+        {/* Activar o desactivar el usuario se aplica al instante, sin "Guardar" */}
+        {isActive && account && (
+          <Switch
+            checked={shownAccount?.active ?? false}
+            onChange={toggleAccount}
+            label={`Usuario de ${employee.firstName} ${employee.lastName} activo`}
+            onText="Usuario activo"
+            offText="Usuario desactivado"
+            pending={reactivate.isPending}
+          />
+        )}
 
         {isActive && (
           <div className="flex flex-wrap gap-3">
@@ -56,33 +118,14 @@ export function EmployeeAccountSection({
                 Crear usuario
               </Button>
             )}
-            {account?.active && (
-              <>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => onAction('changePassword')}
-                >
-                  <Icon d={ICONS.pencil} className="size-4" />
-                  Cambiar contraseña
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => onAction('deactivateAccount')}
-                >
-                  Desactivar cuenta
-                </Button>
-              </>
-            )}
-            {account && !account.active && (
+            {shownAccount?.active && (
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => onAction('reactivateAccount')}
+                onClick={() => onAction('changePassword')}
               >
-                <Icon d={ICONS.reload} className="size-4" />
-                Reactivar usuario
+                <Icon d={ICONS.pencil} className="size-4" />
+                Cambiar contraseña
               </Button>
             )}
           </div>

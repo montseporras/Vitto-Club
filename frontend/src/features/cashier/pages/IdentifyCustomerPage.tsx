@@ -71,6 +71,8 @@ export function IdentifyCustomerPage({
   } = useForm<FindCustomerFormInput, unknown, FindCustomerFormOutput>({
     resolver: zodResolver(findCustomerSchema),
     defaultValues: prefilled ?? { documentType: 'DNI', documentNumber: '' },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   })
   const [search, setSearch] = useState<DocumentSearch | null>(prefilled)
   // Monto que espera confirmación en la advertencia (null: la advertencia está cerrada)
@@ -179,6 +181,7 @@ export function IdentifyCustomerPage({
                 autoFocus
                 inputMode={isDni ? 'numeric' : 'text'}
                 placeholder={isDni ? '38.456.123' : 'AAB123456'}
+                maxLength={20}
                 autoComplete="off"
                 aria-invalid={errors.documentNumber ? true : undefined}
                 aria-describedby={
@@ -190,9 +193,9 @@ export function IdentifyCustomerPage({
               />
               <Button
                 type="submit"
-                size="lg"
+                loading={loading}
                 disabled={loading}
-                className="shrink-0 px-5"
+                className="min-h-12 shrink-0 px-6 py-0"
               >
                 <Icon d={ICONS.search} />
                 Buscar

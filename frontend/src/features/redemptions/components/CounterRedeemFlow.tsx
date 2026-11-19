@@ -126,6 +126,7 @@ export function CounterRedeemFlow({
           Cancelar
         </Button>
         <Button
+          loading={confirm.isPending}
           type="button"
           disabled={validation !== null || confirm.isPending}
           onClick={() => confirm.mutate(reward.id, { onSuccess: setConfirmed })}

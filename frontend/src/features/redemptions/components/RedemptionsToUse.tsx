@@ -40,7 +40,7 @@ export function RedemptionsToUse({ customerId, onUse, onReject }: RedemptionsToU
   }
 
   return (
-    <ul className="flex flex-col divide-y divide-accent-100">
+    <ul className="flex flex-col gap-0.5 [&>li]:rounded-lg [&>li]:px-2 [&>li:nth-child(even)]:bg-accent-50/70">
       {redemptions.data.map((redemption) => (
         <li key={redemption.id} className="py-2">
           <div className="flex items-start justify-between gap-3">

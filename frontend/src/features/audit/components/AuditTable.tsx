@@ -1,3 +1,4 @@
+import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { DOCUMENT_TYPES } from '@/domain/documents'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Icon } from '@/shared/components/ui/Icon'
@@ -78,9 +79,11 @@ export function AuditTable({ result, expandedId, onToggle }: AuditTableProps) {
   return (
     <>
       {result.items.length === 0 ? (
-        <p className="text-[13px] text-[#8a6f5e]">
-          No hay registros para los filtros seleccionados
-        </p>
+        <EmptyState
+          icon={ICONS.history}
+          title="No hay registros con esos filtros"
+          description="Probá ampliar el rango de fechas o usá «Limpiar filtros» para ver todo."
+        />
       ) : (
           <Table variant="admin">
             <TableHead>

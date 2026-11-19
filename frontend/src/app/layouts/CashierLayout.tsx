@@ -33,7 +33,7 @@ export function CashierLayout() {
   const session = useSession()
 
   return (
-    <div className="flex min-h-svh flex-col">
+    <div className="vc-staff flex min-h-svh flex-col">
       <AppHeader area="Mostrador">
         {/* El Administrador entra al mostrador desde su panel: acceso directo para volver */}
         {session.user?.role === 'ADMIN' && (
@@ -47,8 +47,8 @@ export function CashierLayout() {
 
       {/* A todo el ancho: el menú queda pegado a la izquierda con un margen chico y
           el contenido se centra en el espacio que sobra */}
-      <div className="flex w-full flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:gap-8 lg:py-8">
-        <aside className="lg:shrink-0">
+      <div className="flex w-full flex-1 gap-3 px-4 py-6 sm:gap-5 sm:px-6 lg:gap-8 lg:py-8">
+        <aside className="shrink-0">
           {/* En pantallas chicas el menú va arriba y siempre expandido */}
           <SideNav
             label="Opciones del mostrador"
@@ -56,7 +56,7 @@ export function CashierLayout() {
             items={NAV}
             storageKey="vitto:menu-caja"
             collapsibleFrom="(min-width: 64rem)"
-            className="lg:sticky lg:top-24"
+            className="sticky top-24"
           />
         </aside>
 

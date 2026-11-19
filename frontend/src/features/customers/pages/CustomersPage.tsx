@@ -6,10 +6,13 @@ import { CUSTOMER_REGISTERED_MESSAGE } from '@/features/cashier'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
 import { Badge } from '@/shared/components/ui/Badge'
+import { EmptyState } from '@/shared/components/feedback/EmptyState'
+import { ActionsMenu } from '@/shared/components/ui/ActionsMenu'
 import { Button } from '@/shared/components/ui/Button'
-import { LooseField } from '@/shared/components/ui/FilterBar'
+import { ICONS } from '@/shared/components/ui/icons'
+import { FilterBar, FilterCell } from '@/shared/components/ui/FilterBar'
 import { FilterSelect } from '@/shared/components/ui/FilterSelect'
-import { looseInputClass } from '@/shared/components/ui/filter-styles'
+import { filterControlClass } from '@/shared/components/ui/filter-styles'
 import { AdminPanel } from '@/shared/components/ui/AdminPanel'
 import { Page } from '@/shared/components/ui/Page'
 import { RangePagination } from '@/shared/components/ui/Pagination'
@@ -21,13 +24,14 @@ import {
   TableRow,
 } from '@/shared/components/ui/Table'
 import { useDebounce } from '@/shared/hooks/useDebounce'
-import { useClampPage, useRowsThatFit } from '@/shared/hooks/useRowsThatFit'
+import { useUndoableAction } from '@/shared/hooks/useUndoableAction'
+import { useClampPage } from '@/shared/hooks/useRowsThatFit'
+import { TABLE_PAGE_SIZE } from '@/shared/lib/pagination'
 import { isoToDisplayDateOnly } from '@/shared/lib/dates'
 import { formatInteger } from '@/shared/lib/numbers'
 import { cn } from '@/shared/lib/utils'
 import { buttonVariants, pointsToneStyles } from '@/styles/ui'
-import { CUSTOMERS_PAGE_SIZE } from '../api/customers.api'
-import { useCustomers } from '../api/customers.queries'
+import { useCustomers, useDeactivateCustomer } from '../api/customers.queries'
 import { CustomerDetailsModal } from '../components/CustomerDetailsModal'
 import { DeactivateCustomerDialog } from '../components/DeactivateCustomerDialog'
 import { RegisterCustomerModal } from '../components/RegisterCustomerModal'
@@ -59,25 +63,26 @@ export function CustomersPage() {
   const documentNumber = useDebounce(search.trim(), 300)
   const [selected, setSelected] = useState<CustomerListItem | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [editingFromMenu, setEditingFromMenu] = useState(false)
+  // Clientes eliminados que esperan la ventana para deshacer: no se muestran
+  const [hiddenIds, setHiddenIds] = useState<ReadonlySet<number>>(new Set())
+  const deactivate = useDeactivateCustomer()
+  const runUndoable = useUndoableAction()
   const [registering, setRegistering] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
   // Filas por página: las que entran en la pantalla (ajustes S5-57). Debajo de la tabla quedan
-  // el botón "+ Registrar cliente" (24 + 42 px) y, si hay, el mensaje de éxito (16 + 18 px).
+  // el botón "+ Registrar cliente" (24 + 48 px) y, si hay, el mensaje de éxito (16 + 18 px).
   const areaRef = useRef<HTMLDivElement>(null)
   const pagerRef = useRef<HTMLElement>(null)
-  const limit = useRowsThatFit({
-    areaRef,
-    pagerRef,
-    initial: CUSTOMERS_PAGE_SIZE,
-    extraBelow: 66 + (message ? 34 : 0),
-  })
+  const limit = TABLE_PAGE_SIZE
   const customers = useCustomers({ documentType, documentNumber, level, page, limit })
   useClampPage(page, setPage, customers.data?.total, customers.data?.limit)
 
   const closeAll = (done?: string) => {
     setSelected(null)
     setDeleting(false)
+    setEditingFromMenu(false)
     setRegistering(false)
     setMessage(done ?? null)
   }
@@ -85,34 +90,36 @@ export function CustomersPage() {
   return (
     <Page className="max-w-none">
       <AdminPanel title="Clientes">
-        {/* Campos sueltos con anchos máximos, como en el prototipo (Clientes) */}
-        <div className="mb-3 flex flex-wrap items-end gap-2">
-          <LooseField
+        {/* Barra unida, igual que Canjes y Consumos; se aplica al cambiar cada campo */}
+        <FilterBar
+          onSubmit={(event) => event.preventDefault()}
+          aria-label="Filtros de clientes"
+          className="mb-4"
+        >
+          <FilterCell
             label="Tipo de documento"
             htmlFor="customers-document-type"
-            className="mb-2.5 max-w-[180px]"
+            flex="0.8 1 150px"
+            divider={false}
           >
             <FilterSelect
               id="customers-document-type"
-              variant="field"
+              variant="bar"
               value={documentType}
               options={DOCUMENT_TYPE_OPTIONS}
               onChange={(value) => {
-  setDocumentType(value as DocumentType)
-  setPage(1)
-}}
+                setDocumentType(value as DocumentType)
+                setPage(1)
+              }}
             />
-          </LooseField>
-          <LooseField
-            label="Número de documento"
-            htmlFor="customers-search"
-            className="mb-2.5 max-w-[240px]"
-          >
+          </FilterCell>
+          <FilterCell label="Número de documento" htmlFor="customers-search" flex="1.4 1 200px">
             <input
               id="customers-search"
               type="search"
-              className={looseInputClass}
+              className={filterControlClass}
               placeholder={DOCUMENT_PLACEHOLDERS[documentType]}
+              inputMode={documentType === 'DNI' ? 'numeric' : 'text'}
               autoComplete="off"
               value={search}
               onChange={(event) => {
@@ -120,20 +127,20 @@ export function CustomersPage() {
                 setPage(1)
               }}
             />
-          </LooseField>
-          <LooseField label="Nivel" htmlFor="customers-level" className="mb-2.5 max-w-[200px]">
+          </FilterCell>
+          <FilterCell label="Nivel" htmlFor="customers-level" flex="1 1 170px">
             <FilterSelect
               id="customers-level"
-              variant="field"
+              variant="bar"
               value={level}
               options={LEVEL_OPTIONS}
               onChange={(value) => {
-  setLevel(value as Level | '')
-  setPage(1)
-}}
+                setLevel(value as Level | '')
+                setPage(1)
+              }}
             />
-          </LooseField>
-        </div>
+          </FilterCell>
+        </FilterBar>
 
         <div ref={areaRef} aria-live="polite">
           {customers.isPending && <StatusText>Cargando…</StatusText>}
@@ -146,7 +153,37 @@ export function CustomersPage() {
           )}
 
           {customers.data && customers.data.items.length === 0 && (
-            <p className="text-[13px] text-[#8a6f5e]">Sin resultados para esa búsqueda.</p>
+            documentNumber || level ? (
+              <EmptyState
+                icon={ICONS.search}
+                title="No encontramos clientes"
+                description="Ningún cliente coincide con ese documento o nivel. Revisá el número o probá con otro filtro."
+                action={
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setSearch('')
+                      setLevel('')
+                      setPage(1)
+                    }}
+                  >
+                    Limpiar búsqueda
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState
+                icon={ICONS.users}
+                title="Todavía no hay clientes"
+                description="Cuando registres al primero, va a aparecer acá con su nivel y su saldo."
+                action={
+                  <Button type="button" onClick={() => setRegistering(true)}>
+                    + Registrar cliente
+                  </Button>
+                }
+              />
+            )
           )}
 
           {customers.data && customers.data.items.length > 0 && (
@@ -166,7 +203,7 @@ export function CustomersPage() {
                   </tr>
                 </TableHead>
                 <tbody>
-                  {customers.data.items.map((customer) => (
+                  {customers.data.items.filter((customer) => !hiddenIds.has(customer.id)).map((customer) => (
                     <TableRow key={customer.id} highlight>
                       <TableCell>{customer.lastName}</TableCell>
                       <TableCell>{customer.firstName}</TableCell>
@@ -186,8 +223,9 @@ export function CustomersPage() {
                         <Badge variant="success">Activo</Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1">
                           <Button
+                            size="sm"
                             type="button"
                             variant="ghost"
                             onClick={() => {
@@ -199,10 +237,33 @@ export function CustomersPage() {
                           </Button>
                           <Link
                             to={String(customer.id)}
-                            className={buttonVariants({ variant: 'ghost' })}
+                            className={buttonVariants({ variant: 'ghost', size: 'sm' })}
                           >
                             Ver ficha
                           </Link>
+                          <ActionsMenu
+                            label={`Acciones de ${customer.firstName} ${customer.lastName}`}
+                            items={[
+                              {
+                                label: 'Editar',
+                                icon: ICONS.pencil,
+                                onSelect: () => {
+                                  setMessage(null)
+                                  setEditingFromMenu(true)
+                                  setSelected(customer)
+                                },
+                              },
+                              {
+                                label: 'Eliminar',
+                                danger: true,
+                                onSelect: () => {
+                                  setMessage(null)
+                                  setSelected(customer)
+                                  setDeleting(true)
+                                },
+                              },
+                            ]}
+                          />
                         </div>
                       </TableCell>
                     </TableRow>
@@ -223,7 +284,6 @@ export function CustomersPage() {
         <div className="mt-6">
           <Button
             type="button"
-            className="h-[42px] px-5 text-[15px]"
             onClick={() => {
               setMessage(null)
               setRegistering(true)
@@ -247,9 +307,10 @@ export function CustomersPage() {
       {selected && !deleting && (
         <CustomerDetailsModal
           customer={selected}
+          startEditing={editingFromMenu}
           onClose={() => closeAll()}
           onDelete={() => setDeleting(true)}
-          onSaved={() => closeAll('Cliente actualizado y registrado en auditoría.')}
+          onSaved={() => closeAll('Cliente actualizado. El cambio queda en la auditoría.')}
         />
       )}
 
@@ -257,7 +318,24 @@ export function CustomersPage() {
         <DeactivateCustomerDialog
           customer={selected}
           onCancel={() => setDeleting(false)}
-          onDeleted={() => closeAll('Cliente eliminado.')}
+          onConfirm={() => {
+            const id = selected.id
+            closeAll()
+            setHiddenIds((current) => new Set(current).add(id))
+            const show = () =>
+              setHiddenIds((current) => {
+                const next = new Set(current)
+                next.delete(id)
+                return next
+              })
+            runUndoable({
+              message: 'Cliente eliminado',
+              undoneMessage: 'Listo, el cliente sigue activo',
+              commit: () => deactivate.mutateAsync(id),
+              onUndo: show,
+              onError: show,
+            })
+          }}
         />
       )}
 

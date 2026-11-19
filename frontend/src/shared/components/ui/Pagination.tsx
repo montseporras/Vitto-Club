@@ -34,6 +34,7 @@ export function Pagination({
         <Button
           type="button"
           variant="secondary"
+          size="sm"
           disabled={disabled || page <= 1}
           onClick={() => onChange(page - 1)}
         >
@@ -43,6 +44,7 @@ export function Pagination({
         <Button
           type="button"
           variant="secondary"
+          size="sm"
           disabled={disabled || page >= totalPages}
           onClick={() => onChange(page + 1)}
         >
@@ -98,6 +100,7 @@ export function RangePagination({
         <Button
           type="button"
           variant="secondary"
+          size="sm"
           disabled={disabled || page <= 1}
           onClick={() => onChange(page - 1)}
         >
@@ -106,6 +109,7 @@ export function RangePagination({
         <Button
           type="button"
           variant="secondary"
+          size="sm"
           disabled={disabled || page >= lastPage}
           onClick={() => onChange(page + 1)}
         >

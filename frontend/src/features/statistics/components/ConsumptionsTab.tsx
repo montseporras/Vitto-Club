@@ -16,9 +16,11 @@ import { StatTile } from './StatTile';
 // Paleta de la marca (S5-54): marrón con durazno claro para los días, turquesa con turquesa
 // claro para las franjas.
 const BROWN = '#a9532b';
-const PEACH_LIGHT = '#f5c2a8';
-const TURQUOISE = '#1b7f8c';
-const TURQUOISE_LIGHT = '#a3d2da';
+const BROWN_TEXT = '#a9532b';
+const PEACH_LIGHT = '#f8ddd0';
+const TURQUOISE = '#589ea6';
+const TURQUOISE_TEXT = '#1b7f8c';
+const TURQUOISE_LIGHT = '#cfe7eb';
 
 export function ConsumptionsTab({ data }: { data: ConsumptionsStatistics }) {
   const weekdays: ChartColumn[] = data.byWeekday.map((day) => ({
@@ -62,6 +64,7 @@ export function ConsumptionsTab({ data }: { data: ConsumptionsStatistics }) {
           columns={weekdays}
           strongestIndex={strongestDay}
           strongColor={BROWN}
+          strongTextColor={BROWN_TEXT}
           softColor={PEACH_LIGHT}
           maxBarWidth={46}
         />
@@ -73,6 +76,7 @@ export function ConsumptionsTab({ data }: { data: ConsumptionsStatistics }) {
           columns={slots}
           strongestIndex={strongestSlot}
           strongColor={TURQUOISE}
+          strongTextColor={TURQUOISE_TEXT}
           softColor={TURQUOISE_LIGHT}
           maxBarWidth={64}
         />
