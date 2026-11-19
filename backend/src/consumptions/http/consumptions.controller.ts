@@ -110,6 +110,12 @@ export class ConsumptionsController {
       levelBefore: result.levelBefore,
       levelAfter: result.levelAfter,
       levelUp: result.levelUp,
+      // US-30 (§3.2): id = la asignación (customer_missions), decisión de Jazmín; rewardPoints = snapshot
+      completedMissions: result.completedMissions.map((mission) => ({
+        id: mission.customerMissionId,
+        name: mission.missionName,
+        rewardPoints: mission.rewardPoints,
+      })),
     };
   }
 

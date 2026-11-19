@@ -27,6 +27,15 @@ export const registerSchema = createCustomerSchema
         message: 'La contraseña no puede ser igual al mail',
       })
     }
+    // Contrato §3.11: la contraseña de un cliente no puede ser su número de documento
+    const document = data.documentNumber?.replace(/[\s.-]/g, '').toUpperCase()
+    if (data.password && document && data.password === document) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['password'],
+        message: 'La contraseña no puede ser tu número de documento',
+      })
+    }
   })
 
 export type RegisterFormInput = z.input<typeof registerSchema>

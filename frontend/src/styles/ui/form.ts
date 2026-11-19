@@ -11,15 +11,15 @@ export const formFieldStyles = {
 
 /** Bloque del formulario: título en mayúsculas con línea debajo. */
 export const formSectionStyles = {
-  root: 'mt-7 first:mt-0',
-  legend: 'mb-4 w-full border-b border-accent-100 pb-1.5',
+  root: 'mt-4 first:mt-0',
+  legend: 'mb-2.5 w-full border-b border-accent-100 pb-1',
   title: 'text-xs font-bold tracking-[0.06em] text-accent-800 uppercase',
-  grid: 'grid gap-5 sm:grid-cols-2',
+  grid: 'grid gap-x-5 gap-y-3 sm:grid-cols-2',
 }
 
 /** Botonera al pie del formulario. */
 export const formActionsStyles = {
-  root: 'mt-8 -mx-5 flex flex-col-reverse items-stretch gap-3 border-t border-accent-100 bg-bg px-5 py-5 sm:-mx-8 sm:flex-row sm:items-center sm:justify-end sm:px-8',
+  root: 'mt-5 -mx-5 flex flex-col-reverse items-stretch gap-3 border-t border-accent-100 bg-bg px-5 py-3.5 sm:-mx-8 sm:flex-row sm:items-center sm:justify-end sm:px-8',
   rootWithMessage: 'sm:justify-between',
   message: 'text-sm text-neutral-600',
   // Dentro de una tarjeta compacta (prototipo: .vc-pts): botonera pegada al borde de la tarjeta
@@ -74,9 +74,10 @@ export const authFormStyles = {
   legend: 'mb-2 w-full border-b border-accent-100 pb-1',
   title: 'font-heading text-base font-bold text-accent-800',
   grid: 'grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-x-3 gap-y-4',
-  input: 'h-10 rounded-lg px-3 text-sm',
+  // En el celular, 48 px de alto para que el dedo no caiga en el campo de al lado
+  input: 'h-12 rounded-lg px-3 text-base sm:h-10 sm:text-sm',
   // Sin padding derecho: lo necesita el botón de mostrar la contraseña
-  passwordInput: 'h-10 rounded-lg pl-3 text-sm',
+  passwordInput: 'h-12 rounded-lg pl-3 text-base sm:h-10 sm:text-sm',
   note: 'mt-3 text-[13px] text-neutral-700',
   actions: 'mt-3.5 flex flex-wrap items-center justify-end gap-3 border-t border-accent-100 pt-3',
 }

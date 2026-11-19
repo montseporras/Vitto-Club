@@ -2,6 +2,8 @@
 // §3.8.5): filtros, la tabla de notificaciones de a 20 y "Reenviar" en las FAILED que todavía no se
 // reenviaron. El éxito de "Reenviar" va en el toast, como en el prototipo; el error, en un aviso rojo
 // arriba de la tabla, como en el resto de la app (decisión de Melisa).
+import { ICONS } from '@/shared/components/ui/icons'
+import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { useDeferredValue, useState } from 'react'
 import { DOCUMENT_TYPES } from '@/domain/documents'
 import { toApiError } from '@/shared/api/ApiError'
@@ -109,9 +111,16 @@ export function HistoryTab() {
       )}
 
       {history.data && items.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-[#f6d0b1] px-4 py-7 text-center text-[#5c5249]">
-          No hay notificaciones para los filtros seleccionados.
-        </p>
+        <EmptyState
+          icon={ICONS.bell}
+          title="No hay notificaciones con esos filtros"
+          description="Probá con otro tipo, estado o rango de fechas."
+          action={
+            <Button type="button" variant="secondary" onClick={() => changeFilters(EMPTY_NOTIFICATIONS_FILTERS)}>
+              Limpiar filtros
+            </Button>
+          }
+        />
       )}
 
       {history.data && items.length > 0 && (
@@ -159,7 +168,7 @@ export function HistoryTab() {
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       {row.status === 'FAILED' && !row.resent && (
-                        <Button
+                        <Button size="sm" loading={resend.isPending && resend.variables === row.id}
                           type="button"
                           variant="secondary"
                           disabled={resend.isPending && resend.variables === row.id}

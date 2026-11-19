@@ -35,16 +35,16 @@ export function PieChart({ slices, total, centerLabel }: PieChartProps) {
   const summary = slices.map((slice) => `${slice.label} ${slice.count}`).join(', ');
 
   return (
-    <div className="flex items-center gap-7 [@media(max-height:820px)]:gap-5">
+    <div className="flex flex-col gap-4 min-[480px]:flex-row min-[480px]:items-center min-[480px]:gap-7 [@media(max-height:820px)]:gap-5">
       <div
         role="img"
         aria-label={summary}
-        className="relative size-[136px] shrink-0 rounded-full [@media(max-height:820px)]:size-[112px]"
+        className="relative size-[136px] shrink-0 self-center rounded-full [@media(max-height:820px)]:size-[112px]"
         style={{ background: `conic-gradient(${gradientOf(slices, total)})` }}
       >
         {/* Hueco del medio, con el total */}
         <div className="absolute inset-[21%] flex flex-col items-center justify-center rounded-full bg-white text-center leading-[1.1]">
-          <span className="text-[22px] font-bold tracking-[-0.01em] text-[#2b1a10] tabular-nums">
+          <span className="text-[22px] font-bold tracking-[-0.01em] text-[#2b1a10] font-stats tabular-nums">
             {formatInteger(total)}
           </span>
           <span className="mt-0.5 text-[11px] text-[#7a6e63]">{centerLabel}</span>
@@ -73,8 +73,8 @@ export function PieChart({ slices, total, centerLabel }: PieChartProps) {
                   </span>
                 )}
               </span>
-              <span className="font-bold tabular-nums">{formatInteger(slice.count)}</span>
-              <span className="min-w-10 text-right text-[11px] text-[#7a6e63] tabular-nums">
+              <span className="font-bold font-stats tabular-nums">{formatInteger(slice.count)}</span>
+              <span className="min-w-10 text-right text-[11px] text-[#7a6e63] font-stats tabular-nums">
                 {percent}
               </span>
             </div>

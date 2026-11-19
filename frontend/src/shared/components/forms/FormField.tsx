@@ -8,32 +8,24 @@ type FormFieldProps = {
   error?: string
   hint?: string
   optional?: boolean
-  /** Oculta el asterisco de obligatorio (ingreso y registro no lo muestran). */
+  /**
+   * Sin efecto: los obligatorios ya no llevan asterisco. Como casi todos los campos son
+   * obligatorios, solo se marcan los opcionales con "(opcional)", para no llenar la pantalla de
+   * marcas. Queda por compatibilidad con las pantallas que lo pasan.
+   */
   hideRequiredMark?: boolean
+  /** Reglas que se muestran antes de escribir (ej. requisitos de la contraseña). */
+  rules?: ReactNode
   children: ReactNode
 }
 
 /** Etiqueta + control + mensaje de error o ayuda debajo. */
-export function FormField({
-  id,
-  label,
-  error,
-  hint,
-  optional,
-  hideRequiredMark,
-  children,
-}: FormFieldProps) {
+export function FormField({ id, label, error, hint, optional, rules, children }: FormFieldProps) {
   return (
     <div className={formFieldStyles.root}>
-      <Label htmlFor={id}>
+      <Label htmlFor={id} id={`${id}-label`}>
         {label}
-        {optional ? (
-          <span className={formFieldStyles.optional}>(opcional)</span>
-        ) : hideRequiredMark ? null : (
-          <span aria-hidden="true" className={formFieldStyles.required}>
-            *
-          </span>
-        )}
+        {optional && <span className={formFieldStyles.optional}>(opcional)</span>}
       </Label>
       {children}
       {error ? (
@@ -45,6 +37,7 @@ export function FormField({
           {hint}
         </p>
       ) : null}
+      {rules}
     </div>
   )
 }

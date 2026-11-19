@@ -915,3 +915,235 @@ export function configurationSavedEntries(
   }
   return entries.length > 0 ? entries : [pointsEquivalenceUpdatedEntry(actor, before, after)];
 }
+
+// ---------------------------------------------------------------------------------------------
+// Misiones (contrato S5 §3.14.2). Los textos repiten los del listado de §3.1.2 ("3 consumos",
+// "$ 20.000 en consumos", "los domingos de 09:00 a 13:00", "50 pts" / "Sin recompensa",
+// "Noviembre 2026 – Diciembre 2026" / "Desde noviembre 2026"); sin condición, "Todos los días"
+// (§3.1.6). Decisión de Jazmín: el contrato da las filas pero no sus valores.
+
+export type MissionAuditSnapshot = {
+  name: string;
+  objectiveType: 'CONSUMPTION_COUNT' | 'CONSUMPTION_AMOUNT';
+  target: number;
+  // 1 (lunes) a 7 (domingo), ordenados. null = todos los días
+  daysOfWeek: number[] | null;
+  // HH:mm
+  timeFrom: string | null;
+  timeTo: string | null;
+  rewardPoints: number | null;
+  // YYYY-MM
+  startMonth: string;
+  endMonth: string | null;
+};
+
+const MONTH_NAMES = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+];
+
+// En plural, como en "los domingos". Índice = día - 1 (1 = lunes)
+const DAY_NAMES_PLURAL = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'];
+
+const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
+// "a", "a y b", "a, b y c"
+function joinWithAnd(items: string[]): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} y ${items[items.length - 1]}`;
+}
+
+// "noviembre 2026"
+function formatMonth(month: string): string {
+  const [year, monthNumber] = month.split('-');
+  return `${MONTH_NAMES[Number(monthNumber) - 1]} ${year}`;
+}
+
+// "3 consumos" (1 → "1 consumo") o "$ 20.000 en consumos" (hasta 2 decimales)
+export function formatMissionObjective(
+  objectiveType: MissionAuditSnapshot['objectiveType'],
+  target: number,
+): string {
+  if (objectiveType === 'CONSUMPTION_COUNT') {
+    return `${formatNumber(target)} ${target === 1 ? 'consumo' : 'consumos'}`;
+  }
+  return `$ ${target.toLocaleString('es-AR', { maximumFractionDigits: 2 })} en consumos`;
+}
+
+// "Todos los días", "los domingos", "los lunes, miércoles y domingos", "Todos los días de 09:00 a
+// 13:00" o "los domingos de 09:00 a 13:00"
+export function formatMissionCondition(
+  daysOfWeek: number[] | null,
+  timeFrom: string | null,
+  timeTo: string | null,
+): string {
+  const days =
+    daysOfWeek === null || daysOfWeek.length === 0
+      ? 'Todos los días'
+      : `los ${joinWithAnd(daysOfWeek.map((day) => DAY_NAMES_PLURAL[day - 1]))}`;
+  return timeFrom !== null && timeTo !== null ? `${days} de ${timeFrom} a ${timeTo}` : days;
+}
+
+// "50 pts" o "Sin recompensa"
+export const formatMissionReward = (rewardPoints: number | null): string =>
+  rewardPoints === null ? 'Sin recompensa' : `${formatNumber(rewardPoints)} pts`;
+
+// "Noviembre 2026 – Diciembre 2026" o "Desde noviembre 2026"
+export const formatMissionValidity = (startMonth: string, endMonth: string | null): string =>
+  endMonth === null
+    ? `Desde ${formatMonth(startMonth)}`
+    : `${capitalize(formatMonth(startMonth))} – ${capitalize(formatMonth(endMonth))}`;
+
+// MISSION_CREATED (§3.14.2, US-28): Objetivo · Condición · Recompensa · Vigencia
+export function missionCreatedEntry(actor: AuditActor, mission: MissionAuditSnapshot): AuditEntryInput {
+  return {
+    actor,
+    module: 'MISSIONS',
+    action: 'MISSION_CREATED',
+    description: `Creó la misión "${mission.name}"`,
+    details: [
+      { label: 'Objetivo', value: formatMissionObjective(mission.objectiveType, mission.target) },
+      { label: 'Condición', value: formatMissionCondition(mission.daysOfWeek, mission.timeFrom, mission.timeTo) },
+      { label: 'Recompensa', value: formatMissionReward(mission.rewardPoints) },
+      { label: 'Vigencia', value: formatMissionValidity(mission.startMonth, mission.endMonth) },
+    ],
+  };
+}
+
+export type MissionAuditEditSnapshot = MissionAuditSnapshot & { description: string | null };
+
+// "Diciembre 2026", para "Rige desde"
+const formatMonthCapitalized = (month: string): string => capitalize(formatMonth(month));
+
+// MISSION_UPDATED (§3.14.2, US-29): una fila por campo que cambió, "{antes} → {después}", con los textos
+// del listado; vacío = "—". El objetivo, la condición y la recompensa se comparan contra lo que iba a regir
+// (el pendiente, si había). Al final, "Rige desde: {mes}" si el cambio quedó para el mes siguiente. La
+// description lleva el nombre nuevo. null si no cambió nada (no se audita). Etiquetas: decisión de Jazmín.
+export function missionUpdatedEntry(
+  actor: AuditActor,
+  before: MissionAuditEditSnapshot,
+  after: MissionAuditEditSnapshot,
+  appliesFrom: string | null,
+): AuditEntryInput | null {
+  const details = changedRows([
+    { label: 'Nombre', before: before.name, after: after.name },
+    { label: 'Descripción', before: orNone(before.description), after: orNone(after.description) },
+    {
+      label: 'Objetivo',
+      before: formatMissionObjective(before.objectiveType, before.target),
+      after: formatMissionObjective(after.objectiveType, after.target),
+    },
+    {
+      label: 'Condición',
+      before: formatMissionCondition(before.daysOfWeek, before.timeFrom, before.timeTo),
+      after: formatMissionCondition(after.daysOfWeek, after.timeFrom, after.timeTo),
+    },
+    { label: 'Recompensa', before: formatMissionReward(before.rewardPoints), after: formatMissionReward(after.rewardPoints) },
+    {
+      label: 'Vigencia',
+      before: formatMissionValidity(before.startMonth, before.endMonth),
+      after: formatMissionValidity(after.startMonth, after.endMonth),
+    },
+  ]);
+  if (appliesFrom !== null) details.push({ label: 'Rige desde', value: formatMonthCapitalized(appliesFrom) });
+  if (details.length === 0) return null;
+
+  return {
+    actor,
+    module: 'MISSIONS',
+    action: 'MISSION_UPDATED',
+    description: `Editó la misión "${after.name}"`,
+    details,
+  };
+}
+
+// MISSION_DELETED (§3.14.2, US-29): "Vencidas: {n}" y "Reclamadas automáticamente: {n}", cada una solo
+// si n > 0
+export function missionDeletedEntry(
+  actor: AuditActor,
+  missionName: string,
+  expired: number,
+  claimed: number,
+): AuditEntryInput {
+  return {
+    actor,
+    module: 'MISSIONS',
+    action: 'MISSION_DELETED',
+    description: `Dio de baja la misión "${missionName}"`,
+    details: [
+      ...(expired > 0 ? [{ label: 'Vencidas', value: formatNumber(expired) }] : []),
+      ...(claimed > 0 ? [{ label: 'Reclamadas automáticamente', value: formatNumber(claimed) }] : []),
+    ],
+  };
+}
+
+// MISSION_COMPLETED (§3.14.2, US-30): actor Sistema, con el cliente afectado. Misión · Objetivo (el del
+// snapshot) · Período ("Noviembre 2026"). Valores: decisión de Jazmín.
+export function missionCompletedEntry(
+  customer: AffectedCustomerSnapshot,
+  mission: { name: string; objectiveType: MissionAuditSnapshot['objectiveType']; target: number; period: string },
+): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'MISSIONS',
+    action: 'MISSION_COMPLETED',
+    description: `Completó la misión "${mission.name}" de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    details: [
+      { label: 'Misión', value: mission.name },
+      { label: 'Objetivo', value: formatMissionObjective(mission.objectiveType, mission.target) },
+      { label: 'Período', value: formatMonthCapitalized(mission.period) },
+    ],
+  };
+}
+
+// MISSION_REWARD_CLAIMED (§3.14.2, US-31): siempre a nombre del Sistema, también cuando reclama el
+// Cliente (el Cliente nunca es actor). Misión · Puntos otorgados · Saldo resultante · Reclamada por:
+// Cliente / Automático. Valores: decisión de Jazmín (el saldo con formatNumber, "-350 pts" si queda deuda).
+export function missionRewardClaimedEntry(
+  customer: AffectedCustomerSnapshot,
+  claim: { missionName: string; points: number; balanceAfter: number; claimedBy: 'CUSTOMER' | 'SYSTEM' },
+): AuditEntryInput {
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'MISSIONS',
+    action: 'MISSION_REWARD_CLAIMED',
+    description: `Reclamó la recompensa de la misión "${claim.missionName}" de ${fullName(customer)}`,
+    affectedCustomer: affectedCustomerOf(customer),
+    details: [
+      { label: 'Misión', value: claim.missionName },
+      { label: 'Puntos otorgados', value: `${formatNumber(claim.points)} pts` },
+      { label: 'Saldo resultante', value: `${formatNumber(claim.balanceAfter)} pts` },
+      { label: 'Reclamada por', value: claim.claimedBy === 'CUSTOMER' ? 'Cliente' : 'Automático' },
+    ],
+  };
+}
+
+// MISSIONS_EXPIRED (§3.14.2, US-32): una por corrida del proceso de fin de mes, a nombre del Sistema.
+// Período · Misiones vencidas · Recompensas reclamadas automáticamente, siempre las tres filas (decisión de
+// Jazmín). Si la corrida resolvió más de un mes, "Período" los nombra a todos: "Octubre 2026, Noviembre
+// 2026" (decisión de Jazmín).
+export function missionsExpiredEntry(run: { periods: string[]; expired: number; claimed: number }): AuditEntryInput {
+  const periods = [...new Set(run.periods)].sort().map(formatMonthCapitalized).join(', ');
+  return {
+    actor: { type: 'SYSTEM' },
+    module: 'MISSIONS',
+    action: 'MISSIONS_EXPIRED',
+    description: 'Venció las misiones del mes',
+    details: [
+      { label: 'Período', value: periods },
+      { label: 'Misiones vencidas', value: formatNumber(run.expired) },
+      { label: 'Recompensas reclamadas automáticamente', value: formatNumber(run.claimed) },
+    ],
+  };
+}

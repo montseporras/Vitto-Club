@@ -9,6 +9,7 @@ import { Input } from '@/shared/components/ui/Input'
 import { Modal } from '@/shared/components/ui/Modal'
 import { Textarea } from '@/shared/components/ui/Textarea'
 import { useModalEscape } from '@/shared/hooks/useModalEscape'
+import { useUnsavedChangesGuard } from '@/shared/hooks/useUnsavedChangesGuard'
 import { exampleValues, replaceVariables, variablesHint } from '../lib/message-variables'
 import { NOTIFICATION_TYPES } from '../lib/notification-labels'
 import {
@@ -29,24 +30,29 @@ type EditMessageModalProps = {
 }
 
 export function EditMessageModal({ message, birthdayBonusPoints, onAccept, onClose }: EditMessageModalProps) {
-  useModalEscape(onClose)
-
   const {
     register,
     handleSubmit,
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<MessageFormValues>({
     resolver: zodResolver(messageSchema(message.type)),
     defaultValues: { subject: message.subject, body: message.body },
+    // Valida mientras se escribe: el error aparece en el campo, no todos al final
+    mode: 'onChange',
   })
+  // Cerrar con cambios sin guardar (cruz, Cancelar o Escape) pregunta antes
+  const { guard, dialog: unsavedDialog } = useUnsavedChangesGuard(isDirty)
+  const requestClose = guard(onClose)
+  useModalEscape(requestClose)
+
 
   const subject = useWatch({ control, name: 'subject' }) ?? ''
   const body = useWatch({ control, name: 'body' }) ?? ''
   const examples = exampleValues(message.type, birthdayBonusPoints)
 
   return (
-    <Modal title={`Mensaje: ${NOTIFICATION_TYPES[message.type]}`} onClose={onClose} className="max-w-[640px]">
+    <Modal title={`Mensaje: ${NOTIFICATION_TYPES[message.type]}`} onClose={requestClose} className="max-w-[640px]">
       <form onSubmit={handleSubmit(onAccept)} noValidate className="space-y-3">
         <FormField id="message-subject" label="Asunto" error={errors.subject?.message} hideRequiredMark>
           <Input
@@ -81,12 +87,13 @@ export function EditMessageModal({ message, birthdayBonusPoints, onAccept, onClo
         />
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={requestClose}>
             Cancelar
           </Button>
           <Button type="submit">Guardar</Button>
         </div>
       </form>
+      {unsavedDialog}
     </Modal>
   )
 }

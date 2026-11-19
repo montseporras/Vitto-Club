@@ -40,7 +40,7 @@ export function LoginPage() {
   } = useForm<LoginFormInput, unknown, LoginFormOutput>({
     resolver: zodResolver(loginSchema),
     defaultValues: INITIAL_VALUES,
-    mode: 'onTouched',
+    mode: 'onChange',
   })
 
   // Al recargar con la sesión abierta, no muestra el formulario mientras la recupera
@@ -80,17 +80,16 @@ export function LoginPage() {
       {error && (
         <Alert variant="error" className={cn(authShellStyles.narrow, 'mb-5')}>
           {error.code === AUTH_ERROR_CODES.INVALID_CREDENTIALS ? (
-            'Los datos de acceso son incorrectos.'
+            'No pudiste iniciar sesión: el mail o la contraseña no coinciden.'
           ) : error.status === 400 ? (
             <>
-              Revisá los datos ingresados.
+              Revisá los datos que ingresaste.
               <AlertMessages messages={error.messages} />
             </>
+          ) : error.status === undefined ? (
+            error.message
           ) : (
-            <>
-              No se pudo iniciar sesión.
-              <AlertMessages messages={error.messages} />
-            </>
+            'Ocurrió un error al iniciar sesión. Probá de nuevo en unos minutos.'
           )}
         </Alert>
       )}
@@ -110,6 +109,7 @@ export function LoginPage() {
           >
             <Input
               type="email"
+              inputMode="email"
               autoFocus
               autoComplete="username"
               placeholder="nombre@mail.com"
@@ -133,6 +133,7 @@ export function LoginPage() {
           </FormField>
 
           <Button
+            loading={login.isPending}
             type="submit"
             size="lg"
             className="mt-1 w-full"

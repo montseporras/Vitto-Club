@@ -103,7 +103,7 @@ export function LogoutDialog({ onCancel }: LogoutDialogProps) {
       ) : (
         <div
           className={cn(
-            'relative w-full max-w-md rounded-[20px] border border-accent-100 bg-bg p-6 shadow-2xl shadow-accent-800/20 sm:p-8',
+            'relative max-h-[calc(100svh-2rem)] w-full max-w-md overflow-y-auto rounded-[20px] border border-accent-100 bg-bg p-6 shadow-2xl shadow-accent-800/20 sm:p-8',
             phase === 'leaving'
               ? 'motion-safe:animate-vitto-modal-out'
               : 'motion-safe:animate-vitto-modal-in',
@@ -154,25 +154,28 @@ export function LogoutDialog({ onCancel }: LogoutDialogProps) {
             </span>
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="mt-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
             <button
               type="button"
               autoFocus
               onClick={onCancel}
               disabled={phase === 'leaving'}
-              className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full border border-accent-300 bg-accent-100 px-4 text-sm font-bold text-accent-900 shadow-md shadow-accent-800/15 transition-colors hover:bg-accent-200"
+              className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full border border-accent-300 bg-accent-100 px-3 text-sm leading-tight font-bold whitespace-nowrap text-accent-900 shadow-md shadow-accent-800/15 transition-colors hover:bg-accent-200 sm:px-4"
             >
-              <Icon d={ICONS.close} className="size-4" />
-              Permanecer acá
+              {/* En el celular no entra el ícono: queda el texto solo, en una línea */}
+              <Icon d={ICONS.close} className="hidden size-4 sm:block" />
+              <span className="sm:hidden">Quedarme</span>
+              <span className="hidden sm:inline">Permanecer acá</span>
             </button>
             <button
               type="button"
               onClick={() => void confirm()}
               disabled={phase === 'leaving'}
-              className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-accent-700 px-4 text-sm font-bold text-white shadow-lg shadow-accent-700/30 transition-colors hover:bg-accent-800"
+              className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-accent-700 px-3 text-sm leading-tight font-bold whitespace-nowrap text-white shadow-lg shadow-accent-700/30 transition-colors hover:bg-accent-800 sm:px-4"
             >
-              <Icon d={ICONS.logOut} className="size-4" />
-              Sí, cerrar sesión
+              <Icon d={ICONS.logOut} className="hidden size-4 sm:block" />
+              <span className="sm:hidden">Cerrar sesión</span>
+              <span className="hidden sm:inline">Sí, cerrar sesión</span>
             </button>
           </div>
 

@@ -1,5 +1,6 @@
 // Este archivo hace las llamadas al backend para consultar consumos. Lo usan los hooks de
 // consumptions.queries.ts; las pantallas no lo llaman directo.
+import { TABLE_PAGE_SIZE } from '@/shared/lib/pagination';
 import type { Consumption } from '@/features/cashier';
 import { toApiError } from '@/shared/api/ApiError';
 import { http } from '@/shared/api/http';
@@ -14,7 +15,7 @@ export const HISTORY_PAGE_SIZE = 20;
 
 // Filas por página del listado del Administrador si la pantalla no puede calcular cuántas
 // entran en su alto (ajustes S5-57; antes §3.3.1: "La pantalla usa 8").
-export const CONSUMPTIONS_PAGE_SIZE = 8;
+export const CONSUMPTIONS_PAGE_SIZE = TABLE_PAGE_SIZE;
 
 // Una página del historial de consumos del cliente que inició sesión (US-23, §3.10.2).
 // Vienen ordenados del más nuevo al más viejo.

@@ -115,8 +115,8 @@ export function ImagePicker({
             <label
               htmlFor={`${id}-file`}
               className={cn(
-                buttonVariants({ variant: 'secondary' }),
-                'h-[34px] cursor-pointer rounded-lg px-3.5 text-[13px] focus-within:ring-2 focus-within:ring-[#a8532a]/40',
+                buttonVariants({ variant: 'secondary', size: 'sm' }),
+                'cursor-pointer rounded-lg focus-within:ring-2 focus-within:ring-[#a8532a]/40',
                 disabled && 'pointer-events-none opacity-50',
               )}
             >
@@ -137,7 +137,8 @@ export function ImagePicker({
                 type="button"
                 variant="ghost"
                 disabled={disabled}
-                className="h-[34px] rounded-lg px-3 text-[13px]"
+                size="sm"
+                className="rounded-lg"
                 onClick={remove}
               >
                 {removeLabel}
