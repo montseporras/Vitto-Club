@@ -52,9 +52,11 @@ export async function changeMyPassword(body: ChangePasswordBody) {
 }
 
 /** GET /customers/me/misiones (S5 §3.3.2): las misiones del mes actual, sin paginado. */
-export async function getMyMissions() {
+export async function getMyMissions(period?: string) {
   try {
-    const res = await http.get<MyMission[]>('/customers/me/misiones')
+    const res = await http.get<MyMission[]>('/customers/me/misiones', {
+      params: period ? { period } : undefined,
+    })
     return res.data
   } catch (error) {
     throw toApiError(error)

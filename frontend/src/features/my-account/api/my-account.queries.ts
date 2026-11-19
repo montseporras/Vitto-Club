@@ -25,8 +25,11 @@ export const useMyPoints = () =>
   useQuery({ queryKey: myAccountKeys.points(), queryFn: getMyPoints })
 
 /** Misiones del mes del Cliente (S5 §3.3.2). Las muestran "Mis canjes" y "Misiones". */
-export const useMyMissions = () =>
-  useQuery({ queryKey: myAccountKeys.missions(), queryFn: getMyMissions })
+export const useMyMissions = (period?: string) =>
+  useQuery({
+    queryKey: myAccountKeys.missions(period),
+    queryFn: () => getMyMissions(period),
+  })
 
 /**
  * Guarda los datos de contacto. Si cambió el correo, cambió también el de
