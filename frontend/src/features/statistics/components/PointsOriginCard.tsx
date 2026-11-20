@@ -1,7 +1,6 @@
 // Este archivo es la tarjeta "De dónde salen los puntos" de la pestaña Puntos (contrato S5 §3.9.7):
 // la barra de Consumos con "Origen principal" y, debajo, los "Puntos extra" con una barra por
 // cada uno. Las barras de los extras se comparan entre sí, no contra el total.
-import { SoonBadge } from '@/shared/components/ui/SoonBadge';
 import { formatInteger } from '@/shared/lib/numbers';
 import { formatPercent, percentOf } from '../lib/format';
 import { creditedTotal, extraRows, extrasTotal } from '../lib/points';
@@ -75,7 +74,6 @@ export function PointsOriginCard({ totals, cutoff }: PointsOriginCardProps) {
             >
               <div className="flex items-center gap-2">
                 <span className="text-[13px] text-[#2b1a10]">{row.label}</span>
-                {row.key === 'missionRewards' && <SoonBadge className="rounded" />}
                 {row.noLevel && (
                   <span className="inline-flex items-center rounded bg-[#fde4d8] px-2 py-px text-[10px] font-semibold whitespace-nowrap text-[#8a6a5c]">
                     No suma nivel

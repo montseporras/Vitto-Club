@@ -1,7 +1,6 @@
 // Este archivo es la tarjeta "Misiones asignadas" de la pestaña Programa (contrato S5 §3.9.7,
 // S5-50): la torta por estado de las misiones del mes (En progreso solo si es el mes actual), la
 // tasa de efectividad y el "Corte".
-import { SoonBadge } from '@/shared/components/ui/SoonBadge';
 import { formatWholePercent } from '../lib/format';
 import { effectivenessRate, missionSlices } from '../lib/program';
 import type { ProgramStatistics } from '../types/statistics';
@@ -24,7 +23,6 @@ export function MissionsCard({ missions, isCurrentMonth, cutoff }: MissionsCardP
           <h3 className="text-lg leading-tight font-bold text-[#2b1a10] [@media(max-height:820px)]:text-base">
             Misiones asignadas
           </h3>
-          <SoonBadge className="rounded" />
         </div>
         <p className="mt-0 text-xs text-[#7a6e63] [@media(max-height:820px)]:text-[11px]">
           Estado de todas las misiones que se asignaron a los clientes en el mes.

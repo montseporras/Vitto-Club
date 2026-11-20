@@ -5,7 +5,6 @@ import { Link } from 'react-router'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
-import { SoonBadge } from '@/shared/components/ui/SoonBadge'
 import { cn } from '@/shared/lib/utils'
 import { clientStyles } from '@/styles/ui'
 import { useMyProfile } from '../api/my-account.queries'
@@ -25,7 +24,7 @@ const NOTICES = [
     text: 'El día de tu cumpleaños te mandamos un saludo. Cargá tu fecha de nacimiento en Mis datos.',
   },
   { icon: ICONS.sparkles, title: 'Promociones', text: 'Las novedades y promos de La Vitto.' },
-  { icon: ICONS.target, title: 'Misiones', text: 'Avisos sobre tus misiones del mes.', soon: true },
+  { icon: ICONS.target, title: 'Misiones', text: 'Avisos sobre tus misiones del mes.' },
 ]
 
 export function NotificationsInfoPage() {
@@ -60,7 +59,6 @@ export function NotificationsInfoPage() {
             <div className="min-w-0 flex-1">
               <p className="font-bold text-ink">
                 {notice.title}
-                {'soon' in notice && <SoonBadge className="ml-2 align-middle" />}
               </p>
               <p className="text-sm text-neutral-600">{notice.text}</p>
             </div>
