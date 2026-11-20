@@ -1,11 +1,11 @@
-// Inicio del Cliente (diseño "App Fidelización V2", US-19 y US-39): saludo con el saldo y el nivel,
-// carrusel de promociones, el aviso de canje para usar (si hay) y tres recompensas del catálogo.
 import { Link } from 'react-router'
+import { useMyCustomerMissions } from '@/features/missions'
+import { StatusText } from '@/shared/components/feedback/StatusText'
+import { Alert } from '@/shared/components/ui/Alert'
+import { Card, CardTitle } from '@/shared/components/ui/Card'
 import { useSession } from '@/features/auth'
 import { useMyCatalog } from '@/features/rewards'
 import { EmptyState } from '@/shared/components/feedback/EmptyState'
-import { StatusText } from '@/shared/components/feedback/StatusText'
-import { Alert } from '@/shared/components/ui/Alert'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
 import { clientStyles } from '@/styles/ui'
@@ -25,6 +25,7 @@ export function CustomerHomePage() {
   const session = useSession()
   const points = useMyPoints()
   const catalog = useMyCatalog('ALL')
+  const missions = useMyCustomerMissions()
   const firstName = session.status === 'authenticated' ? (session.user.firstName ?? '') : ''
 
   return (
@@ -41,6 +42,29 @@ export function CustomerHomePage() {
             <GreetingCard firstName={firstName} points={points.data} />
             {points.data.negativeBalance && <NegativeBalanceNotice />}
             <RedemptionToUseCard myRedemptionsUrl={historyRedemptionsPath()} />
+            <Card className="flex items-center justify-between gap-3 px-4 py-4">
+              <div className="min-w-0">
+                <CardTitle className="text-sm">Misiones</CardTitle>
+                {missions.isPending ? (
+                  <StatusText className="mt-1">Cargando…</StatusText>
+                ) : missions.isError ? (
+                  <p className="mt-1 text-sm text-neutral-600">
+                    No pudimos cargar tus misiones.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-neutral-600">
+                    {missions.data.filter((mission) => mission.status === 'IN_PROGRESS').length}{' '}
+                    en progreso
+                  </p>
+                )}
+              </div>
+              <Link
+                to={CUSTOMER_PATHS.missions}
+                className="rounded-lg border border-accent-300 px-3 py-2 text-sm font-bold text-accent-800"
+              >
+                Ver misiones
+              </Link>
+            </Card>
           </div>
           <PromoCarousel />
         </div>

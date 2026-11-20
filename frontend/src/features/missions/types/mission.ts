@@ -3,8 +3,40 @@ import type { DocumentType } from '@/domain/documents'
 export type MissionObjectiveType = 'CONSUMPTION_COUNT' | 'CONSUMPTION_AMOUNT'
 export type MissionPhase = 'RUNNING' | 'UPCOMING' | 'FINISHED'
 export type MissionStatus = 'ACTIVE' | 'DELETED'
-export type CustomerMissionStatus = 'COMPLETED' | 'CLAIMED'
+export type CustomerMissionStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CLAIMED' | 'EXPIRED'
 export type MissionClaimedBy = 'CUSTOMER' | 'SYSTEM'
+
+type CustomerMissionFields = {
+  mission: {
+    id: number
+    name: string
+    description: string | null
+  }
+  period: string
+  objectiveType: MissionObjectiveType
+  target: number
+  daysOfWeek: number[] | null
+  timeFrom: string | null
+  timeTo: string | null
+  rewardPoints: number | null
+  progress: number
+  status: CustomerMissionStatus
+  completedAt: string | null
+  claimedAt: string | null
+  claimedBy: MissionClaimedBy | null
+  endsAt: string
+}
+
+export type MyCustomerMission = CustomerMissionFields & {
+  id: number
+  canClaim: boolean
+}
+
+export type StaffCustomerMission = CustomerMissionFields & {
+  id: number | null
+}
+
+export type CustomerMission = MyCustomerMission | StaffCustomerMission
 
 export type MissionPendingChanges = {
   appliesFrom: string

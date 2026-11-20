@@ -12,13 +12,17 @@ import type {
   DeleteMissionResponse,
   Mission,
   MissionListFilters,
+  MyCustomerMission,
+  StaffCustomerMission,
   UpdateMissionBody,
   UpdateMissionResponse,
 } from '../types/mission'
 import {
   createMission,
   deleteMission,
+  getCustomerMissions,
   getCompletedMissions,
+  getMyMissions,
   getMission,
   listMissions,
   updateMission,
@@ -57,6 +61,31 @@ export const useMissionCompletions = (id: number | null) =>
       return getCompletedMissions(id)
     },
     enabled: id !== null,
+    retry: retryNetworkOnce,
+  })
+
+export const useMyCustomerMissions = (period?: string) =>
+  useQuery<MyCustomerMission[], ApiError>({
+    queryKey: missionsKeys.myMissions(period),
+    queryFn: () => getMyMissions(period),
+    retry: retryNetworkOnce,
+  })
+
+export const useCustomerMissions = (
+  customerId: number | null,
+  period?: string,
+  enabled = true,
+) =>
+  useQuery<StaffCustomerMission[], ApiError>({
+    queryKey:
+      customerId === null
+        ? [...missionsKeys.all, 'customer', 'none', period ?? 'current']
+        : missionsKeys.customerMissions(customerId, period),
+    queryFn: () => {
+      if (customerId === null) throw new Error('El identificador del cliente es obligatorio.')
+      return getCustomerMissions(customerId, period)
+    },
+    enabled: enabled && customerId !== null,
     retry: retryNetworkOnce,
   })
 

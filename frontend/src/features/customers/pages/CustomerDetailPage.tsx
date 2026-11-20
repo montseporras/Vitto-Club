@@ -10,6 +10,7 @@ import {
   useCustomerPoints,
 } from '@/features/cashier'
 import { ConsumptionDetailModal } from '@/features/consumptions'
+import { CustomerMissionsPanel, useCustomerMissions } from '@/features/missions'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { AdminPanel } from '@/shared/components/ui/AdminPanel'
 import { Alert, AlertMessages } from '@/shared/components/ui/Alert'
@@ -40,7 +41,7 @@ import { useCustomer, useCustomerConsumptions } from '../api/customers.queries'
 const TAB_LIMIT = 5
 const MOVEMENTS_PAGE_SIZE = TABLE_PAGE_SIZE
 
-type Tab = 'consumptions' | 'movements'
+type Tab = 'consumptions' | 'movements' | 'missions'
 
 // Etiqueta de datos del prototipo (FichaCliente): 12 px, negrita, mayúsculas, marrón
 const labelClass = 'text-xs font-bold uppercase tracking-[0.025em] text-[#7e3e20]'
@@ -59,6 +60,12 @@ export function CustomerDetailPage() {
   const customer = useCustomer(id)
   const points = useCustomerPoints(Number.isInteger(id) ? id : null)
   const [tab, setTab] = useState<Tab>('consumptions')
+  const [missionPeriod, setMissionPeriod] = useState('')
+  const missions = useCustomerMissions(
+    Number.isInteger(id) ? id : null,
+    missionPeriod || undefined,
+    tab === 'missions',
+  )
   const [adjusting, setAdjusting] = useState(false)
 
   // Rutas relativas a la URL (/admin/clientes/:id): un feature no importa de app/
@@ -217,6 +224,7 @@ export function CustomerDetailPage() {
             [
               ['consumptions', 'Últimos consumos'],
               ['movements', 'Movimientos de puntos'],
+              ['missions', 'Misiones'],
             ] as const
           ).map(([value, label]) => (
             <button
@@ -238,8 +246,16 @@ export function CustomerDetailPage() {
         <div role="tabpanel" className="mt-4">
           {tab === 'consumptions' ? (
             <ConsumptionsTab customerId={id} documentNumber={data.documentNumber} />
-          ) : (
+          ) : tab === 'movements' ? (
             <MovementsTab customerId={id} />
+          ) : (
+            <CustomerMissionsPanel
+              missions={missions.data}
+              period={missionPeriod}
+              onPeriodChange={setMissionPeriod}
+              isPending={missions.isPending}
+              error={missions.error}
+            />
           )}
         </div>
       </AdminPanel>

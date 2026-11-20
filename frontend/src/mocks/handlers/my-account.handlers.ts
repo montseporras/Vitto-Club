@@ -2,16 +2,16 @@
 // formato de error que el backend (contrato §3.10 y §3.11, y la §8 de
 // CAMBIOS_PROPUESTOS_AL_CONTRATO_PERFIL.md en la rama backend-maga).
 import { delay, http, HttpResponse } from 'msw'
-import type {
-  CustomerMission,
-  MyMission,
-  MyPoints,
-  MyProfile,
-} from '@/features/my-account'
-import { addMonths, monthKeyInArgentina } from '@/features/missions'
+import type { MyPoints, MyProfile } from '@/features/my-account'
+import { monthKeyInArgentina } from '@/features/missions'
 import { API_URL } from '@/shared/api/http'
 import { accounts, passwordOf, setPassword } from './auth.handlers'
-import { customers } from './cashier.handlers'
+import {
+  claimCustomerMission,
+  customerMissionPeriodFromRequest,
+  customers,
+  myCustomerMissionsFor,
+} from './cashier.handlers'
 import { withLevelBenefits } from './level-benefits.seed'
 
 const STATUS_NAMES: Record<number, string> = {
@@ -70,108 +70,6 @@ const emptyPoints = (customerId: number): MyPoints => ({
   level: { current: 'BRONZE', next: 'SILVER', currentMinPoints: 0, nextMinPoints: 300, pointsToNext: 300, progressPercent: 0, benefit: null, nextBenefit: null },
   nextExpirations: [],
 })
-
-const currentMonth = monthKeyInArgentina()
-const previousMonth = addMonths(currentMonth, -1)
-const monthEndFor = (month: string) => {
-  const [year, monthNumber] = month.split('-').map(Number)
-  return new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10)
-}
-const monthEnd = monthEndFor(currentMonth)
-const previousMonthEnd = monthEndFor(previousMonth)
-
-const missionAssignments: CustomerMission[] = [
-  {
-    id: 41,
-    mission: { id: 1, name: 'Vení 3 veces', description: 'Sumá 3 consumos en el mes.' },
-    period: currentMonth,
-    objectiveType: 'CONSUMPTION_COUNT',
-    target: 3,
-    daysOfWeek: null,
-    timeFrom: null,
-    timeTo: null,
-    rewardPoints: 50,
-    progress: 3,
-    status: 'COMPLETED',
-    completedAt: new Date().toISOString(),
-    claimedAt: null,
-    claimedBy: null,
-    canClaim: true,
-    endsAt: monthEnd,
-  },
-  {
-    id: 42,
-    mission: { id: 2, name: 'Una misión en progreso', description: null },
-    period: currentMonth,
-    objectiveType: 'CONSUMPTION_COUNT',
-    target: 3,
-    daysOfWeek: null,
-    timeFrom: null,
-    timeTo: null,
-    rewardPoints: 50,
-    progress: 1,
-    status: 'IN_PROGRESS',
-    completedAt: null,
-    claimedAt: null,
-    claimedBy: null,
-    canClaim: false,
-    endsAt: monthEnd,
-  },
-  {
-    id: 43,
-    mission: { id: 3, name: 'Una misión reclamada', description: null },
-    period: currentMonth,
-    objectiveType: 'CONSUMPTION_COUNT',
-    target: 3,
-    daysOfWeek: null,
-    timeFrom: null,
-    timeTo: null,
-    rewardPoints: 50,
-    progress: 3,
-    status: 'CLAIMED',
-    completedAt: new Date().toISOString(),
-    claimedAt: new Date().toISOString(),
-    claimedBy: 'CUSTOMER',
-    canClaim: false,
-    endsAt: monthEnd,
-  },
-  {
-    id: 44,
-    mission: { id: 4, name: 'Una misión vencida', description: null },
-    period: previousMonth,
-    objectiveType: 'CONSUMPTION_COUNT',
-    target: 3,
-    daysOfWeek: null,
-    timeFrom: null,
-    timeTo: null,
-    rewardPoints: 50,
-    progress: 1,
-    status: 'EXPIRED',
-    completedAt: null,
-    claimedAt: null,
-    claimedBy: null,
-    canClaim: false,
-    endsAt: previousMonthEnd,
-  },
-  {
-    id: 45,
-    mission: { id: 5, name: 'Una misión sin recompensa', description: null },
-    period: currentMonth,
-    objectiveType: 'CONSUMPTION_COUNT',
-    target: 3,
-    daysOfWeek: null,
-    timeFrom: null,
-    timeTo: null,
-    rewardPoints: null,
-    progress: 3,
-    status: 'COMPLETED',
-    completedAt: new Date().toISOString(),
-    claimedAt: null,
-    claimedBy: null,
-    canClaim: false,
-    endsAt: monthEnd,
-  },
-]
 
 /** Saldo del Cliente, el mismo de `GET /customers/me/puntos` (lo usa el catálogo, US-39 §3.5.1). */
 export const myBalanceOf = (customerId: number) =>
@@ -278,85 +176,7 @@ const extraFields = (body: Record<string, unknown>, allowed: string[]) =>
     .map((key) => `property ${key} should not exist`)
 
 
-// ── Misiones del Cliente (S5 §3.3.2) ────────────────────────────────────────────────────────
-// Lo mínimo para la vista del Cliente: cuando se mergee US-33 (Misiones), su mock reemplaza a este.
-function currentPeriod() {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    year: 'numeric',
-    month: '2-digit',
-  }).formatToParts(new Date())
-  const year = Number(parts.find((p) => p.type === 'year')?.value)
-  const month = Number(parts.find((p) => p.type === 'month')?.value)
-  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
-  const mm = String(month).padStart(2, '0')
-  return { period: `${year}-${mm}`, endsAt: `${year}-${mm}-${String(lastDay).padStart(2, '0')}` }
-}
-
-function missionsOf(customerId: number): MyMission[] {
-  // Martín (cliente 2) todavía no tiene misiones: sirve para ver el estado vacío
-  if (customerId === 2) return []
-  const { period, endsAt } = currentPeriod()
-  const base = {
-    period,
-    endsAt,
-    timeFrom: null,
-    timeTo: null,
-    completedAt: null,
-    claimedAt: null,
-    claimedBy: null,
-  } as const
-  return [
-    {
-      ...base,
-      id: 101,
-      mission: { id: 1, name: 'Disfrutá 5 meriendas', description: 'Sumá 5 consumos a la tarde.' },
-      objectiveType: 'CONSUMPTION_COUNT',
-      target: 5,
-      progress: 3,
-      daysOfWeek: null,
-      timeFrom: '16:00',
-      timeTo: '20:00',
-      rewardPoints: 150,
-      status: 'IN_PROGRESS',
-      canClaim: false,
-    },
-    {
-      ...base,
-      id: 102,
-      mission: { id: 2, name: 'Pedí 3 pizzas', description: 'Tres consumos un viernes.' },
-      objectiveType: 'CONSUMPTION_COUNT',
-      target: 3,
-      progress: 1,
-      daysOfWeek: [5],
-      rewardPoints: 100,
-      status: 'IN_PROGRESS',
-      canClaim: false,
-    },
-    {
-      ...base,
-      id: 103,
-      mission: { id: 3, name: 'Gastá $ 30.000 en el mes', description: null },
-      objectiveType: 'CONSUMPTION_AMOUNT',
-      target: 30000,
-      progress: 30000,
-      daysOfWeek: null,
-      rewardPoints: null,
-      status: 'COMPLETED',
-      completedAt: new Date().toISOString(),
-      canClaim: false,
-    },
-  ]
-}
-
 export const myAccountHandlers = [
-  http.get(`${API_URL}/customers/me/misiones`, async ({ request }) => {
-    await delay(300)
-    const caller = requireCustomer(request)
-    if ('error' in caller) return caller.error
-    return HttpResponse.json(missionsOf(caller.customer.id))
-  }),
-
   http.get(`${API_URL}/customers/me`, async ({ request }) => {
     await delay(300)
     const caller = requireCustomer(request)
@@ -373,6 +193,23 @@ export const myAccountHandlers = [
     return HttpResponse.json({ ...summary, level: withLevelBenefits(summary.level) })
   }),
 
+  // US-33: al consultar el mes actual, el backend asigna las misiones que falten.
+  http.get(`${API_URL}/customers/me/misiones`, async ({ request }) => {
+    await delay(300)
+    const caller = requireCustomer(request)
+    if ('error' in caller) return caller.error
+    if (!caller.customer.active) {
+      return errorResponse(401, 'Unauthorized', request, 'UNAUTHENTICATED')
+    }
+
+    const period = customerMissionPeriodFromRequest(request)
+    if (!period) {
+      return errorResponse(400, 'Elegí un mes de los últimos 12.', request)
+    }
+    return HttpResponse.json(myCustomerMissionsFor(caller.customer.id, period))
+  }),
+
+  // US-31 (§3.3.3): reclama sobre las mismas misiones que devuelve GET /customers/me/misiones.
   http.patch(`${API_URL}/customers/me/misiones/:id/reclamar`, async ({ params, request }) => {
     await delay(300)
     const caller = requireCustomer(request)
@@ -382,8 +219,9 @@ export const myAccountHandlers = [
     }
 
     const assignmentId = Number(params.id)
-    const assignment = missionAssignments.find(
-      (item) => item.id === assignmentId && caller.customer.id === 1,
+    // Solo se reclaman las del mes actual: al terminar el mes se reclaman solas (US-32)
+    const assignment = myCustomerMissionsFor(caller.customer.id, monthKeyInArgentina()).find(
+      (item) => item.id === assignmentId,
     )
     if (!assignment) return errorResponse(404, 'No existe la misión.', request)
 
@@ -400,11 +238,8 @@ export const myAccountHandlers = [
       return errorResponse(409, 'Esta misión no tiene recompensa.', request, 'MISSION_NOT_CLAIMABLE')
     }
 
-    const now = new Date().toISOString()
-    assignment.status = 'CLAIMED'
-    assignment.claimedAt = now
-    assignment.claimedBy = 'CUSTOMER'
-    assignment.canClaim = false
+    const claimedAt = new Date().toISOString()
+    claimCustomerMission(assignment.id, claimedAt)
 
     const summary = points[caller.customer.id] ?? emptyPoints(caller.customer.id)
     const balanceAfter = summary.balance + assignment.rewardPoints
@@ -414,7 +249,16 @@ export const myAccountHandlers = [
       negativeBalance: balanceAfter < 0,
     }
 
-    return HttpResponse.json({ customerMission: assignment, balanceAfter })
+    return HttpResponse.json({
+      customerMission: {
+        ...assignment,
+        status: 'CLAIMED',
+        claimedAt,
+        claimedBy: 'CUSTOMER',
+        canClaim: false,
+      },
+      balanceAfter,
+    })
   }),
 
   // §3.10.4: solo lo que cambia; con un error no se guarda nada

@@ -6,5 +6,5 @@
  * docs/seguimiento/misiones-proximamente.md
  */
 export const FEATURES = {
-  missions: false,
+  missions: true,
 } as const

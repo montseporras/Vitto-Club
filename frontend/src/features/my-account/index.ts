@@ -1,6 +1,7 @@
 // Barrel del feature my-account (vista del Cliente): lo único que otros módulos deben importar.
 export { CustomerHomePage } from './pages/CustomerHomePage'
 export { MyHistoryPage } from './pages/MyHistoryPage'
+export { MyMissionsPage } from './pages/MyMissionsPage'
 export { MyProfilePage } from './pages/MyProfilePage'
 export { MyRedemptionsPage } from './pages/MyRedemptionsPage'
 export { PromotionPage } from './pages/PromotionPage'
@@ -17,7 +18,6 @@ export { PointsHistory } from './components/PointsHistory'
 export { useClaimMissionReward } from './api/my-account.queries'
 export type {
   ClaimMissionRewardResult,
-  CustomerMission,
   MyPoints,
   MyProfile,
 } from './types/my-account'

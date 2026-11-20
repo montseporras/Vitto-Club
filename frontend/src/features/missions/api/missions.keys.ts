@@ -7,4 +7,8 @@ export const missionsKeys = {
   details: () => [...missionsKeys.all, 'detail'] as const,
   detail: (id: number) => [...missionsKeys.details(), id] as const,
   completions: (id: number) => [...missionsKeys.all, 'completions', id] as const,
+  myMissions: (period?: string) =>
+    [...missionsKeys.all, 'customer', 'me', period ?? 'current'] as const,
+  customerMissions: (customerId: number, period?: string) =>
+    [...missionsKeys.all, 'customer', customerId, period ?? 'current'] as const,
 }

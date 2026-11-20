@@ -1,5 +1,6 @@
 import type { DocumentType } from '@/domain/documents'
 import type { Level } from '@/domain/levels'
+import type { MyMission } from './missions'
 
 /** GET y PATCH /customers/me (contrato §3.10.3). Sin `active` ni `deactivatedAt`. */
 export type MyProfile = {
@@ -54,33 +55,9 @@ export type MyPoints = {
   nextExpirations: { points: number; expiresAt: string }[]
 }
 
-export type CustomerMissionStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CLAIMED' | 'EXPIRED'
-export type CustomerMissionObjectiveType = 'CONSUMPTION_COUNT' | 'CONSUMPTION_AMOUNT'
-export type CustomerMissionClaimedBy = 'CUSTOMER' | 'SYSTEM'
-
-/** CustomerMission de las rutas del Cliente (contrato §3.3.1). */
-export type CustomerMission = {
-  id: number
-  mission: { id: number; name: string; description: string | null }
-  period: string
-  objectiveType: CustomerMissionObjectiveType
-  target: number
-  daysOfWeek: number[] | null
-  timeFrom: string | null
-  timeTo: string | null
-  rewardPoints: number | null
-  progress: number
-  status: CustomerMissionStatus
-  completedAt: string | null
-  claimedAt: string | null
-  claimedBy: CustomerMissionClaimedBy | null
-  canClaim: boolean
-  endsAt: string
-}
-
 /** PATCH /customers/me/misiones/:id/reclamar (§3.3.3). */
 export type ClaimMissionRewardResult = {
-  customerMission: CustomerMission
+  customerMission: MyMission
   balanceAfter: number
 }
 

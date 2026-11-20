@@ -7,6 +7,8 @@ import type {
   DeleteMissionResponse,
   Mission,
   MissionListFilters,
+  MyCustomerMission,
+  StaffCustomerMission,
   UpdateMissionBody,
   UpdateMissionResponse,
 } from '../types/mission'
@@ -71,9 +73,35 @@ export async function updateMission(
   }
 }
 
+export async function getMyMissions(period?: string): Promise<MyCustomerMission[]> {
+  try {
+    const { data } = await http.get<MyCustomerMission[]>('/customers/me/misiones', {
+      params: period ? { period } : undefined,
+    })
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
 export async function deleteMission(id: number): Promise<DeleteMissionResponse> {
   try {
     const { data } = await http.patch<DeleteMissionResponse>(`/misiones/${id}/eliminar`)
+    return data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function getCustomerMissions(
+  customerId: number,
+  period?: string,
+): Promise<StaffCustomerMission[]> {
+  try {
+    const { data } = await http.get<StaffCustomerMission[]>(
+      `/customers/${customerId}/misiones`,
+      { params: period ? { period } : undefined },
+    )
     return data
   } catch (error) {
     throw toApiError(error)
