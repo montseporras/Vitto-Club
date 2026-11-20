@@ -34,6 +34,8 @@ export const useVoidConsumption = (customerId: number) => {
       // puntos (US-26), igual que "Ajustar puntos" (US-24)
       void queryClient.invalidateQueries({ queryKey: cashierKeys.customer(customerId) })
       void queryClient.invalidateQueries({ queryKey: ['points-movements'] })
+      // Anular resta avance en las misiones En progreso del mes (S5-21)
+      void queryClient.invalidateQueries({ queryKey: ['missions', 'customer', customerId] })
     },
     onSettled: () => {
       void queryClient.invalidateQueries({

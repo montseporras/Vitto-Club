@@ -120,6 +120,8 @@ export const useCreateConsumption = () => {
       queryClient.invalidateQueries({
         queryKey: ['customers', body.customerId, 'consumptions'],
       })
+      // El consumo suma avance a las misiones (US-30): "Misiones: {n} en progreso" cambia (US-33)
+      queryClient.invalidateQueries({ queryKey: ['missions', 'customer', body.customerId] })
     },
   })
 }
