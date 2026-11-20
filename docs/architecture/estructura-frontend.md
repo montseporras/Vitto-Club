@@ -118,7 +118,7 @@ frontend/src/
 │   │   │                       # DataList, DateInput, DateRangePicker, PasswordInput, AuthShell, Icon...
 │   │   ├── forms/              # FormField, FormSection, FormActions, SegmentedRadio
 │   │   ├── navigation/         # AppHeader, SideNav
-│   │   └── feedback/           # StatusText, ComingSoon, Toast
+│   │   └── feedback/           # StatusText, Toast
 │   ├── hooks/                  # useDebounce, useMediaQuery
 │   ├── lib/                    # utils.ts (cn), dates.ts, numbers.ts, password.ts, env.ts
 │   └── types/                  # pagination.ts: Paginated<T>
@@ -363,7 +363,7 @@ El sistema se compone de tres niveles:
    | Formularios | `FormSection` (título en mayúsculas con línea debajo), `FormField` (etiqueta + control + error/ayuda; marca `*` en los obligatorios), `FormActions` (botonera con fondo), `SegmentedRadio` |
    | Controles | `Input`, `Textarea` (US-24), `Select`, `DateInput`, `DateRangePicker`, `PasswordInput`, `Label` |
    | Acciones | `Button` — variantes `primary`, `secondary`, `ghost`; tamaño `lg` para la pantalla de caja |
-   | Estados y mensajes | `Alert` (`success` / `error`), `Badge` (`success`, `danger`, `alert`, `neutral`, `accent`), `StatusText`, `Toast` (solo de éxito), `ComingSoon` (descripción opcional) |
+   | Estados y mensajes | `Alert` (`success` / `error`), `Badge` (`success`, `danger`, `alert`, `neutral`, `accent`), `StatusText`, `Toast` (solo de éxito) |
    | Datos | `Table` y sus subcomponentes (`TableRow highlight`: se pinta al pasar el mouse sin ser clickeable), `DataList` (pares etiqueta/valor), `Pagination` ("Página X de Y", Anterior / Siguiente) |
    | Diálogos | `Modal`. **No tiene Escape propio**: cada modal suma el suyo. En `redemptions`, el hook `useEscapeKey`; los que no lo tenían (Configuración, detalle de un consumo y los modales de Empleados) usan `shared/hooks/useModalEscape`, que cierra solo el modal de arriba cuando hay uno dentro de otro (A4-13) |
    | Navegación | `AppHeader`, `SideNav` (opciones deshabilitadas con etiqueta: `{ disabled: true, tag: 'Próx.' }`) |

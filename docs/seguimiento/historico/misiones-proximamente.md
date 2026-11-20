@@ -1,5 +1,9 @@
 # Misiones: "Próximamente" y dónde queda guardado el diseño
 
+> **Superado el 20/11/2026.** Las misiones (US-28 a US-33) ya están en `develop`. Se sacaron todas las
+> etiquetas "Próximamente" (S5-33) y se borraron el interruptor `FEATURES` (`shared/lib/features.ts`),
+> `SoonBadge`, `ComingSoon` y las pantallas de reemplazo. Lo de abajo queda solo como registro.
+
 > **Fecha:** 16/11/2026 · **Rama:** `feature/diseno-y-responsive`
 >
 > Las misiones (US-28 a US-33) todavía no se lanzan. En todos los lugares donde aparecen se muestra
@@ -8,7 +12,7 @@
 
 ## 1. El interruptor
 
-[`frontend/src/shared/lib/features.ts`](../../frontend/src/shared/lib/features.ts):
+[`frontend/src/shared/lib/features.ts`](../../../frontend/src/shared/lib/features.ts):
 
 ```ts
 export const FEATURES = { missions: false } as const
@@ -31,7 +35,7 @@ Con `false`, las pantallas del Cliente muestran "Próximamente" y **no piden nad
 | **Estadísticas → Puntos → "De dónde salen los puntos" → Misiones** | Etiqueta junto al nombre | `features/statistics/components/PointsOriginCard.tsx` |
 
 La etiqueta es el componente compartido
-[`SoonBadge`](../../frontend/src/shared/components/ui/SoonBadge.tsx).
+[`SoonBadge`](../../../frontend/src/shared/components/ui/SoonBadge.tsx).
 
 ## 3. Cómo se habilitan las misiones
 

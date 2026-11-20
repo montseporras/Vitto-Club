@@ -7,8 +7,6 @@ import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert } from '@/shared/components/ui/Alert'
 import { Select } from '@/shared/components/ui/Select'
 import { ICONS } from '@/shared/components/ui/icons'
-import { SoonBadge } from '@/shared/components/ui/SoonBadge'
-import { FEATURES } from '@/shared/lib/features'
 import { formatInteger } from '@/shared/lib/numbers'
 import { cn } from '@/shared/lib/utils'
 import { clientStyles } from '@/styles/ui'
@@ -18,8 +16,7 @@ import { MissionCard } from '../components/client/MissionCard'
 import { shortDate } from '../lib/client-format'
 import { CUSTOMER_PATHS } from '../lib/paths'
 
-// Diseño de las misiones, guardado para cuando se habiliten (FEATURES.missions)
-function MissionsContent() {
+export function MissionsPage() {
   const [period, setPeriod] = useState('')
   const missions = useMyMissions(period || undefined)
   const claim = useClaimMissionReward()
@@ -99,22 +96,4 @@ function MissionsContent() {
       )}
     </div>
   )
-}
-
-function MissionsComingSoon() {
-  return (
-    <div className={cn(clientStyles.page, 'lg:max-w-4xl')}>
-      <ClientPageHeader title="Misiones" backTo={CUSTOMER_PATHS.redemptions} />
-      <EmptyState
-        icon={ICONS.target}
-        title="Misiones: próximamente"
-        description="Muy pronto vas a poder completar misiones del mes y sumar puntos extra. ¡Las estamos preparando!"
-        action={<SoonBadge />}
-      />
-    </div>
-  )
-}
-
-export function MissionsPage() {
-  return FEATURES.missions ? <MissionsContent /> : <MissionsComingSoon />
 }

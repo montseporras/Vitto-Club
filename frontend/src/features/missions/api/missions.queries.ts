@@ -12,7 +12,6 @@ import type {
   DeleteMissionResponse,
   Mission,
   MissionListFilters,
-  MyCustomerMission,
   StaffCustomerMission,
   UpdateMissionBody,
   UpdateMissionResponse,
@@ -22,7 +21,6 @@ import {
   deleteMission,
   getCustomerMissions,
   getCompletedMissions,
-  getMyMissions,
   getMission,
   listMissions,
   updateMission,
@@ -61,13 +59,6 @@ export const useMissionCompletions = (id: number | null) =>
       return getCompletedMissions(id)
     },
     enabled: id !== null,
-    retry: retryNetworkOnce,
-  })
-
-export const useMyCustomerMissions = (period?: string) =>
-  useQuery<MyCustomerMission[], ApiError>({
-    queryKey: missionsKeys.myMissions(period),
-    queryFn: () => getMyMissions(period),
     retry: retryNetworkOnce,
   })
 

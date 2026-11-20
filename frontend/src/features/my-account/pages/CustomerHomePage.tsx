@@ -1,5 +1,4 @@
 import { Link } from 'react-router'
-import { useMyCustomerMissions } from '@/features/missions'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert } from '@/shared/components/ui/Alert'
 import { Card, CardTitle } from '@/shared/components/ui/Card'
@@ -9,7 +8,7 @@ import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { Icon } from '@/shared/components/ui/Icon'
 import { ICONS } from '@/shared/components/ui/icons'
 import { clientStyles } from '@/styles/ui'
-import { useMyPoints } from '../api/my-account.queries'
+import { useMyMissions, useMyPoints } from '../api/my-account.queries'
 import { ClientPageHeader, SectionHeader } from '../components/client/ClientUI'
 import { GreetingCard } from '../components/client/GreetingCard'
 import { PromoCarousel } from '../components/client/PromoCarousel'
@@ -25,7 +24,7 @@ export function CustomerHomePage() {
   const session = useSession()
   const points = useMyPoints()
   const catalog = useMyCatalog('ALL')
-  const missions = useMyCustomerMissions()
+  const missions = useMyMissions()
   const firstName = session.status === 'authenticated' ? (session.user.firstName ?? '') : ''
 
   return (

@@ -15,7 +15,6 @@ Documentos que cambian con el tiempo: estado, decisiones, pendientes y pedidos e
 | [diferencias-prototipo-frontend](./diferencias-prototipo-frontend.md) | Diferencias entre el prototipo v2 y el frontend tras la alineación visual del 19/10 |
 | [emp-pass-frontend](./emp-pass-frontend.md) | EMP-PASS (frontend): contraseña y reactivación de usuarios |
 | [responsive-pendientes](./responsive-pendientes.md) | Qué se adaptó a tablet y celular, qué se revisó y qué queda pendiente por tocarlo el Sprint 5 |
-| [misiones-proximamente](./misiones-proximamente.md) | Dónde se ve "Próximamente" por las misiones, el interruptor y dónde queda guardado el diseño |
 | [pedidos/](./pedidos/) | Pedidos entre equipos (ver [plantilla](../plantillas/pedido-entre-equipos.md)) |
 | [historico/](./historico/) | Documentos de traspaso, comparación de ramas y pendientes ya superados |
 

@@ -7,7 +7,6 @@ import type {
   DeleteMissionResponse,
   Mission,
   MissionListFilters,
-  MyCustomerMission,
   StaffCustomerMission,
   UpdateMissionBody,
   UpdateMissionResponse,
@@ -67,17 +66,6 @@ export async function updateMission(
 ): Promise<UpdateMissionResponse> {
   try {
     const { data } = await http.patch<UpdateMissionResponse>(`/misiones/${id}`, body)
-    return data
-  } catch (error) {
-    throw toApiError(error)
-  }
-}
-
-export async function getMyMissions(period?: string): Promise<MyCustomerMission[]> {
-  try {
-    const { data } = await http.get<MyCustomerMission[]>('/customers/me/misiones', {
-      params: period ? { period } : undefined,
-    })
     return data
   } catch (error) {
     throw toApiError(error)
