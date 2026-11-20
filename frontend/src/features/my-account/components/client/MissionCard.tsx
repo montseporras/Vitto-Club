@@ -2,6 +2,7 @@
 // Completa (página Misiones) suma la descripción, la recompensa y el estado. El avance lo manda el
 // backend (S5 §3.3.1); la barra solo lo dibuja.
 import { Badge } from '@/shared/components/ui/Badge'
+import { Button } from '@/shared/components/ui/Button'
 import { formatInteger } from '@/shared/lib/numbers'
 import { cn } from '@/shared/lib/utils'
 import { clientStyles } from '@/styles/ui'
@@ -65,48 +66,69 @@ function MissionProgress({ mission }: { mission: MyMission }) {
   )
 }
 
-export function MissionCard({ mission, detailed = false }: { mission: MyMission; detailed?: boolean }) {
+type MissionCardProps = {
+  mission: MyMission
+  detailed?: boolean
+  /** Solo en la página Misiones: muestra "Reclamar recompensa" si `canClaim` (S5 §3.3.2). */
+  onClaim?: (missionId: number) => void
+  claiming?: boolean
+}
+
+export function MissionCard({ mission, detailed = false, onClaim, claiming = false }: MissionCardProps) {
   const status = STATUS[mission.status]
   const done = mission.status === 'COMPLETED' || mission.status === 'CLAIMED'
 
   return (
-    <article className={cn(clientStyles.card, 'flex min-w-0 items-center gap-3 px-3.5 py-3')}>
-      <RowIcon
-        icon={iconForName(mission.mission.name)}
-        className={cn('size-10 rounded-lg', done && 'bg-olive-50 text-olive-800')}
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="min-w-0 truncate font-sans text-sm font-bold leading-snug text-ink">{mission.mission.name}</h3>
+    <article className={cn(clientStyles.card, 'min-w-0 px-3.5 py-3')}>
+      <div className="flex min-w-0 items-center gap-3">
+        <RowIcon
+          icon={iconForName(mission.mission.name)}
+          className={cn('size-10 rounded-lg', done && 'bg-olive-50 text-olive-800')}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="min-w-0 truncate font-sans text-sm font-bold leading-snug text-ink">{mission.mission.name}</h3>
+            {detailed && (
+              <Badge variant={status.variant} className="shrink-0 whitespace-nowrap">
+                {status.label}
+              </Badge>
+            )}
+          </div>
+          {detailed && mission.mission.description && (
+            <p className="text-sm text-neutral-600">{mission.mission.description}</p>
+          )}
+          <div className="mt-1.5 flex items-center gap-2.5">
+            <MissionProgress mission={mission} />
+            <span
+              className={cn(
+                'shrink-0 rounded-full px-2 py-0.5 text-xs font-bold tabular-nums',
+                done ? 'bg-olive-50 text-olive-800' : 'bg-accent-50 text-accent-800',
+              )}
+            >
+              {missionProgressText(mission)}
+            </span>
+          </div>
           {detailed && (
-            <Badge variant={status.variant} className="shrink-0 whitespace-nowrap">
-              {status.label}
-            </Badge>
+            <p className="mt-1.5 text-sm text-neutral-700">
+              Recompensa:{' '}
+              <strong className="text-accent-800">
+                {mission.rewardPoints === null ? 'Sin recompensa' : `${formatInteger(mission.rewardPoints)} pts`}
+              </strong>
+            </p>
           )}
         </div>
-        {detailed && mission.mission.description && (
-          <p className="text-sm text-neutral-600">{mission.mission.description}</p>
-        )}
-        <div className="mt-1.5 flex items-center gap-2.5">
-          <MissionProgress mission={mission} />
-          <span
-            className={cn(
-              'shrink-0 rounded-full px-2 py-0.5 text-xs font-bold tabular-nums',
-              done ? 'bg-olive-50 text-olive-800' : 'bg-accent-50 text-accent-800',
-            )}
-          >
-            {missionProgressText(mission)}
-          </span>
-        </div>
-        {detailed && (
-          <p className="mt-1.5 text-sm text-neutral-700">
-            Recompensa:{' '}
-            <strong className="text-accent-800">
-              {mission.rewardPoints === null ? 'Sin recompensa' : `${formatInteger(mission.rewardPoints)} pts`}
-            </strong>
-          </p>
-        )}
       </div>
+      {detailed && mission.canClaim && onClaim && (
+        <Button
+          type="button"
+          className="mt-2.5 w-full"
+          loading={claiming}
+          disabled={claiming}
+          onClick={() => onClaim(mission.id)}
+        >
+          Reclamar recompensa
+        </Button>
+      )}
     </article>
   )
 }

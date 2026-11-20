@@ -26,12 +26,15 @@ export const useMyProfile = () =>
 export const useMyPoints = () =>
   useQuery({ queryKey: myAccountKeys.points(), queryFn: getMyPoints })
 
-/** Reclama la recompensa e invalida los datos de Mi cuenta que cambian (§3.3.3). */
+/**
+ * Reclama la recompensa (§3.3.3). Con éxito o con error se vuelven a pedir las misiones y el
+ * saldo: con un 409 la misión ya cambió de estado (por ejemplo, se reclamó sola).
+ */
 export const useClaimMissionReward = () => {
   const qc = useQueryClient()
   return useMutation<ClaimMissionRewardResult, ApiError, number>({
     mutationFn: claimMissionReward,
-    onSuccess: () => qc.invalidateQueries({ queryKey: myAccountKeys.all }),
+    onSettled: () => qc.invalidateQueries({ queryKey: myAccountKeys.all }),
   })
 }
 

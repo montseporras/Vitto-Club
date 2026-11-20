@@ -2,15 +2,17 @@
 import { useState } from 'react'
 import { addMonths, monthKeyInArgentina, monthLabel } from '@/features/missions'
 import { EmptyState } from '@/shared/components/feedback/EmptyState'
+import { useToast } from '@/shared/components/feedback/useToast'
 import { StatusText } from '@/shared/components/feedback/StatusText'
 import { Alert } from '@/shared/components/ui/Alert'
 import { Select } from '@/shared/components/ui/Select'
 import { ICONS } from '@/shared/components/ui/icons'
 import { SoonBadge } from '@/shared/components/ui/SoonBadge'
 import { FEATURES } from '@/shared/lib/features'
+import { formatInteger } from '@/shared/lib/numbers'
 import { cn } from '@/shared/lib/utils'
 import { clientStyles } from '@/styles/ui'
-import { useMyMissions } from '../api/my-account.queries'
+import { useClaimMissionReward, useMyMissions } from '../api/my-account.queries'
 import { ClientPageHeader } from '../components/client/ClientUI'
 import { MissionCard } from '../components/client/MissionCard'
 import { shortDate } from '../lib/client-format'
@@ -20,6 +22,15 @@ import { CUSTOMER_PATHS } from '../lib/paths'
 function MissionsContent() {
   const [period, setPeriod] = useState('')
   const missions = useMyMissions(period || undefined)
+  const claim = useClaimMissionReward()
+  const showToast = useToast()
+  // US-31 (§3.3.3): con éxito, "¡Sumaste {n} pts!"; con un error, el mensaje del backend
+  const claimReward = (missionId: number) =>
+    claim.mutate(missionId, {
+      onSuccess: ({ customerMission }) =>
+        showToast(`¡Sumaste ${formatInteger(customerMission.rewardPoints ?? 0)} pts!`),
+      onError: (error) => showToast(error.messages.join(' ')),
+    })
   const endsAt = missions.data?.[0]?.endsAt
   const currentMonth = monthKeyInArgentina()
   const periodOptions = [
@@ -75,7 +86,12 @@ function MissionsContent() {
           <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-2">
             {missions.data.map((mission) => (
               <li key={mission.id}>
-                <MissionCard mission={mission} detailed />
+                <MissionCard
+                  mission={mission}
+                  detailed
+                  onClaim={claimReward}
+                  claiming={claim.isPending && claim.variables === mission.id}
+                />
               </li>
             ))}
           </ul>
