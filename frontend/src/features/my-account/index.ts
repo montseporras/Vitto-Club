@@ -14,7 +14,13 @@ export { HelpPage } from './pages/HelpPage'
 export { ConfirmRedemptionFlow } from './components/ConfirmRedemptionFlow'
 export { ChangePasswordModal } from './components/ChangePasswordModal'
 export { PointsHistory } from './components/PointsHistory'
-export type { MyPoints, MyProfile } from './types/my-account'
+export { useClaimMissionReward } from './api/my-account.queries'
+export type {
+  ClaimMissionRewardResult,
+  CustomerMission,
+  MyPoints,
+  MyProfile,
+} from './types/my-account'
 export type {
   CustomerLevel,
   CustomerPoints,

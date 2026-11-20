@@ -2,7 +2,6 @@ import { createBrowserRouter, Navigate } from 'react-router'
 import { AuthLayout } from '@/app/layouts/AuthLayout'
 import { CashierLayout } from '@/app/layouts/CashierLayout'
 import { LoginPage } from '@/features/auth'
-import { ComingSoon } from '@/shared/components/feedback/ComingSoon'
 import { PATHS, ROLE_HOME } from './paths'
 import { ProtectedRoute } from './ProtectedRoute'
 import { RoleRoute } from './RoleRoute'
@@ -260,10 +259,12 @@ export const router = createBrowserRouter([
           return { Component: StatisticsPage }
         },
       },
-      // Pantallas de otras historias: todavía no están construidas
       {
         path: PATHS.admin.missions,
-        element: <ComingSoon eyebrow="Misiones" title="Misiones" />,
+        lazy: async () => {
+          const { MissionsAdminPage } = await import('@/features/missions')
+          return { Component: MissionsAdminPage }
+        },
       },
     ],
   },

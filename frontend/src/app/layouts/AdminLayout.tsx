@@ -23,13 +23,12 @@ import { Modal } from '@/shared/components/ui/Modal';
 import { useModalEscape } from '@/shared/hooks/useModalEscape';
 import { appHeaderStyles } from '@/styles/ui';
 
-// Menú lateral del Administrador, en el orden del prototipo v2. Misiones todavía no está
-// construida (US-28): deshabilitada con "Próx.", como en el prototipo.
+// Menú lateral del Administrador, en el orden del prototipo v2.
 const SOON = 'Próx.';
 const NAV: SideNavItem[] = [
   { id: 'rewards', to: PATHS.admin.rewards, label: 'Recompensas', icon: ICONS.gift },
   { id: 'redemptions', to: PATHS.admin.redemptions, label: 'Canjes', icon: ICONS.ticket },
-  { id: 'missions', disabled: true, tag: SOON, label: 'Misiones', icon: ICONS.target },
+  { id: 'missions', to: PATHS.admin.missions, label: 'Misiones', icon: ICONS.target },
   { id: 'customers', to: PATHS.admin.customers, label: 'Clientes', icon: ICONS.users },
   {
     id: 'statistics',

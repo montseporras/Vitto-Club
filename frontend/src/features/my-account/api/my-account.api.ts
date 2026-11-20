@@ -3,6 +3,7 @@ import { http } from '@/shared/api/http'
 import type { MyMission } from '../types/missions'
 import type {
   ChangePasswordBody,
+  ClaimMissionRewardResult,
   MyPoints,
   MyProfile,
   UpdateMyProfileBody,
@@ -38,6 +39,18 @@ export async function getMyPoints() {
   }
 }
 
+/** PATCH /customers/me/misiones/:id/reclamar (§3.3.3): reclama una misión completada. */
+export async function claimMissionReward(customerMissionId: number) {
+  try {
+    const res = await http.patch<ClaimMissionRewardResult>(
+      `/customers/me/misiones/${customerMissionId}/reclamar`,
+    )
+    return res.data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
 /**
  * PATCH /mi-cuenta/password (§3.11.1): 204 sin cuerpo. La cookie del refresh
  * tiene que viajar (withCredentials, en http.ts): con ella el backend sabe cuál
@@ -52,9 +65,11 @@ export async function changeMyPassword(body: ChangePasswordBody) {
 }
 
 /** GET /customers/me/misiones (S5 §3.3.2): las misiones del mes actual, sin paginado. */
-export async function getMyMissions() {
+export async function getMyMissions(period?: string) {
   try {
-    const res = await http.get<MyMission[]>('/customers/me/misiones')
+    const res = await http.get<MyMission[]>('/customers/me/misiones', {
+      params: period ? { period } : undefined,
+    })
     return res.data
   } catch (error) {
     throw toApiError(error)

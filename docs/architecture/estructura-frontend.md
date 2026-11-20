@@ -102,7 +102,7 @@ frontend/src/
 │   ├── redemptions/            # EP06 — Canjes del Administrador y ventanas compartidas (Canjear, Registrar uso, Rechazar)
 │   ├── audit/                  # EP09 — Auditoría (US-57)
 │   ├── my-account/             # EP03/EP04/EP06 — vista del Cliente: Inicio, Mi perfil, Canjes (Catálogo y Mis canjes)
-│   ├── missions/               # EP05 — vacía (Sprint 5)
+│   ├── missions/               # EP05 — misiones del Administrador (US-28: listado, alta y detalle de lectura)
 │   ├── levels/                 # vacía: los niveles se configuran en points/
 │   ├── notifications/          # EP08 — vacía (Sprint 5)
 │   └── statistics/             # EP09 — vacía (Sprint 5)
